@@ -1,0 +1,23 @@
+<manifest
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        package="com.sensorsdata.analytics.android.sdk">
+
+    <uses-sdk android:minSdkVersion="9"
+              android:targetSdkVersion="20"
+              tools:ignore="GradleOverrides"/>
+
+    <!--
+      This permission is required to allow the application to send events and properties to SensorsData Analytics.
+     -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!--
+      This permission is required to send data smartly.
+     -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <application tools:ignore="AllowBackup">
+
+    </application>
+</manifest>

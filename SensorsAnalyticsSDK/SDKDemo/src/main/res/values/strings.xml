@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">SDKDemo</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="edit_first_name">First Name</string>
+    <string name="edit_last_name">Last Name</string>
+    <string name="edit_email_address">Email Address</string>
+    <string name="button_send">Send to SensorsAnalytics</string>
+    <string name="button_buy">Send Revenue</string>
+    <string name="menu_settings">Settings</string>
+    <string name="title_activity_main">Hello SensorsAnalytics</string>
+    <string name="button_background">Set background image</string>
+
+</resources>

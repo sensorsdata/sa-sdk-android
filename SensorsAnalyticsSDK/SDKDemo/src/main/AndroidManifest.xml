@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.sensorsdata.analytics.android.sdkdemo" >
+
+    <!-- [Required] 必须使用该权限，向SensorsAnalytics发送数据 -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- [Optional] 该权限可选，查询网络状态 -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme" >
+
+        <activity
+            android:name=".MainActivity"
+            android:label="@string/app_name" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- [Required] 接收日志的服务器的地址 -->
+        <meta-data android:name="com.sensorsdata.analytics.android.sdk.config.ServerUrl"
+                   android:value="http://sa_host:8006/sa"/>
+        <!-- [Optional] 是否打印Debug信息，默认值为 false -->
+        <meta-data android:name="com.sensorsdata.analytics.android.sdk.config.DebugMode"
+                   android:value="true"/>
+        <!-- [Optional] SDK缓存日志的最大条目数，超过此值将立即进行发送，默认值为 100 -->
+        <meta-data android:name="com.sensorsdata.analytics.android.sdk.config.BulkSize"
+                   android:value="100"/>
+        <!-- [Optional] SDK发送日志的最大时间间隔，单位毫秒，默认值为 60 * 1000 (60秒) -->
+        <meta-data android:name="com.sensorsdata.analytics.android.sdk.config.FlushInterval"
+                   android:value="60000"/>
+        <!-- [Optional] SDK本地缓存数据库最小值，单位 Byte，默认为 20 * 1024 * 1024 (20MB) -->
+        <meta-data android:name="com.sensorsdata.analytics.android.sdk.config.MinimumDatabaseLimit"
+                   android:value="20000000"/>
+
+    </application>
+
+</manifest>
