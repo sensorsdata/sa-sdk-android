@@ -5,12 +5,14 @@ import com.sensorsdata.analytics.android.sdk.util.HttpService;
 import com.sensorsdata.analytics.android.sdk.util.RemoteService;
 
 import android.content.Context;
+import android.net.ConnectivityManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
+import android.telephony.TelephonyManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import org.apache.http.NameValuePair;
@@ -65,10 +67,10 @@ import java.util.Map;
     }
   }
 
-  public void eventsMessage(final EventDescription eventDescription) {
+  public void eventsMessage(final JSONObject eventJson) {
     final Message m = Message.obtain();
     m.what = ENQUEUE_EVENTS;
-    m.obj = eventDescription;
+    m.obj = eventJson;
     mWorker.runMessage(m);
   }
 
@@ -113,59 +115,6 @@ import java.util.Map;
     return new HttpService();
   }
 
-  ////////////////////////////////////////////////////
-
-
-  static class EventDescription {
-
-    public EventDescription(String type, String eventName, long eventTime, String distinctId,
-        String originDistinctId, JSONObject properties, String token) {
-      this.eventType = type;
-      this.eventName = eventName;
-      this.eventTime = eventTime;
-      this.distinctId = distinctId;
-      this.originDistinctId = originDistinctId;
-      this.properties = properties;
-      this.token = token;
-    }
-
-    public String getEventType() {
-      return eventType;
-    }
-
-    public String getEventName() {
-      return eventName;
-    }
-
-    public long getEventTime() {
-      return eventTime;
-    }
-
-    public String getDistinctId() {
-      return distinctId;
-    }
-
-    public String getOriginDistinctId() {
-      return originDistinctId;
-    }
-
-    public JSONObject getProperties() {
-      return properties;
-    }
-
-    public String getToken() {
-      return token;
-    }
-
-    private final String eventType;
-    private final String eventName;
-    private final long eventTime;
-    private final String distinctId;
-    private final String originDistinctId;
-    private final JSONObject properties;
-    private final String token;
-  }
-
   // Sends a message if and only if we are running with SensorsData Message log enabled.
   // Will be called from the SensorsData thread.
   private void logAboutMessageToSensorsData(String message) {
@@ -178,6 +127,36 @@ import java.util.Map;
     if (SSConfig.DEBUG) {
       Log.v(LOGTAG, message + " (Thread " + Thread.currentThread().getId() + ")", e);
     }
+  }
+
+  public boolean isWifiOr3G() {
+    // Wifi
+    ConnectivityManager manager = (ConnectivityManager)mContext.getSystemService(
+        mContext.CONNECTIVITY_SERVICE);
+    if (manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).isConnectedOrConnecting()) {
+      return true;
+    }
+
+    // Mobile network
+    TelephonyManager telephonyManager = (TelephonyManager)
+        mContext.getSystemService(Context.TELEPHONY_SERVICE);
+    int networkType = telephonyManager.getNetworkType();
+    switch (networkType) {
+      case TelephonyManager.NETWORK_TYPE_UMTS:
+      case TelephonyManager.NETWORK_TYPE_EVDO_0:
+      case TelephonyManager.NETWORK_TYPE_EVDO_A:
+      case TelephonyManager.NETWORK_TYPE_HSDPA:
+      case TelephonyManager.NETWORK_TYPE_HSUPA:
+      case TelephonyManager.NETWORK_TYPE_HSPA:
+      case TelephonyManager.NETWORK_TYPE_EVDO_B:
+      case TelephonyManager.NETWORK_TYPE_EHRPD:
+      case TelephonyManager.NETWORK_TYPE_HSPAP:
+      case TelephonyManager.NETWORK_TYPE_LTE:
+        return true;
+    }
+
+    // 2G or disconnected to the internet
+    return false;
   }
 
   // Worker will manage the (at most single) IO thread associated with
@@ -242,15 +221,12 @@ import java.util.Map;
 
             returnCode = mDbAdapter.addJSON(message, DbAdapter.Table.PEOPLE);
           } else if (msg.what == ENQUEUE_EVENTS) {
-            final EventDescription eventDescription = (EventDescription) msg.obj;
-            try {
-              final JSONObject message = prepareEventObject(eventDescription);
-              logAboutMessageToSensorsData("Queuing event for sending later");
-              logAboutMessageToSensorsData("    " + message.toString());
-              returnCode = mDbAdapter.addJSON(message, DbAdapter.Table.EVENTS);
-            } catch (final JSONException e) {
-              Log.e(LOGTAG, "Exception tracking event " + eventDescription.getEventName(), e);
-            }
+            final JSONObject message = (JSONObject) msg.obj;
+
+            logAboutMessageToSensorsData("Queuing event for sending later");
+            logAboutMessageToSensorsData("    " + message.toString());
+
+            returnCode = mDbAdapter.addJSON(message, DbAdapter.Table.EVENTS);
           } else if (msg.what == FLUSH_QUEUE) {
             logAboutMessageToSensorsData("Flushing queue due to scheduled or forced flush");
             updateFlushFrequency();
@@ -276,21 +252,22 @@ import java.util.Map;
 
           ///////////////////////////
 
-          if ((returnCode >= mConfig.getBulkSize()
-              || returnCode == DbAdapter.DB_OUT_OF_MEMORY_ERROR)
-              && SystemClock.elapsedRealtime() >= mRetryAfter) {
-            logAboutMessageToSensorsData("Flushing queue due to bulk upload limit");
-            updateFlushFrequency();
-            try {
-              sendAllData(mDbAdapter);
-            } catch (RemoteService.ServiceUnavailableException e) {
-              mRetryAfter = SystemClock.elapsedRealtime() + e.getRetryAfter() * 1000;
-            }
-          } else if (returnCode > 0 && !hasMessages(FLUSH_QUEUE)) {
-            logAboutMessageToSensorsData(
-                "Queue depth " + returnCode + " - Adding flush in " + mFlushInterval);
-            if (mFlushInterval >= 0) {
-              sendEmptyMessageDelayed(FLUSH_QUEUE, mFlushInterval);
+          // Flush the queue due to the limit while the network type is 3G/4G/wifi.
+          if (isWifiOr3G()) {
+            if ((returnCode >= mConfig.getBulkSize() || returnCode == DbAdapter.DB_OUT_OF_MEMORY_ERROR)
+                && SystemClock.elapsedRealtime() >= mRetryAfter) {
+              logAboutMessageToSensorsData("Flushing queue due to bulk upload limit");
+              updateFlushFrequency();
+              try {
+                sendAllData(mDbAdapter);
+              } catch (RemoteService.ServiceUnavailableException e) {
+                mRetryAfter = SystemClock.elapsedRealtime() + e.getRetryAfter() * 1000;
+              }
+            } else if (returnCode > 0 && !hasMessages(FLUSH_QUEUE)) {
+              logAboutMessageToSensorsData("Queue depth " + returnCode + " - Adding flush in " + mFlushInterval);
+              if (mFlushInterval >= 0) {
+                sendEmptyMessageDelayed(FLUSH_QUEUE, mFlushInterval);
+              }
             }
           }
         } catch (final RuntimeException e) {
@@ -381,66 +358,6 @@ import java.util.Map;
             }
           }
         }
-      }
-
-      private JSONObject getDefaultEventProperties() throws JSONException {
-        final JSONObject ret = new JSONObject();
-
-        ret.put("$sdk_version", SSConfig.VERSION);
-
-        // For querying together with data from other libraries
-        ret.put("$os", "Android");
-        ret.put("$os_version", Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE);
-
-        ret.put("$manufacturer", Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER);
-        ret.put("$brand", Build.BRAND == null ? "UNKNOWN" : Build.BRAND);
-        ret.put("$model", Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
-
-        final DisplayMetrics displayMetrics = mSystemInformation.getDisplayMetrics();
-        ret.put("$screen_dpi", displayMetrics.densityDpi);
-        ret.put("$screen_height", displayMetrics.heightPixels);
-        ret.put("$screen_width", displayMetrics.widthPixels);
-
-        final String applicationVersionName = mSystemInformation.getAppVersionName();
-        if (null != applicationVersionName)
-          ret.put("$app_version", applicationVersionName);
-
-        final String carrier = mSystemInformation.getCurrentNetworkOperator();
-        if (null != carrier)
-          ret.put("$carrier", carrier);
-
-        final Boolean isWifi = mSystemInformation.isWifiConnected();
-        if (null != isWifi)
-          ret.put("$wifi", isWifi.booleanValue());
-
-        return ret;
-      }
-
-      private JSONObject prepareEventObject(EventDescription eventDescription)
-          throws JSONException {
-        final JSONObject eventObj = new JSONObject();
-        final JSONObject eventProperties = eventDescription.getProperties();
-        final JSONObject sendProperties = getDefaultEventProperties();
-        if (eventProperties != null) {
-          for (final Iterator<?> iter = eventProperties.keys(); iter.hasNext(); ) {
-            final String key = (String) iter.next();
-            sendProperties.put(key, eventProperties.get(key));
-          }
-        }
-        eventObj.put("token", eventDescription.getToken());
-        eventObj.put("type", eventDescription.getEventType());
-        if (eventDescription.getEventName() != null) {
-          eventObj.put("event", eventDescription.getEventName());
-        }
-        eventObj.put("time", eventDescription.getEventTime());
-        if (eventDescription.getDistinctId() != null) {
-          eventObj.put("distinct_id", eventDescription.getDistinctId());
-        }
-        if (eventDescription.getOriginDistinctId() != null) {
-          eventObj.put("original_id", eventDescription.getOriginDistinctId());
-        }
-        eventObj.put("properties", sendProperties);
-        return eventObj;
       }
 
       private DbAdapter mDbAdapter;

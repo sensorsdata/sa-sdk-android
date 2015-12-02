@@ -21,38 +21,6 @@ import java.util.concurrent.Future;
 @SuppressLint("CommitPrefEdits")
 /* package */ class PersistentIdentity {
 
-  // Should ONLY be called from an OnPrefsLoadedListener (since it should NEVER be called concurrently)
-  public static JSONArray waitingPeopleRecordsForSending(SharedPreferences storedPreferences) {
-    JSONArray ret = null;
-    final String peopleDistinctId = storedPreferences.getString("people_distinct_id", null);
-    final String waitingPeopleRecords = storedPreferences.getString("waiting_array", null);
-    if ((null != waitingPeopleRecords) && (null != peopleDistinctId)) {
-      JSONArray waitingObjects = null;
-      try {
-        waitingObjects = new JSONArray(waitingPeopleRecords);
-      } catch (final JSONException e) {
-        Log.e(LOGTAG, "Waiting people records were unreadable.");
-        return null;
-      }
-
-      ret = new JSONArray();
-      for (int i = 0; i < waitingObjects.length(); i++) {
-        try {
-          final JSONObject ob = waitingObjects.getJSONObject(i);
-          ob.put("$distinct_id", peopleDistinctId);
-          ret.put(ob);
-        } catch (final JSONException e) {
-          Log.e(LOGTAG, "Unparsable object found in waiting people records", e);
-        }
-      }
-
-      final SharedPreferences.Editor editor = storedPreferences.edit();
-      editor.remove("waiting_array");
-      writeEdits(editor);
-    }
-    return ret;
-  }
-
   public static void writeReferrerPrefs(Context context, String preferencesName,
       Map<String, String> properties) {
     synchronized (sReferrerPrefsLock) {
@@ -150,46 +118,6 @@ import java.util.concurrent.Future;
     }
     mEventsDistinctId = eventsDistinctId;
     writeIdentities();
-  }
-
-  public synchronized String getPeopleDistinctId() {
-    if (!mIdentitiesLoaded) {
-      readIdentities();
-    }
-    return mPeopleDistinctId;
-  }
-
-  public synchronized void setPeopleDistinctId(String peopleDistinctId) {
-    if (!mIdentitiesLoaded) {
-      readIdentities();
-    }
-    mPeopleDistinctId = peopleDistinctId;
-    writeIdentities();
-  }
-
-  public synchronized void storeWaitingPeopleRecord(JSONObject record) {
-    if (!mIdentitiesLoaded) {
-      readIdentities();
-    }
-    if (null == mWaitingPeopleRecords) {
-      mWaitingPeopleRecords = new JSONArray();
-    }
-    mWaitingPeopleRecords.put(record);
-    writeIdentities();
-  }
-
-  public synchronized JSONArray waitingPeopleRecordsForSending() {
-    JSONArray ret = null;
-    try {
-      final SharedPreferences prefs = mLoadStoredPreferences.get();
-      ret = waitingPeopleRecordsForSending(prefs);
-      readIdentities();
-    } catch (final ExecutionException e) {
-      Log.e(LOGTAG, "Couldn't read waiting people records from shared preferences.", e.getCause());
-    } catch (final InterruptedException e) {
-      Log.e(LOGTAG, "Couldn't read waiting people records from shared preferences.", e);
-    }
-    return ret;
   }
 
   public synchronized void clearPreferences() {
@@ -351,17 +279,6 @@ import java.util.concurrent.Future;
     }
 
     mEventsDistinctId = prefs.getString("events_distinct_id", null);
-    mPeopleDistinctId = prefs.getString("people_distinct_id", null);
-    mWaitingPeopleRecords = null;
-
-    final String storedWaitingRecord = prefs.getString("waiting_array", null);
-    if (storedWaitingRecord != null) {
-      try {
-        mWaitingPeopleRecords = new JSONArray(storedWaitingRecord);
-      } catch (final JSONException e) {
-        Log.e(LOGTAG, "Could not interpret waiting people JSON record " + storedWaitingRecord);
-      }
-    }
 
     if (null == mEventsDistinctId) {
       mEventsDistinctId = UUID.randomUUID().toString();
@@ -378,12 +295,7 @@ import java.util.concurrent.Future;
       final SharedPreferences.Editor prefsEditor = prefs.edit();
 
       prefsEditor.putString("events_distinct_id", mEventsDistinctId);
-      prefsEditor.putString("people_distinct_id", mPeopleDistinctId);
-      if (mWaitingPeopleRecords == null) {
-        prefsEditor.remove("waiting_array");
-      } else {
-        prefsEditor.putString("waiting_array", mWaitingPeopleRecords.toString());
-      }
+
       writeEdits(prefsEditor);
     } catch (final ExecutionException e) {
       Log.e(LOGTAG, "Can't write distinct ids to shared preferences.", e.getCause());
@@ -408,8 +320,6 @@ import java.util.concurrent.Future;
   private Map<String, String> mReferrerPropertiesCache;
   private boolean mIdentitiesLoaded;
   private String mEventsDistinctId;
-  private String mPeopleDistinctId;
-  private JSONArray mWaitingPeopleRecords;
 
   private static boolean sReferrerPrefsDirty = true;
   private static final Object sReferrerPrefsLock = new Object();

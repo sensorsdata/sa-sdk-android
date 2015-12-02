@@ -5,8 +5,8 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.util.DisplayMetrics;
 import android.util.Log;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -19,32 +19,32 @@ import java.util.regex.Pattern;
 
 public class SensorsDataAPI {
 
-  SensorsDataAPI(Context context, Future<SharedPreferences> referrerPreferences, String token)
+  SensorsDataAPI(Context context, Future<SharedPreferences> referrerPreferences)
       throws SensorsDataException {
     mContext = context;
-    mToken = token;
-    mEventTimings = new HashMap<String, Long>();
 
     final Map<String, String> deviceInfo = new HashMap<String, String>();
-    deviceInfo.put("$android_lib_version", SSConfig.VERSION);
-    deviceInfo.put("$android_os", "Android");
-    deviceInfo.put("$android_os_version",
+    deviceInfo.put("$lib", "Android");
+    deviceInfo.put("$lib_version", SSConfig.VERSION);
+    deviceInfo.put("$os", "Android");
+    deviceInfo.put("$os_version",
         Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE);
     deviceInfo
-        .put("$android_manufacturer", Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER);
-    deviceInfo.put("$android_brand", Build.BRAND == null ? "UNKNOWN" : Build.BRAND);
-    deviceInfo.put("$android_model", Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
+        .put("$manufacturer", Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER);
+    deviceInfo.put("$model", Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
     try {
       final PackageManager manager = mContext.getPackageManager();
       final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
-      deviceInfo.put("$android_app_version", info.versionName);
-      deviceInfo.put("$android_app_version_code", Integer.toString(info.versionCode));
+      deviceInfo.put("$app_version", info.versionName);
     } catch (final PackageManager.NameNotFoundException e) {
       Log.e(LOGTAG, "Exception getting app version name", e);
     }
+    final DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
+    deviceInfo.put("$screen_height", String.valueOf(displayMetrics.heightPixels));
+    deviceInfo.put("$screen_width", String.valueOf(displayMetrics.widthPixels));
     mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
 
-    mPersistentIdentity = getPersistentIdentity(context, referrerPreferences, token);
+    mPersistentIdentity = getPersistentIdentity(context, referrerPreferences);
 
     mMessages = AnalyticsMessages.getInstance(mContext);
 
@@ -55,13 +55,12 @@ public class SensorsDataAPI {
    * 根据传入的Token，获取SensorsDataAPI单例
    *
    * @param context The application context you are tracking
-   * @param token   项目Token，请在SensorsDataAnalytics管理界面申请
    *
    * @return an instance of SensorsDataAPI associated with your project
    */
-  public static SensorsDataAPI getInstance(Context context, String token)
+  public static SensorsDataAPI getInstance(Context context)
       throws SensorsDataException {
-    if (null == token || null == context) {
+    if (null == context) {
       return null;
     }
     synchronized (sInstanceMap) {
@@ -71,16 +70,10 @@ public class SensorsDataAPI {
         sReferrerPrefs = sPrefsLoader.loadPreferences(context, SSConfig.REFERRER_PREFS_NAME, null);
       }
 
-      Map<Context, SensorsDataAPI> instances = sInstanceMap.get(token);
-      if (null == instances) {
-        instances = new HashMap<Context, SensorsDataAPI>();
-        sInstanceMap.put(token, instances);
-      }
-
-      SensorsDataAPI instance = instances.get(appContext);
+      SensorsDataAPI instance = sInstanceMap.get(appContext);
       if (null == instance && ConfigurationChecker.checkBasicConfiguration(appContext)) {
-        instance = new SensorsDataAPI(appContext, sReferrerPrefs, token);
-        instances.put(appContext, instance);
+        instance = new SensorsDataAPI(appContext, sReferrerPrefs);
+        sInstanceMap.put(appContext, instance);
       }
 
       return instance;
@@ -99,10 +92,7 @@ public class SensorsDataAPI {
 
     synchronized (mPersistentIdentity) {
       mPersistentIdentity.setEventsDistinctId(distinctId);
-      mPersistentIdentity.setPeopleDistinctId(distinctId);
     }
-
-    pushWaitingPeopleRecord();
   }
 
   /**
@@ -119,35 +109,34 @@ public class SensorsDataAPI {
     identify(newDistinctId);
 
     try {
-      final JSONObject messageProps = new JSONObject();
+      final JSONObject sendProperties = new JSONObject(mDeviceInfo);
 
       final Map<String, String> referrerProperties = mPersistentIdentity.getReferrerProperties();
       for (final Map.Entry<String, String> entry : referrerProperties.entrySet()) {
         final String key = entry.getKey();
         final String value = entry.getValue();
-        messageProps.put(key, value);
+        sendProperties.put(key, value);
       }
 
-      mPersistentIdentity.addSuperPropertiesToObject(messageProps);
+      mPersistentIdentity.addSuperPropertiesToObject(sendProperties);
 
       if (null != properties) {
         final Iterator<?> propIter = properties.keys();
         while (propIter.hasNext()) {
           final String key = (String) propIter.next();
-          messageProps.put(key, properties.get(key));
+          sendProperties.put(key, properties.get(key));
         }
       }
 
-      final AnalyticsMessages.EventDescription eventDescription =
-          new AnalyticsMessages.EventDescription(
-              "track_signup",
-              null,
-              (long) System.currentTimeMillis(),
-              newDistinctId,
-              oldDistinctId,
-              messageProps,
-              mToken);
-      mMessages.eventsMessage(eventDescription);
+      final JSONObject dataObj = new JSONObject();
+
+      dataObj.put("time", System.currentTimeMillis());
+      dataObj.put("type", "track_signup");
+      dataObj.put("event", "$SignUp");
+      dataObj.put("properties", sendProperties);
+      dataObj.put("distinct_id", newDistinctId);
+      dataObj.put("origin_id", oldDistinctId);
+      mMessages.eventsMessage(dataObj);
 
     } catch (final JSONException e) {
       Log.e(LOGTAG, "Exception tracking signing up", e);
@@ -176,52 +165,36 @@ public class SensorsDataAPI {
     checkKey(eventName);
     checkKeyInProperties(properties);
 
-    final Long eventBegin;
-    synchronized (mEventTimings) {
-      eventBegin = mEventTimings.get(eventName);
-      mEventTimings.remove(eventName);
-    }
-
     try {
-      final JSONObject messageProps = new JSONObject();
+      final JSONObject sendProperties = new JSONObject(mDeviceInfo);
 
       final Map<String, String> referrerProperties = mPersistentIdentity.getReferrerProperties();
       for (final Map.Entry<String, String> entry : referrerProperties.entrySet()) {
         final String key = entry.getKey();
         final String value = entry.getValue();
-        messageProps.put(key, value);
+        sendProperties.put(key, value);
       }
 
-      mPersistentIdentity.addSuperPropertiesToObject(messageProps);
-
-      final double timeSecondsDouble = System.currentTimeMillis();
-
-      if (null != eventBegin) {
-        final double eventBeginDouble = ((double) eventBegin) / 1000.0;
-        final double secondsElapsed = timeSecondsDouble - eventBeginDouble;
-        messageProps.put("$duration", secondsElapsed);
-      }
+      mPersistentIdentity.addSuperPropertiesToObject(sendProperties);
 
       if (null != properties) {
         final Iterator<?> propIter = properties.keys();
         while (propIter.hasNext()) {
           final String key = (String) propIter.next();
-          if (key.length() > 0) {
-            messageProps.put(key, properties.get(key));
-          }
+          sendProperties.put(key, properties.get(key));
         }
       }
 
-      final AnalyticsMessages.EventDescription eventDescription =
-          new AnalyticsMessages.EventDescription(
-              "track",
-              eventName,
-              (long) timeSecondsDouble,
-              getDistinctId(),
-              null,
-              messageProps,
-              mToken);
-      mMessages.eventsMessage(eventDescription);
+      final JSONObject dataObj = new JSONObject();
+      final String distinctId = getDistinctId();
+
+      dataObj.put("time", System.currentTimeMillis());
+      dataObj.put("type", "track");
+      dataObj.put("event", eventName);
+      dataObj.put("properties", sendProperties);
+      dataObj.put("distinct_id", distinctId);
+
+      mMessages.eventsMessage(dataObj);
     } catch (final JSONException e) {
       Log.e(LOGTAG, "Exception tracking event " + eventName, e);
       throw new SensorsDataException(e);
@@ -301,14 +274,8 @@ public class SensorsDataAPI {
     checkKeyInProperties(properties);
 
     try {
-      final JSONObject sendProperties = new JSONObject(mDeviceInfo);
-      for (final Iterator<?> iter = properties.keys(); iter.hasNext(); ) {
-        final String key = (String) iter.next();
-        sendProperties.put(key, properties.get(key));
-      }
-
-      final JSONObject message = stdPeopleMessage("profile_set", sendProperties);
-      recordPeopleMessage(message);
+      final JSONObject message = stdPeopleMessage("profile_set", properties);
+      mMessages.peopleMessage(message);
     } catch (final JSONException e) {
       Log.e(LOGTAG, "Exception setting people properties", e);
       throw new SensorsDataException(e);
@@ -325,14 +292,8 @@ public class SensorsDataAPI {
     checkKeyInProperties(properties);
 
     try {
-      final JSONObject sendProperties = new JSONObject(mDeviceInfo);
-      for (final Iterator<?> iter = properties.keys(); iter.hasNext(); ) {
-        final String key = (String) iter.next();
-        sendProperties.put(key, properties.get(key));
-      }
-
-      final JSONObject message = stdPeopleMessage("profile_set_once", sendProperties);
-      recordPeopleMessage(message);
+      final JSONObject message = stdPeopleMessage("profile_set_once", properties);
+      mMessages.peopleMessage(message);
     } catch (final JSONException e) {
       Log.e(LOGTAG, "Exception setting people properties", e);
       throw new SensorsDataException(e);
@@ -383,7 +344,7 @@ public class SensorsDataAPI {
     checkKeyInProperties(json);
     try {
       final JSONObject message = stdPeopleMessage("profile_increment", json);
-      recordPeopleMessage(message);
+      mMessages.peopleMessage(message);
     } catch (final JSONException e) {
       Log.e(LOGTAG, "Exception incrementing properties", e);
       throw new SensorsDataException(e);
@@ -415,7 +376,7 @@ public class SensorsDataAPI {
       final JSONObject properties = new JSONObject();
       properties.put(property, value);
       final JSONObject message = stdPeopleMessage("profile_append", properties);
-      recordPeopleMessage(message);
+      mMessages.peopleMessage(message);
     } catch (final JSONException e) {
       Log.e(LOGTAG, "Exception appending a property", e);
       throw new SensorsDataException(e);
@@ -430,10 +391,10 @@ public class SensorsDataAPI {
   public void profileUnset(String property) throws SensorsDataException {
     checkKey(property);
     try {
-      final JSONArray names = new JSONArray();
-      names.put(property);
+      final JSONObject names = new JSONObject();
+      names.put(property, true);
       final JSONObject message = stdPeopleMessage("profile_unset", names);
-      recordPeopleMessage(message);
+      mMessages.peopleMessage(message);
     } catch (final JSONException e) {
       Log.e(LOGTAG, "Exception unsetting a property", e);
       throw new SensorsDataException(e);
@@ -445,8 +406,8 @@ public class SensorsDataAPI {
    */
   public void delete() throws SensorsDataException {
     try {
-      final JSONObject message = stdPeopleMessage("delete", JSONObject.NULL);
-      recordPeopleMessage(message);
+      final JSONObject message = stdPeopleMessage("delete", null);
+      mMessages.peopleMessage(message);
     } catch (final JSONException e) {
       Log.e(LOGTAG, "Exception deleting a user");
       throw new SensorsDataException(e);
@@ -466,10 +427,8 @@ public class SensorsDataAPI {
 
   static void allInstances(InstanceProcessor processor) {
     synchronized (sInstanceMap) {
-      for (final Map<Context, SensorsDataAPI> contextInstances : sInstanceMap.values()) {
-        for (final SensorsDataAPI instance : contextInstances.values()) {
-          processor.process(instance);
-        }
+      for (final SensorsDataAPI instance : sInstanceMap.values()) {
+        processor.process(instance);
       }
     }
   }
@@ -477,69 +436,28 @@ public class SensorsDataAPI {
   // Conveniences for testing.
 
   PersistentIdentity getPersistentIdentity(final Context context,
-      Future<SharedPreferences> referrerPreferences, final String token) {
+      Future<SharedPreferences> referrerPreferences) {
     final SharedPreferencesLoader.OnPrefsLoadedListener listener =
         new SharedPreferencesLoader.OnPrefsLoadedListener() {
           @Override public void onPrefsLoaded(SharedPreferences preferences) {
-            final JSONArray records =
-                PersistentIdentity.waitingPeopleRecordsForSending(preferences);
-            if (null != records) {
-              sendAllPeopleRecords(records);
-            }
           }
         };
 
-    final String prefsName = "com.sensorsdata.analytics.android.sdk.SensorsDataAPI_" + token;
+    final String prefsName = "com.sensorsdata.analytics.android.sdk.SensorsDataAPI";
     final Future<SharedPreferences> storedPreferences =
         sPrefsLoader.loadPreferences(context, prefsName, listener);
     return new PersistentIdentity(referrerPreferences, storedPreferences);
   }
 
-  ///////////////////////
+  private JSONObject stdPeopleMessage(String actionType, JSONObject properties) throws
+      JSONException {
+    final JSONObject dataObj = new JSONObject();
+    dataObj.put("time", System.currentTimeMillis());
+    dataObj.put("type", actionType);
+    dataObj.put("properties", properties);
+    dataObj.put("distinct_id", getDistinctId());
 
-
-    private JSONObject stdPeopleMessage(String actionType, Object properties) throws JSONException {
-      final JSONObject dataObj = new JSONObject();
-      final String distinctId = getDistinctId(); // TODO ensure getDistinctId is thread safe
-
-      dataObj.put("token", mToken);
-      dataObj.put("time", System.currentTimeMillis());
-      dataObj.put("type", actionType);
-      dataObj.put("properties", properties);
-
-      if (null != distinctId) {
-        dataObj.put("distinct_id", distinctId);
-      }
-
-      return dataObj;
-    }
-
-  ////////////////////////////////////////////////////
-
-  private void recordPeopleMessage(JSONObject message) {
-    if (message.has("distinct_id")) {
-      mMessages.peopleMessage(message);
-    } else {
-      mPersistentIdentity.storeWaitingPeopleRecord(message);
-    }
-  }
-
-  private void pushWaitingPeopleRecord() throws SensorsDataException {
-    final JSONArray records = mPersistentIdentity.waitingPeopleRecordsForSending();
-    if (null != records) {
-      sendAllPeopleRecords(records);
-    }
-  }
-
-  private void sendAllPeopleRecords(JSONArray records) {
-    for (int i = 0; i < records.length(); i++) {
-      try {
-        final JSONObject message = records.getJSONObject(i);
-        mMessages.peopleMessage(message);
-      } catch (final JSONException e) {
-        Log.e(LOGTAG, "Malformed people record stored pending identity, will not send it.", e);
-      }
-    }
+    return dataObj;
   }
 
   private void checkKey(String key) throws SensorsDataException {
@@ -564,14 +482,12 @@ public class SensorsDataAPI {
 
   private final Context mContext;
   private final AnalyticsMessages mMessages;
-  private final String mToken;
   private final PersistentIdentity mPersistentIdentity;
   private final Map<String, String> mDeviceInfo;
-  private final Map<String, Long> mEventTimings;
 
   // Maps each token to a singleton SensorsDataAPI instance
-  private static final Map<String, Map<Context, SensorsDataAPI>> sInstanceMap =
-      new HashMap<String, Map<Context, SensorsDataAPI>>();
+  private static final Map<Context, SensorsDataAPI> sInstanceMap =
+      new HashMap<Context, SensorsDataAPI>();
   private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
   private static Future<SharedPreferences> sReferrerPrefs;
 

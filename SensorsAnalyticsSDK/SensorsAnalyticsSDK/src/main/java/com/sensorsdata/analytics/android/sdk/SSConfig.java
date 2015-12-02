@@ -35,7 +35,7 @@ public class SSConfig {
     mBulkSize = metaData
         .getInt("com.sensorsdata.analytics.android.sdk.config.BulkSize", 100); // 100
         // records default
-    mFlushInterval = metaData.getInt("com.sensorsdata.analytics.android.sdk.SSConfig.FlushInterval",
+    mFlushInterval = metaData.getInt("com.sensorsdata.analytics.android.sdk.config.FlushInterval",
         60 * 1000); // one minute default
     mMinimumDatabaseLimit = metaData
         .getInt("com.sensorsdata.analytics.android.sdk.config.MinimumDatabaseLimit",

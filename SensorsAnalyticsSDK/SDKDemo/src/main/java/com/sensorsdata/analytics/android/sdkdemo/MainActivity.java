@@ -20,17 +20,16 @@ import java.util.Random;
 public class MainActivity extends Activity {
 
   private static final String LOGTAG = "SensorsData Example Application";
-  public static final String SENSORSDATA_API_TOKEN = "SensorsAnalyticsAndroidSDKDemo";
 
   private SensorsDataAPI mSensorsData;
 
   @Override protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
-    String userId = generateDistinctId();
+    String userId = "SensorsDataAndroidSDKTest";
 
     try {
-      mSensorsData = SensorsDataAPI.getInstance(this, SENSORSDATA_API_TOKEN);
+      mSensorsData = SensorsDataAPI.getInstance(this);
       mSensorsData.identify(userId);
     } catch (SensorsDataException e) {
       e.printStackTrace();
@@ -98,12 +97,4 @@ public class MainActivity extends Activity {
 
   }
 
-  ////////////////////////////////////////////////////
-
-  private String generateDistinctId() {
-    final Random random = new Random();
-    final byte[] randomBytes = new byte[32];
-    random.nextBytes(randomBytes);
-    return Base64.encodeToString(randomBytes, Base64.NO_WRAP | Base64.NO_PADDING | Base64.URL_SAFE);
-  }
 }
