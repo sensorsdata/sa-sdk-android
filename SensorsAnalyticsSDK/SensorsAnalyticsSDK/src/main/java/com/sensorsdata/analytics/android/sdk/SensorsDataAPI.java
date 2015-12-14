@@ -96,7 +96,7 @@ public class SensorsDataAPI {
   }
 
   /**
-   * 提供一个接口，用来在用户注册的时候，用注册ID来替换用户以前的匿名ID。此接口当且仅当用户正式注册时使用。
+   * 这个接口是一个较为复杂的功能，请在使用前先阅读相关说明:http://www.sensorsdata.cn/manual/track_signup.html，并在必要时联系我们的技术支持人员。
    *
    * @param newDistinctId 用户完成注册后生成的注册ID
    * @param properties    事件的属性
@@ -148,6 +148,7 @@ public class SensorsDataAPI {
 
   /**
    * 与 {@link #trackSignUp(String, org.json.JSONObject)} 类似，无事件属性
+   * 这个接口是一个较为复杂的功能，请在使用前先阅读相关说明:http://www.sensorsdata.cn/manual/track_signup.html，并在必要时联系我们的技术支持人员。
    *
    * @param newDistinctId 用户完成注册后生成的注册ID
    */
