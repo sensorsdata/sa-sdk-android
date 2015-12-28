@@ -88,7 +88,7 @@ public class SensorsDataAPI {
    * @param distinctId 当前用户的distinctId，仅接受数字、下划线和大小写字母
    */
   public void identify(String distinctId) throws SensorsDataException {
-    checkKey(distinctId);
+    checkDistinctId(distinctId);
 
     synchronized (mPersistentIdentity) {
       mPersistentIdentity.setEventsDistinctId(distinctId);
@@ -102,7 +102,7 @@ public class SensorsDataAPI {
    * @param properties    事件的属性
    */
   public void trackSignUp(String newDistinctId, JSONObject properties) throws SensorsDataException {
-    checkKey(newDistinctId);
+    checkDistinctId(newDistinctId);
     checkKeyInProperties(properties);
 
     String oldDistinctId = getDistinctId();
@@ -465,9 +465,17 @@ public class SensorsDataAPI {
     if (key == null || key.length() < 1) {
       throw new SensorsDataException("The key is empty.");
     }
-
     if (!(KEY_PATTERN.matcher(key).matches())) {
       throw new SensorsDataException("The key '" + key + "' is invalid.");
+    }
+  }
+
+  private void checkDistinctId(String key) throws SensorsDataException {
+    if (key == null || key.length() < 1) {
+      throw new SensorsDataException("The distinct_id or original_id is empty.");
+    }
+    if (key.length() > 255) {
+      throw new SensorsDataException("The max_length of distinct_id or original_id is 255.");
     }
   }
 
@@ -492,7 +500,7 @@ public class SensorsDataAPI {
   private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
   private static Future<SharedPreferences> sReferrerPrefs;
 
-  private static final Pattern KEY_PATTERN = Pattern.compile("^[a-zA-Z_$][a-zA-Z\\d_$]*$");
+  private static final Pattern KEY_PATTERN = Pattern.compile("^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$", Pattern.CASE_INSENSITIVE);
 
   private static final String LOGTAG = "SA.API";
 }
