@@ -135,7 +135,7 @@ public class SensorsDataAPI {
       dataObj.put("event", "$SignUp");
       dataObj.put("properties", sendProperties);
       dataObj.put("distinct_id", newDistinctId);
-      dataObj.put("origin_id", oldDistinctId);
+      dataObj.put("original_id", oldDistinctId);
       mMessages.eventsMessage(dataObj);
 
     } catch (final JSONException e) {
