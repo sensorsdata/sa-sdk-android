@@ -23,7 +23,7 @@ public class SensorsDataAPI {
       throws SensorsDataException {
     mContext = context;
 
-    final Map<String, String> deviceInfo = new HashMap<String, String>();
+    final Map<String, Object> deviceInfo = new HashMap<String, Object>();
     deviceInfo.put("$lib", "Android");
     deviceInfo.put("$lib_version", SSConfig.VERSION);
     deviceInfo.put("$os", "Android");
@@ -40,8 +40,8 @@ public class SensorsDataAPI {
       Log.e(LOGTAG, "Exception getting app version name", e);
     }
     final DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
-    deviceInfo.put("$screen_height", String.valueOf(displayMetrics.heightPixels));
-    deviceInfo.put("$screen_width", String.valueOf(displayMetrics.widthPixels));
+    deviceInfo.put("$screen_height", Integer.valueOf(displayMetrics.heightPixels));
+    deviceInfo.put("$screen_width", Integer.valueOf(displayMetrics.widthPixels));
     mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
 
     mPersistentIdentity = getPersistentIdentity(context, referrerPreferences);
@@ -492,7 +492,7 @@ public class SensorsDataAPI {
   private final Context mContext;
   private final AnalyticsMessages mMessages;
   private final PersistentIdentity mPersistentIdentity;
-  private final Map<String, String> mDeviceInfo;
+  private final Map<String, Object> mDeviceInfo;
 
   // Maps each token to a singleton SensorsDataAPI instance
   private static final Map<Context, SensorsDataAPI> sInstanceMap =
