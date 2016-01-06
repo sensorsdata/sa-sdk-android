@@ -7,13 +7,18 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 
@@ -128,6 +133,9 @@ public class SensorsDataAPI {
         }
       }
 
+      // 当前网络状况
+      sendProperties.put("$wifi", mMessages.isWifi());
+
       final JSONObject dataObj = new JSONObject();
 
       dataObj.put("time", System.currentTimeMillis());
@@ -185,6 +193,9 @@ public class SensorsDataAPI {
           sendProperties.put(key, properties.get(key));
         }
       }
+
+      // 当前网络状况
+      sendProperties.put("$wifi", mMessages.isWifi());
 
       final JSONObject dataObj = new JSONObject();
       final String distinctId = getDistinctId();
@@ -332,7 +343,6 @@ public class SensorsDataAPI {
     }
   }
 
-
   /**
    * 给一个或多个数值类型的Profile增加一个数值。只能对数值型属性进行操作，若该属性
    * 未设置，则添加属性并设置默认值为0
@@ -371,11 +381,27 @@ public class SensorsDataAPI {
    * @param property  属性名称
    * @param value     新增的元素
    */
-  public void profileAppend(String property, Object value) throws SensorsDataException {
+  public void profileAppend(String property, String value) throws SensorsDataException {
+    Set<String> values = new HashSet<String>();
+    values.add(value);
+    profileAppend(property, values);
+  }
+
+  /**
+   * 给一个列表类型的Profile增加一个或多个元素
+   *
+   * @param property  属性名称
+   * @param values    新增的元素集合
+   */
+  public void profileAppend(String property, Set<String> values) throws SensorsDataException {
     checkKey(property);
     try {
+      final JSONArray append_values = new JSONArray();
+      for (String value : values) {
+        append_values.put(value);
+      }
       final JSONObject properties = new JSONObject();
-      properties.put(property, value);
+      properties.put(property, append_values);
       final JSONObject message = stdPeopleMessage("profile_append", properties);
       mMessages.peopleMessage(message);
     } catch (final JSONException e) {

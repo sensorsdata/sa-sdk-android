@@ -13,6 +13,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
 import android.telephony.TelephonyManager;
+import android.util.Base64;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import org.apache.http.NameValuePair;
@@ -20,6 +21,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -28,6 +30,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Manage communication of events with the internal database and the SensorsData servers.
@@ -129,17 +132,22 @@ import java.util.Map;
     }
   }
 
-  public boolean isWifiOr3G() {
+  public boolean isWifi() {
     // Wifi
-    ConnectivityManager manager = (ConnectivityManager)mContext.getSystemService(
-        mContext.CONNECTIVITY_SERVICE);
+    ConnectivityManager manager = (ConnectivityManager)
+        mContext.getSystemService(mContext.CONNECTIVITY_SERVICE);
     if (manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).isConnectedOrConnecting()) {
       return true;
     }
 
+    return false;
+  }
+
+  public boolean is3G() {
     // Mobile network
     TelephonyManager telephonyManager = (TelephonyManager)
         mContext.getSystemService(Context.TELEPHONY_SERVICE);
+
     int networkType = telephonyManager.getNetworkType();
     switch (networkType) {
       case TelephonyManager.NETWORK_TYPE_UMTS:
@@ -253,7 +261,7 @@ import java.util.Map;
           ///////////////////////////
 
           // Flush the queue due to the limit while the network type is 3G/4G/wifi.
-          if (isWifiOr3G()) {
+          if (isWifi() || is3G()) {
             if ((returnCode >= mConfig.getBulkSize() || returnCode == DbAdapter.DB_OUT_OF_MEMORY_ERROR)
                 && SystemClock.elapsedRealtime() >= mRetryAfter) {
               logAboutMessageToSensorsData("Flushing queue due to bulk upload limit");
@@ -281,11 +289,22 @@ import java.util.Map;
               Log.e(LOGTAG, "Could not halt looper", tooLate);
             }
           }
+        } catch (final IOException e) {
+          Log.e(LOGTAG, "Worker threw an unhandled exception", e);
+          synchronized (mHandlerLock) {
+            mHandler = null;
+            try {
+              Looper.myLooper().quit();
+              Log.e(LOGTAG, "SensorsData will not process any more analytics messages", e);
+            } catch (final Exception tooLate) {
+              Log.e(LOGTAG, "Could not halt looper", tooLate);
+            }
+          }
         }
       }// handleMessage
 
       private void sendAllData(DbAdapter dbAdapter)
-          throws RemoteService.ServiceUnavailableException {
+          throws RemoteService.ServiceUnavailableException, IOException {
         final RemoteService poster = getPoster();
         if (!poster.isOnline(mContext)) {
           logAboutMessageToSensorsData(
@@ -300,7 +319,7 @@ import java.util.Map;
       }
 
       private void sendData(DbAdapter dbAdapter, DbAdapter.Table table, String[] urls)
-          throws RemoteService.ServiceUnavailableException {
+          throws RemoteService.ServiceUnavailableException, IOException {
         final RemoteService poster = getPoster();
         final String[] eventsData = dbAdapter.generateDataString(table);
 
@@ -308,10 +327,9 @@ import java.util.Map;
           final String lastId = eventsData[0];
           final String rawMessage = eventsData[1];
 
-          final String encodedData = Base64Coder.encodeString(rawMessage);
           final List<NameValuePair> params = new ArrayList<NameValuePair>(1);
-          params.add(new BasicNameValuePair("data_list", encodedData));
-          params.add(new BasicNameValuePair("gzip", "0"));
+          params.add(new BasicNameValuePair("data_list", encodeData(rawMessage)));
+          params.add(new BasicNameValuePair("gzip", "1"));
 
           boolean deleteEvents = true;
           byte[] response;
@@ -358,6 +376,16 @@ import java.util.Map;
             }
           }
         }
+      }
+
+      private String encodeData(final String rawMessage) throws IOException {
+        ByteArrayOutputStream os = new ByteArrayOutputStream(rawMessage.getBytes().length);
+        GZIPOutputStream gos = new GZIPOutputStream(os);
+        gos.write(rawMessage.getBytes());
+        gos.close();
+        byte[] compressed = os.toByteArray();
+        os.close();
+        return Base64.encodeToString(compressed, Base64.DEFAULT);
       }
 
       private DbAdapter mDbAdapter;
