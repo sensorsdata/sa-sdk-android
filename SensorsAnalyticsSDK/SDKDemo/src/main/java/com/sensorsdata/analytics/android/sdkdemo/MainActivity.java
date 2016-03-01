@@ -1,11 +1,11 @@
 package com.sensorsdata.analytics.android.sdkdemo;
 
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.SensorsDataException;
+import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
-import android.util.Base64;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -13,15 +13,9 @@ import android.widget.EditText;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Random;
-
 public class MainActivity extends Activity {
 
   private static final String LOGTAG = "SensorsData Example Application";
-
-  private SensorsDataAPI mSensorsData;
 
   @Override protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -29,9 +23,12 @@ public class MainActivity extends Activity {
     String userId = "SensorsDataAndroidSDKTest";
 
     try {
-      mSensorsData = SensorsDataAPI.getInstance(this);
-      mSensorsData.identify(userId);
-    } catch (SensorsDataException e) {
+      SensorsDataAPI sa = SensorsDataAPI.sharedInstance(
+          this,
+          "http://sa_host:8006/sa",
+          SensorsDataAPI.DebugMode.DEBUG_OFF);
+      sa.identify(userId);
+    } catch (InvalidDataException e) {
       e.printStackTrace();
     }
 
@@ -42,19 +39,19 @@ public class MainActivity extends Activity {
     super.onResume();
 
     try {
-      final JSONObject properties = new JSONObject();
-      properties.put("AppVersion", "1.1");
-      mSensorsData.track("AppResumed", properties);
-    } catch (final JSONException e) {
-      e.printStackTrace();
-    } catch (SensorsDataException e) {
+      SensorsDataAPI.sharedInstance(this).track("AppResumed", null);
+    } catch (InvalidDataException e) {
       e.printStackTrace();
     }
   }
 
   @Override protected void onDestroy() {
     super.onDestroy();
-    mSensorsData.flush();
+    //    try {
+    //      SensorsDataAPI.sharedInstance(this).flush();
+    //    } catch (SensorsDataException e) {
+    //      e.printStackTrace();
+    //    }
   }
 
   @Override public boolean onCreateOptionsMenu(Menu menu) {
@@ -65,11 +62,7 @@ public class MainActivity extends Activity {
   @Override public boolean onOptionsItemSelected(MenuItem item) {
     int id = item.getItemId();
 
-    if (id == R.id.action_settings) {
-      return true;
-    }
-
-    return super.onOptionsItemSelected(item);
+    return ((id == R.id.action_settings) || super.onOptionsItemSelected(item));
   }
 
   public void sendToSensorsData(final View view) {
@@ -86,15 +79,16 @@ public class MainActivity extends Activity {
       properties.put("first_name", firstName);
       properties.put("last_name", lastName);
       properties.put("email", email);
-      mSensorsData.profileSet(properties);
-      mSensorsData.profileIncrement("count", 1);
-      mSensorsData.track("ButtonClicked");
-    } catch (SensorsDataException e) {
+      SensorsDataAPI.sharedInstance(this).track("ButtonClicked");
+    } catch (InvalidDataException e) {
       e.printStackTrace();
     } catch (JSONException e) {
       e.printStackTrace();
     }
-
   }
 
+  public void jumpToActivity(final View view) {
+    Intent intent = new Intent(this, ExampleListActivity.class);
+    startActivity(intent);
+  }
 }

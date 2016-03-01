@@ -1,51 +1,57 @@
 package com.sensorsdata.analytics.android.sdk;
 
+import com.sensorsdata.analytics.android.sdk.exceptions.ConnectErrorException;
+import com.sensorsdata.analytics.android.sdk.exceptions.DebugModeException;
+import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
+import com.sensorsdata.analytics.android.sdk.exceptions.QueueLimitExceededException;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
-import com.sensorsdata.analytics.android.sdk.util.HttpService;
-import com.sensorsdata.analytics.android.sdk.util.RemoteService;
 
 import android.content.Context;
+import android.hardware.Sensor;
 import android.net.ConnectivityManager;
-import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
-import android.os.SystemClock;
 import android.telephony.TelephonyManager;
-import android.util.Base64;
-import android.util.DisplayMetrics;
 import android.util.Log;
+import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
 /**
  * Manage communication of events with the internal database and the SensorsData servers.
- * <p>
+ * <p/>
  * <p>This class straddles the thread boundary between user threads and
  * a logical SensorsData thread.
  */
-/* package */ class AnalyticsMessages {
+class AnalyticsMessages {
 
   /**
    * Do not call directly. You should call AnalyticsMessages.getInstance()
    */
     /* package */ AnalyticsMessages(final Context context) {
     mContext = context;
-    mConfig = getConfig(context);
+    mDbAdapter = new DbAdapter(mContext);
     mWorker = new Worker();
   }
 
@@ -70,26 +76,31 @@ import java.util.zip.GZIPOutputStream;
     }
   }
 
-  public void eventsMessage(final JSONObject eventJson) {
+  public void enqueueEventMessage(final JSONObject eventJson) {
     final Message m = Message.obtain();
     m.what = ENQUEUE_EVENTS;
     m.obj = eventJson;
-    mWorker.runMessage(m);
-  }
-
-  public void peopleMessage(final JSONObject peopleJson) {
-    final Message m = Message.obtain();
-    m.what = ENQUEUE_PEOPLE;
-    m.obj = peopleJson;
 
     mWorker.runMessage(m);
   }
 
-  public void postToServer() {
+  public void checkConfigureMessage(final DecideMessages check) {
     final Message m = Message.obtain();
-    m.what = FLUSH_QUEUE;
+    m.what = CHECK_CONFIGURE;
+    m.obj = check;
 
     mWorker.runMessage(m);
+  }
+
+  public void flushMessage(long delay) {
+    final Message m = Message.obtain();
+    m.what = FLUSH_QUEUE_AUTOMATIC;
+
+    if (delay > 0) {
+      mWorker.runMessageOnce(m, delay);
+    } else {
+      mWorker.runMessage(m);
+    }
   }
 
   public void hardKill() {
@@ -97,39 +108,6 @@ import java.util.zip.GZIPOutputStream;
     m.what = KILL_WORKER;
 
     mWorker.runMessage(m);
-  }
-
-  /////////////////////////////////////////////////////////
-  // For testing, to allow for Mocking.
-
-  /* package */ boolean isDead() {
-    return mWorker.isDead();
-  }
-
-  protected DbAdapter makeDbAdapter(Context context) {
-    return new DbAdapter(context);
-  }
-
-  protected SSConfig getConfig(Context context) {
-    return SSConfig.getInstance(context);
-  }
-
-  protected RemoteService getPoster() {
-    return new HttpService();
-  }
-
-  // Sends a message if and only if we are running with SensorsData Message log enabled.
-  // Will be called from the SensorsData thread.
-  private void logAboutMessageToSensorsData(String message) {
-    if (SSConfig.DEBUG) {
-      Log.v(LOGTAG, message + " (Thread " + Thread.currentThread().getId() + ")");
-    }
-  }
-
-  private void logAboutMessageToSensorsData(String message, Throwable e) {
-    if (SSConfig.DEBUG) {
-      Log.v(LOGTAG, message + " (Thread " + Thread.currentThread().getId() + ")", e);
-    }
   }
 
   public boolean isWifi() {
@@ -167,12 +145,163 @@ import java.util.zip.GZIPOutputStream;
     return false;
   }
 
+  /////////////////////////////////////////////////////////
+  // For testing, to allow for Mocking.
+
+  boolean isDead() {
+    return mWorker.isDead();
+  }
+
+  // Sends a message if and only if we are running with SensorsData Message log enabled.
+  // Will be called from the SensorsData thread.
+  private void logAboutMessageToSensorsData(String message) {
+    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+      Log.v(LOGTAG, message + " (Thread " + Thread.currentThread().getId() + ")");
+    }
+  }
+
+  private void logAboutMessageToSensorsData(String message, Throwable e) {
+    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+      Log.v(LOGTAG, message + " (Thread " + Thread.currentThread().getId() + ")", e);
+    }
+  }
+
+  private void sendData() throws ConnectErrorException, InvalidDataException {
+    logAboutMessageToSensorsData("Sending records to SensorsData");
+
+    String[] eventsData;
+    synchronized (mDbAdapter) {
+      if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+        eventsData = mDbAdapter.generateDataString(DbAdapter.Table.EVENTS, 1);
+      } else {
+        eventsData = mDbAdapter.generateDataString(DbAdapter.Table.EVENTS, 1000);
+      }
+    }
+    if (eventsData == null) {
+      return;
+    }
+
+    final String lastId = eventsData[0];
+    final String rawMessage = eventsData[1];
+
+    String data;
+    try {
+      data = encodeData(rawMessage);
+    } catch (IOException e) {
+      // 格式错误，直接将数据删除
+      sendDataFinish(lastId);
+      throw new InvalidDataException(e);
+    }
+
+    final List<NameValuePair> params = new ArrayList<NameValuePair>(1);
+    params.add(new BasicNameValuePair("data_list", data));
+    params.add(new BasicNameValuePair("gzip", "1"));
+
+    HttpClient httpClient = new DefaultHttpClient();
+    HttpPost httpPost = new HttpPost(SensorsDataAPI.sharedInstance(mContext).getServerUrl());
+
+    try {
+      httpPost.setEntity(new UrlEncodedFormEntity(params));
+    } catch (UnsupportedEncodingException e) {
+      throw new InvalidDataException(e);
+    }
+
+    httpPost.setHeader("User-Agent", "SensorsAnalytics Android SDK");
+    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() && !SensorsDataAPI.sharedInstance
+        (mContext).isDebugWriteData()) {
+      httpPost.setHeader("Dry-Run", "true");
+    }
+
+    try {
+      HttpResponse response = httpClient.execute(httpPost);
+
+      int response_code = response.getStatusLine().getStatusCode();
+      String response_body = EntityUtils.toString(response.getEntity(), "UTF-8");
+
+      if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+        if (response_code == 200) {
+          Log.v(LOGTAG, String.format("valid message: %s", rawMessage));
+          Log.v(LOGTAG, String.format("ret_code: %d", response_code));
+          Log.v(LOGTAG, String.format("ret_content: %s", response_body));
+        } else {
+          Log.v(LOGTAG, String.format("invalid message: %s", rawMessage));
+          Log.v(LOGTAG, String.format("ret_code: %d", response_code));
+          Log.v(LOGTAG, String.format("ret_content: %s", response_body));
+
+          // 格式错误，直接将数据删除
+          sendDataFinish(lastId);
+        }
+      }
+
+      if (response_code != 200) {
+        throw new ConnectErrorException("Response error.");
+      }
+    } catch (ClientProtocolException e) {
+      throw new ConnectErrorException(e);
+    } catch (IOException e) {
+      throw new ConnectErrorException(e);
+    }
+
+    sendDataFinish(lastId);
+  }
+
+  private void sendDataFinish(final String lastId) {
+    int count = 0;
+    synchronized (mDbAdapter) {
+      count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
+    }
+    if (count > 0) {
+      flushMessage(0);
+    }
+  }
+
+  private String encodeData(final String rawMessage) throws IOException {
+    ByteArrayOutputStream os = new ByteArrayOutputStream(rawMessage.getBytes().length);
+    GZIPOutputStream gos = new GZIPOutputStream(os);
+    gos.write(rawMessage.getBytes());
+    gos.close();
+    byte[] compressed = os.toByteArray();
+    os.close();
+    return new String(Base64Coder.encode(compressed));
+  }
+
+  private String getCheckConfigure() throws ConnectErrorException {
+    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+      Log.v(LOGTAG, "Request vtrak configure from SensorsAnalytics.");
+    }
+
+    HttpClient httpClient = new DefaultHttpClient();
+    HttpGet httpPost = new HttpGet(SensorsDataAPI.sharedInstance(mContext).getConfigureUrl());
+
+    try {
+      HttpResponse response = httpClient.execute(httpPost);
+
+      int responseCode = response.getStatusLine().getStatusCode();
+      String responseBody = EntityUtils.toString(response.getEntity(), "UTF-8");
+
+      if (responseCode != 200) {
+        throw new ConnectErrorException("Response error.");
+      }
+
+      return responseBody;
+    } catch (ClientProtocolException e) {
+      throw new ConnectErrorException(e);
+    } catch (IOException e) {
+      throw new ConnectErrorException(e);
+    }
+  }
+
   // Worker will manage the (at most single) IO thread associated with
   // this AnalyticsMessages instance.
   // XXX: Worker class is unnecessary, should be just a subclass of HandlerThread
   private class Worker {
+
     public Worker() {
-      mHandler = restartWorkerThread();
+      final HandlerThread thread =
+          new HandlerThread("com.sensorsdata.analytics.android.sdk.AnalyticsMessages.Worker",
+              Thread.MIN_PRIORITY);
+      thread.start();
+      mHandler = new AnalyticsMessageHandler(thread.getLooper());
     }
 
     public boolean isDead() {
@@ -192,58 +321,84 @@ import java.util.zip.GZIPOutputStream;
       }
     }
 
-    // NOTE that the returned worker will run FOREVER, unless you send a hard kill
-    // (which you really shouldn't)
-    private Handler restartWorkerThread() {
-      final HandlerThread thread =
-          new HandlerThread("com.sensorsdata.analytics.android.sdk.AnalyticsMessages.Worker",
-              Thread.MIN_PRIORITY);
-      thread.start();
-      final Handler ret = new AnalyticsMessageHandler(thread.getLooper());
-      return ret;
+    public void runMessageOnce(Message msg, long delay) {
+      synchronized (mHandlerLock) {
+        if (mHandler == null) {
+          // We died under suspicious circumstances. Don't try to send any more events.
+          logAboutMessageToSensorsData("Dead worker dropping a message: " + msg.what);
+        } else {
+          if (!mHandler.hasMessages(msg.what)) {
+            mHandler.sendMessageDelayed(msg, delay);
+          }
+        }
+      }
     }
 
     private class AnalyticsMessageHandler extends Handler {
 
       public AnalyticsMessageHandler(Looper looper) {
         super(looper);
-        mDbAdapter = null;
-        mFlushInterval = mConfig.getFlushInterval();
-        mSystemInformation = new SystemInformation(mContext);
-        mRetryAfter = -1;
       }
 
-      @Override public void handleMessage(Message msg) {
-        if (mDbAdapter == null) {
-          mDbAdapter = makeDbAdapter(mContext);
-        }
-
+      @Override
+      public void handleMessage(Message msg) {
         try {
-          int returnCode = DbAdapter.DB_UNDEFINED_CODE;
-
-          if (msg.what == ENQUEUE_PEOPLE) {
-            final JSONObject message = (JSONObject) msg.obj;
-
-            logAboutMessageToSensorsData("Queuing people record for sending later");
-            logAboutMessageToSensorsData("    " + message.toString());
-
-            returnCode = mDbAdapter.addJSON(message, DbAdapter.Table.PEOPLE);
-          } else if (msg.what == ENQUEUE_EVENTS) {
-            final JSONObject message = (JSONObject) msg.obj;
-
-            logAboutMessageToSensorsData("Queuing event for sending later");
-            logAboutMessageToSensorsData("    " + message.toString());
-
-            returnCode = mDbAdapter.addJSON(message, DbAdapter.Table.EVENTS);
-          } else if (msg.what == FLUSH_QUEUE) {
-            logAboutMessageToSensorsData("Flushing queue due to scheduled or forced flush");
-            updateFlushFrequency();
-            if (SystemClock.elapsedRealtime() >= mRetryAfter) {
+          if (msg.what == ENQUEUE_EVENTS) {
+            JSONObject event = (JSONObject) msg.obj;
+            synchronized (mDbAdapter) {
               try {
-                sendAllData(mDbAdapter);
-              } catch (RemoteService.ServiceUnavailableException e) {
-                mRetryAfter = SystemClock.elapsedRealtime() + e.getRetryAfter() * 1000;
+                if (mDbAdapter.addJSON(event, DbAdapter.Table.EVENTS) < 0) {
+                  String error = "Failed to enqueue the event: " + event;
+                  if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+                    throw new DebugModeException(error);
+                  } else {
+                    Log.w(LOGTAG, error);
+                  }
+                }
+              } catch (final QueueLimitExceededException e) {
+                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+                  throw new DebugModeException(e.getMessage());
+                } else {
+                  Log.e(LOGTAG, "Failed to enqueue event.", e);
+                }
               }
+            }
+          } else if (msg.what == FLUSH_QUEUE_AUTOMATIC) {
+            try {
+                sendData();
+              } catch (ConnectErrorException e) {
+                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+                  throw new DebugModeException(e.getMessage());
+                } else {
+                  Log.w("Failed to flush events.", e);
+                }
+              } catch (InvalidDataException e) {
+                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+                  throw new DebugModeException(e.getMessage());
+                } else {
+                  Log.w("Failed to flush events.", e);
+                }
+              }
+          } else if (msg.what == CHECK_CONFIGURE) {
+            DecideMessages decideMessages = (DecideMessages) msg.obj;
+            try {
+              final String configureResult = getCheckConfigure();
+              try {
+                final JSONObject configureJson = new JSONObject(configureResult);
+                if (null != configureJson && configureJson.has("event_bindings") && configureJson
+                    .get("event_bindings") instanceof JSONObject) {
+                  final JSONObject eventBindings = configureJson.getJSONObject("event_bindings");
+                  if (eventBindings.has("events") && eventBindings.get("events") instanceof
+                      JSONArray) {
+                    decideMessages.reportResults(eventBindings.getJSONArray("events"));
+                  }
+                }
+              } catch (JSONException e1) {
+                Log.w(LOGTAG, "Unexpected vtrack configure from SensorsAnalytics: " +
+                    configureResult);
+              }
+            } catch (ConnectErrorException e) {
+              Log.e(LOGTAG, "Failed to get vtrack configure from SensorsAnalaytics.", e);
             }
           } else if (msg.what == KILL_WORKER) {
             Log.w(LOGTAG,
@@ -257,27 +412,6 @@ import java.util.zip.GZIPOutputStream;
           } else {
             Log.e(LOGTAG, "Unexpected message received by SensorsData worker: " + msg);
           }
-
-          ///////////////////////////
-
-          // Flush the queue due to the limit while the network type is 3G/4G/wifi.
-          if (isWifi() || is3G()) {
-            if ((returnCode >= mConfig.getBulkSize() || returnCode == DbAdapter.DB_OUT_OF_MEMORY_ERROR)
-                && SystemClock.elapsedRealtime() >= mRetryAfter) {
-              logAboutMessageToSensorsData("Flushing queue due to bulk upload limit");
-              updateFlushFrequency();
-              try {
-                sendAllData(mDbAdapter);
-              } catch (RemoteService.ServiceUnavailableException e) {
-                mRetryAfter = SystemClock.elapsedRealtime() + e.getRetryAfter() * 1000;
-              }
-            } else if (returnCode > 0 && !hasMessages(FLUSH_QUEUE)) {
-              logAboutMessageToSensorsData("Queue depth " + returnCode + " - Adding flush in " + mFlushInterval);
-              if (mFlushInterval >= 0) {
-                sendEmptyMessageDelayed(FLUSH_QUEUE, mFlushInterval);
-              }
-            }
-          }
         } catch (final RuntimeException e) {
           Log.e(LOGTAG, "Worker threw an unhandled exception", e);
           synchronized (mHandlerLock) {
@@ -289,147 +423,24 @@ import java.util.zip.GZIPOutputStream;
               Log.e(LOGTAG, "Could not halt looper", tooLate);
             }
           }
-        } catch (final IOException e) {
-          Log.e(LOGTAG, "Worker threw an unhandled exception", e);
-          synchronized (mHandlerLock) {
-            mHandler = null;
-            try {
-              Looper.myLooper().quit();
-              Log.e(LOGTAG, "SensorsData will not process any more analytics messages", e);
-            } catch (final Exception tooLate) {
-              Log.e(LOGTAG, "Could not halt looper", tooLate);
-            }
-          }
-        }
-      }// handleMessage
-
-      private void sendAllData(DbAdapter dbAdapter)
-          throws RemoteService.ServiceUnavailableException, IOException {
-        final RemoteService poster = getPoster();
-        if (!poster.isOnline(mContext)) {
-          logAboutMessageToSensorsData(
-              "Not flushing data to SensorsData because the device is not connected to the internet.");
-          return;
-        }
-
-        logAboutMessageToSensorsData("Sending records to SensorsData");
-
-        sendData(dbAdapter, DbAdapter.Table.EVENTS, new String[] {mConfig.getServerUrl()});
-        sendData(dbAdapter, DbAdapter.Table.PEOPLE, new String[] {mConfig.getServerUrl()});
-      }
-
-      private void sendData(DbAdapter dbAdapter, DbAdapter.Table table, String[] urls)
-          throws RemoteService.ServiceUnavailableException, IOException {
-        final RemoteService poster = getPoster();
-        final String[] eventsData = dbAdapter.generateDataString(table);
-
-        if (eventsData != null) {
-          final String lastId = eventsData[0];
-          final String rawMessage = eventsData[1];
-
-          final List<NameValuePair> params = new ArrayList<NameValuePair>(1);
-          params.add(new BasicNameValuePair("data_list", encodeData(rawMessage)));
-          params.add(new BasicNameValuePair("gzip", "1"));
-
-          boolean deleteEvents = true;
-          byte[] response;
-          for (String url : urls) {
-            try {
-              response = poster.performRequest(url, params);
-              deleteEvents =
-                  true; // Delete events on any successful post, regardless of 1 or 0 response
-              if (null == response) {
-                logAboutMessageToSensorsData(
-                    "Response was null, unexpected failure posting to " + url + ".");
-              } else {
-                String parsedResponse;
-                try {
-                  parsedResponse = new String(response, "UTF-8");
-                } catch (UnsupportedEncodingException e) {
-                  throw new RuntimeException("UTF not supported on this platform?", e);
-                }
-
-                logAboutMessageToSensorsData("Successfully posted to " + url + ": \n" + rawMessage);
-                logAboutMessageToSensorsData("Response was " + parsedResponse);
-              }
-              break;
-            } catch (final OutOfMemoryError e) {
-              Log.e(LOGTAG, "Out of memory when posting to " + url + ".", e);
-              break;
-            } catch (final MalformedURLException e) {
-              Log.e(LOGTAG, "Cannot interpret " + url + " as a URL.", e);
-              break;
-            } catch (final IOException e) {
-              logAboutMessageToSensorsData("Cannot post message to " + url + ".", e);
-              deleteEvents = false;
-            }
-          }
-
-          if (deleteEvents) {
-            logAboutMessageToSensorsData(
-                "Not retrying this batch of events, deleting them from DB.");
-            dbAdapter.cleanupEvents(lastId, table);
-          } else {
-            logAboutMessageToSensorsData("Retrying this batch of events.");
-            if (!hasMessages(FLUSH_QUEUE)) {
-              sendEmptyMessageDelayed(FLUSH_QUEUE, mFlushInterval);
-            }
-          }
         }
       }
-
-      private String encodeData(final String rawMessage) throws IOException {
-        ByteArrayOutputStream os = new ByteArrayOutputStream(rawMessage.getBytes().length);
-        GZIPOutputStream gos = new GZIPOutputStream(os);
-        gos.write(rawMessage.getBytes());
-        gos.close();
-        byte[] compressed = os.toByteArray();
-        os.close();
-        return Base64.encodeToString(compressed, Base64.DEFAULT);
-      }
-
-      private DbAdapter mDbAdapter;
-      private final long mFlushInterval;
-      private long mRetryAfter;
-    }// AnalyticsMessageHandler
-
-    private void updateFlushFrequency() {
-      final long now = System.currentTimeMillis();
-      final long newFlushCount = mFlushCount + 1;
-
-      if (mLastFlushTime > 0) {
-        final long flushInterval = now - mLastFlushTime;
-        final long totalFlushTime = flushInterval + (mAveFlushFrequency * mFlushCount);
-        mAveFlushFrequency = totalFlushTime / newFlushCount;
-
-        final long seconds = mAveFlushFrequency / 1000;
-        logAboutMessageToSensorsData(
-            "Average send frequency approximately " + seconds + " seconds.");
-      }
-
-      mLastFlushTime = now;
-      mFlushCount = newFlushCount;
     }
 
     private final Object mHandlerLock = new Object();
     private Handler mHandler;
-    private long mFlushCount = 0;
-    private long mAveFlushFrequency = 0;
-    private long mLastFlushTime = -1;
-    private SystemInformation mSystemInformation;
   }
-
-  /////////////////////////////////////////////////////////
 
   // Used across thread boundaries
   private final Worker mWorker;
   private final Context mContext;
-  private final SSConfig mConfig;
+  private final DbAdapter mDbAdapter;
 
   // Messages for our thread
-  private static final int ENQUEUE_PEOPLE = 0; // submit events and people data
   private static final int ENQUEUE_EVENTS = 1; // push given JSON message to people DB
   private static final int FLUSH_QUEUE = 2; // push given JSON message to events DB
+  private static final int FLUSH_QUEUE_AUTOMATIC = 3;
+  private static final int CHECK_CONFIGURE = 4; // 从SA获取配置信息
   private static final int KILL_WORKER = 5;
   // Hard-kill the worker thread, discarding all events on the event queue. This is for testing, or disasters.
 

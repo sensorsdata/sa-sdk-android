@@ -22,4 +22,5 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile project(':SensorsAnalyticsSDK')
+    compile "com.mixpanel.android:mixpanel-android:4.8.0"
 }

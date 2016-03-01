@@ -1,5 +1,10 @@
 package com.sensorsdata.analytics.android.sdk;
 
+import com.sensorsdata.analytics.android.sdk.exceptions.ConnectErrorException;
+import com.sensorsdata.analytics.android.sdk.exceptions.DebugModeException;
+import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
+import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
@@ -11,78 +16,262 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 
+/**
+ * Sensors Analytics SDK
+ */
 public class SensorsDataAPI {
 
-  SensorsDataAPI(Context context, Future<SharedPreferences> referrerPreferences)
-      throws SensorsDataException {
+  /**
+   * Debug 模式，用于检验数据导入是否正确。该模式下，事件会逐条实时发送到 Sensors Analytics，并根据返回值检查
+   * 数据导入是否正确。
+   * <p/>
+   * Debug 模式的具体使用方式，请参考:
+   *   http://www.sensorsdata.cn/manual/debug_mode.html
+   * <p/>
+   * Debug 模式有三种：
+   *   DEBUG_OFF - 关闭DEBUG模式
+   *   DEBUG_ONLY - 打开DEBUG模式，但该模式下发送的数据仅用于调试，不进行数据导入
+   *   DEBUG_AND_TRACK - 打开DEBUG模式，并将数据导入到SensorsAnalytics中
+   */
+  public enum DebugMode {
+    DEBUG_OFF(false, false),
+    DEBUG_ONLY(true, false),
+    DEBUG_AND_TRACK(true, true);
+
+    private final boolean mDebugMode;
+    private final boolean mDebugWriteData;
+
+    DebugMode(boolean debugMode, boolean debugWriteData) {
+      mDebugMode = debugMode;
+      mDebugWriteData = debugWriteData;
+    }
+
+    boolean isDebugMode() {
+      return mDebugMode;
+    }
+
+    boolean isDebugWriteData() {
+      return mDebugWriteData;
+    }
+  }
+
+  SensorsDataAPI(Context context, String serverURL, String configureURL, String vtrackServerURL,
+      SensorsDataAPI.DebugMode debugMode) {
     mContext = context;
 
-    final Map<String, Object> deviceInfo = new HashMap<String, Object>();
-    deviceInfo.put("$lib", "Android");
-    deviceInfo.put("$lib_version", SSConfig.VERSION);
-    deviceInfo.put("$os", "Android");
-    deviceInfo.put("$os_version",
-        Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE);
-    deviceInfo
-        .put("$manufacturer", Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER);
-    deviceInfo.put("$model", Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
-    try {
-      final PackageManager manager = mContext.getPackageManager();
-      final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
-      deviceInfo.put("$app_version", info.versionName);
-    } catch (final PackageManager.NameNotFoundException e) {
-      Log.e(LOGTAG, "Exception getting app version name", e);
+    mServerUrl = serverURL;
+    mConfigureUrl = configureURL;
+    mVTrackServerUrl = vtrackServerURL;
+    mDebugMode = debugMode;
+
+    // 若程序在模拟器中运行，默认 FlushInterval 为1秒；否则为60秒
+    if (SensorsDataUtils.isInEmulator()) {
+      mFlushInterval = 1000;
+    } else {
+      mFlushInterval = 60 * 1000;
     }
-    final DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
-    deviceInfo.put("$screen_height", Integer.valueOf(displayMetrics.heightPixels));
-    deviceInfo.put("$screen_width", Integer.valueOf(displayMetrics.widthPixels));
+
+    final Map<String, Object> deviceInfo = new HashMap<String, Object>();
+
+    {
+      deviceInfo.put("$lib", "Android");
+      deviceInfo.put("$lib_version", VERSION);
+      deviceInfo.put("$os", "Android");
+      deviceInfo.put("$os_version",
+          Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE);
+      deviceInfo
+          .put("$manufacturer", Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER);
+      deviceInfo.put("$model", Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
+      try {
+        final PackageManager manager = mContext.getPackageManager();
+        final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
+        deviceInfo.put("$app_version", info.versionName);
+      } catch (final PackageManager.NameNotFoundException e) {
+        Log.e(LOGTAG, "Exception getting app version name", e);
+      }
+      final DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
+      deviceInfo.put("$screen_height", displayMetrics.heightPixels);
+      deviceInfo.put("$screen_width", displayMetrics.widthPixels);
+    }
+
     mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
 
-    mPersistentIdentity = getPersistentIdentity(context, referrerPreferences);
+    mPersistentIdentity = getPersistentIdentity(context);
 
     mMessages = AnalyticsMessages.getInstance(mContext);
 
-    track("$AppStart", null);
+    // 可视化埋点
+    mVTrack = constructUpdatesFromSensorsData();
+    mDebugTracking = constructTrackingDebug();
   }
 
   /**
-   * 根据传入的Token，获取SensorsDataAPI单例
+   * 获取SensorsDataAPI单例
    *
-   * @param context The application context you are tracking
+   * @param context App的Context
    *
-   * @return an instance of SensorsDataAPI associated with your project
+   * @return SensorsDataAPI单例
    */
-  public static SensorsDataAPI getInstance(Context context)
-      throws SensorsDataException {
+  public static SensorsDataAPI sharedInstance(Context context) {
     if (null == context) {
       return null;
     }
     synchronized (sInstanceMap) {
       final Context appContext = context.getApplicationContext();
+      SensorsDataAPI instance = sInstanceMap.get(appContext);
 
-      if (null == sReferrerPrefs) {
-        sReferrerPrefs = sPrefsLoader.loadPreferences(context, SSConfig.REFERRER_PREFS_NAME, null);
+      if (null == instance) {
+        Log.w(LOGTAG, "The static method sharedInstance(context, serverURL, configureURL, "
+            + "vtrackServerURL, debugMode) should be called before calling sharedInstance()");
       }
+      return instance;
+    }
+  }
+
+  /**
+   * 初始化并获取SensorsDataAPI单例.
+   * <p/>
+   * See also {@link #getFlushInterval()}, {@link #setFlushInterval(int)}
+   *
+   * @param context App的Context
+   * @param serverURL 用于收集事件的服务地址
+   * @param debugMode Debug模式,
+   *                  {@link com.sensorsdata.analytics.android.sdk.SensorsDataAPI.DebugMode}
+   *
+   * @return SensorsDataAPI单例
+   */
+  public static SensorsDataAPI sharedInstance(Context context, String serverURL,
+      DebugMode debugMode) {
+    if (null == context) {
+      return null;
+    }
+
+    synchronized (sInstanceMap) {
+      final Context appContext = context.getApplicationContext();
 
       SensorsDataAPI instance = sInstanceMap.get(appContext);
       if (null == instance && ConfigurationChecker.checkBasicConfiguration(appContext)) {
-        instance = new SensorsDataAPI(appContext, sReferrerPrefs);
+        if (debugMode.isDebugMode()) {
+          String serverUrlPath = serverURL.lastIndexOf("?") > 0 ? serverURL.substring(0,
+              serverURL.lastIndexOf("?")) : serverURL;
+          if (!serverUrlPath.endsWith("debug")) {
+            throw new DebugModeException(String.format("The server url of SensorsAnalytics must "
+                + "ends with 'debug' while DEBUG mode is defined. [url='%s' "
+                + "expected_url='http://example.com/debug?token=xxx']", serverURL));
+          }
+        }
+
+        instance = new SensorsDataAPI(appContext, serverURL, null, null, debugMode);
         sInstanceMap.put(appContext, instance);
+
+        try {
+          instance.track("$AppStart", null);
+        } catch (InvalidDataException e) {
+          Log.w("Unexpected exception", e);
+        }
       }
 
       return instance;
     }
+  }
+
+  /**
+   * 初始化并获取SensorsDataAPI单例.
+   * <p/>
+   * See also {@link #getFlushInterval()}, {@link #setFlushInterval(int)}
+   *
+   * @param context App的Context
+   * @param serverURL 用于收集事件的服务地址
+   * @param configureURL 用于获取可视化埋点配置的服务地址
+   * @param vtrackServerURL 可视化埋点的WebServer地址
+   * @param debugMode Debug模式,
+   *                  {@link com.sensorsdata.analytics.android.sdk.SensorsDataAPI.DebugMode}
+   *
+   * @return SensorsDataAPI单例
+   */
+  private static SensorsDataAPI sharedInstance(Context context, String serverURL,
+      String configureURL, String vtrackServerURL, DebugMode debugMode) {
+    if (null == context) {
+      return null;
+    }
+
+    synchronized (sInstanceMap) {
+      final Context appContext = context.getApplicationContext();
+
+      SensorsDataAPI instance = sInstanceMap.get(appContext);
+      if (null == instance && ConfigurationChecker.checkBasicConfiguration(appContext)) {
+        if (debugMode.isDebugMode()) {
+          String serverUrlPath = serverURL.lastIndexOf("?") > 0 ? serverURL.substring(0,
+              serverURL.lastIndexOf("?")) : serverURL;
+          if (!serverUrlPath.endsWith("debug")) {
+            throw new DebugModeException(String.format("The server url of SensorsAnalytics must "
+                + "ends with 'debug' while DEBUG mode is defined. [url='%s' "
+                + "expected_url='http://example.com/debug?token=xxx']", serverURL));
+          }
+        }
+
+        instance = new SensorsDataAPI(appContext, serverURL, configureURL, vtrackServerURL,
+            debugMode);
+        sInstanceMap.put(appContext, instance);
+
+        instance.mVTrack.startUpdates();
+        instance.mMessages.checkConfigureMessage(new DecideMessages(instance.mVTrack));
+
+        try {
+          instance.track("$AppStart", null);
+        } catch (InvalidDataException e) {
+          Log.w("Unexpected exception", e);
+        }
+      }
+
+      return instance;
+    }
+  }
+
+  /**
+   * 两次数据发送的最小时间间隔，单位毫秒
+   * <p/>
+   * 默认值为60 * 1000毫秒，DEBUG模式下为1 * 1000毫秒
+   * 在每次调用track、signUp以及profileSet等接口的时候，都会检查如下条件，以判断是否向服务器上传数据:
+   *   1. 当前是否是WIFI/3G/4G网络条件
+   *   2. 与上次发送的时间间隔是否大于flushInterval
+   * 如果满足这两个条件，则向服务器发送一次数据；如果不满足，则把数据加入到队列中，等待下次检查时把整个队列的内
+   * 容一并发送。需要注意的是，为了避免占用过多存储，队列最多只缓存20MB数据。
+   *
+   * @return 返回时间间隔，单位毫秒
+   */
+  public int getFlushInterval() {
+    return mFlushInterval;
+  }
+
+  /**
+   * 设置两次数据发送的最小时间间隔
+   *
+   * @param flushInterval 时间间隔，单位毫秒
+   */
+  public void setFlushInterval(int flushInterval) {
+    mFlushInterval = flushInterval;
+  }
+
+  /**
+   * 获取当前用户的distinctId
+   * <p/>
+   * 若调用前未调用 {@link #identify(String)} 设置用户的 distinctId，SDK 会调用 {@link java.util.UUID} 随机生成
+   * UUID，作为用户的 distinctId
+   *
+   * @return 当前用户的distinctId
+   */
+  public String getDistinctId() {
+    return mPersistentIdentity.getDistinctId();
   }
 
   /**
@@ -92,75 +281,41 @@ public class SensorsDataAPI {
    *
    * @param distinctId 当前用户的distinctId，仅接受数字、下划线和大小写字母
    */
-  public void identify(String distinctId) throws SensorsDataException {
-    checkDistinctId(distinctId);
+  public void identify(String distinctId) throws InvalidDataException {
+    assertDistinctId(distinctId);
 
     synchronized (mPersistentIdentity) {
-      mPersistentIdentity.setEventsDistinctId(distinctId);
+      mPersistentIdentity.setDistinctId(distinctId);
     }
   }
 
   /**
-   * 这个接口是一个较为复杂的功能，请在使用前先阅读相关说明:http://www.sensorsdata.cn/manual/track_signup.html，并在必要时联系我们的技术支持人员。
+   * 记录第一次登录行为
+   * <p/>
+   * 这个接口是一个较为复杂的功能，请在使用前先阅读相关说明:
+   *   http://www.sensorsdata.cn/manual/track_signup.html
+   * 并在必要时联系我们的技术支持人员。
    *
    * @param newDistinctId 用户完成注册后生成的注册ID
    * @param properties    事件的属性
    */
-  public void trackSignUp(String newDistinctId, JSONObject properties) throws SensorsDataException {
-    checkDistinctId(newDistinctId);
-    checkKeyInProperties(properties);
-
-    String oldDistinctId = getDistinctId();
+  public void trackSignUp(String newDistinctId, JSONObject properties) throws InvalidDataException {
+    String originalDistinctId = getDistinctId();
     identify(newDistinctId);
 
-    try {
-      final JSONObject sendProperties = new JSONObject(mDeviceInfo);
-
-      final Map<String, String> referrerProperties = mPersistentIdentity.getReferrerProperties();
-      for (final Map.Entry<String, String> entry : referrerProperties.entrySet()) {
-        final String key = entry.getKey();
-        final String value = entry.getValue();
-        sendProperties.put(key, value);
-      }
-
-      mPersistentIdentity.addSuperPropertiesToObject(sendProperties);
-
-      if (null != properties) {
-        final Iterator<?> propIter = properties.keys();
-        while (propIter.hasNext()) {
-          final String key = (String) propIter.next();
-          sendProperties.put(key, properties.get(key));
-        }
-      }
-
-      // 当前网络状况
-      sendProperties.put("$wifi", mMessages.isWifi());
-
-      final JSONObject dataObj = new JSONObject();
-
-      dataObj.put("time", System.currentTimeMillis());
-      dataObj.put("type", "track_signup");
-      dataObj.put("event", "$SignUp");
-      dataObj.put("properties", sendProperties);
-      dataObj.put("distinct_id", newDistinctId);
-      dataObj.put("original_id", oldDistinctId);
-      mMessages.eventsMessage(dataObj);
-
-    } catch (final JSONException e) {
-      Log.e(LOGTAG, "Exception tracking signing up", e);
-      throw new SensorsDataException(e);
-    }
-
-    flush();
+    trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, originalDistinctId);
   }
 
   /**
    * 与 {@link #trackSignUp(String, org.json.JSONObject)} 类似，无事件属性
-   * 这个接口是一个较为复杂的功能，请在使用前先阅读相关说明:http://www.sensorsdata.cn/manual/track_signup.html，并在必要时联系我们的技术支持人员。
+   * <p/>
+   * 这个接口是一个较为复杂的功能，请在使用前先阅读相关说明:
+   *   http://www.sensorsdata.cn/manual/track_signup.html，
+   * 并在必要时联系我们的技术支持人员。
    *
    * @param newDistinctId 用户完成注册后生成的注册ID
    */
-  public void trackSignUp(String newDistinctId) throws SensorsDataException {
+  public void trackSignUp(String newDistinctId) throws InvalidDataException {
     trackSignUp(newDistinctId, null);
   }
 
@@ -170,47 +325,8 @@ public class SensorsDataAPI {
    * @param eventName  事件的名称
    * @param properties 事件的属性
    */
-  public void track(String eventName, JSONObject properties) throws SensorsDataException {
-    checkKey(eventName);
-    checkKeyInProperties(properties);
-
-    try {
-      final JSONObject sendProperties = new JSONObject(mDeviceInfo);
-
-      final Map<String, String> referrerProperties = mPersistentIdentity.getReferrerProperties();
-      for (final Map.Entry<String, String> entry : referrerProperties.entrySet()) {
-        final String key = entry.getKey();
-        final String value = entry.getValue();
-        sendProperties.put(key, value);
-      }
-
-      mPersistentIdentity.addSuperPropertiesToObject(sendProperties);
-
-      if (null != properties) {
-        final Iterator<?> propIter = properties.keys();
-        while (propIter.hasNext()) {
-          final String key = (String) propIter.next();
-          sendProperties.put(key, properties.get(key));
-        }
-      }
-
-      // 当前网络状况
-      sendProperties.put("$wifi", mMessages.isWifi());
-
-      final JSONObject dataObj = new JSONObject();
-      final String distinctId = getDistinctId();
-
-      dataObj.put("time", System.currentTimeMillis());
-      dataObj.put("type", "track");
-      dataObj.put("event", eventName);
-      dataObj.put("properties", sendProperties);
-      dataObj.put("distinct_id", distinctId);
-
-      mMessages.eventsMessage(dataObj);
-    } catch (final JSONException e) {
-      Log.e(LOGTAG, "Exception tracking event " + eventName, e);
-      throw new SensorsDataException(e);
-    }
+  public void track(String eventName, JSONObject properties) throws InvalidDataException {
+    trackEvent(EventType.TRACK, eventName, properties, null);
   }
 
   /**
@@ -218,15 +334,15 @@ public class SensorsDataAPI {
    *
    * @param eventName 事件的名称
    */
-  public void track(String eventName) throws SensorsDataException {
-    track(eventName, null);
+  public void track(String eventName) throws InvalidDataException {
+    trackEvent(EventType.TRACK, eventName, null, null);
   }
 
   /**
-   * 将所有本地缓存的日志发送到SensorsData Analytics.
+   * 将所有本地缓存的日志发送到 Sensors Analytics.
    */
-  public void flush() {
-    mMessages.postToServer();
+  public void flush() throws InvalidDataException, ConnectErrorException {
+    mMessages.flushMessage(0);
   }
 
   /**
@@ -241,22 +357,15 @@ public class SensorsDataAPI {
   }
 
   /**
-   * 获取当前用户的distinctId
-   *
-   * @return 当前用户的distinctId
-   */
-  public String getDistinctId() {
-    return mPersistentIdentity.getEventsDistinctId();
-  }
-
-  /**
    * 注册所有事件都有的公共属性
    *
    * @param superProperties 事件公共属性
    */
-  public void registerSuperProperties(JSONObject superProperties) throws SensorsDataException {
-    checkKeyInProperties(superProperties);
-    mPersistentIdentity.registerSuperProperties(superProperties);
+  public void registerSuperProperties(JSONObject superProperties) throws InvalidDataException {
+    assertPropertyTypes(EventType.REGISTER_SUPER_PROPERTIES, superProperties);
+    synchronized (mPersistentIdentity) {
+      mPersistentIdentity.registerSuperProperties(superProperties);
+    }
   }
 
   /**
@@ -264,33 +373,43 @@ public class SensorsDataAPI {
    *
    * @param superPropertyName 事件属性名称
    */
-  public void unregisterSuperProperty(String superPropertyName) throws SensorsDataException {
-    checkKey(superPropertyName);
-    mPersistentIdentity.unregisterSuperProperty(superPropertyName);
+  public void unregisterSuperProperty(String superPropertyName) throws InvalidDataException {
+    assertKey(superPropertyName);
+    synchronized (mPersistentIdentity) {
+      mPersistentIdentity.unregisterSuperProperty(superPropertyName);
+    }
   }
 
   /**
    * 删除所有事件公共属性
    */
   public void clearSuperProperties() {
-    mPersistentIdentity.clearSuperProperties();
+    synchronized (mPersistentIdentity) {
+      mPersistentIdentity.clearSuperProperties();
+    }
   }
 
   /**
    * 设置用户的一个或多个Profile。
    * Profile如果存在，则覆盖；否则，新创建。
    *
-   * @param properties   属性列表
+   * @param properties 属性列表
    */
-  public void profileSet(JSONObject properties) throws SensorsDataException {
-    checkKeyInProperties(properties);
+  public void profileSet(JSONObject properties) throws InvalidDataException {
+    trackEvent(EventType.PROFILE_SET, null, properties, null);
+  }
 
+  /**
+   * 设置用户的一个Profile，如果之前存在，则覆盖，否则，新创建
+   *
+   * @param property 属性名称
+   * @param value    属性的值，值的类型只允许为String, Number, Date或List<?>
+   */
+  public void profileSet(String property, Object value) throws InvalidDataException {
     try {
-      final JSONObject message = stdPeopleMessage("profile_set", properties);
-      mMessages.peopleMessage(message);
-    } catch (final JSONException e) {
-      Log.e(LOGTAG, "Exception setting people properties", e);
-      throw new SensorsDataException(e);
+      profileSet(new JSONObject().put(property, value));
+    } catch (JSONException e) {
+      throw new InvalidDataException("Unexpected property name or value.");
     }
   }
 
@@ -298,48 +417,24 @@ public class SensorsDataAPI {
    * 首次设置用户的一个或多个Profile。
    * 与profileSet接口不同的是，Profile如果存在，则覆盖；否则，新创建。
    *
-   * @param properties   属性列表
+   * @param properties 属性列表
    */
-  public void profileSetOnce(JSONObject properties) throws SensorsDataException {
-    checkKeyInProperties(properties);
-
-    try {
-      final JSONObject message = stdPeopleMessage("profile_set_once", properties);
-      mMessages.peopleMessage(message);
-    } catch (final JSONException e) {
-      Log.e(LOGTAG, "Exception setting people properties", e);
-      throw new SensorsDataException(e);
-    }
-  }
-
-  /**
-   * 设置用户的一个Profile，如果之前存在，则覆盖，否则，新创建
-   *
-   * @param property     属性名称
-   * @param value        属性的值，值的类型只允许为String, Number, Date或List<?>
-   */
-  public void profileSet(String property, Object value) throws SensorsDataException {
-    try {
-      profileSet(new JSONObject().put(property, value));
-    } catch (final JSONException e) {
-      Log.e(LOGTAG, "Exception set properties", e);
-      throw new SensorsDataException(e);
-    }
+  public void profileSetOnce(JSONObject properties) throws InvalidDataException {
+    trackEvent(EventType.PROFILE_SET_ONCE, null, properties, null);
   }
 
   /**
    * 首次设置用户的一个Profile
    * 与profileSet接口不同的是，如果之前存在，则忽略，否则，新创建
    *
-   * @param property     属性名称
-   * @param value        属性的值，值的类型只允许为String, Number, Date或List<?>
+   * @param property 属性名称
+   * @param value    属性的值，值的类型只允许为String, Number, Date或List<?>
    */
-  public void profileSetOnce(String property, Object value) throws SensorsDataException {
+  public void profileSetOnce(String property, Object value) throws InvalidDataException {
     try {
       profileSetOnce(new JSONObject().put(property, value));
-    } catch (final JSONException e) {
-      Log.e(LOGTAG, "Exception set properties", e);
-      throw new SensorsDataException(e);
+    } catch (JSONException e) {
+      throw new InvalidDataException("Unexpected property name or value.");
     }
   }
 
@@ -350,38 +445,32 @@ public class SensorsDataAPI {
    * @param properties 一个或多个属性集合
    */
   public void profileIncrement(Map<String, ? extends Number> properties)
-      throws SensorsDataException {
-    final JSONObject json = new JSONObject(properties);
-    checkKeyInProperties(json);
-    try {
-      final JSONObject message = stdPeopleMessage("profile_increment", json);
-      mMessages.peopleMessage(message);
-    } catch (final JSONException e) {
-      Log.e(LOGTAG, "Exception incrementing properties", e);
-      throw new SensorsDataException(e);
-    }
+      throws InvalidDataException {
+    trackEvent(EventType.PROFILE_INCREMENT, null, new JSONObject(properties), null);
   }
 
   /**
    * 给一个数值类型的Profile增加一个数值。只能对数值型属性进行操作，若该属性
    * 未设置，则添加属性并设置默认值为0
    *
-   * @param property  属性名称
-   * @param value     属性的值
+   * @param property 属性名称
+   * @param value    属性的值
    */
-  public void profileIncrement(String property, Number value) throws SensorsDataException {
-    final Map<String, Number> map = new HashMap<String, Number>();
-    map.put(property, value);
-    profileIncrement(map);
+  public void profileIncrement(String property, Number value) throws InvalidDataException {
+    try {
+      trackEvent(EventType.PROFILE_INCREMENT, null, new JSONObject().put(property, value), null);
+    } catch (JSONException e) {
+      throw new InvalidDataException("Unexpected property name or value.");
+    }
   }
 
   /**
    * 给一个列表类型的Profile增加一个元素
    *
-   * @param property  属性名称
-   * @param value     新增的元素
+   * @param property 属性名称
+   * @param value    新增的元素
    */
-  public void profileAppend(String property, String value) throws SensorsDataException {
+  public void profileAppend(String property, String value) throws InvalidDataException {
     Set<String> values = new HashSet<String>();
     values.add(value);
     profileAppend(property, values);
@@ -390,11 +479,10 @@ public class SensorsDataAPI {
   /**
    * 给一个列表类型的Profile增加一个或多个元素
    *
-   * @param property  属性名称
-   * @param values    新增的元素集合
+   * @param property 属性名称
+   * @param values   新增的元素集合
    */
-  public void profileAppend(String property, Set<String> values) throws SensorsDataException {
-    checkKey(property);
+  public void profileAppend(String property, Set<String> values) throws InvalidDataException {
     try {
       final JSONArray append_values = new JSONArray();
       for (String value : values) {
@@ -402,43 +490,30 @@ public class SensorsDataAPI {
       }
       final JSONObject properties = new JSONObject();
       properties.put(property, append_values);
-      final JSONObject message = stdPeopleMessage("profile_append", properties);
-      mMessages.peopleMessage(message);
+      trackEvent(EventType.PROFILE_APPEND, null, properties, null);
     } catch (final JSONException e) {
-      Log.e(LOGTAG, "Exception appending a property", e);
-      throw new SensorsDataException(e);
+      throw new InvalidDataException("Unexpected property name or value");
     }
   }
 
   /**
    * 删除用户的一个Profile
    *
-   * @param property  属性名称
+   * @param property 属性名称
    */
-  public void profileUnset(String property) throws SensorsDataException {
-    checkKey(property);
+  public void profileUnset(String property) throws InvalidDataException {
     try {
-      final JSONObject names = new JSONObject();
-      names.put(property, true);
-      final JSONObject message = stdPeopleMessage("profile_unset", names);
-      mMessages.peopleMessage(message);
+      trackEvent(EventType.PROFILE_UNSET, null, new JSONObject().put(property, true), null);
     } catch (final JSONException e) {
-      Log.e(LOGTAG, "Exception unsetting a property", e);
-      throw new SensorsDataException(e);
+      throw new InvalidDataException("Unexpected property name");
     }
   }
 
   /**
    * 删除用户所有Profile
    */
-  public void delete() throws SensorsDataException {
-    try {
-      final JSONObject message = stdPeopleMessage("delete", null);
-      mMessages.peopleMessage(message);
-    } catch (final JSONException e) {
-      Log.e(LOGTAG, "Exception deleting a user");
-      throw new SensorsDataException(e);
-    }
+  public void profileDelete() throws InvalidDataException {
+    trackEvent(EventType.PROFILE_DELETE, null, null, null);
   }
 
   /**
@@ -448,22 +523,29 @@ public class SensorsDataAPI {
     mPersistentIdentity.clearPreferences();
   }
 
-  interface InstanceProcessor {
-    public void process(SensorsDataAPI m);
+  boolean isDebugMode() {
+    return mDebugMode.isDebugMode();
   }
 
-  static void allInstances(InstanceProcessor processor) {
-    synchronized (sInstanceMap) {
-      for (final SensorsDataAPI instance : sInstanceMap.values()) {
-        processor.process(instance);
-      }
-    }
+  boolean isDebugWriteData() {
+    return mDebugMode.isDebugWriteData();
+  }
+
+  String getServerUrl() {
+    return mServerUrl;
+  }
+
+  String getConfigureUrl() {
+    return mConfigureUrl;
+  }
+
+  String getVTrackServerUrl() {
+    return mVTrackServerUrl;
   }
 
   // Conveniences for testing.
 
-  PersistentIdentity getPersistentIdentity(final Context context,
-      Future<SharedPreferences> referrerPreferences) {
+  PersistentIdentity getPersistentIdentity(final Context context) {
     final SharedPreferencesLoader.OnPrefsLoadedListener listener =
         new SharedPreferencesLoader.OnPrefsLoadedListener() {
           @Override public void onPrefsLoaded(SharedPreferences preferences) {
@@ -473,60 +555,251 @@ public class SensorsDataAPI {
     final String prefsName = "com.sensorsdata.analytics.android.sdk.SensorsDataAPI";
     final Future<SharedPreferences> storedPreferences =
         sPrefsLoader.loadPreferences(context, prefsName, listener);
-    return new PersistentIdentity(referrerPreferences, storedPreferences);
+    return new PersistentIdentity(storedPreferences);
   }
 
-  private JSONObject stdPeopleMessage(String actionType, JSONObject properties) throws
-      JSONException {
-    final JSONObject dataObj = new JSONObject();
-    dataObj.put("time", System.currentTimeMillis());
-    dataObj.put("type", actionType);
-    dataObj.put("properties", properties);
-    dataObj.put("distinct_id", getDistinctId());
+  private void trackEvent(EventType eventType, String eventName, JSONObject properties, String
+      originalDistinctId) throws InvalidDataException {
+    if (mDebugMode.isDebugMode()) {
+      Log.v(LOGTAG, String.format("Event tracked. [event_type='%s' event_name='%s']", eventType
+          .getEventType(), eventName));
+    }
 
-    return dataObj;
+    if (eventType.isTrack()) {
+      assertKey(eventName);
+    }
+    assertPropertyTypes(eventType, properties);
+
+    synchronized (mPersistentIdentity) {
+      try {
+        JSONObject sendProperties = null;
+
+        if (eventType.isTrack()) {
+          sendProperties = new JSONObject(mDeviceInfo);
+          mPersistentIdentity.addSuperPropertiesToObject(sendProperties);
+          // 当前网络状况
+          sendProperties.put("$wifi", mMessages.isWifi());
+        } else if (eventType.isProfile()) {
+          sendProperties = new JSONObject();
+        } else {
+          return;
+        }
+
+        if (null != properties) {
+          final Iterator<?> propIter = properties.keys();
+          while (propIter.hasNext()) {
+            final String key = (String) propIter.next();
+            sendProperties.put(key, properties.get(key));
+          }
+        }
+
+        final JSONObject dataObj = new JSONObject();
+
+        if (eventType == EventType.TRACK) {
+          dataObj.put("time", System.currentTimeMillis());
+          dataObj.put("type", eventType.getEventType());
+          dataObj.put("event", eventName);
+          dataObj.put("properties", sendProperties);
+          dataObj.put("distinct_id", mPersistentIdentity.getDistinctId());
+        } else if (eventType == EventType.TRACK_SIGNUP) {
+          dataObj.put("time", System.currentTimeMillis());
+          dataObj.put("type", eventType.getEventType());
+          dataObj.put("event", eventName);
+          dataObj.put("properties", sendProperties);
+          dataObj.put("distinct_id", mPersistentIdentity.getDistinctId());
+          dataObj.put("original_id", originalDistinctId);
+        } else {
+          // is PROFILE_XXX
+          dataObj.put("time", System.currentTimeMillis());
+          dataObj.put("type", eventType.getEventType());
+          dataObj.put("properties", sendProperties);
+          dataObj.put("distinct_id", mPersistentIdentity.getDistinctId());
+        }
+
+        // 可视化埋点的事件
+        if (mDebugTracking != null) {
+          mDebugTracking.reportTrack(dataObj);
+        }
+
+        // $binding_depolyed为true或者无该属性时，isDepolyed为true
+        final boolean isDepolyed = sendProperties.optBoolean("$binding_depolyed", true);
+
+        // 若$binding_depolyed为true，则删除这些属性
+        if (sendProperties.has("$binding_depolyed")) {
+          sendProperties.remove("$binding_path");
+          sendProperties.remove("$binding_depolyed");
+          sendProperties.remove("$binding_trigger_id");
+          dataObj.put("properties", sendProperties);
+        }
+
+        if (isDepolyed) {
+          if (mDebugMode.isDebugMode()) {
+            Log.v(LOGTAG, "Enqueue event. [data='" + dataObj.toString() + "']");
+          }
+
+          mMessages.enqueueEventMessage(dataObj);
+
+          if (mDebugMode.isDebugMode()) {
+            // 同步发送
+            mMessages.flushMessage(0);
+          } else {
+            // 异步延迟发送
+            mMessages.flushMessage(mFlushInterval);
+          }
+        }
+      } catch (JSONException e) {
+        throw new InvalidDataException("Unexpteced property");
+      }
+    }
   }
 
-  private void checkKey(String key) throws SensorsDataException {
-    if (key == null || key.length() < 1) {
-      throw new SensorsDataException("The key is empty.");
-    }
-    if (!(KEY_PATTERN.matcher(key).matches())) {
-      throw new SensorsDataException("The key '" + key + "' is invalid.");
-    }
-  }
-
-  private void checkDistinctId(String key) throws SensorsDataException {
-    if (key == null || key.length() < 1) {
-      throw new SensorsDataException("The distinct_id or original_id is empty.");
-    }
-    if (key.length() > 255) {
-      throw new SensorsDataException("The max_length of distinct_id or original_id is 255.");
-    }
-  }
-
-  private void checkKeyInProperties(JSONObject properties) throws SensorsDataException {
+  private void assertPropertyTypes(EventType eventType, JSONObject properties) throws
+      InvalidDataException {
     if (properties == null) {
       return;
     }
-    for (Iterator<String> iter = properties.keys(); iter.hasNext();) {
-      String key = iter.next();
-      checkKey(key);
+
+    for (Iterator iterator = properties.keys(); iterator.hasNext(); ) {
+      String key = (String) iterator.next();
+
+      // Check Keys
+      assertKey(key);
+
+      try {
+        Object value = properties.get(key);
+
+        if (!(value instanceof String || value instanceof Number || value
+            instanceof JSONArray || value instanceof Boolean)) {
+          throw new InvalidDataException("The property value must be an instance of String/Number"
+              + ". [key='" + key + "', value='" + value.toString() + "']");
+        }
+      } catch (JSONException e) {
+        throw new InvalidDataException("Unexpected property key. [key='" + key + "']");
+      }
     }
   }
+
+  private void assertKey(String key) throws InvalidDataException {
+    if (null == key || key.length() < 1) {
+      throw new InvalidDataException("The key is empty.");
+    }
+    if (!(KEY_PATTERN.matcher(key).matches())) {
+      throw new InvalidDataException("The key '" + key + "' is invalid.");
+    }
+  }
+
+  private void assertDistinctId(String key) throws InvalidDataException {
+    if (key == null || key.length() < 1) {
+      throw new InvalidDataException("The distinct_id or original_id is empty.");
+    }
+    if (key.length() > 255) {
+      throw new InvalidDataException("The max length of distinct_id or original_id is 255.");
+    }
+  }
+
+  private DebugTracking constructTrackingDebug() {
+    if (mVTrack instanceof ViewCrawler) {
+      return (DebugTracking) mVTrack;
+    }
+    return null;
+  }
+
+  private VTrack constructUpdatesFromSensorsData() {
+    if (Build.VERSION.SDK_INT < VTRACK_SUPPORTED_MIN_API || mVTrackServerUrl == null ||
+        mConfigureUrl == null) {
+      Log.i(LOGTAG, "VTrack is not supported on this Android OS Version");
+      return new VTrackUnsupported();
+    } else {
+      return new ViewCrawler(mContext);
+    }
+  }
+
+  private class VTrackUnsupported implements VTrack {
+
+    public VTrackUnsupported() {
+    }
+
+    @Override
+    public void startUpdates() {
+      // do NOTHING
+    }
+
+    @Override
+    public void setEventBindings(JSONArray bindings) {
+      // do NOTHING
+    }
+
+  }
+
+  private enum EventType {
+    TRACK("track", true, false),
+    TRACK_SIGNUP("track_signup", true, false),
+    PROFILE_SET("profile_set", false, true),
+    PROFILE_SET_ONCE("profile_set_once", false, true),
+    PROFILE_UNSET("profile_unset", false, true),
+    PROFILE_INCREMENT("profile_increment", false, true),
+    PROFILE_APPEND("profile_append", false, true),
+    PROFILE_DELETE("profile_delete", false, true),
+    REGISTER_SUPER_PROPERTIES("register_super_properties", false, false);
+
+    EventType(String eventType, boolean isTrack, boolean isProfile) {
+      this.eventType = eventType;
+      this.track = isTrack;
+      this.profile = isProfile;
+    }
+
+    public String getEventType() {
+      return eventType;
+    }
+
+    public boolean isTrack() {
+      return track;
+    }
+
+    public boolean isProfile() {
+      return profile;
+    }
+
+    private String eventType;
+    private boolean track;
+    private boolean profile;
+  }
+
+
+  // 可视化埋点功能最低API版本
+  static final int VTRACK_SUPPORTED_MIN_API = 16;
+
+  // SDK版本
+  static final String VERSION = "1.3.1";
+
+  private static final Pattern KEY_PATTERN = Pattern.compile(
+      "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
+      Pattern.CASE_INSENSITIVE);
+
+  // Maps each token to a singleton SensorsDataAPI instance
+  private static final Map<Context, SensorsDataAPI> sInstanceMap =
+      new HashMap<Context, SensorsDataAPI>();
+  private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
+
+  // Configures
+  /* SensorsAnalytics 地址 */
+  private final String mServerUrl;
+  /* 可视化埋点配置地址 */
+  private final String mConfigureUrl;
+  /* 可视化埋点WebServer地址 */
+  private final String mVTrackServerUrl;
+  /* Debug模式选项 */
+  private final DebugMode mDebugMode;
+  /* Flush时间间隔 */
+  private int mFlushInterval;
 
   private final Context mContext;
   private final AnalyticsMessages mMessages;
   private final PersistentIdentity mPersistentIdentity;
   private final Map<String, Object> mDeviceInfo;
 
-  // Maps each token to a singleton SensorsDataAPI instance
-  private static final Map<Context, SensorsDataAPI> sInstanceMap =
-      new HashMap<Context, SensorsDataAPI>();
-  private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
-  private static Future<SharedPreferences> sReferrerPrefs;
+  private final VTrack mVTrack;
+  private final DebugTracking mDebugTracking;
 
-  private static final Pattern KEY_PATTERN = Pattern.compile("^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$", Pattern.CASE_INSENSITIVE);
-
-  private static final String LOGTAG = "SA.API";
+  private static final String LOGTAG = "SA.SensorsDataAPI";
 }

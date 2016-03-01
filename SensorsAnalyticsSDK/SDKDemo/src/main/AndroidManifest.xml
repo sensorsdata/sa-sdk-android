@@ -7,7 +7,10 @@
 
     <!-- [Optional] 该权限可选，查询网络状态 -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-
+    <!--ShenLei-XXXX JustForDebug-NeedDelete Start-->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE" />
+    <!--ShenLei-XXXX JustForDebug-NeedDelete End-->
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -22,22 +25,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <activity
+            android:name=".SubActivity"
+            android:label="SubActivity" >
+        </activity>
+        
+        <activity
+            android:name=".ExampleListActivity"
+            android:label="ExampleListActivity" >
+        </activity>
 
-        <!-- [Required] 接收日志的服务器的地址 -->
-        <meta-data android:name="com.sensorsdata.analytics.android.sdk.config.ServerUrl"
-                   android:value="http://sa_host:8006/sa"/>
-        <!-- [Optional] 是否打印Debug信息，默认值为 false -->
-        <meta-data android:name="com.sensorsdata.analytics.android.sdk.config.DebugMode"
-                   android:value="true"/>
-        <!-- [Optional] SDK缓存日志的最大条目数，超过此值将立即进行发送，默认值为 100 -->
-        <meta-data android:name="com.sensorsdata.analytics.android.sdk.config.BulkSize"
-                   android:value="100"/>
-        <!-- [Optional] SDK发送日志的最大时间间隔，单位毫秒，默认值为 60 * 1000 (60秒) -->
-        <meta-data android:name="com.sensorsdata.analytics.android.sdk.config.FlushInterval"
-                   android:value="60000"/>
-        <!-- [Optional] SDK本地缓存数据库最小值，单位 Byte，默认为 20 * 1024 * 1024 (20MB) -->
-        <meta-data android:name="com.sensorsdata.analytics.android.sdk.config.MinimumDatabaseLimit"
-                   android:value="20000000"/>
+        <meta-data
+                android:name="com.mixpanel.android.MPConfig.EnableDebugLogging"
+                android:value="true" />
 
     </application>
 
