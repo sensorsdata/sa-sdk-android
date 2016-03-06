@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -68,7 +69,12 @@ public class SensorsDataAPI {
       SensorsDataAPI.DebugMode debugMode) {
     mContext = context;
 
-    mServerUrl = serverURL;
+    if (debugMode.isDebugMode()) {
+      // 将 URI Path 替换成 Debug 模式的 '/debug'
+      mServerUrl = Uri.parse(serverURL).buildUpon().path("/debug").build().toString();
+    } else {
+      mServerUrl = serverURL;
+    }
     mConfigureUrl = configureURL;
     mVTrackServerUrl = vtrackServerURL;
     mDebugMode = debugMode;
@@ -138,19 +144,20 @@ public class SensorsDataAPI {
   }
 
   /**
-   * 初始化并获取SensorsDataAPI单例.
+   * 初始化并获取SensorsDataAPI单例（关闭可视化埋点功能）
    * <p/>
    * See also {@link #getFlushInterval()}, {@link #setFlushInterval(int)}
    *
    * @param context App的Context
    * @param serverURL 用于收集事件的服务地址
+   * @param configureUrl 用于获取SDK配置的服务地址
    * @param debugMode Debug模式,
    *                  {@link com.sensorsdata.analytics.android.sdk.SensorsDataAPI.DebugMode}
    *
    * @return SensorsDataAPI单例
    */
-  public static SensorsDataAPI sharedInstance(Context context, String serverURL,
-      DebugMode debugMode) {
+  public static SensorsDataAPI sharedInstance(Context context, String serverURL, String
+      configureUrl, DebugMode debugMode) {
     if (null == context) {
       return null;
     }
@@ -160,17 +167,7 @@ public class SensorsDataAPI {
 
       SensorsDataAPI instance = sInstanceMap.get(appContext);
       if (null == instance && ConfigurationChecker.checkBasicConfiguration(appContext)) {
-        if (debugMode.isDebugMode()) {
-          String serverUrlPath = serverURL.lastIndexOf("?") > 0 ? serverURL.substring(0,
-              serverURL.lastIndexOf("?")) : serverURL;
-          if (!serverUrlPath.endsWith("debug")) {
-            throw new DebugModeException(String.format("The server url of SensorsAnalytics must "
-                + "ends with 'debug' while DEBUG mode is defined. [url='%s' "
-                + "expected_url='http://example.com/debug?token=xxx']", serverURL));
-          }
-        }
-
-        instance = new SensorsDataAPI(appContext, serverURL, null, null, debugMode);
+        instance = new SensorsDataAPI(appContext, serverURL, configureUrl, null, debugMode);
         sInstanceMap.put(appContext, instance);
 
         try {
@@ -185,20 +182,20 @@ public class SensorsDataAPI {
   }
 
   /**
-   * 初始化并获取SensorsDataAPI单例.
+   * 初始化并获取SensorsDataAPI单例（打开可视化埋点功能）
    * <p/>
    * See also {@link #getFlushInterval()}, {@link #setFlushInterval(int)}
    *
    * @param context App的Context
    * @param serverURL 用于收集事件的服务地址
-   * @param configureURL 用于获取可视化埋点配置的服务地址
+   * @param configureURL 用于获取SDK配置的服务地址
    * @param vtrackServerURL 可视化埋点的WebServer地址
    * @param debugMode Debug模式,
    *                  {@link com.sensorsdata.analytics.android.sdk.SensorsDataAPI.DebugMode}
    *
    * @return SensorsDataAPI单例
    */
-  private static SensorsDataAPI sharedInstance(Context context, String serverURL,
+  public static SensorsDataAPI sharedInstance(Context context, String serverURL,
       String configureURL, String vtrackServerURL, DebugMode debugMode) {
     if (null == context) {
       return null;
@@ -770,7 +767,7 @@ public class SensorsDataAPI {
   static final int VTRACK_SUPPORTED_MIN_API = 16;
 
   // SDK版本
-  static final String VERSION = "1.3.1";
+  static final String VERSION = "1.3.2";
 
   private static final Pattern KEY_PATTERN = Pattern.compile(
       "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",

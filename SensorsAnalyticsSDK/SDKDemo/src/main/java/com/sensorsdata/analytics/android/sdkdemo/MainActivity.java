@@ -26,6 +26,7 @@ public class MainActivity extends Activity {
       SensorsDataAPI sa = SensorsDataAPI.sharedInstance(
           this,
           "http://sa_host:8006/sa",
+          "http://sa_host:8007/api/vtrack/config/Android.conf",
           SensorsDataAPI.DebugMode.DEBUG_OFF);
       sa.identify(userId);
     } catch (InvalidDataException e) {
