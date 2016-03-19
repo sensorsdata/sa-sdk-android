@@ -18,7 +18,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.SimpleDateFormat;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -303,7 +305,7 @@ public class SensorsDataAPI {
    * @return 当前用户的distinctId
    */
   public String getDistinctId() {
-    return mPersistentIdentity.getDistinctId();
+    return new String(mPersistentIdentity.getDistinctId());
   }
 
   /**
@@ -666,7 +668,13 @@ public class SensorsDataAPI {
           final Iterator<?> propIter = properties.keys();
           while (propIter.hasNext()) {
             final String key = (String) propIter.next();
-            sendProperties.put(key, properties.get(key));
+            final Object value = properties.get(key);
+
+            if (value instanceof Date) {
+              sendProperties.put(key, mDateFormat.format((Date)value));
+            } else {
+              sendProperties.put(key, value);
+            }
           }
         }
 
@@ -713,8 +721,6 @@ public class SensorsDataAPI {
         }
 
         if (isDepolyed) {
-          Log.d(LOGTAG, "Sensors Analytics tracked event: " + dataObj.toString());
-
           mMessages.enqueueEventMessage(dataObj);
 
           if (mDebugMode.isDebugMode()) {
@@ -747,7 +753,7 @@ public class SensorsDataAPI {
         Object value = properties.get(key);
 
         if (!(value instanceof String || value instanceof Number || value
-            instanceof JSONArray || value instanceof Boolean)) {
+            instanceof JSONArray || value instanceof Boolean || value instanceof Date)) {
           throw new InvalidDataException("The property value must be an instance of "
               + "String/Number/Boolean/JSONArray. [key='" + key + "', value='" + value.toString()
               + "']");
@@ -841,7 +847,7 @@ public class SensorsDataAPI {
   static final int VTRACK_SUPPORTED_MIN_API = 16;
 
   // SDK版本
-  static final String VERSION = "1.3.2";
+  static final String VERSION = "1.3.6";
 
   private static final Pattern KEY_PATTERN = Pattern.compile(
       "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
@@ -870,6 +876,9 @@ public class SensorsDataAPI {
   private final Map<String, Object> mDeviceInfo;
 
   private final VTrack mVTrack;
+
+  private static final SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"
+      + ".SSS");
 
   private static final String LOGTAG = "SA.SensorsDataAPI";
 }

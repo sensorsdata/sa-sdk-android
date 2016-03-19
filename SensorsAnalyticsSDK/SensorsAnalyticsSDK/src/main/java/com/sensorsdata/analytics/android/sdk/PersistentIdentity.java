@@ -187,6 +187,7 @@ import java.util.concurrent.Future;
     if (null == mDistinctId) {
       mDistinctId = UUID.randomUUID().toString();
       writeIdentities();
+      Log.v(LOGTAG, String.format("Uses a random UUID as Distinct Id. [Id='%s']", mDistinctId));
     }
 
     mIdentitiesLoaded = true;
