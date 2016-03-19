@@ -201,10 +201,6 @@ public abstract class Draft {
 
 	public abstract CloseHandshakeType getCloseHandshakeType();
 
-	/**
-	 * Drafts must only be by one websocket at all. To prevent drafts to be used more than once the Websocket implementation should call this method in order to create a new usable version of a given draft instance.<br>
-	 * The copy can be safely used in conjunction with a new websocket connection.
-	 * */
 	public abstract Draft copyInstance();
 
 	public Handshakedata translateHandshake( ByteBuffer buf ) throws InvalidHandshakeException {

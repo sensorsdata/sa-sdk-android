@@ -7,7 +7,6 @@ import com.sensorsdata.analytics.android.sdk.exceptions.QueueLimitExceededExcept
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 
 import android.content.Context;
-import android.hardware.Sensor;
 import android.net.ConnectivityManager;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -94,7 +93,7 @@ class AnalyticsMessages {
 
   public void flushMessage(long delay) {
     final Message m = Message.obtain();
-    m.what = FLUSH_QUEUE_AUTOMATIC;
+    m.what = FLUSH_QUEUE;
 
     if (delay > 0) {
       mWorker.runMessageOnce(m, delay);
@@ -152,23 +151,7 @@ class AnalyticsMessages {
     return mWorker.isDead();
   }
 
-  // Sends a message if and only if we are running with SensorsData Message log enabled.
-  // Will be called from the SensorsData thread.
-  private void logAboutMessageToSensorsData(String message) {
-    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-      Log.v(LOGTAG, message + " (Thread " + Thread.currentThread().getId() + ")");
-    }
-  }
-
-  private void logAboutMessageToSensorsData(String message, Throwable e) {
-    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-      Log.v(LOGTAG, message + " (Thread " + Thread.currentThread().getId() + ")", e);
-    }
-  }
-
   private void sendData() throws ConnectErrorException, InvalidDataException {
-    logAboutMessageToSensorsData("Sending records to SensorsData");
-
     String[] eventsData;
     synchronized (mDbAdapter) {
       if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
@@ -221,8 +204,6 @@ class AnalyticsMessages {
       if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
         if (response_code == 200) {
           Log.v(LOGTAG, String.format("valid message: %s", rawMessage));
-          Log.v(LOGTAG, String.format("ret_code: %d", response_code));
-          Log.v(LOGTAG, String.format("ret_content: %s", response_body));
         } else {
           Log.v(LOGTAG, String.format("invalid message: %s", rawMessage));
           Log.v(LOGTAG, String.format("ret_code: %d", response_code));
@@ -266,10 +247,6 @@ class AnalyticsMessages {
   }
 
   private String getCheckConfigure() throws ConnectErrorException {
-    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-      Log.v(LOGTAG, "Request vtrak configure from SensorsAnalytics.");
-    }
-
     HttpClient httpClient = new DefaultHttpClient();
     HttpGet httpPost = new HttpGet(SensorsDataAPI.sharedInstance(mContext).getConfigureUrl());
 
@@ -314,7 +291,7 @@ class AnalyticsMessages {
       synchronized (mHandlerLock) {
         if (mHandler == null) {
           // We died under suspicious circumstances. Don't try to send any more events.
-          logAboutMessageToSensorsData("Dead worker dropping a message: " + msg.what);
+          Log.v(LOGTAG, "Dead worker dropping a message: " + msg.what);
         } else {
           mHandler.sendMessage(msg);
         }
@@ -325,7 +302,7 @@ class AnalyticsMessages {
       synchronized (mHandlerLock) {
         if (mHandler == null) {
           // We died under suspicious circumstances. Don't try to send any more events.
-          logAboutMessageToSensorsData("Dead worker dropping a message: " + msg.what);
+          Log.v(LOGTAG, "Dead worker dropping a message: " + msg.what);
         } else {
           if (!mHandler.hasMessages(msg.what)) {
             mHandler.sendMessageDelayed(msg, delay);
@@ -363,7 +340,7 @@ class AnalyticsMessages {
                 }
               }
             }
-          } else if (msg.what == FLUSH_QUEUE_AUTOMATIC) {
+          } else if (msg.what == FLUSH_QUEUE) {
             try {
                 sendData();
               } catch (ConnectErrorException e) {
@@ -437,9 +414,8 @@ class AnalyticsMessages {
   private final DbAdapter mDbAdapter;
 
   // Messages for our thread
-  private static final int ENQUEUE_EVENTS = 1; // push given JSON message to people DB
-  private static final int FLUSH_QUEUE = 2; // push given JSON message to events DB
-  private static final int FLUSH_QUEUE_AUTOMATIC = 3;
+  private static final int ENQUEUE_EVENTS = 1;
+  private static final int FLUSH_QUEUE = 3;
   private static final int CHECK_CONFIGURE = 4; // 从SA获取配置信息
   private static final int KILL_WORKER = 5;
   // Hard-kill the worker thread, discarding all events on the event queue. This is for testing, or disasters.

@@ -21,8 +21,8 @@ public class Pathfinder {
    * <p>
    * So
    * <p>
-   * E.viewClassName == 'com.temp.Awesome' => V instanceof com.tempAwesome
-   * E.id == 123 => V.getId() == 123
+   * E.viewClassName == 'com.temp.Awesome' =) V instanceof com.tempAwesome
+   * E.id == 123 =) V.getId() == 123
    * <p>
    * The index attribute, counting from root to leaf, and first child to last child, selects a particular
    * matching view amongst all possible matches. Indexing starts at zero, like an array
@@ -52,13 +52,11 @@ public class Pathfinder {
    */
   public static class PathElement {
 
-    public PathElement(int usePrefix, String vClass, int ix, int vId, String cDesc, String vTag) {
+    public PathElement(int usePrefix, String vClass, int ix, int vId) {
       prefix = usePrefix;
       viewClassName = vClass;
       index = ix;
       viewId = vId;
-      contentDescription = cDesc;
-      tag = vTag;
     }
 
     @Override
@@ -77,12 +75,7 @@ public class Pathfinder {
         if (viewId > -1) {
           ret.put("id", viewId);
         }
-        if (null != contentDescription) {
-          ret.put("contentDescription", contentDescription);
-        }
-        if (null != tag) {
-          ret.put("tag", tag);
-        }
+
         return ret.toString();
       } catch (final JSONException e) {
         throw new RuntimeException("Can't serialize PathElement to String", e);
@@ -93,8 +86,6 @@ public class Pathfinder {
     public final String viewClassName;
     public final int index;
     public final int viewId;
-    public final String contentDescription;
-    public final String tag;
 
     public static final int ZERO_LENGTH_PREFIX = 0;
     public static final int SHORTEST_PREFIX = 1;
@@ -203,23 +194,10 @@ public class Pathfinder {
       return false;
     }
 
-    if (null != matchElement.contentDescription &&
-        !matchElement.contentDescription.equals(subject.getContentDescription())) {
-      return false;
-    }
-
-    final String matchTag = matchElement.tag;
-    if (null != matchElement.tag) {
-      final Object subjectTag = subject.getTag();
-      if (null == subjectTag || !matchTag.equals(subject.getTag().toString())) {
-        return false;
-      }
-    }
-
     return true;
   }
 
-  private static boolean hasClassName(Object o, String className) {
+  public static boolean hasClassName(Object o, String className) {
     Class<?> klass = o.getClass();
     while (true) {
       if (klass.getCanonicalName().equals(className)) {

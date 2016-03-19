@@ -122,22 +122,23 @@ public abstract class ResourceReader implements ResourceIds {
           + "', ids by name will not be available in the events editor.");
       Log.i(LOGTAG,
           "You may be missing a Resources class for your package due to your proguard configuration, "
-              +
-              "or you may be using an applicationId in your build that isn't the same as the package declared in your AndroidManifest.xml file.\n"
-              +
-              "If you're using proguard, you can fix this issue by adding the following to your proguard configuration:\n\n"
-              +
-              "-keep class **.R$* {\n" +
-              "    <fields>;\n" +
-              "}\n\n" +
-              "If you're not using proguard, or if your proguard configuration already contains the directive above, "
-              +
-              "you can add the following to your AndroidManifest.xml file to explicitly point the SensorsData library to "
-              +
-              "the appropriate library for your resources class:\n\n" +
-              "<meta-data android:name=\"com.sensorsdata.analytics.android.sdk.SAConfig.ResourcePackageName\" android:value=\"YOUR_PACKAGE_NAME\" />\n\n"
-              +
-              "where YOUR_PACKAGE_NAME is the same string you use for the \"package\" attribute in your <manifest> tag.");
+              + "or you may be using an applicationId in your build that isn't the same as the "
+              + "package declared in your AndroidManifest.xml file.\n"
+              + "If you're using proguard, you can fix this issue by adding the following to your"
+              + " proguard configuration:\n\n"
+              + ""
+              + "-keep class **.R$* {\n"
+              + "    <fields>;\n"
+              + "}\n\n"
+              + ""
+              + "If you're not using proguard, or if your proguard configuration already contains"
+              + " the directive above, you can add the following to your AndroidManifest.xml file"
+              + " to explicitly point the SensorsData library to the appropriate library for your"
+              + " resources class:\n\n"
+              + "<meta-data android:name=\"com.sensorsdata.analytics.android.ResourcePackageName\""
+              + " android:value=\"YOUR_PACKAGE_NAME\" />\n\n"
+              + "where YOUR_PACKAGE_NAME is the same string you use for the \"package\" attribute"
+              + " in your <manifest> tag.");
     }
 
     for (Map.Entry<String, Integer> idMapping : mIdNameToId.entrySet()) {

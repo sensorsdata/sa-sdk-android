@@ -1,16 +1,17 @@
 package com.sensorsdata.analytics.android.sdk;
 
 import com.sensorsdata.analytics.android.sdk.exceptions.ConnectErrorException;
-import com.sensorsdata.analytics.android.sdk.exceptions.DebugModeException;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import org.json.JSONArray;
@@ -34,10 +35,10 @@ public class SensorsDataAPI {
   /**
    * Debug 模式，用于检验数据导入是否正确。该模式下，事件会逐条实时发送到 Sensors Analytics，并根据返回值检查
    * 数据导入是否正确。
-   * <p/>
+   *
    * Debug 模式的具体使用方式，请参考:
    *   http://www.sensorsdata.cn/manual/debug_mode.html
-   * <p/>
+   *
    * Debug 模式有三种：
    *   DEBUG_OFF - 关闭DEBUG模式
    *   DEBUG_ONLY - 打开DEBUG模式，但该模式下发送的数据仅用于调试，不进行数据导入
@@ -69,22 +70,72 @@ public class SensorsDataAPI {
       SensorsDataAPI.DebugMode debugMode) {
     mContext = context;
 
-    if (debugMode.isDebugMode()) {
-      // 将 URI Path 替换成 Debug 模式的 '/debug'
-      mServerUrl = Uri.parse(serverURL).buildUpon().path("/debug").build().toString();
-    } else {
-      mServerUrl = serverURL;
-    }
-    mConfigureUrl = configureURL;
-    mVTrackServerUrl = vtrackServerURL;
-    mDebugMode = debugMode;
+    final String packageName = context.getApplicationContext().getPackageName();
+    try {
+      final ApplicationInfo appInfo = context.getApplicationContext().getPackageManager()
+          .getApplicationInfo(packageName, PackageManager.GET_META_DATA);
+      Bundle configBundle = appInfo.metaData;
+      if (null == configBundle) {
+        configBundle = new Bundle();
+      }
 
-    // 若程序在模拟器中运行，默认 FlushInterval 为1秒；否则为60秒
-    if (SensorsDataUtils.isInEmulator()) {
-      mFlushInterval = 1000;
-    } else {
-      mFlushInterval = 60 * 1000;
+      if (debugMode.isDebugMode()) {
+        Uri serverURI = Uri.parse(serverURL);
+
+        int pathPrefix = serverURI.getPath().lastIndexOf('/');
+        String newPath = serverURI.getPath().substring(0, pathPrefix) + "/debug";
+
+        // 将 URI Path 中末尾的部分替换成 '/debug'
+        mServerUrl = serverURI.buildUpon().path(newPath).build().toString();
+      } else {
+        mServerUrl = serverURL;
+      }
+
+      // 若 Configure Url 为 'api/vtrack/config' ，则补齐 SDK 类型
+      Uri configureURI = Uri.parse(configureURL);
+      if (configureURI.getPath().equals("/api/vtrack/config")) {
+        mConfigureUrl = configureURI.buildUpon().appendPath("Android.conf").build().toString();
+      } else {
+        mConfigureUrl = configureURL;
+      }
+
+      if (vtrackServerURL == null) {
+        // 根据 Configure Url 自动配置 VTrack Server Url
+        mVTrackServerUrl = configureURI.buildUpon().path("/api/ws").scheme("ws").build().toString();
+      } else {
+        mVTrackServerUrl = vtrackServerURL;
+      }
+
+      mDebugMode = debugMode;
+
+      // 若程序在模拟器中运行，默认 FlushInterval 为1秒；否则为60秒
+      if (SensorsDataUtils.isInEmulator()) {
+        mFlushInterval = configBundle.getInt("com.sensorsdata.analytics.android.FlushInterval", 1000);
+      } else {
+        mFlushInterval = configBundle.getInt("com.sensorsdata.analytics.android.FlushInterval", 60000);
+      }
+
+      if (Build.VERSION.SDK_INT >= VTRACK_SUPPORTED_MIN_API
+          && configBundle.getBoolean("com.sensorsdata.analytics.android.VTrack", true)) {
+        String resourcePackageName =
+            configBundle.getString("com.sensorsdata.analytics.android.ResourcePackageName");
+        if (null == resourcePackageName) {
+          resourcePackageName = context.getPackageName();
+        }
+
+        mVTrack = new ViewCrawler(mContext, resourcePackageName);
+      } else {
+        Log.i(LOGTAG, "VTrack is not supported on this Android OS Version");
+        mVTrack = new VTrackUnsupported();
+      }
+    } catch (final PackageManager.NameNotFoundException e) {
+      throw new RuntimeException("Can't configure SensorsDataAPI with package name " + packageName,
+          e);
     }
+
+    Log.v(LOGTAG, String.format("Initializing the instance of Sensors Analytics SDK with server"
+        + " url '%s', configure url '%s', vtrack server url '%s', flush interval %d ms", mServerUrl,
+        mConfigureUrl, mVTrackServerUrl, mFlushInterval));
 
     final Map<String, Object> deviceInfo = new HashMap<String, Object>();
 
@@ -114,10 +165,6 @@ public class SensorsDataAPI {
     mPersistentIdentity = getPersistentIdentity(context);
 
     mMessages = AnalyticsMessages.getInstance(mContext);
-
-    // 可视化埋点
-    mVTrack = constructUpdatesFromSensorsData();
-    mDebugTracking = constructTrackingDebug();
   }
 
   /**
@@ -144,11 +191,9 @@ public class SensorsDataAPI {
   }
 
   /**
-   * 初始化并获取SensorsDataAPI单例（关闭可视化埋点功能）
-   * <p/>
-   * See also {@link #getFlushInterval()}, {@link #setFlushInterval(int)}
+   * 初始化并获取SensorsDataAPI单例
    *
-   * @param context App的Context
+   * @param context App 的 Context
    * @param serverURL 用于收集事件的服务地址
    * @param configureUrl 用于获取SDK配置的服务地址
    * @param debugMode Debug模式,
@@ -183,8 +228,6 @@ public class SensorsDataAPI {
 
   /**
    * 初始化并获取SensorsDataAPI单例（打开可视化埋点功能）
-   * <p/>
-   * See also {@link #getFlushInterval()}, {@link #setFlushInterval(int)}
    *
    * @param context App的Context
    * @param serverURL 用于收集事件的服务地址
@@ -206,16 +249,6 @@ public class SensorsDataAPI {
 
       SensorsDataAPI instance = sInstanceMap.get(appContext);
       if (null == instance && ConfigurationChecker.checkBasicConfiguration(appContext)) {
-        if (debugMode.isDebugMode()) {
-          String serverUrlPath = serverURL.lastIndexOf("?") > 0 ? serverURL.substring(0,
-              serverURL.lastIndexOf("?")) : serverURL;
-          if (!serverUrlPath.endsWith("debug")) {
-            throw new DebugModeException(String.format("The server url of SensorsAnalytics must "
-                + "ends with 'debug' while DEBUG mode is defined. [url='%s' "
-                + "expected_url='http://example.com/debug?token=xxx']", serverURL));
-          }
-        }
-
         instance = new SensorsDataAPI(appContext, serverURL, configureURL, vtrackServerURL,
             debugMode);
         sInstanceMap.put(appContext, instance);
@@ -236,11 +269,13 @@ public class SensorsDataAPI {
 
   /**
    * 两次数据发送的最小时间间隔，单位毫秒
-   * <p/>
+   *
    * 默认值为60 * 1000毫秒，DEBUG模式下为1 * 1000毫秒
    * 在每次调用track、signUp以及profileSet等接口的时候，都会检查如下条件，以判断是否向服务器上传数据:
+   *
    *   1. 当前是否是WIFI/3G/4G网络条件
    *   2. 与上次发送的时间间隔是否大于flushInterval
+   *
    * 如果满足这两个条件，则向服务器发送一次数据；如果不满足，则把数据加入到队列中，等待下次检查时把整个队列的内
    * 容一并发送。需要注意的是，为了避免占用过多存储，队列最多只缓存20MB数据。
    *
@@ -261,7 +296,7 @@ public class SensorsDataAPI {
 
   /**
    * 获取当前用户的distinctId
-   * <p/>
+   *
    * 若调用前未调用 {@link #identify(String)} 设置用户的 distinctId，SDK 会调用 {@link java.util.UUID} 随机生成
    * UUID，作为用户的 distinctId
    *
@@ -277,6 +312,9 @@ public class SensorsDataAPI {
    * 客户没有设置indentify，则使用SDK自动生成的匿名ID
    *
    * @param distinctId 当前用户的distinctId，仅接受数字、下划线和大小写字母
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当 distinctId
+   * 不符合规范时抛出异常
    */
   public void identify(String distinctId) throws InvalidDataException {
     assertDistinctId(distinctId);
@@ -288,13 +326,16 @@ public class SensorsDataAPI {
 
   /**
    * 记录第一次登录行为
-   * <p/>
+   *
    * 这个接口是一个较为复杂的功能，请在使用前先阅读相关说明:
    *   http://www.sensorsdata.cn/manual/track_signup.html
    * 并在必要时联系我们的技术支持人员。
    *
    * @param newDistinctId 用户完成注册后生成的注册ID
    * @param properties    事件的属性
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当 distinctId
+   * 不符合规范或事件属性不符合规范时抛出异常
    */
   public void trackSignUp(String newDistinctId, JSONObject properties) throws InvalidDataException {
     String originalDistinctId = getDistinctId();
@@ -305,12 +346,15 @@ public class SensorsDataAPI {
 
   /**
    * 与 {@link #trackSignUp(String, org.json.JSONObject)} 类似，无事件属性
-   * <p/>
+   *
    * 这个接口是一个较为复杂的功能，请在使用前先阅读相关说明:
    *   http://www.sensorsdata.cn/manual/track_signup.html，
    * 并在必要时联系我们的技术支持人员。
    *
    * @param newDistinctId 用户完成注册后生成的注册ID
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当 distinctId
+   * 不符合规范时抛出异常
    */
   public void trackSignUp(String newDistinctId) throws InvalidDataException {
     trackSignUp(newDistinctId, null);
@@ -321,6 +365,9 @@ public class SensorsDataAPI {
    *
    * @param eventName  事件的名称
    * @param properties 事件的属性
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当事件名称或属性
+   * 不符合规范时抛出异常
    */
   public void track(String eventName, JSONObject properties) throws InvalidDataException {
     trackEvent(EventType.TRACK, eventName, properties, null);
@@ -330,6 +377,9 @@ public class SensorsDataAPI {
    * 与 {@link #track(String, org.json.JSONObject)} 类似，无事件属性
    *
    * @param eventName 事件的名称
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当事件名称
+   * 不符合规范时抛出异常
    */
   public void track(String eventName) throws InvalidDataException {
     trackEvent(EventType.TRACK, eventName, null, null);
@@ -338,7 +388,7 @@ public class SensorsDataAPI {
   /**
    * 将所有本地缓存的日志发送到 Sensors Analytics.
    */
-  public void flush() throws InvalidDataException, ConnectErrorException {
+  public void flush() {
     mMessages.flushMessage(0);
   }
 
@@ -357,6 +407,8 @@ public class SensorsDataAPI {
    * 注册所有事件都有的公共属性
    *
    * @param superProperties 事件公共属性
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当公共属性不符合规范时抛出异常
    */
   public void registerSuperProperties(JSONObject superProperties) throws InvalidDataException {
     assertPropertyTypes(EventType.REGISTER_SUPER_PROPERTIES, superProperties);
@@ -369,6 +421,7 @@ public class SensorsDataAPI {
    * 删除事件公共属性
    *
    * @param superPropertyName 事件属性名称
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当属性名称不符合规范时抛出异常
    */
   public void unregisterSuperProperty(String superPropertyName) throws InvalidDataException {
     assertKey(superPropertyName);
@@ -391,6 +444,9 @@ public class SensorsDataAPI {
    * Profile如果存在，则覆盖；否则，新创建。
    *
    * @param properties 属性列表
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException
+   * 当属性名称或属性值不符合规范时抛出异常
    */
   public void profileSet(JSONObject properties) throws InvalidDataException {
     trackEvent(EventType.PROFILE_SET, null, properties, null);
@@ -400,7 +456,11 @@ public class SensorsDataAPI {
    * 设置用户的一个Profile，如果之前存在，则覆盖，否则，新创建
    *
    * @param property 属性名称
-   * @param value    属性的值，值的类型只允许为String, Number, Date或List<?>
+   * @param value    属性的值，值的类型只允许为
+   * {@link java.lang.String}, {@link java.lang.Number}, {@link java.util.Date}, {@link java.util.List}
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException
+   * 当属性名称或属性值不符合规范时抛出异常
    */
   public void profileSet(String property, Object value) throws InvalidDataException {
     try {
@@ -415,6 +475,9 @@ public class SensorsDataAPI {
    * 与profileSet接口不同的是，Profile如果存在，则覆盖；否则，新创建。
    *
    * @param properties 属性列表
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException
+   * 当属性名称或属性值不符合规范时抛出异常
    */
   public void profileSetOnce(JSONObject properties) throws InvalidDataException {
     trackEvent(EventType.PROFILE_SET_ONCE, null, properties, null);
@@ -425,7 +488,11 @@ public class SensorsDataAPI {
    * 与profileSet接口不同的是，如果之前存在，则忽略，否则，新创建
    *
    * @param property 属性名称
-   * @param value    属性的值，值的类型只允许为String, Number, Date或List<?>
+   * @param value    属性的值，值的类型只允许为
+   * {@link java.lang.String}, {@link java.lang.Number}, {@link java.util.Date}, {@link java.util.List}
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException
+   * 当属性名称或属性值不符合规范时抛出异常
    */
   public void profileSetOnce(String property, Object value) throws InvalidDataException {
     try {
@@ -440,6 +507,9 @@ public class SensorsDataAPI {
    * 未设置，则添加属性并设置默认值为0
    *
    * @param properties 一个或多个属性集合
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException
+   * 当属性名称或属性值不符合规范时抛出异常
    */
   public void profileIncrement(Map<String, ? extends Number> properties)
       throws InvalidDataException {
@@ -451,7 +521,10 @@ public class SensorsDataAPI {
    * 未设置，则添加属性并设置默认值为0
    *
    * @param property 属性名称
-   * @param value    属性的值
+   * @param value    属性的值，值的类型只允许为 {@link java.lang.Number}
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException
+   * 当属性名称或属性值不符合规范时抛出异常
    */
   public void profileIncrement(String property, Number value) throws InvalidDataException {
     try {
@@ -466,6 +539,9 @@ public class SensorsDataAPI {
    *
    * @param property 属性名称
    * @param value    新增的元素
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException
+   * 当属性名称或属性值不符合规范时抛出异常
    */
   public void profileAppend(String property, String value) throws InvalidDataException {
     Set<String> values = new HashSet<String>();
@@ -478,6 +554,9 @@ public class SensorsDataAPI {
    *
    * @param property 属性名称
    * @param values   新增的元素集合
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException
+   * 当属性名称或属性值不符合规范时抛出异常
    */
   public void profileAppend(String property, Set<String> values) throws InvalidDataException {
     try {
@@ -497,6 +576,9 @@ public class SensorsDataAPI {
    * 删除用户的一个Profile
    *
    * @param property 属性名称
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException
+   * 当属性名称不符合规范时抛出异常
    */
   public void profileUnset(String property) throws InvalidDataException {
     try {
@@ -508,6 +590,9 @@ public class SensorsDataAPI {
 
   /**
    * 删除用户所有Profile
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException
+   * 当属性名称不符合规范时抛出异常
    */
   public void profileDelete() throws InvalidDataException {
     trackEvent(EventType.PROFILE_DELETE, null, null, null);
@@ -557,11 +642,6 @@ public class SensorsDataAPI {
 
   private void trackEvent(EventType eventType, String eventName, JSONObject properties, String
       originalDistinctId) throws InvalidDataException {
-    if (mDebugMode.isDebugMode()) {
-      Log.v(LOGTAG, String.format("Event tracked. [event_type='%s' event_name='%s']", eventType
-          .getEventType(), eventName));
-    }
-
     if (eventType.isTrack()) {
       assertKey(eventName);
     }
@@ -613,26 +693,27 @@ public class SensorsDataAPI {
           dataObj.put("distinct_id", mPersistentIdentity.getDistinctId());
         }
 
-        // 可视化埋点的事件
-        if (mDebugTracking != null) {
-          mDebugTracking.reportTrack(dataObj);
-        }
-
         // $binding_depolyed为true或者无该属性时，isDepolyed为true
         final boolean isDepolyed = sendProperties.optBoolean("$binding_depolyed", true);
 
         // 若$binding_depolyed为true，则删除这些属性
         if (sendProperties.has("$binding_depolyed")) {
+          // 可视化埋点的事件
+          if (mVTrack instanceof  DebugTracking) {
+            // Deep clone the event
+            JSONObject debugDataObj = new JSONObject(dataObj.toString());
+            ((DebugTracking) mVTrack).reportTrack(debugDataObj);
+          }
+
           sendProperties.remove("$binding_path");
           sendProperties.remove("$binding_depolyed");
           sendProperties.remove("$binding_trigger_id");
+
           dataObj.put("properties", sendProperties);
         }
 
         if (isDepolyed) {
-          if (mDebugMode.isDebugMode()) {
-            Log.v(LOGTAG, "Enqueue event. [data='" + dataObj.toString() + "']");
-          }
+          Log.d(LOGTAG, "Sensors Analytics tracked event: " + dataObj.toString());
 
           mMessages.enqueueEventMessage(dataObj);
 
@@ -667,8 +748,14 @@ public class SensorsDataAPI {
 
         if (!(value instanceof String || value instanceof Number || value
             instanceof JSONArray || value instanceof Boolean)) {
-          throw new InvalidDataException("The property value must be an instance of String/Number"
-              + ". [key='" + key + "', value='" + value.toString() + "']");
+          throw new InvalidDataException("The property value must be an instance of "
+              + "String/Number/Boolean/JSONArray. [key='" + key + "', value='" + value.toString()
+              + "']");
+        }
+
+        if (value instanceof String && !key.startsWith("$") && ((String) value).length() > 255) {
+          throw new InvalidDataException("The property value is too long. [key='" + key
+              + "', value='" + value.toString() + "']");
         }
       } catch (JSONException e) {
         throw new InvalidDataException("Unexpected property key. [key='" + key + "']");
@@ -694,24 +781,7 @@ public class SensorsDataAPI {
     }
   }
 
-  private DebugTracking constructTrackingDebug() {
-    if (mVTrack instanceof ViewCrawler) {
-      return (DebugTracking) mVTrack;
-    }
-    return null;
-  }
-
-  private VTrack constructUpdatesFromSensorsData() {
-    if (Build.VERSION.SDK_INT < VTRACK_SUPPORTED_MIN_API || mVTrackServerUrl == null ||
-        mConfigureUrl == null) {
-      Log.i(LOGTAG, "VTrack is not supported on this Android OS Version");
-      return new VTrackUnsupported();
-    } else {
-      return new ViewCrawler(mContext);
-    }
-  }
-
-  private class VTrackUnsupported implements VTrack {
+  private class VTrackUnsupported implements VTrack, DebugTracking {
 
     public VTrackUnsupported() {
     }
@@ -726,6 +796,10 @@ public class SensorsDataAPI {
       // do NOTHING
     }
 
+    @Override
+    public void reportTrack(JSONObject eventJson) {
+      // do NOTHING
+    }
   }
 
   private enum EventType {
@@ -796,7 +870,6 @@ public class SensorsDataAPI {
   private final Map<String, Object> mDeviceInfo;
 
   private final VTrack mVTrack;
-  private final DebugTracking mDebugTracking;
 
   private static final String LOGTAG = "SA.SensorsDataAPI";
 }

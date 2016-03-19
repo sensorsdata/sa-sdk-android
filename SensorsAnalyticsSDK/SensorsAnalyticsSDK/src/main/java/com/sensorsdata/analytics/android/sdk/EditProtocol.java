@@ -121,11 +121,8 @@ public class EditProtocol {
       final String prefixCode = JSONUtils.optionalStringKey(targetView, "prefix");
       final String targetViewClass = JSONUtils.optionalStringKey(targetView, "view_class");
       final int targetIndex = targetView.optInt("index", -1);
-      final String targetDescription =
-          JSONUtils.optionalStringKey(targetView, "contentDescription");
       final int targetExplicitId = targetView.optInt("id", -1);
-      final String targetIdName = JSONUtils.optionalStringKey(targetView, "mp_id_name");
-      final String targetTag = JSONUtils.optionalStringKey(targetView, "tag");
+      final String targetIdName = JSONUtils.optionalStringKey(targetView, "sa_id_name");
 
       final int prefix;
       if ("shortest".equals(prefixCode)) {
@@ -146,8 +143,7 @@ public class EditProtocol {
         targetId = targetIdOrNull.intValue();
       }
 
-      path.add(new Pathfinder.PathElement(prefix, targetViewClass, targetIndex, targetId,
-          targetDescription, targetTag));
+      path.add(new Pathfinder.PathElement(prefix, targetViewClass, targetIndex, targetId));
     }
 
     return path;
@@ -156,7 +152,7 @@ public class EditProtocol {
   // May return null (and log a warning) if arguments cannot be reconciled
   private Integer reconcileIds(int explicitId, String idName, ResourceIds idNameToId) {
     final int idFromName;
-    if (null != idName) {
+    if (null != idName && idName.length() > 0) {
       if (idNameToId.knownIdName(idName)) {
         idFromName = idNameToId.idFromName(idName);
       } else {

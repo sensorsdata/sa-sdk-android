@@ -22,10 +22,6 @@ public abstract class ViewVisitor implements Pathfinder.Accumulator {
 
   private static final String LOGTAG = "SA.ViewVisitor";
 
-  /**
-   * 从rootView开始寻找符合路径的View
-   * @param rootView
-   */
   public void visit(View rootView) {
     mPathfinder.findTargetsInRoot(rootView, mPath, this);
   }
@@ -168,6 +164,8 @@ public abstract class ViewVisitor implements Pathfinder.Accumulator {
           return; // Don't double track
         }
       }
+
+      Log.d(LOGTAG, String.format("ClickVisitor accumulated. View %s", found.toString()));
 
       // We aren't already in the tracking call chain of the view
       final TrackingAccessibilityDelegate newDelegate =

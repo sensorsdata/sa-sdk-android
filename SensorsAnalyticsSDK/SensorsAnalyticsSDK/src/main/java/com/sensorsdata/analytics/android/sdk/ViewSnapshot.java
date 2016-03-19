@@ -21,6 +21,7 @@ import android.util.Log;
 import android.util.LruCache;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.widget.RelativeLayout;
 import org.json.JSONObject;
 
@@ -52,11 +53,6 @@ public class ViewSnapshot {
     mClassnameCache = new ClassNameCache(MAX_CLASS_NAME_CACHE_SIZE);
   }
 
-  /**
-   * Take a snapshot of each activity in liveActivities. The given UIThreadSet will be accessed
-   * on the main UI thread, and should contain a set with elements for every activity to be
-   * snapshotted. Given stream out will be written on the calling thread.
-   */
   public void snapshots(UIThreadSet<Activity> liveActivities, OutputStream out) throws IOException {
     mRootViewFinder.findInActivities(liveActivities);
     final FutureTask<List<RootViewInfo>> infoFuture =
@@ -119,11 +115,6 @@ public class ViewSnapshot {
     writer.flush();
   }
 
-  // For testing only
-  private List<PropertyDescription> getProperties() {
-    return mProperties;
-  }
-
   private void snapshotViewHierarchy(JsonWriter j, View rootView)
       throws IOException {
     j.beginArray();
@@ -133,32 +124,11 @@ public class ViewSnapshot {
 
   private void snapshotView(JsonWriter j, View view)
       throws IOException {
-    final int viewId = view.getId();
-    final String viewIdName;
-    if (-1 == viewId) {
-      viewIdName = null;
-    } else {
-      viewIdName = mResourceIds.nameForId(viewId);
-    }
-
     j.beginObject();
     j.name("hashCode").value(view.hashCode());
-    j.name("id").value(viewId);
-    j.name("mp_id_name").value(viewIdName);
-
-    final CharSequence description = view.getContentDescription();
-    if (null == description) {
-      j.name("contentDescription").nullValue();
-    } else {
-      j.name("contentDescription").value(description.toString());
-    }
-
-    final Object tag = view.getTag();
-    if (null == tag) {
-      j.name("tag").nullValue();
-    } else if (tag instanceof CharSequence) {
-      j.name("tag").value(tag.toString());
-    }
+    j.name("id").value(view.getId());
+    j.name("index").value(getChildIndex(view.getParent(), view));
+    j.name("sa_id_name").value(getResName(view));
 
     j.name("top").value(view.getTop());
     j.name("left").value(view.getLeft());
@@ -294,6 +264,50 @@ public class ViewSnapshot {
         return false;
     }
     return true;
+  }
+
+  private String getResName(View view) {
+    final int viewId = view.getId();
+    if (-1 == viewId) {
+      return null;
+    } else {
+      String name = mResourceIds.nameForId(viewId);
+      return name;
+    }
+  }
+
+  private int getChildIndex(ViewParent parent, View child) {
+    if (parent == null || !(parent instanceof ViewGroup)) {
+      return -1;
+    }
+
+    ViewGroup _parent = (ViewGroup)parent;
+
+    final String childIdName = getResName(child);
+
+    String childClassName = mClassnameCache.get(child.getClass());
+    int index = 0;
+    for (int i = 0; i < _parent.getChildCount(); i++) {
+      View brother = _parent.getChildAt(i);
+
+      if (!Pathfinder.hasClassName(brother, childClassName)) {
+        continue;
+      }
+
+      String brotherIdName = getResName(brother);
+
+      if (null != childIdName && !childIdName.equals(brotherIdName)) {
+        continue;
+      }
+
+      if (brother == child) {
+        return index;
+      }
+
+      index++;
+    }
+
+    return -1;
   }
 
   private static class ClassNameCache extends LruCache<Class<?>, String> {

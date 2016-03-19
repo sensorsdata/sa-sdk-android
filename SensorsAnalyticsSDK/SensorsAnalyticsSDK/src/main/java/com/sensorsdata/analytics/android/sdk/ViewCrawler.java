@@ -44,7 +44,7 @@ import java.util.concurrent.locks.ReentrantLock;
 @TargetApi(SensorsDataAPI.VTRACK_SUPPORTED_MIN_API)
 public class ViewCrawler implements VTrack, DebugTracking {
 
-  public ViewCrawler(Context context) {
+  public ViewCrawler(Context context, String resourcePackageName) {
     mContext = context;
 
     mEditState = new EditState();
@@ -56,7 +56,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
         new HandlerThread(ViewCrawler.class.getCanonicalName(), Process.THREAD_PRIORITY_BACKGROUND);
     thread.start();
 
-    mMessageThreadHandler = new ViewCrawlerHandler(context, thread.getLooper());
+    mMessageThreadHandler = new ViewCrawlerHandler(context, thread.getLooper(), resourcePackageName);
 
     mDynamicEventTracker = new DynamicEventTracker(context, mMessageThreadHandler);
   }
@@ -182,13 +182,12 @@ public class ViewCrawler implements VTrack, DebugTracking {
 
   private class ViewCrawlerHandler extends Handler {
 
-    public ViewCrawlerHandler(Context context, Looper looper) {
+    public ViewCrawlerHandler(Context context, Looper looper, String resourcePackageName) {
       super(looper);
       mContext = context;
       mSnapshot = null;
 
-      String resourcePackage = context.getPackageName();
-      final ResourceIds resourceIds = new ResourceReader.Ids(resourcePackage, context);
+      final ResourceIds resourceIds = new ResourceReader.Ids(resourcePackageName, context);
 
       mProtocol = new EditProtocol(resourceIds);
       mEditorEventBindings = new ArrayList<Pair<String, JSONObject>>();
@@ -279,6 +278,8 @@ public class ViewCrawler implements VTrack, DebugTracking {
         Log.d(LOGTAG, "The Editor has been connected.");
         return;
       }
+
+      Log.d(LOGTAG, "Connecting to the Editor...");
 
       final String url = SensorsDataAPI.sharedInstance(mContext).getVTrackServerUrl();
 
@@ -468,6 +469,8 @@ public class ViewCrawler implements VTrack, DebugTracking {
         return;
       }
 
+      Log.d(LOGTAG, "Sending debug track to editor. original event: " + eventJson.toString());
+
       final String fromVTrack = sendProperties.optString("$from_vtrack", "");
       if (fromVTrack.length() < 1) {
         return;
@@ -523,6 +526,8 @@ public class ViewCrawler implements VTrack, DebugTracking {
      * Accept and apply a temporary event binding from the connected UI.
      */
     private void handleEditorBindingsReceived(JSONObject message) {
+      Log.d(LOGTAG, String.format("获取模拟器事件配置: %s", message.toString()));
+
       final JSONArray eventBindings;
 
       sendEventBindingResponse(true);
@@ -587,6 +592,9 @@ public class ViewCrawler implements VTrack, DebugTracking {
     private void applyVariantsAndEventBindings() {
       final List<Pair<String, ViewVisitor>> newVisitors =
           new ArrayList<Pair<String, ViewVisitor>>();
+
+      Log.d(LOGTAG, String.format("加载事件配置。 模拟器事件配置 %d ，正式事件配置 %d", mEditorEventBindings.size(),
+          mPersistentEventBindings.size()));
 
       if (mEditorEventBindings.size() > 0) {
         // 如果mEditorEventBindings.size() > 0，说明连接了VTrack模拟器，只是用模拟器下发的事件配置

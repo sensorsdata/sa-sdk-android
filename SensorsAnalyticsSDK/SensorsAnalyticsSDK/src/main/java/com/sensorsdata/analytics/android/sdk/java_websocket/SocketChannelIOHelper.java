@@ -21,10 +21,6 @@ public class SocketChannelIOHelper {
 		return read != 0;
 	}
 
-	/**
-	 * @see WrappedByteChannel#readMore(ByteBuffer)
-	 * @return returns whether there is more data left which can be obtained via {@link #readMore(ByteBuffer, WebSocketImpl, WrappedByteChannel)}
-	 **/
 	public static boolean readMore( final ByteBuffer buf, WebSocketImpl ws, WrappedByteChannel channel ) throws IOException {
 		buf.clear();
 		int read = channel.readMore( buf );
@@ -37,7 +33,6 @@ public class SocketChannelIOHelper {
 		return channel.isNeedRead();
 	}
 
-	/** Returns whether the whole outQueue has been flushed */
 	public static boolean batch( WebSocketImpl ws, ByteChannel sockchannel ) throws IOException {
 		ByteBuffer buffer = ws.outQueue.peek();
 		WrappedByteChannel c = null;

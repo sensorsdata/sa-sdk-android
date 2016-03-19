@@ -38,12 +38,6 @@ class DynamicEventTracker implements ViewVisitor.OnEventListener {
       Log.e(LOGTAG, "Can't format properties from view due to JSON issue", e);
     }
 
-    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-      Log.v(LOGTAG, String.format("VTrack event occured. [event_name='%s' event_type='%s' "
-          + "debounce='%s' properties='%s']", eventInfo.mEventName, eventInfo.mEventType,
-          debounce, properties.toString()));
-    }
-
     // 对于Clicked事件，事件发生时即调用track记录事件；对于Edited事件，由于多次Edit时会触发多次Edited，
     // 所以我们增加一个计时器，延迟发送Edited事件
     if (debounce) {
@@ -187,7 +181,7 @@ class DynamicEventTracker implements ViewVisitor.OnEventListener {
   private final Map<Signature, UnsentEvent> mDebouncedEvents;
 
   private static final int MAX_PROPERTY_LENGTH = 128;
-  private static final int DEBOUNCE_TIME_MILLIS = 1000; // 1 second delay before sending
+  private static final int DEBOUNCE_TIME_MILLIS = 3000; // 3 second delay before sending
 
   private static String LOGTAG = "SA.DynamicEventTracker";
 }

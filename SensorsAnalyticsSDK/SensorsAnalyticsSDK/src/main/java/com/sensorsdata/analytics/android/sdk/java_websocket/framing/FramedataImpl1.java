@@ -22,10 +22,6 @@ public class FramedataImpl1 implements FrameBuilder {
 		unmaskedpayload = ByteBuffer.wrap( emptyarray );
 	}
 
-	/**
-	 * Helper constructor which helps to create "echo" frames.
-	 * The new object will use the same underlying payload data.
-	 **/
 	public FramedataImpl1( Framedata f ) {
 		fin = f.isFin();
 		optcode = f.getOpcode();

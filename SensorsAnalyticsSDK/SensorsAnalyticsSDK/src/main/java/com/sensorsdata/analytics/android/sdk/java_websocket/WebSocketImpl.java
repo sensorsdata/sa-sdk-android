@@ -101,9 +101,6 @@ public class WebSocketImpl implements WebSocket {
 	
 	private String resourceDescriptor = null;
 
-	/**
-	 * crates a websocket with server role
-	 */
 	public WebSocketImpl( WebSocketListener listener , List<Draft> drafts ) {
 		this( listener, (Draft) null );
 		this.role = Role.SERVER;
@@ -115,12 +112,6 @@ public class WebSocketImpl implements WebSocket {
 		}
 	}
 
-	/**
-	 * crates a websocket with client role
-	 * 
-	 * @param listener
-	 *            may be unbound
-	 */
 	public WebSocketImpl( WebSocketListener listener , Draft draft ) {
 		if( listener == null || ( draft == null && role == Role.SERVER ) )// socket can be null because we want do be able to create the object without already having a bound channel
 			throw new IllegalArgumentException( "parameters must not be null" );
@@ -142,9 +133,6 @@ public class WebSocketImpl implements WebSocket {
 		this( listener, drafts );
 	}
 
-	/**
-	 * 
-	 */
 	public void decode( ByteBuffer socketBuffer ) {
 		assert ( socketBuffer.hasRemaining() );
 
@@ -163,10 +151,7 @@ public class WebSocketImpl implements WebSocket {
 		}
 		assert ( isClosing() || isFlushAndClose() || !socketBuffer.hasRemaining() );
 	}
-	/**
-	 * Returns whether the handshake phase has is completed.
-	 * In case of a broken handshake this will be never the case.
-	 **/
+
 	private boolean decodeHandshake( ByteBuffer socketBufferNew ) {
 		ByteBuffer socketBuffer;
 		if( tmpHandshakeBytes.capacity() == 0 ) {
@@ -429,15 +414,6 @@ public class WebSocketImpl implements WebSocket {
 		close( code, message, false );
 	}
 
-	/**
-	 * 
-	 * @param remote
-	 *            Indicates who "generated" <code>code</code>.<br>
-	 *            <code>true</code> means that this endpoint received the <code>code</code> from the other endpoint.<br>
-	 *            false means this endpoint decided to send the given code,<br>
-	 *            <code>remote</code> may also be true if this endpoint started the closing handshake since the other endpoint may not simply echo the <code>code</code> but close the connection the same time this endpoint does do but with an other <code>code</code>. <br>
-	 **/
-
 	protected synchronized void closeConnection( int code, String message, boolean remote ) {
 		if( readystate == READYSTATE.CLOSED ) {
 			return;
@@ -529,12 +505,6 @@ public class WebSocketImpl implements WebSocket {
 		close( e.getCloseCode(), e.getMessage(), false );
 	}
 
-	/**
-	 * Send Text data to the other end.
-	 * 
-	 * @throws IllegalArgumentException
-	 * @throws NotYetConnectedException
-	 */
 	@Override
 	public void send( String text ) throws WebsocketNotConnectedException {
 		if( text == null )
@@ -542,12 +512,6 @@ public class WebSocketImpl implements WebSocket {
 		send( draft.createFrames( text, role == Role.CLIENT ) );
 	}
 
-	/**
-	 * Send Binary data (plain bytes) to the other end.
-	 * 
-	 * @throws IllegalArgumentException
-	 * @throws NotYetConnectedException
-	 */
 	@Override
 	public void send( ByteBuffer bytes ) throws IllegalArgumentException , WebsocketNotConnectedException {
 		if( bytes == null )
