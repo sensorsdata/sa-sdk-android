@@ -95,7 +95,8 @@ public class SensorsDataAPI {
 
       // 若 Configure Url 为 'api/vtrack/config' ，则补齐 SDK 类型
       Uri configureURI = Uri.parse(configureURL);
-      if (configureURI.getPath().equals("/api/vtrack/config")) {
+      if (configureURI.getPath().equals("/api/vtrack/config") || configureURI.getPath().equals
+          ("/api/vtrack/config/")) {
         mConfigureUrl = configureURI.buildUpon().appendPath("Android.conf").build().toString();
       } else {
         mConfigureUrl = configureURL;
@@ -167,6 +168,9 @@ public class SensorsDataAPI {
     mPersistentIdentity = getPersistentIdentity(context);
 
     mMessages = AnalyticsMessages.getInstance(mContext);
+
+    mVTrack.startUpdates();
+    mMessages.checkConfigureMessage(new DecideMessages(mVTrack));
   }
 
   /**
@@ -254,9 +258,6 @@ public class SensorsDataAPI {
         instance = new SensorsDataAPI(appContext, serverURL, configureURL, vtrackServerURL,
             debugMode);
         sInstanceMap.put(appContext, instance);
-
-        instance.mVTrack.startUpdates();
-        instance.mMessages.checkConfigureMessage(new DecideMessages(instance.mVTrack));
 
         try {
           instance.track("$AppStart", null);
@@ -847,7 +848,7 @@ public class SensorsDataAPI {
   static final int VTRACK_SUPPORTED_MIN_API = 16;
 
   // SDK版本
-  static final String VERSION = "1.3.6";
+  static final String VERSION = "1.3.7";
 
   private static final Pattern KEY_PATTERN = Pattern.compile(
       "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
