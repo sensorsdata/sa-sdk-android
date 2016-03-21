@@ -4,7 +4,7 @@ This is the official Android SDK for Sensors Analytics.
 
 ## Easy Installation
 
-  1. Add dependencies to app/build.gradle
+ 1. Add dependencies to app/build.gradle
 ```android
     apply plugin: 'com.android.application'
     
@@ -13,7 +13,7 @@ This is the official Android SDK for Sensors Analytics.
         compile 'com.sensorsdata.analytics.android:SensorsAnalyticsSDK:1.3.7'
     }
 ```
-  2. Add permissions to app/src/main/AndroidManifest.xml
+ 2. Add permissions to app/src/main/AndroidManifest.xml
 ```xml
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
