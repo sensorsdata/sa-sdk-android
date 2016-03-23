@@ -36,7 +36,7 @@ public class EditorConnection {
 
     void bindEvents(JSONObject message);
 
-    void sendDeviceInfo();
+    void sendDeviceInfo(JSONObject message);
 
     void cleanup();
 
@@ -110,7 +110,7 @@ public class EditorConnection {
         final JSONObject messageJson = new JSONObject(message);
         final String type = messageJson.getString("type");
         if (type.equals("device_info_request")) {
-          mService.sendDeviceInfo();
+          mService.sendDeviceInfo(messageJson);
         } else if (type.equals("snapshot_request")) {
           mService.sendSnapshot(messageJson);
         } else if (type.equals("event_binding_request")) {

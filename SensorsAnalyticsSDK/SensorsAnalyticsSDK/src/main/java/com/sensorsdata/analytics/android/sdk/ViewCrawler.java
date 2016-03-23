@@ -1,5 +1,6 @@
 package com.sensorsdata.analytics.android.sdk;
 
+import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
@@ -40,6 +41,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.zip.GZIPOutputStream;
 
 @TargetApi(SensorsDataAPI.VTRACK_SUPPORTED_MIN_API)
 public class ViewCrawler implements VTrack, DebugTracking {
@@ -193,6 +195,9 @@ public class ViewCrawler implements VTrack, DebugTracking {
       mEditorEventBindings = new ArrayList<Pair<String, JSONObject>>();
       mPersistentEventBindings = new ArrayList<Pair<String, JSONObject>>();
 
+      // 默认关闭 GZip 压缩
+      mUseGzip = false;
+
       mStartLock = new ReentrantLock();
       mStartLock.lock();
     }
@@ -213,7 +218,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
             connectToEditor();
             break;
           case MESSAGE_SEND_DEVICE_INFO:
-            sendDeviceInfo();
+            sendDeviceInfo((JSONObject) msg.obj);
             break;
           case MESSAGE_SEND_STATE_FOR_EDITING:
             sendSnapshot((JSONObject) msg.obj);
@@ -297,61 +302,53 @@ public class ViewCrawler implements VTrack, DebugTracking {
     /**
      * Report on device info to the connected web UI.
      */
-    private void sendDeviceInfo() {
+    private void sendDeviceInfo(JSONObject message) {
       if (mEditorConnection == null || !mEditorConnection.isValid()) {
         return;
+      }
+
+      try {
+        final JSONObject payload = message.getJSONObject("payload");
+        if (payload.has("support_gzip")) {
+          mUseGzip = payload.getBoolean("support_gzip");
+        }
+      } catch (final JSONException e) {
+        // Do NOTHING
+        // 旧版的 WebServer，DeviceInfoRequest 不带 "payload" 字段
       }
 
       final PackageManager manager = mContext.getPackageManager();
       final DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
 
-      //final OutputStream out = mEditorConnection.getBufferedOutputStream();
-      final ByteArrayOutputStream out = new ByteArrayOutputStream();
-      final JsonWriter j = new JsonWriter(new OutputStreamWriter(out));
-
       try {
-        j.beginObject();
-        j.name("type").value("device_info_response");
-        j.name("payload");
-        {
-          j.beginObject();
-          try {
-            j.name("$lib").value("Android");
-            j.name("$lib_version").value(SensorsDataAPI.VERSION);
-            j.name("$os").value("Android");
-            j.name("$os_version").value(
-                Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE);
-            j.name("$screen_height").value(String.valueOf(displayMetrics.heightPixels));
-            j.name("$screen_width").value(String.valueOf(displayMetrics.widthPixels));
-            try {
-              final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
-              j.name("$main_bundle_identifier").value(info.packageName);
-              j.name("$app_version").value(info.versionName);
-            } catch (PackageManager.NameNotFoundException e) {
-              j.name("$main_bundle_identifier").value("");
-              j.name("$app_version").value("");
-            }
-            j.name("$device_name").value(Build.BRAND + "/" + Build.MODEL);
-            j.name("$device_model").value(Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
-            j.name("$device_id").value(SensorsDataUtils.getDeviceID(mContext));
-          } catch (Exception e) {
-            Log.e(LOGTAG, "sendDeviceInfo;fill sendInfo error:e=", e);
-          }
-          j.endObject();
-        }
-        j.endObject();
-      } catch (final IOException e) {
-        Log.e(LOGTAG, "Can't write device_info to server", e);
-      } finally {
-        try {
-          j.close();
-        } catch (final IOException e) {
-          Log.e(LOGTAG, "Can't close websocket writer", e);
-        }
-      }
+        JSONObject payload = new JSONObject();
 
-      if (mEditorConnection != null && mEditorConnection.isValid()) {
-        mEditorConnection.sendMessage(out.toString());
+        payload.put("$lib", "Android");
+        payload.put("$lib_version", SensorsDataAPI.VERSION);
+        payload.put("$os", "Android");
+        payload.put("$os_version", Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION
+            .RELEASE);
+        payload.put("$screen_height", String.valueOf(displayMetrics.heightPixels));
+        payload.put("$screen_width", String.valueOf(displayMetrics.widthPixels));
+        try {
+          final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
+          payload.put("$main_bundle_identifier", info.packageName);
+          payload.put("$app_version", info.versionName);
+        } catch (PackageManager.NameNotFoundException e) {
+          payload.put("$main_bundle_identifier", "");
+          payload.put("$app_version", "");
+        }
+        payload.put("$device_name", Build.BRAND + "/" + Build.MODEL);
+        payload.put("$device_model", Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
+        payload.put("$device_id", SensorsDataUtils.getDeviceID(mContext));
+
+        if (mEditorConnection != null && mEditorConnection.isValid()) {
+          mEditorConnection.sendMessage(setUpPayload("device_info_response", payload).toString());
+        }
+      } catch (JSONException e) {
+        Log.w(LOGTAG, "Can't write the response for device information.", e);
+      } catch (IOException e) {
+        Log.w(LOGTAG, "Can't write the response for device information.", e);
       }
     }
 
@@ -394,19 +391,48 @@ public class ViewCrawler implements VTrack, DebugTracking {
       try {
         writer.write("{");
         writer.write("\"type\": \"snapshot_response\",");
-        writer.write("\"payload\": {");
-        {
-          writer.write("\"activities\":");
-          writer.flush();
-          mSnapshot.snapshots(mEditState, out);
+        if (mUseGzip) {
+          final ByteArrayOutputStream payload_out = new ByteArrayOutputStream();
+          final OutputStreamWriter payload_writer = new OutputStreamWriter(payload_out);
+
+          payload_writer.write("{\"activities\":");
+          payload_writer.flush();
+          mSnapshot.snapshots(mEditState, payload_out);
+          final long snapshotTime = System.currentTimeMillis() - startSnapshot;
+          payload_writer.write(",\"snapshot_time_millis\": ");
+          payload_writer.write(Long.toString(snapshotTime));
+          payload_writer.write("}");
+          payload_writer.flush();
+
+          payload_out.close();
+          byte[] payloadData = payload_out.toString().getBytes();
+
+          ByteArrayOutputStream os = new ByteArrayOutputStream(payloadData.length);
+          GZIPOutputStream gos = new GZIPOutputStream(os);
+          gos.write(payloadData);
+          gos.close();
+          byte[] compressed = os.toByteArray();
+          os.close();
+
+          writer.write("\"gzip_payload\": \"" + new String(Base64Coder.encode(compressed)) + "\"");
+        } else {
+          writer.write("\"payload\": {");
+
+          {
+            writer.write("\"activities\":");
+            writer.flush();
+            mSnapshot.snapshots(mEditState, out);
+          }
+
+          final long snapshotTime = System.currentTimeMillis() - startSnapshot;
+          writer.write(",\"snapshot_time_millis\": ");
+          writer.write(Long.toString(snapshotTime));
+
+          writer.write("}");
         }
 
-        final long snapshotTime = System.currentTimeMillis() - startSnapshot;
-        writer.write(",\"snapshot_time_millis\": ");
-        writer.write(Long.toString(snapshotTime));
-
         writer.write("}");
-        writer.write("}");
+        writer.flush();
       } catch (final IOException e) {
         Log.e(LOGTAG, "Can't write snapshot request to server", e);
       } finally {
@@ -640,6 +666,28 @@ public class ViewCrawler implements VTrack, DebugTracking {
       mEditState.setEdits(editMap);
     }
 
+    private JSONObject setUpPayload(String type, JSONObject payload)
+        throws JSONException, IOException {
+      JSONObject response = new JSONObject();
+      response.put("type", type);
+
+
+      if (mUseGzip) {
+        byte[] payloadData = payload.toString().getBytes();
+        ByteArrayOutputStream os = new ByteArrayOutputStream(payloadData.length);
+        GZIPOutputStream gos = new GZIPOutputStream(os);
+        gos.write(payloadData);
+        gos.close();
+        byte[] compressed = os.toByteArray();
+        os.close();
+        response.put("gzip_payload", new String(Base64Coder.encode(compressed)));
+      } else {
+        response.put("payload", payload);
+      }
+
+      return response;
+    }
+
     private SharedPreferences getSharedPreferences() {
       final String sharedPrefsName = SHARED_PREF_EDITS_FILE;
       return mContext.getSharedPreferences(sharedPrefsName, Context.MODE_PRIVATE);
@@ -650,6 +698,9 @@ public class ViewCrawler implements VTrack, DebugTracking {
     private final Context mContext;
     private final Lock mStartLock;
     private final EditProtocol mProtocol;
+
+    // 是否启用 GZip 压缩
+    private boolean mUseGzip;
 
     private final List<Pair<String, JSONObject>> mEditorEventBindings;
     private final List<Pair<String, JSONObject>> mPersistentEventBindings;
@@ -671,8 +722,9 @@ public class ViewCrawler implements VTrack, DebugTracking {
       mMessageThreadHandler.sendMessage(msg);
     }
 
-    @Override public void sendDeviceInfo() {
+    @Override public void sendDeviceInfo(JSONObject message) {
       final Message msg = mMessageThreadHandler.obtainMessage(ViewCrawler.MESSAGE_SEND_DEVICE_INFO);
+      msg.obj = message;
       mMessageThreadHandler.sendMessage(msg);
     }
 

@@ -362,13 +362,10 @@ class AnalyticsMessages {
               final String configureResult = getCheckConfigure();
               try {
                 final JSONObject configureJson = new JSONObject(configureResult);
-                if (null != configureJson && configureJson.has("event_bindings") && configureJson
-                    .get("event_bindings") instanceof JSONObject) {
-                  final JSONObject eventBindings = configureJson.getJSONObject("event_bindings");
-                  if (eventBindings.has("events") && eventBindings.get("events") instanceof
-                      JSONArray) {
-                    decideMessages.reportResults(eventBindings.getJSONArray("events"));
-                  }
+                final JSONObject eventBindings = configureJson.getJSONObject("event_bindings");
+                if (eventBindings.has("events") && eventBindings.get("events") instanceof
+                    JSONArray) {
+                  decideMessages.reportResults(eventBindings.getJSONArray("events"));
                 }
               } catch (JSONException e1) {
                 Log.w(LOGTAG, "Unexpected vtrack configure from SensorsAnalytics: " +
