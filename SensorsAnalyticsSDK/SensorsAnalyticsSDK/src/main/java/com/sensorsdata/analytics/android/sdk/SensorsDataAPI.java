@@ -273,11 +273,13 @@ public class SensorsDataAPI {
   /**
    * 两次数据发送的最小时间间隔，单位毫秒
    *
-   * 默认值为60 * 1000毫秒，DEBUG模式下为1 * 1000毫秒
+   * 默认值为60 * 1000毫秒
    * 在每次调用track、signUp以及profileSet等接口的时候，都会检查如下条件，以判断是否向服务器上传数据:
    *
-   *   1. 当前是否是WIFI/3G/4G网络条件
-   *   2. 与上次发送的时间间隔是否大于flushInterval
+   *   1. 是否是WIFI/3G/4G网络条件
+   *   2. 是否满足发送条件之一:
+   *     1) 与上次发送的时间间隔是否大于flushInterval
+   *     2) 本地缓存日志数目是否大于 flushBulkSize
    *
    * 如果满足这两个条件，则向服务器发送一次数据；如果不满足，则把数据加入到队列中，等待下次检查时把整个队列的内
    * 容一并发送。需要注意的是，为了避免占用过多存储，队列最多只缓存20MB数据。
@@ -295,6 +297,35 @@ public class SensorsDataAPI {
    */
   public void setFlushInterval(int flushInterval) {
     mFlushInterval = flushInterval;
+  }
+
+  /**
+   * 返回本地缓存日志的最大条目数
+   *
+   * 默认值为60 * 1000毫秒
+   * 在每次调用track、signUp以及profileSet等接口的时候，都会检查如下条件，以判断是否向服务器上传数据:
+   *
+   *   1. 是否是WIFI/3G/4G网络条件
+   *   2. 是否满足发送条件之一:
+   *     1) 与上次发送的时间间隔是否大于flushInterval
+   *     2) 本地缓存日志数目是否大于 flushBulkSize
+   *
+   * 如果满足这两个条件，则向服务器发送一次数据；如果不满足，则把数据加入到队列中，等待下次检查时把整个队列的内
+   * 容一并发送。需要注意的是，为了避免占用过多存储，队列最多只缓存20MB数据。
+   *
+   * @return 返回本地缓存日志的最大条目数
+   */
+  public int getFlushBulkSize() {
+    return mFlushBulkSize;
+  }
+
+  /**
+   * 设置本地缓存日志的最大条目数
+   *
+   * @param flushBulkSize 缓存数目
+   */
+  public void setFlushBulkSize(int flushBulkSize) {
+    mFlushBulkSize = flushBulkSize;
   }
 
   /**
@@ -362,6 +393,57 @@ public class SensorsDataAPI {
   public void trackSignUp(String newDistinctId) throws InvalidDataException {
     trackSignUp(newDistinctId, null);
   }
+
+  /**
+   * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性，SDK会将渠道值填入事件属性
+   * $android_install_source 中
+   *
+   * @param eventName   事件的名称
+   * @param installSource App安装渠道
+   * @param properties  事件的属性
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当事件名称或属性
+   * 不符合规范时抛出异常
+   */
+  public void trackInstallation(String eventName, String installSource, JSONObject properties)
+      throws InvalidDataException {
+    if (installSource == null || installSource.length() == 0) {
+      throw new InvalidDataException("The source of installation is empty.");
+    }
+
+    if (properties == null) {
+      properties = new JSONObject();
+    }
+    try {
+      properties.put("$android_install_source", installSource);
+    } catch (JSONException e) {
+      throw new InvalidDataException("Failed to set $android_install_source");
+    }
+
+    // 先发送 track
+    trackEvent(EventType.TRACK, eventName, properties, null);
+
+    // 再发送 profile_set_once
+    profileSetOnce("$android_install_source", installSource);
+  }
+
+  /**
+   * 用于在 App 首次启动时追踪渠道来源，SDK会将渠道值填入事件属性 $android_install_source 中
+   *
+   * @param eventName   事件的名称
+   * @param installSource App安装渠道
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当事件名称或属性
+   * 不符合规范时抛出异常
+   */
+  public void trackInstallation(String eventName, String installSource)
+      throws InvalidDataException {
+    trackInstallation(eventName, installSource, null);
+  }
+
+  /**
+   * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。SDK会将渠道值填入事件属性 $ios_install_source 中
+   */
 
   /**
    * 调用track接口，追踪一个带有属性的事件
@@ -848,7 +930,7 @@ public class SensorsDataAPI {
   static final int VTRACK_SUPPORTED_MIN_API = 16;
 
   // SDK版本
-  static final String VERSION = "1.3.8";
+  static final String VERSION = "1.4.0";
 
   private static final Pattern KEY_PATTERN = Pattern.compile(
       "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
@@ -870,6 +952,8 @@ public class SensorsDataAPI {
   private final DebugMode mDebugMode;
   /* Flush时间间隔 */
   private int mFlushInterval;
+  /* Flush数据量阈值 */
+  private int mFlushBulkSize;
 
   private final Context mContext;
   private final AnalyticsMessages mMessages;

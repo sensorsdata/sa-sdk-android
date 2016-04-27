@@ -3,7 +3,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 
-version = "1.3.8"
+version = "1.4.0"
 
 android {
     compileSdkVersion 20
@@ -12,7 +12,7 @@ android {
     resourcePrefix "sensors_analytics_"
 
     defaultConfig {
-        minSdkVersion 14
+        minSdkVersion 10
         targetSdkVersion 20
         versionCode 1
         versionName "1.0"
