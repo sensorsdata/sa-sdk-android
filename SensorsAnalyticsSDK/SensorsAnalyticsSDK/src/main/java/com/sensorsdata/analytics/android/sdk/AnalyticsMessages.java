@@ -3,7 +3,6 @@ package com.sensorsdata.analytics.android.sdk;
 import com.sensorsdata.analytics.android.sdk.exceptions.ConnectErrorException;
 import com.sensorsdata.analytics.android.sdk.exceptions.DebugModeException;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
-import com.sensorsdata.analytics.android.sdk.exceptions.QueueLimitExceededException;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 
 import android.content.Context;
@@ -91,17 +90,6 @@ class AnalyticsMessages {
     mWorker.runMessage(m);
   }
 
-  public void flushMessage(long delay) {
-    final Message m = Message.obtain();
-    m.what = FLUSH_QUEUE;
-
-    if (delay > 0) {
-      mWorker.runMessageOnce(m, delay);
-    } else {
-      mWorker.runMessage(m);
-    }
-  }
-
   public void hardKill() {
     final Message m = Message.obtain();
     m.what = KILL_WORKER;
@@ -151,88 +139,97 @@ class AnalyticsMessages {
     return mWorker.isDead();
   }
 
-  private void sendData() throws ConnectErrorException, InvalidDataException {
-    String[] eventsData;
-    synchronized (mDbAdapter) {
-      if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-        eventsData = mDbAdapter.generateDataString(DbAdapter.Table.EVENTS, 1);
-      } else {
-        eventsData = mDbAdapter.generateDataString(DbAdapter.Table.EVENTS, 1000);
-      }
-    }
-    if (eventsData == null) {
-      return;
-    }
-
-    final String lastId = eventsData[0];
-    final String rawMessage = eventsData[1];
-
-    String data;
+  public void sendData() {
     try {
-      data = encodeData(rawMessage);
-    } catch (IOException e) {
-      // 格式错误，直接将数据删除
-      sendDataFinish(lastId);
-      throw new InvalidDataException(e);
-    }
-
-    final List<NameValuePair> params = new ArrayList<NameValuePair>(1);
-    params.add(new BasicNameValuePair("data_list", data));
-    params.add(new BasicNameValuePair("gzip", "1"));
-
-    HttpClient httpClient = new DefaultHttpClient();
-    HttpPost httpPost = new HttpPost(SensorsDataAPI.sharedInstance(mContext).getServerUrl());
-
-    try {
-      httpPost.setEntity(new UrlEncodedFormEntity(params));
-    } catch (UnsupportedEncodingException e) {
-      throw new InvalidDataException(e);
-    }
-
-    httpPost.setHeader("User-Agent", "SensorsAnalytics Android SDK");
-    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() && !SensorsDataAPI.sharedInstance
-        (mContext).isDebugWriteData()) {
-      httpPost.setHeader("Dry-Run", "true");
-    }
-
-    try {
-      HttpResponse response = httpClient.execute(httpPost);
-
-      int response_code = response.getStatusLine().getStatusCode();
-      String response_body = EntityUtils.toString(response.getEntity(), "UTF-8");
-
-      if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-        if (response_code == 200) {
-          Log.v(LOGTAG, String.format("valid message: %s", rawMessage));
-        } else {
-          Log.v(LOGTAG, String.format("invalid message: %s", rawMessage));
-          Log.v(LOGTAG, String.format("ret_code: %d", response_code));
-          Log.v(LOGTAG, String.format("ret_content: %s", response_body));
-
-          // 格式错误，直接将数据删除
-          sendDataFinish(lastId);
+      int count = 100;
+      while (count > 0) {
+        String[] eventsData;
+        synchronized (mDbAdapter) {
+          if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+            eventsData = mDbAdapter.generateDataString(DbAdapter.Table.EVENTS, 1);
+          } else {
+            eventsData = mDbAdapter.generateDataString(DbAdapter.Table.EVENTS, 100);
+          }
         }
+        if (eventsData == null) {
+          return;
+        }
+
+        final String lastId = eventsData[0];
+        final String rawMessage = eventsData[1];
+
+        String data;
+        try {
+          data = encodeData(rawMessage);
+        } catch (IOException e) {
+          // 格式错误，直接将数据删除
+          mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
+          throw new InvalidDataException(e);
+        }
+
+        final List<NameValuePair> params = new ArrayList<NameValuePair>(1);
+        params.add(new BasicNameValuePair("data_list", data));
+        params.add(new BasicNameValuePair("gzip", "1"));
+
+        HttpClient httpClient = new DefaultHttpClient();
+        HttpPost httpPost = new HttpPost(SensorsDataAPI.sharedInstance(mContext).getServerUrl());
+
+        try {
+          httpPost.setEntity(new UrlEncodedFormEntity(params));
+        } catch (UnsupportedEncodingException e) {
+          throw new InvalidDataException(e);
+        }
+
+        httpPost.setHeader("User-Agent", "SensorsAnalytics Android SDK");
+        if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() && !SensorsDataAPI.sharedInstance
+            (mContext).isDebugWriteData()) {
+          httpPost.setHeader("Dry-Run", "true");
+        }
+
+        try {
+          HttpResponse response = httpClient.execute(httpPost);
+
+          int response_code = response.getStatusLine().getStatusCode();
+          String response_body = EntityUtils.toString(response.getEntity(), "UTF-8");
+
+          if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+            if (response_code == 200) {
+              Log.v(LOGTAG, String.format("valid message: %s", rawMessage));
+            } else {
+              Log.v(LOGTAG, String.format("invalid message: %s", rawMessage));
+              Log.v(LOGTAG, String.format("ret_code: %d", response_code));
+              Log.v(LOGTAG, String.format("ret_content: %s", response_body));
+
+              // 校验错误，直接将数据删除
+              count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
+              continue;
+            }
+          }
+
+          if (response_code != 200) {
+            throw new ConnectErrorException("Response error.");
+          }
+
+        } catch (ClientProtocolException e) {
+          throw new ConnectErrorException(e);
+        } catch (IOException e) {
+          throw new ConnectErrorException(e);
+        }
+
+        count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
       }
-
-      if (response_code != 200) {
-        throw new ConnectErrorException("Response error.");
+    } catch (ConnectErrorException e) {
+      if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+        throw new DebugModeException(e.getMessage());
+      } else {
+        Log.w("Failed to flush events.", e);
       }
-    } catch (ClientProtocolException e) {
-      throw new ConnectErrorException(e);
-    } catch (IOException e) {
-      throw new ConnectErrorException(e);
-    }
-
-    sendDataFinish(lastId);
-  }
-
-  private void sendDataFinish(final String lastId) {
-    int count = 0;
-    synchronized (mDbAdapter) {
-      count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
-    }
-    if (count > 0) {
-      flushMessage(0);
+    } catch (InvalidDataException e) {
+      if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+        throw new DebugModeException(e.getMessage());
+      } else {
+        Log.w("Failed to flush events.", e);
+      }
     }
   }
 
@@ -323,39 +320,30 @@ class AnalyticsMessages {
           if (msg.what == ENQUEUE_EVENTS) {
             JSONObject event = (JSONObject) msg.obj;
             synchronized (mDbAdapter) {
-              try {
-                if (mDbAdapter.addJSON(event, DbAdapter.Table.EVENTS) < 0) {
-                  String error = "Failed to enqueue the event: " + event;
-                  if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-                    throw new DebugModeException(error);
-                  } else {
-                    Log.w(LOGTAG, error);
-                  }
-                }
-              } catch (final QueueLimitExceededException e) {
+              int ret = mDbAdapter.addJSON(event, DbAdapter.Table.EVENTS);
+
+              if (ret < 0) {
+                String error = "Failed to enqueue the event: " + event;
                 if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-                  throw new DebugModeException(e.getMessage());
+                  throw new DebugModeException(error);
                 } else {
-                  Log.e(LOGTAG, "Failed to enqueue event.", e);
+                  Log.w(LOGTAG, error);
                 }
+              }
+
+              if (ret > SensorsDataAPI.sharedInstance(mContext).getFlushBulkSize() || ret ==
+                  DbAdapter.DB_OUT_OF_MEMORY_ERROR/* || SensorsDataAPI.sharedInstance(mContext)
+                  .isDebugMode()*/) {
+                sendData();
+              } else {
+                final Message m = Message.obtain();
+                m.what = FLUSH_QUEUE;
+                mWorker.runMessageOnce(m, SensorsDataAPI.sharedInstance(mContext)
+                    .getFlushInterval());
               }
             }
           } else if (msg.what == FLUSH_QUEUE) {
-            try {
-                sendData();
-              } catch (ConnectErrorException e) {
-                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-                  throw new DebugModeException(e.getMessage());
-                } else {
-                  Log.w("Failed to flush events.", e);
-                }
-              } catch (InvalidDataException e) {
-                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-                  throw new DebugModeException(e.getMessage());
-                } else {
-                  Log.w("Failed to flush events.", e);
-                }
-              }
+            sendData();
           } else if (msg.what == CHECK_CONFIGURE) {
             DecideMessages decideMessages = (DecideMessages) msg.obj;
             try {

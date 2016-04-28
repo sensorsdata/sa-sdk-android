@@ -115,11 +115,11 @@ import java.io.File;
    * @return the number of rows in the table, or DB_OUT_OF_MEMORY_ERROR/DB_UPDATE_ERROR
    * on failure
    */
-  public int addJSON(JSONObject j, Table table) throws QueueLimitExceededException {
+  public int addJSON(JSONObject j, Table table) {
     // we are aware of the race condition here, but what can we do..?
     if (!mDb.belowMemThreshold()) {
-      throw new QueueLimitExceededException("There is not enough space left on the device to "
-          + "store SensorsData data, so data was discarded");
+      Log.e(LOGTAG, "There is not enough space left on the device to store Mixpanel data, so data was discarded");
+      return DB_OUT_OF_MEMORY_ERROR;
     }
 
     final String tableName = table.getName();

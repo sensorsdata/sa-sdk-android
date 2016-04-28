@@ -111,12 +111,9 @@ public class SensorsDataAPI {
 
       mDebugMode = debugMode;
 
-      // 若程序在模拟器中运行，默认 FlushInterval 为1秒；否则为60秒
-      if (SensorsDataUtils.isInEmulator()) {
-        mFlushInterval = configBundle.getInt("com.sensorsdata.analytics.android.FlushInterval", 1000);
-      } else {
-        mFlushInterval = configBundle.getInt("com.sensorsdata.analytics.android.FlushInterval", 60000);
-      }
+      mFlushInterval = configBundle.getInt("com.sensorsdata.analytics.android.FlushInterval", 60000);
+      mFlushBulkSize = configBundle.getInt("com.sensorsdata.analytics.android.FlushBulkSize",
+          100);
 
       if (Build.VERSION.SDK_INT >= VTRACK_SUPPORTED_MIN_API
           && configBundle.getBoolean("com.sensorsdata.analytics.android.VTrack", true)) {
@@ -278,7 +275,7 @@ public class SensorsDataAPI {
    *
    *   1. 是否是WIFI/3G/4G网络条件
    *   2. 是否满足发送条件之一:
-   *     1) 与上次发送的时间间隔是否大于flushInterval
+   *     1) 与上次发送的时间间隔是否大于 flushInterval
    *     2) 本地缓存日志数目是否大于 flushBulkSize
    *
    * 如果满足这两个条件，则向服务器发送一次数据；如果不满足，则把数据加入到队列中，等待下次检查时把整个队列的内
@@ -307,7 +304,7 @@ public class SensorsDataAPI {
    *
    *   1. 是否是WIFI/3G/4G网络条件
    *   2. 是否满足发送条件之一:
-   *     1) 与上次发送的时间间隔是否大于flushInterval
+   *     1) 与上次发送的时间间隔是否大于 flushInterval
    *     2) 本地缓存日志数目是否大于 flushBulkSize
    *
    * 如果满足这两个条件，则向服务器发送一次数据；如果不满足，则把数据加入到队列中，等待下次检查时把整个队列的内
@@ -474,7 +471,7 @@ public class SensorsDataAPI {
    * 将所有本地缓存的日志发送到 Sensors Analytics.
    */
   public void flush() {
-    mMessages.flushMessage(0);
+    mMessages.sendData();
   }
 
   /**
@@ -805,14 +802,6 @@ public class SensorsDataAPI {
 
         if (isDepolyed) {
           mMessages.enqueueEventMessage(dataObj);
-
-          if (mDebugMode.isDebugMode()) {
-            // 同步发送
-            mMessages.flushMessage(0);
-          } else {
-            // 异步延迟发送
-            mMessages.flushMessage(mFlushInterval);
-          }
         }
       } catch (JSONException e) {
         throw new InvalidDataException("Unexpteced property");
@@ -930,7 +919,7 @@ public class SensorsDataAPI {
   static final int VTRACK_SUPPORTED_MIN_API = 16;
 
   // SDK版本
-  static final String VERSION = "1.4.0";
+  static final String VERSION = "1.4.1";
 
   private static final Pattern KEY_PATTERN = Pattern.compile(
       "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
