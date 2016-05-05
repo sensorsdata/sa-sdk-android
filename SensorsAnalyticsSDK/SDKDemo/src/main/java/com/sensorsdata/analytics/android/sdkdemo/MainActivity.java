@@ -25,34 +25,15 @@ public class MainActivity extends Activity {
     try {
       SensorsDataAPI sa = SensorsDataAPI.sharedInstance(
           this,
-          "http://sa_host:8006/sa",
-          "http://sa_host:8007/api/vtrack/config/Android.conf",
-          SensorsDataAPI.DebugMode.DEBUG_OFF);
+          "http://${service_name}.cloud.sensorsdata.cn:8006/sa?token=${token}",
+          "http://${service_name}.cloud.sensorsdata.cn/api/vtrack/config/",
+          SensorsDataAPI.DebugMode.DEBUG_AND_TRACK);
       sa.identify(userId);
     } catch (InvalidDataException e) {
       e.printStackTrace();
     }
 
     setContentView(R.layout.activity_main);
-  }
-
-  @Override protected void onResume() {
-    super.onResume();
-
-    try {
-      SensorsDataAPI.sharedInstance(this).track("AppResumed", null);
-    } catch (InvalidDataException e) {
-      e.printStackTrace();
-    }
-  }
-
-  @Override protected void onDestroy() {
-    super.onDestroy();
-    //    try {
-    //      SensorsDataAPI.sharedInstance(this).flush();
-    //    } catch (SensorsDataException e) {
-    //      e.printStackTrace();
-    //    }
   }
 
   @Override public boolean onCreateOptionsMenu(Menu menu) {

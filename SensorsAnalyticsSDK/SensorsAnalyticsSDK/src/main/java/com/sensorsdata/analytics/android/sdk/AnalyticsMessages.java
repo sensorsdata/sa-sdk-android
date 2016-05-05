@@ -332,8 +332,8 @@ class AnalyticsMessages {
               }
 
               if (ret > SensorsDataAPI.sharedInstance(mContext).getFlushBulkSize() || ret ==
-                  DbAdapter.DB_OUT_OF_MEMORY_ERROR/* || SensorsDataAPI.sharedInstance(mContext)
-                  .isDebugMode()*/) {
+                  DbAdapter.DB_OUT_OF_MEMORY_ERROR || SensorsDataAPI.sharedInstance(mContext)
+                  .isDebugMode()) {
                 sendData();
               } else {
                 final Message m = Message.obtain();
