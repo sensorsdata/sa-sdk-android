@@ -4,6 +4,7 @@ import com.sensorsdata.analytics.android.sdk.exceptions.ConnectErrorException;
 import com.sensorsdata.analytics.android.sdk.exceptions.DebugModeException;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
+import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
@@ -74,15 +75,42 @@ class AnalyticsMessages {
     }
   }
 
-  public void enqueueEventMessage(final JSONObject eventJson) {
-    final Message m = Message.obtain();
-    m.what = ENQUEUE_EVENTS;
-    m.obj = eventJson;
+  public void enqueueEventMessage(final String type, final JSONObject eventJson) {
+    synchronized (mDbAdapter) {
+      int ret = mDbAdapter.addJSON(eventJson, DbAdapter.Table.EVENTS);
+      if (ret < 0) {
+        String error = "Failed to enqueue the event: " + eventJson;
+        if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+          throw new DebugModeException(error);
+        } else {
+          Log.w(LOGTAG, error);
+        }
+      }
 
-    mWorker.runMessage(m);
+      final Message m = Message.obtain();
+      m.what = FLUSH_QUEUE;
+
+      if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() || ret ==
+          DbAdapter.DB_OUT_OF_MEMORY_ERROR) {
+        mWorker.runMessage(m);
+      } else {
+        String networkType = SensorsDataUtils.networkType(mContext);
+        Log.w(LOGTAG, "----------networktype: " + networkType);
+        if (networkType.equals("WIFI") || networkType.equals("3G") || networkType.equals("4G")) {
+          // track_signup 立即发送
+          if (type.equals("track_signup") || ret > SensorsDataAPI.sharedInstance(mContext)
+              .getFlushBulkSize()) {
+            mWorker.runMessage(m);
+          } else {
+            final int interval = SensorsDataAPI.sharedInstance(mContext).getFlushInterval();
+            mWorker.runMessageOnce(m, interval);
+          }
+        }
+      }
+    }
   }
 
-  public void checkConfigureMessage(final DecideMessages check) {
+  public void checkConfigure(final DecideMessages check) {
     final Message m = Message.obtain();
     m.what = CHECK_CONFIGURE;
     m.obj = check;
@@ -90,53 +118,11 @@ class AnalyticsMessages {
     mWorker.runMessage(m);
   }
 
-  public void hardKill() {
+  public void flush() {
     final Message m = Message.obtain();
-    m.what = KILL_WORKER;
+    m.what = FLUSH_QUEUE;
 
     mWorker.runMessage(m);
-  }
-
-  public boolean isWifi() {
-    // Wifi
-    ConnectivityManager manager = (ConnectivityManager)
-        mContext.getSystemService(mContext.CONNECTIVITY_SERVICE);
-    if (manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).isConnectedOrConnecting()) {
-      return true;
-    }
-
-    return false;
-  }
-
-  public boolean is3G() {
-    // Mobile network
-    TelephonyManager telephonyManager = (TelephonyManager)
-        mContext.getSystemService(Context.TELEPHONY_SERVICE);
-
-    int networkType = telephonyManager.getNetworkType();
-    switch (networkType) {
-      case TelephonyManager.NETWORK_TYPE_UMTS:
-      case TelephonyManager.NETWORK_TYPE_EVDO_0:
-      case TelephonyManager.NETWORK_TYPE_EVDO_A:
-      case TelephonyManager.NETWORK_TYPE_HSDPA:
-      case TelephonyManager.NETWORK_TYPE_HSUPA:
-      case TelephonyManager.NETWORK_TYPE_HSPA:
-      case TelephonyManager.NETWORK_TYPE_EVDO_B:
-      case TelephonyManager.NETWORK_TYPE_EHRPD:
-      case TelephonyManager.NETWORK_TYPE_HSPAP:
-      case TelephonyManager.NETWORK_TYPE_LTE:
-        return true;
-    }
-
-    // 2G or disconnected to the internet
-    return false;
-  }
-
-  /////////////////////////////////////////////////////////
-  // For testing, to allow for Mocking.
-
-  boolean isDead() {
-    return mWorker.isDead();
   }
 
   public void sendData() {
@@ -209,7 +195,6 @@ class AnalyticsMessages {
           if (response_code != 200) {
             throw new ConnectErrorException("Response error.");
           }
-
         } catch (ClientProtocolException e) {
           throw new ConnectErrorException(e);
         } catch (IOException e) {
@@ -217,18 +202,19 @@ class AnalyticsMessages {
         }
 
         count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
+        Log.i(LOGTAG, String.format("Events flushed. [left = %d]", count));
       }
     } catch (ConnectErrorException e) {
       if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
         throw new DebugModeException(e.getMessage());
       } else {
-        Log.w("Failed to flush events.", e);
+        Log.w(LOGTAG, "Failed to flush events.", e);
       }
     } catch (InvalidDataException e) {
       if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
         throw new DebugModeException(e.getMessage());
       } else {
-        Log.w("Failed to flush events.", e);
+        Log.w(LOGTAG, "Failed to flush events.", e);
       }
     }
   }
@@ -278,12 +264,6 @@ class AnalyticsMessages {
       mHandler = new AnalyticsMessageHandler(thread.getLooper());
     }
 
-    public boolean isDead() {
-      synchronized (mHandlerLock) {
-        return mHandler == null;
-      }
-    }
-
     public void runMessage(Message msg) {
       synchronized (mHandlerLock) {
         if (mHandler == null) {
@@ -302,6 +282,7 @@ class AnalyticsMessages {
           Log.v(LOGTAG, "Dead worker dropping a message: " + msg.what);
         } else {
           if (!mHandler.hasMessages(msg.what)) {
+            Log.w(LOGTAG, "send delayed after " + delay);
             mHandler.sendMessageDelayed(msg, delay);
           }
         }
@@ -317,32 +298,7 @@ class AnalyticsMessages {
       @Override
       public void handleMessage(Message msg) {
         try {
-          if (msg.what == ENQUEUE_EVENTS) {
-            JSONObject event = (JSONObject) msg.obj;
-            synchronized (mDbAdapter) {
-              int ret = mDbAdapter.addJSON(event, DbAdapter.Table.EVENTS);
-
-              if (ret < 0) {
-                String error = "Failed to enqueue the event: " + event;
-                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-                  throw new DebugModeException(error);
-                } else {
-                  Log.w(LOGTAG, error);
-                }
-              }
-
-              if (ret > SensorsDataAPI.sharedInstance(mContext).getFlushBulkSize() || ret ==
-                  DbAdapter.DB_OUT_OF_MEMORY_ERROR || SensorsDataAPI.sharedInstance(mContext)
-                  .isDebugMode()) {
-                sendData();
-              } else {
-                final Message m = Message.obtain();
-                m.what = FLUSH_QUEUE;
-                mWorker.runMessageOnce(m, SensorsDataAPI.sharedInstance(mContext)
-                    .getFlushInterval());
-              }
-            }
-          } else if (msg.what == FLUSH_QUEUE) {
+          if (msg.what == FLUSH_QUEUE) {
             sendData();
           } else if (msg.what == CHECK_CONFIGURE) {
             DecideMessages decideMessages = (DecideMessages) msg.obj;
@@ -361,15 +317,6 @@ class AnalyticsMessages {
               }
             } catch (ConnectErrorException e) {
               Log.e(LOGTAG, "Failed to get vtrack configure from SensorsAnalaytics.", e);
-            }
-          } else if (msg.what == KILL_WORKER) {
-            Log.w(LOGTAG,
-                "Worker received a hard kill. Dumping all events and force-killing. Thread id "
-                    + Thread.currentThread().getId());
-            synchronized (mHandlerLock) {
-              mDbAdapter.deleteDB();
-              mHandler = null;
-              Looper.myLooper().quit();
             }
           } else {
             Log.e(LOGTAG, "Unexpected message received by SensorsData worker: " + msg);
@@ -399,11 +346,8 @@ class AnalyticsMessages {
   private final DbAdapter mDbAdapter;
 
   // Messages for our thread
-  private static final int ENQUEUE_EVENTS = 1;
   private static final int FLUSH_QUEUE = 3;
   private static final int CHECK_CONFIGURE = 4; // 从SA获取配置信息
-  private static final int KILL_WORKER = 5;
-  // Hard-kill the worker thread, discarding all events on the event queue. This is for testing, or disasters.
 
   private static final String LOGTAG = "SA.AnalyticsMessages";
 

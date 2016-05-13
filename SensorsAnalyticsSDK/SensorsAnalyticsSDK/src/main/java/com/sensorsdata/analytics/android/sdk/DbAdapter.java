@@ -189,37 +189,6 @@ import java.io.File;
     return count;
   }
 
-  /**
-   * Removes events before time.
-   *
-   * @param time  the unix epoch in milliseconds to remove events before
-   * @param table the table to remove events from
-   *
-   * @return the number of rows in the table
-   */
-  public int cleanupEvents(long time, Table table) {
-    final String tableName = table.getName();
-
-    int count = DB_UPDATE_ERROR;
-
-    try {
-      final SQLiteDatabase db = mDb.getWritableDatabase();
-      db.delete(tableName, KEY_CREATED_AT + " <= " + time, null);
-
-      Cursor c = db.rawQuery("SELECT COUNT(*) FROM " + tableName, null);
-      c.moveToFirst();
-      count = c.getInt(0);
-    } catch (final SQLiteException e) {
-      Log.e(LOGTAG, "Could not clean timed-out SensorsData records from " + tableName
-          + ". Re-initializing database.", e);
-      mDb.deleteDatabase();
-    } finally {
-      mDb.close();
-    }
-
-    return count;
-  }
-
   public void deleteDB() {
     mDb.deleteDatabase();
   }

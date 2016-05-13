@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import java.util.Locale;
@@ -53,6 +54,42 @@ public final class SensorsDataUtils {
     }
 
     return true;
+  }
+
+  public static String networkType(Context context) {
+    // Wifi
+    ConnectivityManager manager = (ConnectivityManager)
+        context.getSystemService(context.CONNECTIVITY_SERVICE);
+    if (manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).isConnectedOrConnecting()) {
+      return "WIFI";
+    }
+
+    // Mobile network
+    TelephonyManager telephonyManager = (TelephonyManager)context.getSystemService(Context
+        .TELEPHONY_SERVICE);
+
+    int networkType = telephonyManager.getNetworkType();
+    switch (networkType) {
+      case TelephonyManager.NETWORK_TYPE_GPRS:
+      case TelephonyManager.NETWORK_TYPE_EDGE:
+      case TelephonyManager.NETWORK_TYPE_CDMA:
+        return "2G";
+      case TelephonyManager.NETWORK_TYPE_UMTS:
+      case TelephonyManager.NETWORK_TYPE_EVDO_0:
+      case TelephonyManager.NETWORK_TYPE_EVDO_A:
+      case TelephonyManager.NETWORK_TYPE_HSDPA:
+      case TelephonyManager.NETWORK_TYPE_HSUPA:
+      case TelephonyManager.NETWORK_TYPE_HSPA:
+      case TelephonyManager.NETWORK_TYPE_EVDO_B:
+      case TelephonyManager.NETWORK_TYPE_EHRPD:
+      case TelephonyManager.NETWORK_TYPE_HSPAP:
+        return "3G";
+      case TelephonyManager.NETWORK_TYPE_LTE:
+        return "4G";
+    }
+
+    // disconnected to the internet
+    return "NULL";
   }
 
   private static final String SHARED_PREF_EDITS_FILE = "sensorsdata";

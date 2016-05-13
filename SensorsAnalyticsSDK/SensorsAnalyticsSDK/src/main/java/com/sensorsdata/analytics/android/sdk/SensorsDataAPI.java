@@ -4,14 +4,20 @@ import com.sensorsdata.analytics.android.sdk.exceptions.ConnectErrorException;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
+import android.annotation.TargetApi;
+import android.app.Activity;
+import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Message;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import org.json.JSONArray;
@@ -69,7 +75,7 @@ public class SensorsDataAPI {
   }
 
   SensorsDataAPI(Context context, String serverURL, String configureURL, String vtrackServerURL,
-      SensorsDataAPI.DebugMode debugMode) {
+      DebugMode debugMode) {
     mContext = context;
 
     final String packageName = context.getApplicationContext().getPackageName();
@@ -133,6 +139,11 @@ public class SensorsDataAPI {
           e);
     }
 
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+      final Application app = (Application) context.getApplicationContext();
+      app.registerActivityLifecycleCallbacks(new LifecycleCallbacks());
+    }
+
     Log.v(LOGTAG, String.format("Initializing the instance of Sensors Analytics SDK with server"
         + " url '%s', configure url '%s', vtrack server url '%s', flush interval %d ms", mServerUrl,
         mConfigureUrl, mVTrackServerUrl, mFlushInterval));
@@ -167,7 +178,7 @@ public class SensorsDataAPI {
     mMessages = AnalyticsMessages.getInstance(mContext);
 
     mVTrack.startUpdates();
-    mMessages.checkConfigureMessage(new DecideMessages(mVTrack));
+    mMessages.checkConfigure(new DecideMessages(mVTrack));
   }
 
   /**
@@ -388,7 +399,10 @@ public class SensorsDataAPI {
    * 不符合规范时抛出异常
    */
   public void trackSignUp(String newDistinctId) throws InvalidDataException {
-    trackSignUp(newDistinctId, null);
+    String originalDistinctId = getDistinctId();
+    identify(newDistinctId);
+
+    trackEvent(EventType.TRACK_SIGNUP, "$SignUp", null, originalDistinctId);
   }
 
   /**
@@ -411,8 +425,11 @@ public class SensorsDataAPI {
     if (properties == null) {
       properties = new JSONObject();
     }
+    JSONObject profiles = new JSONObject();
+
     try {
       properties.put("$android_install_source", installSource);
+      profiles.put("$android_install_source", installSource);
     } catch (JSONException e) {
       throw new InvalidDataException("Failed to set $android_install_source");
     }
@@ -421,7 +438,7 @@ public class SensorsDataAPI {
     trackEvent(EventType.TRACK, eventName, properties, null);
 
     // 再发送 profile_set_once
-    profileSetOnce("$android_install_source", installSource);
+    trackEvent(EventType.PROFILE_SET_ONCE, null, profiles, null);
   }
 
   /**
@@ -435,7 +452,23 @@ public class SensorsDataAPI {
    */
   public void trackInstallation(String eventName, String installSource)
       throws InvalidDataException {
-    trackInstallation(eventName, installSource, null);
+    if (installSource == null || installSource.length() == 0) {
+      throw new InvalidDataException("The source of installation is empty.");
+    }
+
+    JSONObject properties = new JSONObject();
+
+    try {
+      properties.put("$android_install_source", installSource);
+    } catch (JSONException e) {
+      throw new InvalidDataException("Failed to set $android_install_source");
+    }
+
+    // 先发送 track
+    trackEvent(EventType.TRACK, eventName, properties, null);
+
+    // 再发送 profile_set_once
+    trackEvent(EventType.PROFILE_SET_ONCE, null, properties, null);
   }
 
   /**
@@ -546,7 +579,7 @@ public class SensorsDataAPI {
    */
   public void profileSet(String property, Object value) throws InvalidDataException {
     try {
-      profileSet(new JSONObject().put(property, value));
+      trackEvent(EventType.PROFILE_SET, null, new JSONObject().put(property, value), null);
     } catch (JSONException e) {
       throw new InvalidDataException("Unexpected property name or value.");
     }
@@ -578,7 +611,7 @@ public class SensorsDataAPI {
    */
   public void profileSetOnce(String property, Object value) throws InvalidDataException {
     try {
-      profileSetOnce(new JSONObject().put(property, value));
+      trackEvent(EventType.PROFILE_SET_ONCE, null, new JSONObject().put(property, value), null);
     } catch (JSONException e) {
       throw new InvalidDataException("Unexpected property name or value.");
     }
@@ -626,9 +659,15 @@ public class SensorsDataAPI {
    * 当属性名称或属性值不符合规范时抛出异常
    */
   public void profileAppend(String property, String value) throws InvalidDataException {
-    Set<String> values = new HashSet<String>();
-    values.add(value);
-    profileAppend(property, values);
+    try {
+      final JSONArray append_values = new JSONArray();
+      append_values.put(value);
+      final JSONObject properties = new JSONObject();
+      properties.put(property, append_values);
+      trackEvent(EventType.PROFILE_APPEND, null, properties, null);
+    } catch (final JSONException e) {
+      throw new InvalidDataException("Unexpected property name or value");
+    }
   }
 
   /**
@@ -737,7 +776,9 @@ public class SensorsDataAPI {
           sendProperties = new JSONObject(mDeviceInfo);
           mPersistentIdentity.addSuperPropertiesToObject(sendProperties);
           // 当前网络状况
-          sendProperties.put("$wifi", mMessages.isWifi());
+          String networkType = SensorsDataUtils.networkType(mContext);
+          sendProperties.put("$wifi", networkType.equals("WIFI"));
+          sendProperties.put("$network_type", networkType);
         } else if (eventType.isProfile()) {
           sendProperties = new JSONObject();
         } else {
@@ -758,27 +799,27 @@ public class SensorsDataAPI {
           }
         }
 
+        JSONObject libProperties = new JSONObject();
+        libProperties.put("$lib", "Android");
+        libProperties.put("$lib_version", VERSION);
+
+        if (mDeviceInfo.containsKey("$app_version")) {
+          libProperties.put("$app_version", mDeviceInfo.get("$app_version"));
+        }
+
         final JSONObject dataObj = new JSONObject();
 
+        dataObj.put("time", System.currentTimeMillis());
+        dataObj.put("type", eventType.getEventType());
+        dataObj.put("properties", sendProperties);
+        dataObj.put("distinct_id", mPersistentIdentity.getDistinctId());
+        dataObj.put("lib", libProperties);
+
         if (eventType == EventType.TRACK) {
-          dataObj.put("time", System.currentTimeMillis());
-          dataObj.put("type", eventType.getEventType());
           dataObj.put("event", eventName);
-          dataObj.put("properties", sendProperties);
-          dataObj.put("distinct_id", mPersistentIdentity.getDistinctId());
         } else if (eventType == EventType.TRACK_SIGNUP) {
-          dataObj.put("time", System.currentTimeMillis());
-          dataObj.put("type", eventType.getEventType());
           dataObj.put("event", eventName);
-          dataObj.put("properties", sendProperties);
-          dataObj.put("distinct_id", mPersistentIdentity.getDistinctId());
           dataObj.put("original_id", originalDistinctId);
-        } else {
-          // is PROFILE_XXX
-          dataObj.put("time", System.currentTimeMillis());
-          dataObj.put("type", eventType.getEventType());
-          dataObj.put("properties", sendProperties);
-          dataObj.put("distinct_id", mPersistentIdentity.getDistinctId());
         }
 
         // $binding_depolyed为true或者无该属性时，isDepolyed为true
@@ -786,8 +827,11 @@ public class SensorsDataAPI {
 
         // 若$binding_depolyed为true，则删除这些属性
         if (sendProperties.has("$binding_depolyed")) {
+          libProperties.put("$lib_method", "vtrack");
+          libProperties.put("$lib_detail", sendProperties.get("$binding_trigger_id").toString());
+
           // 可视化埋点的事件
-          if (mVTrack instanceof  DebugTracking) {
+          if (mVTrack instanceof DebugTracking) {
             // Deep clone the event
             JSONObject debugDataObj = new JSONObject(dataObj.toString());
             ((DebugTracking) mVTrack).reportTrack(debugDataObj);
@@ -796,12 +840,20 @@ public class SensorsDataAPI {
           sendProperties.remove("$binding_path");
           sendProperties.remove("$binding_depolyed");
           sendProperties.remove("$binding_trigger_id");
+        } else {
+          libProperties.put("$lib_method", "code");
 
-          dataObj.put("properties", sendProperties);
+          StackTraceElement[] trace = (new Exception()).getStackTrace();
+          if (trace.length > 2) {
+            StackTraceElement traceElement = trace[2];
+            libProperties.put("$lib_detail", String.format("%s##%s##%s##%s", traceElement
+                .getClassName(), traceElement.getMethodName(), traceElement.getFileName(),
+                traceElement.getLineNumber()));
+          }
         }
 
         if (isDepolyed) {
-          mMessages.enqueueEventMessage(dataObj);
+          mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
         }
       } catch (JSONException e) {
         throw new InvalidDataException("Unexpteced property");
@@ -914,12 +966,42 @@ public class SensorsDataAPI {
     private boolean profile;
   }
 
+  @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+  private class LifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
+
+    public LifecycleCallbacks() {
+    }
+
+    @Override public void onActivityCreated(Activity activity, Bundle bundle) {
+    }
+
+    @Override public void onActivityStarted(Activity activity) {
+    }
+
+    @Override public void onActivityResumed(Activity activity) {
+    }
+
+    @Override public void onActivityPaused(Activity activity) {
+      mMessages.flush();
+    }
+
+    @Override public void onActivityStopped(Activity activity) {
+    }
+
+    @Override public void onActivitySaveInstanceState(Activity activity, Bundle bundle) {
+    }
+
+    @Override public void onActivityDestroyed(Activity activity) {
+    }
+
+  }
+
 
   // 可视化埋点功能最低API版本
   static final int VTRACK_SUPPORTED_MIN_API = 16;
 
   // SDK版本
-  static final String VERSION = "1.4.2";
+  static final String VERSION = "1.4.5";
 
   private static final Pattern KEY_PATTERN = Pattern.compile(
       "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
