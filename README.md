@@ -10,7 +10,7 @@ This is the official Android SDK for Sensors Analytics.
     
     dependencies {
         // ...
-        compile 'com.sensorsdata.analytics.android:SensorsAnalyticsSDK:1.4.5'
+        compile 'com.sensorsdata.analytics.android:SensorsAnalyticsSDK:1.4.6'
     }
 ```
  2. Add permissions to app/src/main/AndroidManifest.xml

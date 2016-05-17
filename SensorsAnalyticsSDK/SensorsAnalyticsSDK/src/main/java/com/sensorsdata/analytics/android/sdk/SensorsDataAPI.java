@@ -172,6 +172,7 @@ public class SensorsDataAPI {
     }
 
     mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
+    mTrackTimer = new HashMap<String, Long>();
 
     mPersistentIdentity = getPersistentIdentity(context);
 
@@ -228,12 +229,6 @@ public class SensorsDataAPI {
       if (null == instance && ConfigurationChecker.checkBasicConfiguration(appContext)) {
         instance = new SensorsDataAPI(appContext, serverURL, configureUrl, null, debugMode);
         sInstanceMap.put(appContext, instance);
-
-        try {
-          instance.track("$AppStart", null);
-        } catch (InvalidDataException e) {
-          Log.w("Unexpected exception", e);
-        }
       }
 
       return instance;
@@ -266,12 +261,6 @@ public class SensorsDataAPI {
         instance = new SensorsDataAPI(appContext, serverURL, configureURL, vtrackServerURL,
             debugMode);
         sInstanceMap.put(appContext, instance);
-
-        try {
-          instance.track("$AppStart", null);
-        } catch (InvalidDataException e) {
-          Log.w("Unexpected exception", e);
-        }
       }
 
       return instance;
@@ -472,10 +461,6 @@ public class SensorsDataAPI {
   }
 
   /**
-   * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。SDK会将渠道值填入事件属性 $ios_install_source 中
-   */
-
-  /**
    * 调用track接口，追踪一个带有属性的事件
    *
    * @param eventName  事件的名称
@@ -498,6 +483,37 @@ public class SensorsDataAPI {
    */
   public void track(String eventName) throws InvalidDataException {
     trackEvent(EventType.TRACK, eventName, null, null);
+  }
+
+  /**
+   * 初始化事件的计时器。
+   *
+   * 若需要统计某个事件的持续时间，先在事件开始时调用 trackTimer("Event") 记录事件开始时间，该方法并不会真正发
+   * 送事件；随后在时间结束时，调用 track("Event", properties)，SDK 会追踪 "Event" 事件，并自动将事件持续时
+   * 间记录在事件属性 "event_duration" 中。
+   *
+   * 多次调用 trackTimer("Event") 时，事件 "Event" 的开始时间以最后一次调用时为准。
+   *
+   * @param eventName 事件的名称
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当事件名称
+   * 不符合规范时抛出异常
+   */
+  public void trackTimer(final String eventName) throws InvalidDataException {
+    assertKey(eventName);
+    final long eventBegin = System.currentTimeMillis();
+    synchronized (mTrackTimer) {
+      mTrackTimer.put(eventName, eventBegin);
+    }
+  }
+
+  /**
+   * 清除所有事件计时器
+   */
+  public void clearTrackTimer() {
+    synchronized (mTrackTimer) {
+      mTrackTimer.clear();
+    }
   }
 
   /**
@@ -768,6 +784,18 @@ public class SensorsDataAPI {
     }
     assertPropertyTypes(eventType, properties);
 
+    final long now = System.currentTimeMillis();
+
+    final Long eventBegin;
+    if (eventName != null) {
+      synchronized (mTrackTimer) {
+        eventBegin = mTrackTimer.get(eventName);
+        mTrackTimer.remove(eventName);
+      }
+    } else {
+      eventBegin = null;
+    }
+
     synchronized (mPersistentIdentity) {
       try {
         JSONObject sendProperties = null;
@@ -799,6 +827,10 @@ public class SensorsDataAPI {
           }
         }
 
+        if (null != eventBegin) {
+          sendProperties.put("event_duration", now - eventBegin);
+        }
+
         JSONObject libProperties = new JSONObject();
         libProperties.put("$lib", "Android");
         libProperties.put("$lib_version", VERSION);
@@ -809,7 +841,7 @@ public class SensorsDataAPI {
 
         final JSONObject dataObj = new JSONObject();
 
-        dataObj.put("time", System.currentTimeMillis());
+        dataObj.put("time", now);
         dataObj.put("type", eventType.getEventType());
         dataObj.put("properties", sendProperties);
         dataObj.put("distinct_id", mPersistentIdentity.getDistinctId());
@@ -1001,7 +1033,7 @@ public class SensorsDataAPI {
   static final int VTRACK_SUPPORTED_MIN_API = 16;
 
   // SDK版本
-  static final String VERSION = "1.4.5";
+  static final String VERSION = "1.4.6";
 
   private static final Pattern KEY_PATTERN = Pattern.compile(
       "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
@@ -1030,6 +1062,7 @@ public class SensorsDataAPI {
   private final AnalyticsMessages mMessages;
   private final PersistentIdentity mPersistentIdentity;
   private final Map<String, Object> mDeviceInfo;
+  private final Map<String, Long> mTrackTimer;
 
   private final VTrack mVTrack;
 
