@@ -3,6 +3,7 @@ package com.sensorsdata.analytics.android.sdk;
 import com.sensorsdata.analytics.android.sdk.exceptions.ConnectErrorException;
 import com.sensorsdata.analytics.android.sdk.exceptions.DebugModeException;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
+import com.sensorsdata.analytics.android.sdk.exceptions.ResponseErrorException;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
@@ -95,7 +96,6 @@ class AnalyticsMessages {
         mWorker.runMessage(m);
       } else {
         String networkType = SensorsDataUtils.networkType(mContext);
-        Log.w(LOGTAG, "----------networktype: " + networkType);
         if (networkType.equals("WIFI") || networkType.equals("3G") || networkType.equals("4G")) {
           // track_signup 立即发送
           if (type.equals("track_signup") || ret > SensorsDataAPI.sharedInstance(mContext)
@@ -126,9 +126,9 @@ class AnalyticsMessages {
   }
 
   public void sendData() {
-    try {
-      int count = 100;
-      while (count > 0) {
+    int count = 100;
+    while (count > 0) {
+      try {
         String[] eventsData;
         synchronized (mDbAdapter) {
           if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
@@ -149,7 +149,7 @@ class AnalyticsMessages {
           data = encodeData(rawMessage);
         } catch (IOException e) {
           // 格式错误，直接将数据删除
-          mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
+          count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
           throw new InvalidDataException(e);
         }
 
@@ -163,6 +163,8 @@ class AnalyticsMessages {
         try {
           httpPost.setEntity(new UrlEncodedFormEntity(params));
         } catch (UnsupportedEncodingException e) {
+          // 格式错误，直接将数据删除
+          count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
           throw new InvalidDataException(e);
         }
 
@@ -175,25 +177,24 @@ class AnalyticsMessages {
         try {
           HttpResponse response = httpClient.execute(httpPost);
 
-          int response_code = response.getStatusLine().getStatusCode();
-          String response_body = EntityUtils.toString(response.getEntity(), "UTF-8");
+          int responseCode = response.getStatusLine().getStatusCode();
+          String responseBody = EntityUtils.toString(response.getEntity(), "UTF-8");
 
           if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-            if (response_code == 200) {
+            if (responseCode == 200) {
               Log.v(LOGTAG, String.format("valid message: %s", rawMessage));
             } else {
               Log.v(LOGTAG, String.format("invalid message: %s", rawMessage));
-              Log.v(LOGTAG, String.format("ret_code: %d", response_code));
-              Log.v(LOGTAG, String.format("ret_content: %s", response_body));
-
-              // 校验错误，直接将数据删除
-              count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
-              continue;
+              Log.v(LOGTAG, String.format("ret_code: %d", responseCode));
+              Log.v(LOGTAG, String.format("ret_content: %s", responseBody));
             }
           }
 
-          if (response_code != 200) {
-            throw new ConnectErrorException("Response error.");
+          if (responseCode != 200) {
+            // 校验错误，直接将数据删除
+            count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
+            throw new ResponseErrorException(String.format("flush failure with response '%s'",
+                responseBody));
           }
         } catch (ClientProtocolException e) {
           throw new ConnectErrorException(e);
@@ -203,18 +204,22 @@ class AnalyticsMessages {
 
         count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
         Log.i(LOGTAG, String.format("Events flushed. [left = %d]", count));
-      }
-    } catch (ConnectErrorException e) {
-      if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-        throw new DebugModeException(e.getMessage());
-      } else {
-        Log.w(LOGTAG, "Failed to flush events.", e);
-      }
-    } catch (InvalidDataException e) {
-      if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-        throw new DebugModeException(e.getMessage());
-      } else {
-        Log.w(LOGTAG, "Failed to flush events.", e);
+
+      } catch (ConnectErrorException e) {
+        Log.w(LOGTAG, "Connection error: " + e.getMessage());
+        break;
+      } catch (InvalidDataException e) {
+        if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+          throw new DebugModeException(e.getMessage());
+        } else {
+          Log.w(LOGTAG, "Invalid data: " + e.getMessage());
+        }
+      } catch (ResponseErrorException e) {
+        if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+          throw new DebugModeException(e.getMessage());
+        } else {
+          Log.w(LOGTAG, "Unexpected response from Sensors Analytics: " + e.getMessage());
+        }
       }
     }
   }

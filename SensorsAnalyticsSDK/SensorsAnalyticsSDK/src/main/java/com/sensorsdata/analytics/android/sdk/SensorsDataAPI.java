@@ -489,7 +489,7 @@ public class SensorsDataAPI {
    * 初始化事件的计时器。
    *
    * 若需要统计某个事件的持续时间，先在事件开始时调用 trackTimer("Event") 记录事件开始时间，该方法并不会真正发
-   * 送事件；随后在时间结束时，调用 track("Event", properties)，SDK 会追踪 "Event" 事件，并自动将事件持续时
+   * 送事件；随后在事件结束时，调用 track("Event", properties)，SDK 会追踪 "Event" 事件，并自动将事件持续时
    * 间记录在事件属性 "event_duration" 中。
    *
    * 多次调用 trackTimer("Event") 时，事件 "Event" 的开始时间以最后一次调用时为准。
@@ -1033,7 +1033,7 @@ public class SensorsDataAPI {
   static final int VTRACK_SUPPORTED_MIN_API = 16;
 
   // SDK版本
-  static final String VERSION = "1.4.6";
+  static final String VERSION = "1.4.7";
 
   private static final Pattern KEY_PATTERN = Pattern.compile(
       "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
