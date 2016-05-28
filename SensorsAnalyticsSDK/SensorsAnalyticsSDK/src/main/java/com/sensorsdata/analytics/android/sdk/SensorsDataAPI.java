@@ -1,6 +1,5 @@
 package com.sensorsdata.analytics.android.sdk;
 
-import com.sensorsdata.analytics.android.sdk.exceptions.ConnectErrorException;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
@@ -12,12 +11,10 @@ import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.hardware.Sensor;
-import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Message;
+import android.telephony.TelephonyManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import org.json.JSONArray;
@@ -28,7 +25,6 @@ import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -169,6 +165,22 @@ public class SensorsDataAPI {
       final DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
       deviceInfo.put("$screen_height", displayMetrics.heightPixels);
       deviceInfo.put("$screen_width", displayMetrics.widthPixels);
+
+      TelephonyManager telephonyManager = (TelephonyManager) mContext.getSystemService(Context
+          .TELEPHONY_SERVICE);
+      String operatorString = telephonyManager.getSimOperator();
+
+      if (operatorString == null) {
+        // DO NOTHING
+      } else if (operatorString.equals("46000") || operatorString.equals("46002")) {
+        deviceInfo.put("$carrier", "中国移动");
+      } else if (operatorString.equals("46001")) {
+        deviceInfo.put("$carrier", "中国联通");
+      } else if (operatorString.equals("46003")) {
+        deviceInfo.put("$carrier", "中国电信");
+      } else {
+        deviceInfo.put("$carrier", "其他");
+      }
     }
 
     mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
