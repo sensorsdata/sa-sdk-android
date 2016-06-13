@@ -149,7 +149,6 @@ class AnalyticsMessages {
           data = encodeData(rawMessage);
         } catch (IOException e) {
           // 格式错误，直接将数据删除
-          count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
           throw new InvalidDataException(e);
         }
 
@@ -164,7 +163,6 @@ class AnalyticsMessages {
           httpPost.setEntity(new UrlEncodedFormEntity(params));
         } catch (UnsupportedEncodingException e) {
           // 格式错误，直接将数据删除
-          count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
           throw new InvalidDataException(e);
         }
 
@@ -190,9 +188,8 @@ class AnalyticsMessages {
             }
           }
 
-          if (responseCode != 200) {
+          if (responseCode < 200 || responseCode >= 300) {
             // 校验错误，直接将数据删除
-            count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
             throw new ResponseErrorException(String.format("flush failure with response '%s'",
                 responseBody));
           }
@@ -200,10 +197,10 @@ class AnalyticsMessages {
           throw new ConnectErrorException(e);
         } catch (IOException e) {
           throw new ConnectErrorException(e);
+        } finally {
+          count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
+          Log.i(LOGTAG, String.format("Events flushed. [left = %d]", count));
         }
-
-        count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
-        Log.i(LOGTAG, String.format("Events flushed. [left = %d]", count));
 
       } catch (ConnectErrorException e) {
         Log.w(LOGTAG, "Connection error: " + e.getMessage());
