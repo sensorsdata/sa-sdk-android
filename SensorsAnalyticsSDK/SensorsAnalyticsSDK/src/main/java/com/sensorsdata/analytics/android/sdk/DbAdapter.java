@@ -1,7 +1,5 @@
 package com.sensorsdata.analytics.android.sdk;
 
-import com.sensorsdata.analytics.android.sdk.exceptions.QueueLimitExceededException;
-
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -17,7 +15,7 @@ import java.io.File;
 
 /* package */ class DbAdapter {
 
-  private static final String LOGTAG = "SA.DBAdapter";
+  private static final String LOGTAG = "SA.DbAdapter";
 
   public enum Table {
     EVENTS("events");
@@ -39,8 +37,6 @@ import java.io.File;
   public static final int DB_UPDATE_ERROR = -1;
   public static final int DB_OUT_OF_MEMORY_ERROR = -2;
   public static final int DB_UNDEFINED_CODE = -3;
-
-  private static final String DATABASE_NAME = "sensorsdata";
 
   private static final int DATABASE_VERSION = 4;
 
@@ -95,10 +91,6 @@ import java.io.File;
     }
 
     private final File mDatabaseFile;
-  }
-
-  public DbAdapter(Context context) {
-    this(context, DATABASE_NAME);
   }
 
   public DbAdapter(Context context, String dbName) {

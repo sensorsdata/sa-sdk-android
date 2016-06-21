@@ -49,9 +49,9 @@ class AnalyticsMessages {
   /**
    * Do not call directly. You should call AnalyticsMessages.getInstance()
    */
-    /* package */ AnalyticsMessages(final Context context) {
+    /* package */ AnalyticsMessages(final Context context, final String packageName) {
     mContext = context;
-    mDbAdapter = new DbAdapter(mContext);
+    mDbAdapter = new DbAdapter(mContext, packageName/*dbName*/);
     mWorker = new Worker();
   }
 
@@ -62,12 +62,13 @@ class AnalyticsMessages {
    * @param messageContext should be the Main Activity of the application
    *                       associated with these messages.
    */
-  public static AnalyticsMessages getInstance(final Context messageContext) {
+  public static AnalyticsMessages getInstance(final Context messageContext, final String
+      packageName) {
     synchronized (sInstances) {
       final Context appContext = messageContext.getApplicationContext();
-      AnalyticsMessages ret;
+      final AnalyticsMessages ret;
       if (!sInstances.containsKey(appContext)) {
-        ret = new AnalyticsMessages(appContext);
+        ret = new AnalyticsMessages(appContext, packageName);
         sInstances.put(appContext, ret);
       } else {
         ret = sInstances.get(appContext);
@@ -180,11 +181,11 @@ class AnalyticsMessages {
 
           if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
             if (responseCode == 200) {
-              Log.v(LOGTAG, String.format("valid message: %s", rawMessage));
+              Log.i(LOGTAG, String.format("valid message: %s", rawMessage));
             } else {
-              Log.v(LOGTAG, String.format("invalid message: %s", rawMessage));
-              Log.v(LOGTAG, String.format("ret_code: %d", responseCode));
-              Log.v(LOGTAG, String.format("ret_content: %s", responseBody));
+              Log.i(LOGTAG, String.format("invalid message: %s", rawMessage));
+              Log.i(LOGTAG, String.format("ret_code: %d", responseCode));
+              Log.i(LOGTAG, String.format("ret_content: %s", responseBody));
             }
           }
 

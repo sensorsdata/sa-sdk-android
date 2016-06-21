@@ -75,6 +75,7 @@ public class SensorsDataAPI {
     mContext = context;
 
     final String packageName = context.getApplicationContext().getPackageName();
+
     try {
       final ApplicationInfo appInfo = context.getApplicationContext().getPackageManager()
           .getApplicationInfo(packageName, PackageManager.GET_META_DATA);
@@ -188,7 +189,7 @@ public class SensorsDataAPI {
 
     mPersistentIdentity = getPersistentIdentity(context);
 
-    mMessages = AnalyticsMessages.getInstance(mContext);
+    mMessages = AnalyticsMessages.getInstance(mContext, packageName);
 
     mVTrack.startUpdates();
     mMessages.checkConfigure(new DecideMessages(mVTrack));
@@ -1026,10 +1027,11 @@ public class SensorsDataAPI {
     }
 
     @Override public void onActivityPaused(Activity activity) {
-      mMessages.flush();
     }
 
     @Override public void onActivityStopped(Activity activity) {
+      Log.i(LOGTAG, "Flush before activity being stopped.");
+      mMessages.flush();
     }
 
     @Override public void onActivitySaveInstanceState(Activity activity, Bundle bundle) {
@@ -1045,7 +1047,7 @@ public class SensorsDataAPI {
   static final int VTRACK_SUPPORTED_MIN_API = 16;
 
   // SDK版本
-  static final String VERSION = "1.4.9";
+  static final String VERSION = "1.5.0";
 
   private static final Pattern KEY_PATTERN = Pattern.compile(
       "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
