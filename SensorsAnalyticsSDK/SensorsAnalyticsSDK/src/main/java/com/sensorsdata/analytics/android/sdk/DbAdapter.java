@@ -66,14 +66,14 @@ import java.io.File;
     }
 
     @Override public void onCreate(SQLiteDatabase db) {
-      Log.d(LOGTAG, "Creating a new SensorsData events DB");
+      Log.d(LOGTAG, "Creating a new Sensors Analytics DB");
 
       db.execSQL(CREATE_EVENTS_TABLE);
       db.execSQL(EVENTS_TIME_INDEX);
     }
 
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-      Log.d(LOGTAG, "Upgrading app, replacing SensorsData events DB");
+      Log.d(LOGTAG, "Upgrading app, replacing Sensors Analytics DB");
 
       db.execSQL("DROP TABLE IF EXISTS " + Table.EVENTS.getName());
       db.execSQL(CREATE_EVENTS_TABLE);
@@ -119,34 +119,37 @@ import java.io.File;
     Cursor c = null;
     int count = DB_UPDATE_ERROR;
 
-    try {
-      final SQLiteDatabase db = mDb.getWritableDatabase();
+    synchronized (mDb) {
+      try {
+        final SQLiteDatabase db = mDb.getWritableDatabase();
 
-      final ContentValues cv = new ContentValues();
-      cv.put(KEY_DATA, j.toString());
-      cv.put(KEY_CREATED_AT, System.currentTimeMillis());
-      db.insert(tableName, null, cv);
+        final ContentValues cv = new ContentValues();
+        cv.put(KEY_DATA, j.toString());
+        cv.put(KEY_CREATED_AT, System.currentTimeMillis());
+        db.insert(tableName, null, cv);
 
-      c = db.rawQuery("SELECT COUNT(*) FROM " + tableName, null);
-      c.moveToFirst();
-      count = c.getInt(0);
-    } catch (final SQLiteException e) {
-      Log.e(LOGTAG, "Could not add data to table " + tableName + ". Re-initializing database.", e);
+        c = db.rawQuery("SELECT COUNT(*) FROM " + tableName, null);
+        c.moveToFirst();
+        count = c.getInt(0);
+      } catch (final SQLiteException e) {
+        Log.e(LOGTAG, "Could not add data to table " + tableName + ". Re-initializing database.",
+            e);
 
-      // We assume that in general, the results of a SQL exception are
-      // unrecoverable, and could be associated with an oversized or
-      // otherwise unusable DB. Better to bomb it and get back on track
-      // than to leave it junked up (and maybe filling up the disk.)
-      if (c != null) {
-        c.close();
-        c = null;
+        // We assume that in general, the results of a SQL exception are
+        // unrecoverable, and could be associated with an oversized or
+        // otherwise unusable DB. Better to bomb it and get back on track
+        // than to leave it junked up (and maybe filling up the disk.)
+        if (c != null) {
+          c.close();
+          c = null;
+        }
+        mDb.deleteDatabase();
+      } finally {
+        if (c != null) {
+          c.close();
+        }
+        mDb.close();
       }
-      mDb.deleteDatabase();
-    } finally {
-      if (c != null) {
-        c.close();
-      }
-      mDb.close();
     }
     return count;
   }
@@ -164,19 +167,21 @@ import java.io.File;
 
     int count = DB_UPDATE_ERROR;
 
-    try {
-      final SQLiteDatabase db = mDb.getWritableDatabase();
-      db.delete(tableName, "_id <= " + last_id, null);
+    synchronized (mDb) {
+      try {
+        final SQLiteDatabase db = mDb.getWritableDatabase();
+        db.delete(tableName, "_id <= " + last_id, null);
 
-      Cursor c = db.rawQuery("SELECT COUNT(*) FROM " + tableName, null);
-      c.moveToFirst();
-      count = c.getInt(0);
-    } catch (final SQLiteException e) {
-      Log.e(LOGTAG,
-          "Could not clean sent records from " + tableName + ". Re-initializing database.", e);
-      mDb.deleteDatabase();
-    } finally {
-      mDb.close();
+        Cursor c = db.rawQuery("SELECT COUNT(*) FROM " + tableName, null);
+        c.moveToFirst();
+        count = c.getInt(0);
+      } catch (final SQLiteException e) {
+        Log.e(LOGTAG,
+            "Could not clean sent records from " + tableName + ". Re-initializing database.", e);
+        mDb.deleteDatabase();
+      } finally {
+        mDb.close();
+      }
     }
     return count;
   }
@@ -191,36 +196,38 @@ import java.io.File;
     String last_id = null;
     final String tableName = table.getName();
 
-    try {
-      final SQLiteDatabase db = mDb.getReadableDatabase();
-      c = db.rawQuery("SELECT * FROM " + tableName +
-          " ORDER BY " + KEY_CREATED_AT + " ASC LIMIT " + String.valueOf(limit), null);
-      final JSONArray arr = new JSONArray();
+    synchronized (mDb) {
+      try {
+        final SQLiteDatabase db = mDb.getReadableDatabase();
+        c = db.rawQuery("SELECT * FROM " + tableName +
+            " ORDER BY " + KEY_CREATED_AT + " ASC LIMIT " + String.valueOf(limit), null);
+        final JSONArray arr = new JSONArray();
 
-      while (c.moveToNext()) {
-        if (c.isLast()) {
-          last_id = c.getString(c.getColumnIndex("_id"));
+        while (c.moveToNext()) {
+          if (c.isLast()) {
+            last_id = c.getString(c.getColumnIndex("_id"));
+          }
+          try {
+            final JSONObject j = new JSONObject(c.getString(c.getColumnIndex(KEY_DATA)));
+            arr.put(j);
+          } catch (final JSONException e) {
+            // Ignore this object
+          }
         }
-        try {
-          final JSONObject j = new JSONObject(c.getString(c.getColumnIndex(KEY_DATA)));
-          arr.put(j);
-        } catch (final JSONException e) {
-          // Ignore this object
-        }
-      }
 
-      if (arr.length() > 0) {
-        data = arr.toString();
-      }
-    } catch (final SQLiteException e) {
-      Log.e(LOGTAG, "Could not pull records for SensorsData out of database " + tableName
-          + ". Waiting to send.", e);
-      last_id = null;
-      data = null;
-    } finally {
-      mDb.close();
-      if (c != null) {
-        c.close();
+        if (arr.length() > 0) {
+          data = arr.toString();
+        }
+      } catch (final SQLiteException e) {
+        Log.e(LOGTAG, "Could not pull records for SensorsData out of database " + tableName
+            + ". Waiting to send.", e);
+        last_id = null;
+        data = null;
+      } finally {
+        mDb.close();
+        if (c != null) {
+          c.close();
+        }
       }
     }
 

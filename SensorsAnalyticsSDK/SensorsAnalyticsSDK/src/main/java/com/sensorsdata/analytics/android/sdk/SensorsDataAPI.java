@@ -1047,15 +1047,14 @@ public class SensorsDataAPI {
   static final int VTRACK_SUPPORTED_MIN_API = 16;
 
   // SDK版本
-  static final String VERSION = "1.5.0";
+  static final String VERSION = "1.5.1";
 
   private static final Pattern KEY_PATTERN = Pattern.compile(
       "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
       Pattern.CASE_INSENSITIVE);
 
   // Maps each token to a singleton SensorsDataAPI instance
-  private static final Map<Context, SensorsDataAPI> sInstanceMap =
-      new HashMap<Context, SensorsDataAPI>();
+  private static final Map<Context, SensorsDataAPI> sInstanceMap = new HashMap<Context, SensorsDataAPI>();
   private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
 
   // Configures
