@@ -164,15 +164,16 @@ import java.io.File;
    */
   public int cleanupEvents(String last_id, Table table) {
     final String tableName = table.getName();
-
+    Cursor c = null;
     int count = DB_UPDATE_ERROR;
 
     synchronized (mDb) {
+
       try {
         final SQLiteDatabase db = mDb.getWritableDatabase();
         db.delete(tableName, "_id <= " + last_id, null);
 
-        Cursor c = db.rawQuery("SELECT COUNT(*) FROM " + tableName, null);
+        c = db.rawQuery("SELECT COUNT(*) FROM " + tableName, null);
         c.moveToFirst();
         count = c.getInt(0);
       } catch (final SQLiteException e) {
@@ -180,6 +181,9 @@ import java.io.File;
             "Could not clean sent records from " + tableName + ". Re-initializing database.", e);
         mDb.deleteDatabase();
       } finally {
+        if (c != null) {
+          c.close();
+        }
         mDb.close();
       }
     }
@@ -224,10 +228,10 @@ import java.io.File;
         last_id = null;
         data = null;
       } finally {
-        mDb.close();
         if (c != null) {
           c.close();
         }
+        mDb.close();
       }
     }
 
