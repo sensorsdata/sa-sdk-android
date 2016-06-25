@@ -408,64 +408,18 @@ public class SensorsDataAPI {
   }
 
   /**
-   * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性，SDK会将渠道值填入事件属性
-   * $android_install_source 中
+   * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
    *
-   * @param eventName   事件的名称
-   * @param installSource App安装渠道
-   * @param properties  事件的属性
+   * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
    *
-   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当事件名称或属性
-   * 不符合规范时抛出异常
-   */
-  public void trackInstallation(String eventName, String installSource, JSONObject properties)
-      throws InvalidDataException {
-    if (installSource == null || installSource.length() == 0) {
-      throw new InvalidDataException("The source of installation is empty.");
-    }
-
-    if (properties == null) {
-      properties = new JSONObject();
-    }
-    JSONObject profiles = new JSONObject();
-
-    try {
-      properties.put("$android_install_source", installSource);
-      profiles.put("$android_install_source", installSource);
-    } catch (JSONException e) {
-      throw new InvalidDataException("Failed to set $android_install_source");
-    }
-
-    // 先发送 track
-    trackEvent(EventType.TRACK, eventName, properties, null);
-
-    // 再发送 profile_set_once
-    trackEvent(EventType.PROFILE_SET_ONCE, null, profiles, null);
-  }
-
-  /**
-   * 用于在 App 首次启动时追踪渠道来源，SDK会将渠道值填入事件属性 $android_install_source 中
-   *
-   * @param eventName   事件的名称
-   * @param installSource App安装渠道
+   * @param eventName   渠道追踪事件的名称
+   * @param properties  渠道追踪事件的属性
    *
    * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当事件名称或属性
    * 不符合规范时抛出异常
    */
-  public void trackInstallation(String eventName, String installSource)
+  public void trackInstallation(String eventName, JSONObject properties)
       throws InvalidDataException {
-    if (installSource == null || installSource.length() == 0) {
-      throw new InvalidDataException("The source of installation is empty.");
-    }
-
-    JSONObject properties = new JSONObject();
-
-    try {
-      properties.put("$android_install_source", installSource);
-    } catch (JSONException e) {
-      throw new InvalidDataException("Failed to set $android_install_source");
-    }
-
     // 先发送 track
     trackEvent(EventType.TRACK, eventName, properties, null);
 
@@ -1047,7 +1001,7 @@ public class SensorsDataAPI {
   static final int VTRACK_SUPPORTED_MIN_API = 16;
 
   // SDK版本
-  static final String VERSION = "1.5.1";
+  static final String VERSION = "1.5.3";
 
   private static final Pattern KEY_PATTERN = Pattern.compile(
       "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
