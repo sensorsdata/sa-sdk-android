@@ -882,7 +882,7 @@ public class SensorsDataAPI {
               + "']");
         }
 
-        if (value instanceof String && !key.startsWith("$") && ((String) value).length() > 255) {
+        if (value instanceof String && !key.startsWith("$") && ((String) value).length() > 8191) {
           throw new InvalidDataException("The property value is too long. [key='" + key
               + "', value='" + value.toString() + "']");
         }
@@ -1001,7 +1001,7 @@ public class SensorsDataAPI {
   static final int VTRACK_SUPPORTED_MIN_API = 16;
 
   // SDK版本
-  static final String VERSION = "1.5.3";
+  static final String VERSION = "1.5.6";
 
   private static final Pattern KEY_PATTERN = Pattern.compile(
       "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",

@@ -315,8 +315,7 @@ class AnalyticsMessages {
                   decideMessages.reportResults(eventBindings.getJSONArray("events"));
                 }
               } catch (JSONException e1) {
-                Log.w(LOGTAG, "Unexpected vtrack configure from SensorsAnalytics: " +
-                    configureResult);
+                Log.i(LOGTAG, "The configure of VTrack is not loaded: " + configureResult);
               }
             } catch (ConnectErrorException e) {
               Log.e(LOGTAG, "Failed to get vtrack configure from SensorsAnalaytics.", e);

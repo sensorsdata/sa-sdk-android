@@ -3,6 +3,7 @@ package com.sensorsdata.analytics.android.sdk;
 import android.app.Activity;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewTreeObserver;
 
@@ -159,10 +160,9 @@ public class EditState extends UIThreadSet<Activity> {
         return;
       }
       // ELSE View is alive and we are alive
-
       mEdit.visit(viewRoot);
       mHandler.removeCallbacks(this);
-      mHandler.postDelayed(this, 1000);
+//      mHandler.postDelayed(this, 1000);
     }
 
     public void kill() {
