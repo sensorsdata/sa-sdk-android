@@ -200,7 +200,7 @@ class AnalyticsMessages {
           throw new ConnectErrorException(e);
         } finally {
           count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
-          Log.i(LOGTAG, String.format("Events flushed. [left = %d]", count));
+          Log.d(LOGTAG, String.format("Events flushed. [left = %d]", count));
         }
 
       } catch (ConnectErrorException e) {
@@ -315,7 +315,7 @@ class AnalyticsMessages {
                   decideMessages.reportResults(eventBindings.getJSONArray("events"));
                 }
               } catch (JSONException e1) {
-                Log.i(LOGTAG, "The configure of VTrack is not loaded: " + configureResult);
+                Log.d(LOGTAG, "The configure of VTrack is not loaded: " + configureResult);
               }
             } catch (ConnectErrorException e) {
               Log.e(LOGTAG, "Failed to get vtrack configure from SensorsAnalaytics.", e);

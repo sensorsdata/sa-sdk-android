@@ -1,6 +1,7 @@
 package com.sensorsdata.analytics.android.sdk;
 
 import android.app.Activity;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -25,8 +26,8 @@ public class EditState extends UIThreadSet<Activity> {
 
   public EditState() {
     mUiThreadHandler = new Handler(Looper.getMainLooper());
-    mIntendedEdits = new HashMap<String, List<ViewVisitor>>();
-    mCurrentEdits = new HashSet<EditBinding>();
+    mIntendedEdits = new HashMap<>();
+    mCurrentEdits = new HashMap<>();
   }
 
   /**
@@ -35,7 +36,8 @@ public class EditState extends UIThreadSet<Activity> {
   @Override
   public void add(Activity newOne) {
     super.add(newOne);
-    applyEditsOnUiThread();
+//    applyEditsOnUiThread();
+    applyEditsOnActivity(newOne);
   }
 
   /**
@@ -44,6 +46,7 @@ public class EditState extends UIThreadSet<Activity> {
   @Override
   public void remove(Activity oldOne) {
     super.remove(oldOne);
+    removeChangesOnActivity(oldOne);
   }
 
   /**
@@ -65,8 +68,10 @@ public class EditState extends UIThreadSet<Activity> {
     // Delete images that are no longer needed
 
     synchronized (mCurrentEdits) {
-      for (final EditBinding stale : mCurrentEdits) {
-        stale.kill();
+      for (final Map.Entry<Activity, Set<EditBinding>> entry : mCurrentEdits.entrySet()) {
+        for (final EditBinding binding : entry.getValue()) {
+          binding.kill();
+        }
       }
       mCurrentEdits.clear();
     }
@@ -95,40 +100,67 @@ public class EditState extends UIThreadSet<Activity> {
   // Must be called on UI Thread
   private void applyIntendedEdits() {
     for (final Activity activity : getAll()) {
-      final String activityName = activity.getClass().getCanonicalName();
-      final View rootView = activity.getWindow().getDecorView().getRootView();
+      applyEditsOnActivity(activity);
+    }
+  }
 
-      final List<ViewVisitor> specificChanges;
-      final List<ViewVisitor> wildcardChanges;
-      synchronized (mIntendedEdits) {
-        specificChanges = mIntendedEdits.get(activityName);
-        wildcardChanges = mIntendedEdits.get(null);
-      }
+  private void applyEditsOnActivity(Activity activity) {
+    final String activityName = activity.getClass().getCanonicalName();
+    final View rootView = activity.getWindow().getDecorView().getRootView();
 
-      if (null != specificChanges) {
-        applyChangesFromList(rootView, specificChanges);
-      }
+    final List<ViewVisitor> specificChanges;
+    final List<ViewVisitor> wildcardChanges;
+    synchronized (mIntendedEdits) {
+      specificChanges = mIntendedEdits.get(activityName);
+      wildcardChanges = mIntendedEdits.get(null);
+    }
 
-      if (null != wildcardChanges) {
-        applyChangesFromList(rootView, wildcardChanges);
-      }
+    if (null != specificChanges) {
+      applyChangesFromList(activity, rootView, specificChanges);
+    }
+
+    if (null != wildcardChanges) {
+      applyChangesFromList(activity, rootView, wildcardChanges);
     }
   }
 
   // Must be called on UI Thread
-  private void applyChangesFromList(View rootView, List<ViewVisitor> changes) {
+  private void applyChangesFromList(final Activity activity, final View rootView,
+      final List<ViewVisitor> changes) {
     synchronized (mCurrentEdits) {
+      if (!mCurrentEdits.containsKey(activity)) {
+        mCurrentEdits.put(activity, new HashSet<EditBinding>());
+      }
+
       final int size = changes.size();
       for (int i = 0; i < size; i++) {
         final ViewVisitor visitor = changes.get(i);
         final EditBinding binding = new EditBinding(rootView, visitor, mUiThreadHandler);
-        mCurrentEdits.add(binding);
+        mCurrentEdits.get(activity).add(binding);
       }
     }
   }
 
+  private void removeChangesOnActivity(Activity activity) {
+    synchronized (mCurrentEdits) {
+      final Set<EditBinding> bindingSet = mCurrentEdits.get(activity);
+      if (bindingSet == null) {
+        return;
+      }
+
+      for (final EditBinding binding : bindingSet) {
+        binding.kill();
+      }
+
+      bindingSet.clear();
+    }
+  }
+
+
+
   /* The binding between a bunch of edits and a view. Should be instantiated and live on the UI thread */
   private static class EditBinding implements ViewTreeObserver.OnGlobalLayoutListener, Runnable {
+
     public EditBinding(View viewRoot, ViewVisitor edit, Handler uiThreadHandler) {
       mEdit = edit;
       mViewRoot = new WeakReference<View>(viewRoot);
@@ -159,10 +191,12 @@ public class EditState extends UIThreadSet<Activity> {
         cleanUp();
         return;
       }
+
       // ELSE View is alive and we are alive
       mEdit.visit(viewRoot);
+
       mHandler.removeCallbacks(this);
-//      mHandler.postDelayed(this, 1000);
+      mHandler.postDelayed(this, 5000);
     }
 
     public void kill() {
@@ -170,14 +204,17 @@ public class EditState extends UIThreadSet<Activity> {
       mHandler.post(this);
     }
 
-    @SuppressWarnings("deprecation")
     private void cleanUp() {
       if (mAlive) {
         final View viewRoot = mViewRoot.get();
         if (null != viewRoot) {
           final ViewTreeObserver observer = viewRoot.getViewTreeObserver();
           if (observer.isAlive()) {
-            observer.removeGlobalOnLayoutListener(this); // Deprecated Name
+            if (Build.VERSION.SDK_INT < 16) {
+              observer.removeGlobalOnLayoutListener(this);
+            } else {
+              observer.removeOnGlobalLayoutListener(this);
+            }
           }
         }
         mEdit.cleanup();
@@ -195,7 +232,7 @@ public class EditState extends UIThreadSet<Activity> {
 
   private final Handler mUiThreadHandler;
   private final Map<String, List<ViewVisitor>> mIntendedEdits;
-  private final Set<EditBinding> mCurrentEdits;
+  private final Map<Activity, Set<EditBinding>> mCurrentEdits;
 
   private static final String LOGTAG = "SA.EditState";
 }
