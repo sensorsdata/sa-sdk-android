@@ -271,7 +271,7 @@ class AnalyticsMessages {
       synchronized (mHandlerLock) {
         if (mHandler == null) {
           // We died under suspicious circumstances. Don't try to send any more events.
-          Log.v(LOGTAG, "Dead worker dropping a message: " + msg.what);
+          Log.d(LOGTAG, "Dead worker dropping a message: " + msg.what);
         } else {
           mHandler.sendMessage(msg);
         }
@@ -282,10 +282,9 @@ class AnalyticsMessages {
       synchronized (mHandlerLock) {
         if (mHandler == null) {
           // We died under suspicious circumstances. Don't try to send any more events.
-          Log.v(LOGTAG, "Dead worker dropping a message: " + msg.what);
+          Log.d(LOGTAG, "Dead worker dropping a message: " + msg.what);
         } else {
           if (!mHandler.hasMessages(msg.what)) {
-            Log.w(LOGTAG, "send delayed after " + delay);
             mHandler.sendMessageDelayed(msg, delay);
           }
         }
@@ -309,13 +308,20 @@ class AnalyticsMessages {
               final String configureResult = getCheckConfigure();
               try {
                 final JSONObject configureJson = new JSONObject(configureResult);
-                final JSONObject eventBindings = configureJson.getJSONObject("event_bindings");
-                if (eventBindings.has("events") && eventBindings.get("events") instanceof
-                    JSONArray) {
-                  decideMessages.reportResults(eventBindings.getJSONArray("events"));
+
+                // 可视化埋点配置
+                final JSONObject eventBindings = configureJson.optJSONObject("event_bindings");
+                if (eventBindings != null && eventBindings.has("events") && eventBindings.get
+                    ("events") instanceof JSONArray) {
+                  decideMessages.setEventBindings(eventBindings.getJSONArray("events"));
                 }
+
+                // 可视化埋点管理界面地址
+                final String vtrackServer = configureJson.optString("vtrack_server_url");
+                // XXX: 为兼容老版本，这里无论是否为 null，都需要调用 setVTrackServer
+                decideMessages.setVTrackServer(vtrackServer);
               } catch (JSONException e1) {
-                Log.d(LOGTAG, "The configure of VTrack is not loaded: " + configureResult);
+                Log.d(LOGTAG, "Failed to load SDK configure with" + configureResult);
               }
             } catch (ConnectErrorException e) {
               Log.e(LOGTAG, "Failed to get vtrack configure from SensorsAnalaytics.", e);

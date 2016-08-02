@@ -174,9 +174,11 @@ public class Pathfinder {
       final int childCount = group.getChildCount();
       for (int i = 0; i < childCount; i++) {
         final View child = group.getChildAt(i);
-        final View result = findPrefixedMatch(findElement, child, indexKey);
-        if (null != result) {
-          return result;
+        if (null != child) {
+          final View result = findPrefixedMatch(findElement, child, indexKey);
+          if (null != result) {
+            return result;
+          }
         }
       }
     }
@@ -199,17 +201,18 @@ public class Pathfinder {
 
   public static boolean hasClassName(Object o, String className) {
     Class<?> klass = o.getClass();
-    while (true) {
+    while (klass.getCanonicalName() != null) {
       if (klass.getCanonicalName().equals(className)) {
         return true;
       }
 
       if (klass == Object.class) {
-        return false;
+        break;
       }
 
       klass = klass.getSuperclass();
     }
+    return false;
   }
 
   /**

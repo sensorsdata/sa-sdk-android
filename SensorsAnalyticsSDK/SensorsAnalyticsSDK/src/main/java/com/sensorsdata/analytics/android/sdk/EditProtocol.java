@@ -158,9 +158,8 @@ public class EditProtocol {
       } else {
         Log.w(LOGTAG,
             "Path element contains an id name not known to the system. No views will be matched.\n"
-                +
-                "Make sure that you're not stripping your packages R class out with proguard.\n" +
-                "id name was \"" + idName + "\""
+                + "Make sure that you're not stripping your packages R class out with proguard.\n"
+                + "id name was \"" + idName + "\""
         );
         return null;
       }

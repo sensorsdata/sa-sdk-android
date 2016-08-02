@@ -135,9 +135,8 @@ public class WebSocketImpl implements WebSocket {
 
 	public void decode( ByteBuffer socketBuffer ) {
 		assert ( socketBuffer.hasRemaining() );
-
 		if( readystate != READYSTATE.NOT_YET_CONNECTED ) {
-			decodeFrames( socketBuffer );;
+			decodeFrames( socketBuffer );
 		} else {
 			if( decodeHandshake( socketBuffer ) ) {
 				assert ( tmpHandshakeBytes.hasRemaining() != socketBuffer.hasRemaining() || !socketBuffer.hasRemaining() ); // the buffers will never have remaining bytes at the same time
@@ -147,6 +146,8 @@ public class WebSocketImpl implements WebSocket {
 				} else if( tmpHandshakeBytes.hasRemaining() ) {
 					decodeFrames( tmpHandshakeBytes );
 				}
+			} else {
+				// do NOTHING
 			}
 		}
 		assert ( isClosing() || isFlushAndClose() || !socketBuffer.hasRemaining() );

@@ -6,13 +6,14 @@ import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Application;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.hardware.Sensor;
-import android.hardware.SensorManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -36,8 +37,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -51,8 +52,9 @@ public class ViewCrawler implements VTrack, DebugTracking {
 
     mEditState = new EditState();
 
+    mLifecycleCallbacks = new LifecycleCallbacks();
     final Application app = (Application) context.getApplicationContext();
-    app.registerActivityLifecycleCallbacks(new LifecycleCallbacks());
+    app.registerActivityLifecycleCallbacks(mLifecycleCallbacks);
 
     final HandlerThread thread =
         new HandlerThread(ViewCrawler.class.getCanonicalName(), Process.THREAD_PRIORITY_BACKGROUND);
@@ -71,11 +73,47 @@ public class ViewCrawler implements VTrack, DebugTracking {
   }
 
   @Override
+  public void enableEditingVTrack(Context activity) {
+    mActivityContext = activity;
+    mLifecycleCallbacks.enableConnector();
+  }
+
+  @Override
+  public void disableActivity(String canonicalName) {
+    mDisabledActivity.add(canonicalName);
+  }
+
+  @Override
   public void setEventBindings(JSONArray bindings) {
     final Message msg =
         mMessageThreadHandler.obtainMessage(ViewCrawler.MESSAGE_EVENT_BINDINGS_RECEIVED);
     msg.obj = bindings;
     mMessageThreadHandler.sendMessage(msg);
+  }
+
+  @Override
+  public void setVTrackServer(String serverUrl) {
+    // XXX: 为了兼容历史版本，有三种方式设置可视化埋点管理界面服务地址，优先级从高到低：
+    //  1. 从 SDK 构造函数传入
+    //  2. 从 SDK 配置分发的结果中获取（1.6+）
+    //  3. 从 SDK 配置分发的 Url 中自动生成（兼容旧版本）
+
+    // 对应 2.
+    if (mVTrackServer == null && serverUrl != null && serverUrl.length() > 0) {
+      mVTrackServer = serverUrl;
+      Log.d(LOGTAG, "Gets VTrack server URL '" + mVTrackServer + "' from configure.");
+    }
+
+    // 对应 3.
+    if (mVTrackServer == null) {
+      Uri configureURI = Uri.parse(SensorsDataAPI.sharedInstance(mContext).getConfigureUrl());
+      mVTrackServer = configureURI.buildUpon().path("/api/ws").scheme("ws").build().toString();
+      Log.d(LOGTAG, "Generates VTrack server URL '" + mVTrackServer + "' with configure URL.");
+    }
+
+    if (mVTrackServer == null) {
+      Log.w(LOGTAG, "Unknown VTrack server URL.");
+    }
   }
 
   @Override
@@ -94,17 +132,26 @@ public class ViewCrawler implements VTrack, DebugTracking {
 
     @Override
     public void run() {
-      if (! mStopped) {
-        final Message message = mMessageThreadHandler.obtainMessage(MESSAGE_CONNECT_TO_EDITOR);
-        mMessageThreadHandler.sendMessage(message);
+      if (mStopped) {
+        return;
       }
 
-      mMessageThreadHandler.postDelayed(this, EMULATOR_CONNECT_ATTEMPT_INTERVAL_MILLIS);
+      if (mVTrackServer == null) {
+        // XXX: 若未设置可视化埋点管理界面地址，说明正在等待获取 SDK 配置，提高重试频率
+        mMessageThreadHandler.postDelayed(this, EMULATOR_CONNECT_ATTEMPT_INTERVAL_MILLIS / 10);
+      } else {
+        final Message message = mMessageThreadHandler.obtainMessage(MESSAGE_CONNECT_TO_EDITOR);
+        mMessageThreadHandler.sendMessage(message);
+
+        mMessageThreadHandler.postDelayed(this, EMULATOR_CONNECT_ATTEMPT_INTERVAL_MILLIS);
+      }
     }
 
     public void start() {
-      mStopped = false;
-      mMessageThreadHandler.post(this);
+      if (mStopped) {
+        mStopped = false;
+        mMessageThreadHandler.post(this);
+      }
     }
 
     public void stop() {
@@ -116,16 +163,19 @@ public class ViewCrawler implements VTrack, DebugTracking {
   }
 
   private class LifecycleCallbacks
-      implements Application.ActivityLifecycleCallbacks, FlipGesture.OnFlipGestureListener {
+      implements Application.ActivityLifecycleCallbacks {
 
     public LifecycleCallbacks() {
-      mFlipGesture = new FlipGesture(this);
-      mEmulatorConnector = new EmulatorConnector();
     }
 
-    @Override public void onFlipGesture() {
-      final Message message = mMessageThreadHandler.obtainMessage(MESSAGE_CONNECT_TO_EDITOR);
-      mMessageThreadHandler.sendMessage(message);
+    void enableConnector() {
+      mEnableConnector = true;
+      mEmulatorConnector.start();
+    }
+
+    void disableConnector() {
+      mEnableConnector = false;
+      mEmulatorConnector.stop();
     }
 
     @Override public void onActivityCreated(Activity activity, Bundle bundle) {
@@ -135,14 +185,21 @@ public class ViewCrawler implements VTrack, DebugTracking {
     }
 
     @Override public void onActivityResumed(Activity activity) {
-      installConnectionSensor(activity);
+      if (mEnableConnector) {
+        mEmulatorConnector.start();
+      }
+      for (String className : mDisabledActivity) {
+        if (className.equals(activity.getClass().getCanonicalName())) {
+          return;
+        }
+      }
       mEditState.add(activity);
     }
 
     @Override public void onActivityPaused(Activity activity) {
       mEditState.remove(activity);
       if (mEditState.isEmpty()) {
-        uninstallConnectionSensor(activity);
+        mEmulatorConnector.stop();
       }
     }
 
@@ -155,30 +212,9 @@ public class ViewCrawler implements VTrack, DebugTracking {
     @Override public void onActivityDestroyed(Activity activity) {
     }
 
-    private void installConnectionSensor(final Activity activity) {
-      if (SensorsDataUtils.isInEmulator()) {
-        mEmulatorConnector.start();
-      } else {
-        final SensorManager sensorManager =
-            (SensorManager) activity.getSystemService(Context.SENSOR_SERVICE);
-        final Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        sensorManager
-            .registerListener(mFlipGesture, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-      }
-    }
+    private final EmulatorConnector mEmulatorConnector = new EmulatorConnector();
 
-    private void uninstallConnectionSensor(final Activity activity) {
-      if (SensorsDataUtils.isInEmulator()) {
-        mEmulatorConnector.stop();
-      } else {
-        final SensorManager sensorManager =
-            (SensorManager) activity.getSystemService(Context.SENSOR_SERVICE);
-        sensorManager.unregisterListener(mFlipGesture);
-      }
-    }
-
-    private final FlipGesture mFlipGesture;
-    private final EmulatorConnector mEmulatorConnector;
+    private boolean mEnableConnector = false;
   }
 
 
@@ -280,76 +316,97 @@ public class ViewCrawler implements VTrack, DebugTracking {
      */
     private void connectToEditor() {
       if (mEditorConnection != null && mEditorConnection.isValid()) {
-        Log.d(LOGTAG, "The Editor has been connected.");
+        Log.d(LOGTAG, "The VTrack server has been connected.");
         return;
       }
 
-      Log.d(LOGTAG, "Connecting to the Editor...");
+      if (mVTrackServer != null) {
+        Log.d(LOGTAG, "Connecting to the VTrack server with " + mVTrackServer);
 
-      final String url = SensorsDataAPI.sharedInstance(mContext).getVTrackServerUrl();
-
-      try {
-        mEditorConnection = new EditorConnection(new URI(url), new Editor());
-      } catch (final URISyntaxException e) {
-        Log.e(LOGTAG, "Error parsing URI " + url + " for editor websocket", e);
-      } catch (final EditorConnection.EditorConnectionException e) {
-        Log.e(LOGTAG, "Error connecting to URI " + url, e);
-      } catch (final IOException e) {
-        Log.i(LOGTAG, "Can't create SSL Socket to connect to editor service", e);
+        try {
+          mEditorConnection = new EditorConnection(new URI(mVTrackServer), new Editor());
+        } catch (final URISyntaxException e) {
+          Log.e(LOGTAG, "Error parsing URI " + mVTrackServer + " for VTrack websocket", e);
+        } catch (final EditorConnection.EditorConnectionException e) {
+          Log.e(LOGTAG, "Error connecting to URI " + mVTrackServer, e);
+        }
       }
     }
 
     /**
      * Report on device info to the connected web UI.
      */
-    private void sendDeviceInfo(JSONObject message) {
+    private void sendDeviceInfo(final JSONObject message) {
       if (mEditorConnection == null || !mEditorConnection.isValid()) {
         return;
       }
 
-      try {
-        final JSONObject payload = message.getJSONObject("payload");
-        if (payload.has("support_gzip")) {
-          mUseGzip = payload.getBoolean("support_gzip");
-        }
-      } catch (final JSONException e) {
-        // Do NOTHING
-        // 旧版的 WebServer，DeviceInfoRequest 不带 "payload" 字段
-      }
+      new AlertDialog.Builder(mActivityContext).setMessage("正在连接到 Sensors Analytics 可视化埋点管理界面...")
+          .setTitle("Connecting to VTrack")
+          .setPositiveButton("继续", new DialogInterface.OnClickListener() {
 
-      final PackageManager manager = mContext.getPackageManager();
-      final DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+              dialog.dismiss();
 
-      try {
-        JSONObject payload = new JSONObject();
+              try {
+                final JSONObject payload = message.getJSONObject("payload");
+                if (payload.has("support_gzip")) {
+                  mUseGzip = payload.getBoolean("support_gzip");
+                }
+              } catch (final JSONException e) {
+                // Do NOTHING
+                // 旧版的 WebServer，DeviceInfoRequest 不带 "payload" 字段
+              }
 
-        payload.put("$lib", "Android");
-        payload.put("$lib_version", SensorsDataAPI.VERSION);
-        payload.put("$os", "Android");
-        payload.put("$os_version", Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION
-            .RELEASE);
-        payload.put("$screen_height", String.valueOf(displayMetrics.heightPixels));
-        payload.put("$screen_width", String.valueOf(displayMetrics.widthPixels));
-        try {
-          final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
-          payload.put("$main_bundle_identifier", info.packageName);
-          payload.put("$app_version", info.versionName);
-        } catch (PackageManager.NameNotFoundException e) {
-          payload.put("$main_bundle_identifier", "");
-          payload.put("$app_version", "");
-        }
-        payload.put("$device_name", Build.BRAND + "/" + Build.MODEL);
-        payload.put("$device_model", Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
-        payload.put("$device_id", SensorsDataUtils.getDeviceID(mContext));
+              final PackageManager manager = mContext.getPackageManager();
+              final DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
 
-        if (mEditorConnection != null && mEditorConnection.isValid()) {
-          mEditorConnection.sendMessage(setUpPayload("device_info_response", payload).toString());
-        }
-      } catch (JSONException e) {
-        Log.w(LOGTAG, "Can't write the response for device information.", e);
-      } catch (IOException e) {
-        Log.w(LOGTAG, "Can't write the response for device information.", e);
-      }
+              try {
+                JSONObject payload = new JSONObject();
+
+                payload.put("$lib", "Android");
+                payload.put("$lib_version", SensorsDataAPI.VERSION);
+                payload.put("$os", "Android");
+                payload.put("$os_version", Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION
+                    .RELEASE);
+                payload.put("$screen_height", String.valueOf(displayMetrics.heightPixels));
+                payload.put("$screen_width", String.valueOf(displayMetrics.widthPixels));
+                try {
+                  final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
+                  payload.put("$main_bundle_identifier", info.packageName);
+                  payload.put("$app_version", info.versionName);
+                } catch (PackageManager.NameNotFoundException e) {
+                  payload.put("$main_bundle_identifier", "");
+                  payload.put("$app_version", "");
+                }
+                payload.put("$device_name", Build.BRAND + "/" + Build.MODEL);
+                payload.put("$device_model", Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
+                payload.put("$device_id", SensorsDataUtils.getDeviceID(mContext));
+
+                if (mEditorConnection != null && mEditorConnection.isValid()) {
+                  mEditorConnection
+                      .sendMessage(setUpPayload("device_info_response", payload).toString());
+                }
+              } catch (JSONException e) {
+                Log.w(LOGTAG, "Can't write the response for device information.", e);
+              } catch (IOException e) {
+                Log.w(LOGTAG, "Can't write the response for device information.", e);
+              }
+            }
+          })
+          .setNegativeButton("取消", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+              dialog.dismiss();
+
+              if (mEditorConnection == null) {
+                return;
+              }
+
+              mEditorConnection.close(true);
+            }
+          }).show();
     }
 
     /**
@@ -381,7 +438,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
         Log.e(LOGTAG, "Payload with snapshot config required with snapshot request", e);
         return;
       } catch (final EditProtocol.BadInstructionsException e) {
-        Log.e(LOGTAG, "Editor sent malformed message with snapshot request", e);
+        Log.e(LOGTAG, "VTrack server sent malformed message with snapshot request", e);
         return;
       }
 
@@ -495,7 +552,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
         return;
       }
 
-      Log.d(LOGTAG, "Sending debug track to editor. original event: " + eventJson.toString());
+      Log.d(LOGTAG, "Sending debug track to vtrack. original event: " + eventJson.toString());
 
       final String fromVTrack = sendProperties.optString("$from_vtrack", "");
       if (fromVTrack.length() < 1) {
@@ -575,7 +632,8 @@ public class ViewCrawler implements VTrack, DebugTracking {
           final String targetActivity = JSONUtils.optionalStringKey(event, "target_activity");
           mEditorEventBindings.add(new Pair<String, JSONObject>(targetActivity, event));
         } catch (final JSONException e) {
-          Log.e(LOGTAG, "Bad event binding received from editor in " + eventBindings.toString(), e);
+          Log.e(LOGTAG, "Bad event binding received from VTrack server in " + eventBindings
+              .toString(), e);
         }
       }
 
@@ -586,7 +644,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
      * Clear state associated with the editor now that the editor is gone.
      */
     private void handleEditorClosed() {
-      Log.d(LOGTAG, "Editor closed.");
+      Log.d(LOGTAG, "VTrack server connection closed.");
 
       mSnapshot = null;
 
@@ -602,6 +660,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
         return;
       }
 
+      mLifecycleCallbacks.disableConnector();
       mEditorConnection.close(true);
     }
 
@@ -630,7 +689,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
                 mProtocol.readEventBinding(changeInfo.second, mDynamicEventTracker);
             newVisitors.add(new Pair<String, ViewVisitor>(changeInfo.first, visitor));
           } catch (final EditProtocol.InapplicableInstructionsException e) {
-            Log.i(LOGTAG, e.getMessage());
+            Log.w(LOGTAG, e.getMessage());
           } catch (final EditProtocol.BadInstructionsException e) {
             Log.e(LOGTAG, "Bad editor event binding cannot be applied.", e);
           }
@@ -642,7 +701,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
                 mProtocol.readEventBinding(changeInfo.second, mDynamicEventTracker);
             newVisitors.add(new Pair<String, ViewVisitor>(changeInfo.first, visitor));
           } catch (final EditProtocol.InapplicableInstructionsException e) {
-            Log.i(LOGTAG, e.getMessage());
+            Log.w(LOGTAG, e.getMessage());
           } catch (final EditProtocol.BadInstructionsException e) {
             Log.e(LOGTAG, "Bad persistent event binding cannot be applied.", e);
           }
@@ -708,6 +767,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
 
 
   private class Editor implements EditorConnection.Editor {
+
     @Override public void sendSnapshot(JSONObject message) {
       final Message msg =
           mMessageThreadHandler.obtainMessage(ViewCrawler.MESSAGE_SEND_STATE_FOR_EDITING);
@@ -742,9 +802,8 @@ public class ViewCrawler implements VTrack, DebugTracking {
     }
 
     @Override public void onWebSocketOpen() {
-      if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-        Log.v(LOGTAG, "onWebSocketOpen");
-      }
+      Log.d(LOGTAG, "onWebSocketOpen");
+
       mCurrentRetryTimes = 0;
       mIsRetryConnect = true;
     }
@@ -788,9 +847,16 @@ public class ViewCrawler implements VTrack, DebugTracking {
   private static final int CLOSE_CODE_NOCODE = 1005;
 
   private final Context mContext;
+  private Context mActivityContext;
+  private final LifecycleCallbacks mLifecycleCallbacks;
   private final DynamicEventTracker mDynamicEventTracker;
   private final EditState mEditState;
   private final ViewCrawlerHandler mMessageThreadHandler;
+
+  // VTrack Server 地址
+  private String mVTrackServer = null;
+
+  private final HashSet<String> mDisabledActivity = new HashSet<String>();
 
   private static final String SHARED_PREF_EDITS_FILE = "sensorsdata";
   private static final String SHARED_PREF_BINDINGS_KEY = "sensorsdata.viewcrawler.bindings";

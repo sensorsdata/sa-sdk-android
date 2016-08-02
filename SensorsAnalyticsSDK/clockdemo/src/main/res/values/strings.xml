@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Clock</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="btnAddAlarmText">Add Alarm</string>
+
+    <string name="play_sound">Play Sound</string>
+
+    <string name="start">开始</string>
+    <string name="pause">暂停</string>
+    <string name="resume">恢复</string>
+    <string name="reset">重置</string>
+    <string name="record">记录</string>
+</resources>

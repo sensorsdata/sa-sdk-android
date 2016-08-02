@@ -70,9 +70,10 @@ public class SensorsDataAPI {
     }
   }
 
-  SensorsDataAPI(Context context, String serverURL, String configureURL, String vtrackServerURL,
-      DebugMode debugMode) {
+  SensorsDataAPI(Context context, Context activityContext, String serverURL, String configureURL,
+      String vtrackServerURL, DebugMode debugMode) {
     mContext = context;
+    mActivityContext = activityContext;
 
     final String packageName = context.getApplicationContext().getPackageName();
 
@@ -96,27 +97,24 @@ public class SensorsDataAPI {
         mServerUrl = serverURL;
       }
 
-      // 若 Configure Url 为 'api/vtrack/config' ，则补齐 SDK 类型
+      // 若 Configure Url 为 '/api/vtrack/config' 或 '/config'，则补齐 SDK 类型
       Uri configureURI = Uri.parse(configureURL);
       if (configureURI.getPath().equals("/api/vtrack/config") || configureURI.getPath().equals
-          ("/api/vtrack/config/")) {
+          ("/api/vtrack/config/") || configureURI.getPath().equals("/config") || configureURI
+          .getPath().equals("/config/")) {
         mConfigureUrl = configureURI.buildUpon().appendPath("Android.conf").build().toString();
       } else {
         mConfigureUrl = configureURL;
       }
 
-      if (vtrackServerURL == null) {
-        // 根据 Configure Url 自动配置 VTrack Server Url
-        mVTrackServerUrl = configureURI.buildUpon().path("/api/ws").scheme("ws").build().toString();
-      } else {
-        mVTrackServerUrl = vtrackServerURL;
-      }
-
       mDebugMode = debugMode;
 
-      mFlushInterval = configBundle.getInt("com.sensorsdata.analytics.android.FlushInterval", 60000);
+      mFlushInterval = configBundle.getInt("com.sensorsdata.analytics.android.FlushInterval",
+          15000);
       mFlushBulkSize = configBundle.getInt("com.sensorsdata.analytics.android.FlushBulkSize",
           100);
+      mAutoTrack = configBundle.getBoolean("com.sensorsdata.analytics.android.AutoTrack",
+          false);
 
       if (Build.VERSION.SDK_INT >= VTRACK_SUPPORTED_MIN_API
           && configBundle.getBoolean("com.sensorsdata.analytics.android.VTrack", true)) {
@@ -131,6 +129,10 @@ public class SensorsDataAPI {
         Log.i(LOGTAG, "VTrack is not supported on this Android OS Version");
         mVTrack = new VTrackUnsupported();
       }
+
+      if (vtrackServerURL != null) {
+        mVTrack.setVTrackServer(vtrackServerURL);
+      }
     } catch (final PackageManager.NameNotFoundException e) {
       throw new RuntimeException("Can't configure SensorsDataAPI with package name " + packageName,
           e);
@@ -141,9 +143,9 @@ public class SensorsDataAPI {
       app.registerActivityLifecycleCallbacks(new LifecycleCallbacks());
     }
 
-    Log.v(LOGTAG, String.format("Initializing the instance of Sensors Analytics SDK with server"
-        + " url '%s', configure url '%s', vtrack server url '%s', flush interval %d ms", mServerUrl,
-        mConfigureUrl, mVTrackServerUrl, mFlushInterval));
+    Log.d(LOGTAG, String.format("Initializing the instance of Sensors Analytics SDK with server"
+        + " url '%s', configure url '%s' flush interval %d ms", mServerUrl,
+        mConfigureUrl, mFlushInterval));
 
     final Map<String, Object> deviceInfo = new HashMap<String, Object>();
 
@@ -240,7 +242,8 @@ public class SensorsDataAPI {
 
       SensorsDataAPI instance = sInstanceMap.get(appContext);
       if (null == instance && ConfigurationChecker.checkBasicConfiguration(appContext)) {
-        instance = new SensorsDataAPI(appContext, serverURL, configureUrl, null, debugMode);
+        instance = new SensorsDataAPI(appContext, context, serverURL, configureUrl, null,
+            debugMode);
         sInstanceMap.put(appContext, instance);
       }
 
@@ -271,7 +274,7 @@ public class SensorsDataAPI {
 
       SensorsDataAPI instance = sInstanceMap.get(appContext);
       if (null == instance && ConfigurationChecker.checkBasicConfiguration(appContext)) {
-        instance = new SensorsDataAPI(appContext, serverURL, configureURL, vtrackServerURL,
+        instance = new SensorsDataAPI(appContext, context, serverURL, configureURL, vtrackServerURL,
             debugMode);
         sInstanceMap.put(appContext, instance);
       }
@@ -283,7 +286,7 @@ public class SensorsDataAPI {
   /**
    * 两次数据发送的最小时间间隔，单位毫秒
    *
-   * 默认值为60 * 1000毫秒
+   * 默认值为15 * 1000毫秒
    * 在每次调用track、signUp以及profileSet等接口的时候，都会检查如下条件，以判断是否向服务器上传数据:
    *
    *   1. 是否是WIFI/3G/4G网络条件
@@ -312,7 +315,7 @@ public class SensorsDataAPI {
   /**
    * 返回本地缓存日志的最大条目数
    *
-   * 默认值为60 * 1000毫秒
+   * 默认值为100条
    * 在每次调用track、signUp以及profileSet等接口的时候，都会检查如下条件，以判断是否向服务器上传数据:
    *
    *   1. 是否是WIFI/3G/4G网络条件
@@ -336,6 +339,38 @@ public class SensorsDataAPI {
    */
   public void setFlushBulkSize(int flushBulkSize) {
     mFlushBulkSize = flushBulkSize;
+  }
+
+  /**
+   * 允许 App 连接可视化埋点管理界面
+   *
+   * 调用这个方法，允许 App 连接可视化埋点管理界面并设置可视化埋点。建议用户只在 DEBUG 编译模式下，打开该选项。
+   */
+  public void enableEditingVTrack() {
+    mVTrack.enableEditingVTrack(mActivityContext);
+  }
+
+  /**
+   * 屏蔽某个 Activity 的可视化埋点功能
+   *
+   * @param canonicalName Activity 的 Canonical Name
+   */
+  public void disableActivityForVTrack(String canonicalName) {
+    if (canonicalName != null) {
+      mVTrack.disableActivity(canonicalName);
+    }
+  }
+
+  /**
+   * 打开 SDK 自动追踪
+   *
+   * 该功能自动追踪 App 的一些行为，例如 SDK 初始化、App 启动 / 关闭、进入页面 等等，具体信息请参考文档:
+   *   https://sensorsdata.cn/manual/android_sdk.html
+   *
+   * 该功能仅在 API 16 及以上版本中生效，默认关闭
+   */
+  public void enableAutoTrack() {
+    mAutoTrack = true;
   }
 
   /**
@@ -487,6 +522,13 @@ public class SensorsDataAPI {
    * 将所有本地缓存的日志发送到 Sensors Analytics.
    */
   public void flush() {
+    mMessages.flush();
+  }
+
+  /**
+   * 以阻塞形式将所有本地缓存的日志发送到 Sensors Analytics，该方法不能在 UI 线程调用。
+   */
+  public void flushSync() {
     mMessages.sendData();
   }
 
@@ -725,10 +767,6 @@ public class SensorsDataAPI {
     return mConfigureUrl;
   }
 
-  String getVTrackServerUrl() {
-    return mVTrackServerUrl;
-  }
-
   // Conveniences for testing.
 
   PersistentIdentity getPersistentIdentity(final Context context) {
@@ -853,6 +891,7 @@ public class SensorsDataAPI {
 
         if (isDepolyed) {
           mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
+          Log.d(LOGTAG, String.format("track data %s", dataObj.toString()));
         }
       } catch (JSONException e) {
         throw new InvalidDataException("Unexpteced property");
@@ -883,7 +922,7 @@ public class SensorsDataAPI {
         }
 
         if (value instanceof String && !key.startsWith("$") && ((String) value).length() > 8191) {
-          throw new InvalidDataException("The property value is too long. [key='" + key
+          Log.e(LOGTAG, "The property value is too long. [key='" + key
               + "', value='" + value.toString() + "']");
         }
       } catch (JSONException e) {
@@ -922,6 +961,19 @@ public class SensorsDataAPI {
 
     @Override
     public void setEventBindings(JSONArray bindings) {
+      // do NOTHING
+    }
+
+    @Override public void setVTrackServer(String serverUrl) {
+      // do NOTHING
+    }
+
+    @Override
+    public void enableEditingVTrack(Context activity) {
+      // do NOTHING
+    }
+
+    @Override public void disableActivity(String canonicalName) {
       // do NOTHING
     }
 
@@ -968,6 +1020,8 @@ public class SensorsDataAPI {
   @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
   private class LifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
 
+    private boolean resumeFromBackground = false;
+
     public LifecycleCallbacks() {
     }
 
@@ -975,15 +1029,55 @@ public class SensorsDataAPI {
     }
 
     @Override public void onActivityStarted(Activity activity) {
+      if (mAutoTrack && activity.getClass().getCanonicalName().equals(mActivityContext.getClass()
+          .getCanonicalName())) {
+        try {
+          JSONObject properties = new JSONObject();
+          properties.put("$resume_from_background", resumeFromBackground);
+
+          track("$AppStart", properties);
+
+          trackTimer("$AppEnd");
+        } catch (InvalidDataException e) {
+          Log.w(LOGTAG, e);
+        } catch (JSONException e) {
+          Log.w(LOGTAG, e);
+        }
+
+        // 下次启动时，从后台恢复
+        resumeFromBackground = true;
+      }
+      Log.d(LOGTAG, "onActivityStarted " + activity.getClass().getCanonicalName());
     }
 
     @Override public void onActivityResumed(Activity activity) {
+      if (mAutoTrack) {
+        try {
+          JSONObject properties = new JSONObject();
+          properties.put("$screen_name", activity.getClass().getCanonicalName());
+
+          track("$AppViewScreen", properties);
+        } catch (JSONException e) {
+          Log.w(LOGTAG, e);
+        } catch (InvalidDataException e) {
+          Log.w(LOGTAG, e);
+        }
+      }
     }
 
     @Override public void onActivityPaused(Activity activity) {
     }
 
     @Override public void onActivityStopped(Activity activity) {
+      if (mAutoTrack && activity.getClass().getCanonicalName().equals(mActivityContext.getClass()
+          .getCanonicalName())) {
+        try {
+          track("$AppEnd");
+        } catch (InvalidDataException e) {
+          Log.w(LOGTAG, e);
+        }
+      }
+
       Log.d(LOGTAG, "Flush before activity being stopped.");
       mMessages.flush();
     }
@@ -1001,7 +1095,7 @@ public class SensorsDataAPI {
   static final int VTRACK_SUPPORTED_MIN_API = 16;
 
   // SDK版本
-  static final String VERSION = "1.5.9";
+  static final String VERSION = "1.6.2";
 
   private static final Pattern KEY_PATTERN = Pattern.compile(
       "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
@@ -1016,16 +1110,17 @@ public class SensorsDataAPI {
   private final String mServerUrl;
   /* 可视化埋点配置地址 */
   private final String mConfigureUrl;
-  /* 可视化埋点WebServer地址 */
-  private final String mVTrackServerUrl;
   /* Debug模式选项 */
   private final DebugMode mDebugMode;
   /* Flush时间间隔 */
   private int mFlushInterval;
   /* Flush数据量阈值 */
   private int mFlushBulkSize;
+  /* SDK 自动采集事件 */
+  private boolean mAutoTrack;
 
   private final Context mContext;
+  private final Context mActivityContext;
   private final AnalyticsMessages mMessages;
   private final PersistentIdentity mPersistentIdentity;
   private final Map<String, Object> mDeviceInfo;

@@ -67,6 +67,9 @@ public class Draft_10 extends Draft {
 
 	@Override
 	public HandshakeState acceptHandshakeAsClient( ClientHandshake request, ServerHandshake response ) throws InvalidHandshakeException {
+		if (response.getHttpStatus() >= 400) {
+			return HandshakeState.NOT_MATCHED;
+		}
 		if( !request.hasFieldValue( "Sec-WebSocket-Key" ) || !response.hasFieldValue( "Sec-WebSocket-Accept" ) )
 			return HandshakeState.NOT_MATCHED;
 

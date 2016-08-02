@@ -48,7 +48,10 @@ import java.io.File;
       "CREATE INDEX IF NOT EXISTS time_idx ON " + Table.EVENTS.getName() +
           " (" + KEY_CREATED_AT + ");";
 
-  private final DatabaseHelper mDb;
+  private final Context mContext;
+  private final String mDbName;
+
+  private DatabaseHelper mDb = null;
 
   private static class DatabaseHelper extends SQLiteOpenHelper {
 
@@ -94,7 +97,10 @@ import java.io.File;
   }
 
   public DbAdapter(Context context, String dbName) {
-    mDb = new DatabaseHelper(context, dbName);
+    mContext = context;
+    mDbName = dbName;
+
+    initDB();
   }
 
   /**
@@ -110,7 +116,7 @@ import java.io.File;
   public int addJSON(JSONObject j, Table table) {
     // we are aware of the race condition here, but what can we do..?
     if (!mDb.belowMemThreshold()) {
-      Log.e(LOGTAG, "There is not enough space left on the device to store Mixpanel data, so data was discarded");
+      Log.e(LOGTAG, "There is not enough space left on the device to store events, so data was discarded");
       return DB_OUT_OF_MEMORY_ERROR;
     }
 
@@ -143,7 +149,20 @@ import java.io.File;
           c.close();
           c = null;
         }
-        mDb.deleteDatabase();
+        initDB();
+      } catch (final IllegalStateException e) {
+        Log.e(LOGTAG, "Could not add data to table " + tableName + ". Re-initializing database.",
+            e);
+
+        // We assume that in general, the results of a SQL exception are
+        // unrecoverable, and could be associated with an oversized or
+        // otherwise unusable DB. Better to bomb it and get back on track
+        // than to leave it junked up (and maybe filling up the disk.)
+        if (c != null) {
+          c.close();
+          c = null;
+        }
+        initDB();
       } finally {
         if (c != null) {
           c.close();
@@ -179,7 +198,11 @@ import java.io.File;
       } catch (final SQLiteException e) {
         Log.e(LOGTAG,
             "Could not clean sent records from " + tableName + ". Re-initializing database.", e);
-        mDb.deleteDatabase();
+        initDB();
+      } catch (final IllegalStateException e) {
+        Log.e(LOGTAG,
+            "Could not clean sent records from " + tableName + ". Re-initializing database.", e);
+        initDB();
       } finally {
         if (c != null) {
           c.close();
@@ -190,8 +213,11 @@ import java.io.File;
     return count;
   }
 
-  public void deleteDB() {
-    mDb.deleteDatabase();
+  public void initDB() {
+    if (mDb != null) {
+      mDb.deleteDatabase();
+    }
+    mDb = new DatabaseHelper(mContext, mDbName);
   }
 
   public String[] generateDataString(Table table, int limit) {
@@ -223,6 +249,11 @@ import java.io.File;
           data = arr.toString();
         }
       } catch (final SQLiteException e) {
+        Log.e(LOGTAG, "Could not pull records for SensorsData out of database " + tableName
+            + ". Waiting to send.", e);
+        last_id = null;
+        data = null;
+      } catch (final IllegalStateException e) {
         Log.e(LOGTAG, "Could not pull records for SensorsData out of database " + tableName
             + ". Waiting to send.", e);
         last_id = null;

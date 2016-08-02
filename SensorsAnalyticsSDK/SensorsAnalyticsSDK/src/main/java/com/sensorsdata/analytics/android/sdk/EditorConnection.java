@@ -68,6 +68,7 @@ public class EditorConnection {
   }
 
   public void sendMessage(String message) {
+    Log.d(LOGTAG, "Sending message: " + message);
     try {
       mClient.send(message);
     } catch (Exception e) {
@@ -91,13 +92,15 @@ public class EditorConnection {
   }
 
   private class EditorClient extends WebSocketClient {
+
     public EditorClient(URI uri, int connectTimeout) throws InterruptedException {
       super(uri, new Draft_17(), null, connectTimeout);
     }
 
     @Override
     public void onOpen(ServerHandshake handshakedata) {
-      Log.d(LOGTAG, "Websocket connected");
+      Log.d(LOGTAG, "Websocket connected: " + handshakedata.getHttpStatus() + " " + handshakedata
+          .getHttpStatusMessage());
 
       mService.onWebSocketOpen();
     }
@@ -187,7 +190,7 @@ public class EditorConnection {
   private final EditorClient mClient;
   private final URI mURI;
 
-  private static final int CONNECT_TIMEOUT = 5000;
+  private static final int CONNECT_TIMEOUT = 1000;
   private static final ByteBuffer EMPTY_BYTE_BUFFER = ByteBuffer.allocate(0);
 
   private static final String LOGTAG = "SA.EditorConnection";

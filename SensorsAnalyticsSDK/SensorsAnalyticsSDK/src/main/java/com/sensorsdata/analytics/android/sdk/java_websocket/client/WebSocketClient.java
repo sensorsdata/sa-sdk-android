@@ -25,6 +25,8 @@ import com.sensorsdata.analytics.android.sdk.java_websocket.handshake.HandshakeI
 import com.sensorsdata.analytics.android.sdk.java_websocket.handshake.Handshakedata;
 import com.sensorsdata.analytics.android.sdk.java_websocket.handshake.ServerHandshake;
 
+import android.util.Log;
+
 /**
  * A subclass must implement at least <var>onOpen</var>, <var>onClose</var>, and <var>onMessage</var> to be
  * useful. At runtime the user is expected to establish a connection via {@link #connect()}, then receive events like {@link #onMessage(String)} via the overloaded methods and to {@link #send(String)} data to the server.
@@ -142,7 +144,7 @@ public abstract class WebSocketClient extends WebSocketAdapter implements Runnab
 		int readBytes;
 
 		try {
-			while ( !isClosed() && ( readBytes = istream.read( rawbuffer ) ) != -1 ) {
+			while ( !isClosed() && !isClosing() && ( readBytes = istream.read( rawbuffer ) ) != -1 ) {
 				engine.decode( ByteBuffer.wrap( rawbuffer, 0, readBytes ) );
 			}
 			engine.eot();
@@ -182,7 +184,6 @@ public abstract class WebSocketClient extends WebSocketAdapter implements Runnab
 			path += "?" + part2;
 		int port = getPort();
 		String host = uri.getHost() + ( port != WebSocket.DEFAULT_PORT ? ":" + port : "" );
-
 		HandshakeImpl1Client handshake = new HandshakeImpl1Client();
 		handshake.setResourceDescriptor( path );
 		handshake.put( "Host", host );

@@ -9,8 +9,12 @@ public class DecideMessages {
     mVTrack = vTrack;
   }
 
-  public synchronized void reportResults(JSONArray eventBindings) {
+  public synchronized void setEventBindings(JSONArray eventBindings) {
     mVTrack.setEventBindings(eventBindings);
+  }
+
+  public synchronized void setVTrackServer(String vtrackServer) {
+    mVTrack.setVTrackServer(vtrackServer);
   }
 
   private final VTrack mVTrack;

@@ -1,5 +1,6 @@
 package com.sensorsdata.analytics.android.sdk;
 
+import android.content.Context;
 import org.json.JSONArray;
 
 /**
@@ -7,8 +8,19 @@ import org.json.JSONArray;
  **/
 public interface VTrack {
 
+  // 获取 VTrack 配置
   void startUpdates();
 
+  // 连接 VTrack 编辑器
+  void enableEditingVTrack(Context activity);
+
+  // 屏蔽部分 Activity 的可是化埋点功能
+  void disableActivity(String canonicalName);
+
+  // 设置 VTrack 配置
   void setEventBindings(JSONArray bindings);
+
+  // 设置 VTrack WebServer 地址
+  void setVTrackServer(String serverUrl);
 
 }

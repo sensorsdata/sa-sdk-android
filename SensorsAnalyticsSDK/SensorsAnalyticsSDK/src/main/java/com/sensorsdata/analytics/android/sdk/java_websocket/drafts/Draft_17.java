@@ -4,6 +4,8 @@ import com.sensorsdata.analytics.android.sdk.java_websocket.exceptions.InvalidHa
 import com.sensorsdata.analytics.android.sdk.java_websocket.handshake.ClientHandshake;
 import com.sensorsdata.analytics.android.sdk.java_websocket.handshake.ClientHandshakeBuilder;
 
+import android.util.Log;
+
 public class Draft_17 extends Draft_10 {
 	@Override
 	public HandshakeState acceptHandshakeAsServer( ClientHandshake handshakedata ) throws InvalidHandshakeException {
