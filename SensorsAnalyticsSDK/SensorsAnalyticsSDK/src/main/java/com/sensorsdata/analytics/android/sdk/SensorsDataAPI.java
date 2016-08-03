@@ -53,20 +53,48 @@ public class SensorsDataAPI {
     DEBUG_ONLY(true, false),
     DEBUG_AND_TRACK(true, true);
 
-    private final boolean mDebugMode;
-    private final boolean mDebugWriteData;
+    private final boolean debugMode;
+    private final boolean debugWriteData;
 
     DebugMode(boolean debugMode, boolean debugWriteData) {
-      mDebugMode = debugMode;
-      mDebugWriteData = debugWriteData;
+      this.debugMode = debugMode;
+      this.debugWriteData = debugWriteData;
     }
 
     boolean isDebugMode() {
-      return mDebugMode;
+      return debugMode;
     }
 
     boolean isDebugWriteData() {
-      return mDebugWriteData;
+      return debugWriteData;
+    }
+  }
+
+
+  /**
+   * 第三方 App 推送平台。
+   *
+   * BAIDU - 百度云推送
+   * JIGUANG - 极光推送
+   * QQ - 腾讯云推送
+   * GETUI - 个推
+   * XIAOMI - 小米推送
+   */
+  public enum AppPushService {
+    BAIDU("$app_push_id_baidu"),
+    JIGUANG("$app_push_id_jiguang"),
+    QQ("$app_push_id_qq"),
+    GETUI("$app_push_id_getui"),
+    XIAOMI("$app_push_id_xiaomi");
+
+    private final String profileName;
+
+    AppPushService(String profileName) {
+      this.profileName = profileName;
+    }
+
+    String getProfileName() {
+      return profileName;
     }
   }
 
@@ -109,6 +137,9 @@ public class SensorsDataAPI {
 
       mDebugMode = debugMode;
 
+      ENABLE_LOG = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
+          false);
+
       mFlushInterval = configBundle.getInt("com.sensorsdata.analytics.android.FlushInterval",
           15000);
       mFlushBulkSize = configBundle.getInt("com.sensorsdata.analytics.android.FlushBulkSize",
@@ -143,7 +174,7 @@ public class SensorsDataAPI {
       app.registerActivityLifecycleCallbacks(new LifecycleCallbacks());
     }
 
-    Log.d(LOGTAG, String.format("Initializing the instance of Sensors Analytics SDK with server"
+    Log.i(LOGTAG, String.format("Initialized the instance of Sensors Analytics SDK with server"
         + " url '%s', configure url '%s' flush interval %d ms", mServerUrl,
         mConfigureUrl, mFlushInterval));
 
@@ -745,6 +776,26 @@ public class SensorsDataAPI {
   }
 
   /**
+   * 将第三方 App 推送平台的 Register Id 提交到 Sensors Analytics
+   *
+   * @param appPushService 第三方推送平台
+   * @param registerId 当前设备在第三方推送平台的注册ID
+   *
+   * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException
+   * 当 Register ID 不符合规范时抛出异常
+   */
+  public void profileSetAppPushService(AppPushService appPushService, String registerId) throws
+      InvalidDataException {
+    try {
+      trackEvent(EventType.PROFILE_SET, null, new JSONObject().put(appPushService.getProfileName
+          (), registerId), null);
+    } catch (JSONException e) {
+      throw new InvalidDataException(e);
+    }
+  }
+
+
+  /**
    * 清除本地所有用户、事件相关信息
    */
   public void reset() {
@@ -891,7 +942,9 @@ public class SensorsDataAPI {
 
         if (isDepolyed) {
           mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
-          Log.d(LOGTAG, String.format("track data %s", dataObj.toString()));
+          if (SensorsDataAPI.ENABLE_LOG) {
+            Log.d(LOGTAG, String.format("track data %s", dataObj.toString()));
+          }
         }
       } catch (JSONException e) {
         throw new InvalidDataException("Unexpteced property");
@@ -1047,7 +1100,6 @@ public class SensorsDataAPI {
         // 下次启动时，从后台恢复
         resumeFromBackground = true;
       }
-      Log.d(LOGTAG, "onActivityStarted " + activity.getClass().getCanonicalName());
     }
 
     @Override public void onActivityResumed(Activity activity) {
@@ -1078,7 +1130,6 @@ public class SensorsDataAPI {
         }
       }
 
-      Log.d(LOGTAG, "Flush before activity being stopped.");
       mMessages.flush();
     }
 
@@ -1095,7 +1146,9 @@ public class SensorsDataAPI {
   static final int VTRACK_SUPPORTED_MIN_API = 16;
 
   // SDK版本
-  static final String VERSION = "1.6.2";
+  static final String VERSION = "1.6.3";
+
+  static Boolean ENABLE_LOG = false;
 
   private static final Pattern KEY_PATTERN = Pattern.compile(
       "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",

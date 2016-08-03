@@ -165,7 +165,9 @@ public abstract class ViewVisitor implements Pathfinder.Accumulator {
         }
       }
 
-      Log.d(LOGTAG, String.format("ClickVisitor accumulated. View %s", found.toString()));
+      if (SensorsDataAPI.ENABLE_LOG) {
+        Log.d(LOGTAG, String.format("ClickVisitor accumulated. View %s", found.toString()));
+      }
 
       // We aren't already in the tracking call chain of the view
       final TrackingAccessibilityDelegate newDelegate =

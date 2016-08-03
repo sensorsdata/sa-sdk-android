@@ -101,14 +101,18 @@ public class ViewCrawler implements VTrack, DebugTracking {
     // 对应 2.
     if (mVTrackServer == null && serverUrl != null && serverUrl.length() > 0) {
       mVTrackServer = serverUrl;
-      Log.d(LOGTAG, "Gets VTrack server URL '" + mVTrackServer + "' from configure.");
+      if (SensorsDataAPI.ENABLE_LOG) {
+        Log.d(LOGTAG, "Gets VTrack server URL '" + mVTrackServer + "' from configure.");
+      }
     }
 
     // 对应 3.
     if (mVTrackServer == null) {
       Uri configureURI = Uri.parse(SensorsDataAPI.sharedInstance(mContext).getConfigureUrl());
       mVTrackServer = configureURI.buildUpon().path("/api/ws").scheme("ws").build().toString();
-      Log.d(LOGTAG, "Generates VTrack server URL '" + mVTrackServer + "' with configure URL.");
+      if (SensorsDataAPI.ENABLE_LOG) {
+        Log.d(LOGTAG, "Generates VTrack server URL '" + mVTrackServer + "' with configure URL.");
+      }
     }
 
     if (mVTrackServer == null) {
@@ -316,12 +320,16 @@ public class ViewCrawler implements VTrack, DebugTracking {
      */
     private void connectToEditor() {
       if (mEditorConnection != null && mEditorConnection.isValid()) {
-        Log.d(LOGTAG, "The VTrack server has been connected.");
+        if (SensorsDataAPI.ENABLE_LOG) {
+          Log.d(LOGTAG, "The VTrack server has been connected.");
+        }
         return;
       }
 
       if (mVTrackServer != null) {
-        Log.d(LOGTAG, "Connecting to the VTrack server with " + mVTrackServer);
+        if (SensorsDataAPI.ENABLE_LOG) {
+          Log.d(LOGTAG, "Connecting to the VTrack server with " + mVTrackServer);
+        }
 
         try {
           mEditorConnection = new EditorConnection(new URI(mVTrackServer), new Editor());
@@ -552,7 +560,9 @@ public class ViewCrawler implements VTrack, DebugTracking {
         return;
       }
 
-      Log.d(LOGTAG, "Sending debug track to vtrack. original event: " + eventJson.toString());
+      if (SensorsDataAPI.ENABLE_LOG) {
+        Log.d(LOGTAG, "Sending debug track to vtrack. original event: " + eventJson.toString());
+      }
 
       final String fromVTrack = sendProperties.optString("$from_vtrack", "");
       if (fromVTrack.length() < 1) {
@@ -609,7 +619,10 @@ public class ViewCrawler implements VTrack, DebugTracking {
      * Accept and apply a temporary event binding from the connected UI.
      */
     private void handleEditorBindingsReceived(JSONObject message) {
-      Log.d(LOGTAG, String.format("获取模拟器事件配置: %s", message.toString()));
+      if (SensorsDataAPI.ENABLE_LOG) {
+        Log.d(LOGTAG, String.format("Received event bindings from VTrack editor: %s", message
+            .toString()));
+      }
 
       final JSONArray eventBindings;
 
@@ -644,7 +657,9 @@ public class ViewCrawler implements VTrack, DebugTracking {
      * Clear state associated with the editor now that the editor is gone.
      */
     private void handleEditorClosed() {
-      Log.d(LOGTAG, "VTrack server connection closed.");
+      if (SensorsDataAPI.ENABLE_LOG) {
+        Log.d(LOGTAG, "VTrack server connection closed.");
+      }
 
       mSnapshot = null;
 
@@ -678,8 +693,11 @@ public class ViewCrawler implements VTrack, DebugTracking {
       final List<Pair<String, ViewVisitor>> newVisitors =
           new ArrayList<Pair<String, ViewVisitor>>();
 
-      Log.d(LOGTAG, String.format("加载事件配置。 模拟器事件配置 %d ，正式事件配置 %d", mEditorEventBindings.size(),
-          mPersistentEventBindings.size()));
+      if (SensorsDataAPI.ENABLE_LOG) {
+        Log.d(LOGTAG, String.format("Event bindings are loaded. %d events from VTrack editor "
+            + "，%d events from VTrack configure",
+            mEditorEventBindings.size(), mPersistentEventBindings.size()));
+      }
 
       if (mEditorEventBindings.size() > 0) {
         // 如果mEditorEventBindings.size() > 0，说明连接了VTrack模拟器，只是用模拟器下发的事件配置
@@ -802,7 +820,9 @@ public class ViewCrawler implements VTrack, DebugTracking {
     }
 
     @Override public void onWebSocketOpen() {
-      Log.d(LOGTAG, "onWebSocketOpen");
+      if (SensorsDataAPI.ENABLE_LOG) {
+        Log.d(LOGTAG, "onWebSocketOpen");
+      }
 
       mCurrentRetryTimes = 0;
       mIsRetryConnect = true;
@@ -810,9 +830,11 @@ public class ViewCrawler implements VTrack, DebugTracking {
 
     @Override
     public void onWebSocketClose(int code) {
-      Log.d(LOGTAG, "onWebSocketClose; mIsRetryConnect=" + mIsRetryConnect + ";"
+      if (SensorsDataAPI.ENABLE_LOG) {
+        Log.d(LOGTAG, "onWebSocketClose; mIsRetryConnect=" + mIsRetryConnect + ";"
             + "mCurrentRetryTimes="
             + mCurrentRetryTimes);
+      }
 
       if (code != CLOSE_CODE_NOCODE) {
         mIsRetryConnect = false;

@@ -200,7 +200,9 @@ class AnalyticsMessages {
           throw new ConnectErrorException(e);
         } finally {
           count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
-          Log.d(LOGTAG, String.format("Events flushed. [left = %d]", count));
+          if (SensorsDataAPI.ENABLE_LOG) {
+            Log.d(LOGTAG, String.format("Events flushed. [left = %d]", count));
+          }
         }
 
       } catch (ConnectErrorException e) {
@@ -271,7 +273,7 @@ class AnalyticsMessages {
       synchronized (mHandlerLock) {
         if (mHandler == null) {
           // We died under suspicious circumstances. Don't try to send any more events.
-          Log.d(LOGTAG, "Dead worker dropping a message: " + msg.what);
+          Log.w(LOGTAG, "Dead worker dropping a message: " + msg.what);
         } else {
           mHandler.sendMessage(msg);
         }
@@ -282,7 +284,7 @@ class AnalyticsMessages {
       synchronized (mHandlerLock) {
         if (mHandler == null) {
           // We died under suspicious circumstances. Don't try to send any more events.
-          Log.d(LOGTAG, "Dead worker dropping a message: " + msg.what);
+          Log.w(LOGTAG, "Dead worker dropping a message: " + msg.what);
         } else {
           if (!mHandler.hasMessages(msg.what)) {
             mHandler.sendMessageDelayed(msg, delay);
@@ -321,7 +323,9 @@ class AnalyticsMessages {
                 // XXX: 为兼容老版本，这里无论是否为 null，都需要调用 setVTrackServer
                 decideMessages.setVTrackServer(vtrackServer);
               } catch (JSONException e1) {
-                Log.d(LOGTAG, "Failed to load SDK configure with" + configureResult);
+                if (SensorsDataAPI.ENABLE_LOG) {
+                  Log.d(LOGTAG, "Failed to load SDK configure with" + configureResult);
+                }
               }
             } catch (ConnectErrorException e) {
               Log.e(LOGTAG, "Failed to get vtrack configure from SensorsAnalaytics.", e);
