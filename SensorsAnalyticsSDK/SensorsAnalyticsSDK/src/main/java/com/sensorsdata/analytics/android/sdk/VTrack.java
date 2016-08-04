@@ -12,7 +12,7 @@ public interface VTrack {
   void startUpdates();
 
   // 连接 VTrack 编辑器
-  void enableEditingVTrack(Context activity);
+  void enableEditingVTrack();
 
   // 屏蔽部分 Activity 的可是化埋点功能
   void disableActivity(String canonicalName);

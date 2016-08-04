@@ -378,7 +378,7 @@ public class SensorsDataAPI {
    * 调用这个方法，允许 App 连接可视化埋点管理界面并设置可视化埋点。建议用户只在 DEBUG 编译模式下，打开该选项。
    */
   public void enableEditingVTrack() {
-    mVTrack.enableEditingVTrack(mActivityContext);
+    mVTrack.enableEditingVTrack();
   }
 
   /**
@@ -1022,7 +1022,7 @@ public class SensorsDataAPI {
     }
 
     @Override
-    public void enableEditingVTrack(Context activity) {
+    public void enableEditingVTrack() {
       // do NOTHING
     }
 
@@ -1146,7 +1146,7 @@ public class SensorsDataAPI {
   static final int VTRACK_SUPPORTED_MIN_API = 16;
 
   // SDK版本
-  static final String VERSION = "1.6.3";
+  static final String VERSION = "1.6.4";
 
   static Boolean ENABLE_LOG = false;
 

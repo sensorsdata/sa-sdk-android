@@ -38,6 +38,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
@@ -73,8 +74,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
   }
 
   @Override
-  public void enableEditingVTrack(Context activity) {
-    mActivityContext = activity;
+  public void enableEditingVTrack() {
     mLifecycleCallbacks.enableConnector();
   }
 
@@ -192,6 +192,9 @@ public class ViewCrawler implements VTrack, DebugTracking {
       if (mEnableConnector) {
         mEmulatorConnector.start();
       }
+
+      mStartedActivities.add(activity);
+
       for (String className : mDisabledActivity) {
         if (className.equals(activity.getClass().getCanonicalName())) {
           return;
@@ -201,6 +204,8 @@ public class ViewCrawler implements VTrack, DebugTracking {
     }
 
     @Override public void onActivityPaused(Activity activity) {
+      mStartedActivities.remove(activity);
+
       mEditState.remove(activity);
       if (mEditState.isEmpty()) {
         mEmulatorConnector.stop();
@@ -349,72 +354,87 @@ public class ViewCrawler implements VTrack, DebugTracking {
         return;
       }
 
-      new AlertDialog.Builder(mActivityContext).setMessage("正在连接到 Sensors Analytics 可视化埋点管理界面...")
-          .setTitle("Connecting to VTrack")
-          .setPositiveButton("继续", new DialogInterface.OnClickListener() {
+      Iterator<Activity> activityIt = mStartedActivities.iterator();
+      Activity activity = activityIt.next();
 
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-              dialog.dismiss();
+      if (activity == null) {
+        if (mEditorConnection != null) {
+          mEditorConnection.close(true);
+        }
+        return;
+      }
 
-              try {
-                final JSONObject payload = message.getJSONObject("payload");
-                if (payload.has("support_gzip")) {
-                  mUseGzip = payload.getBoolean("support_gzip");
-                }
-              } catch (final JSONException e) {
-                // Do NOTHING
-                // 旧版的 WebServer，DeviceInfoRequest 不带 "payload" 字段
-              }
+      try {
+        new AlertDialog.Builder(activity).setMessage("正在连接到 Sensors Analytics 可视化埋点管理界面...")
+            .setTitle("Connecting to VTrack")
+            .setPositiveButton("继续", new DialogInterface.OnClickListener() {
 
-              final PackageManager manager = mContext.getPackageManager();
-              final DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
+              @Override
+              public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
 
-              try {
-                JSONObject payload = new JSONObject();
-
-                payload.put("$lib", "Android");
-                payload.put("$lib_version", SensorsDataAPI.VERSION);
-                payload.put("$os", "Android");
-                payload.put("$os_version", Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION
-                    .RELEASE);
-                payload.put("$screen_height", String.valueOf(displayMetrics.heightPixels));
-                payload.put("$screen_width", String.valueOf(displayMetrics.widthPixels));
                 try {
-                  final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
-                  payload.put("$main_bundle_identifier", info.packageName);
-                  payload.put("$app_version", info.versionName);
-                } catch (PackageManager.NameNotFoundException e) {
-                  payload.put("$main_bundle_identifier", "");
-                  payload.put("$app_version", "");
+                  final JSONObject payload = message.getJSONObject("payload");
+                  if (payload.has("support_gzip")) {
+                    mUseGzip = payload.getBoolean("support_gzip");
+                  }
+                } catch (final JSONException e) {
+                  // Do NOTHING
+                  // 旧版的 WebServer，DeviceInfoRequest 不带 "payload" 字段
                 }
-                payload.put("$device_name", Build.BRAND + "/" + Build.MODEL);
-                payload.put("$device_model", Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
-                payload.put("$device_id", SensorsDataUtils.getDeviceID(mContext));
 
-                if (mEditorConnection != null && mEditorConnection.isValid()) {
-                  mEditorConnection
-                      .sendMessage(setUpPayload("device_info_response", payload).toString());
+                final PackageManager manager = mContext.getPackageManager();
+                final DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
+
+                try {
+                  JSONObject payload = new JSONObject();
+
+                  payload.put("$lib", "Android");
+                  payload.put("$lib_version", SensorsDataAPI.VERSION);
+                  payload.put("$os", "Android");
+                  payload
+                      .put("$os_version", Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION
+                          .RELEASE);
+                  payload.put("$screen_height", String.valueOf(displayMetrics.heightPixels));
+                  payload.put("$screen_width", String.valueOf(displayMetrics.widthPixels));
+                  try {
+                    final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
+                    payload.put("$main_bundle_identifier", info.packageName);
+                    payload.put("$app_version", info.versionName);
+                  } catch (PackageManager.NameNotFoundException e) {
+                    payload.put("$main_bundle_identifier", "");
+                    payload.put("$app_version", "");
+                  }
+                  payload.put("$device_name", Build.BRAND + "/" + Build.MODEL);
+                  payload.put("$device_model", Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
+                  payload.put("$device_id", SensorsDataUtils.getDeviceID(mContext));
+
+                  if (mEditorConnection != null && mEditorConnection.isValid()) {
+                    mEditorConnection
+                        .sendMessage(setUpPayload("device_info_response", payload).toString());
+                  }
+                } catch (JSONException e) {
+                  Log.w(LOGTAG, "Can't write the response for device information.", e);
+                } catch (IOException e) {
+                  Log.w(LOGTAG, "Can't write the response for device information.", e);
                 }
-              } catch (JSONException e) {
-                Log.w(LOGTAG, "Can't write the response for device information.", e);
-              } catch (IOException e) {
-                Log.w(LOGTAG, "Can't write the response for device information.", e);
               }
-            }
-          })
-          .setNegativeButton("取消", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-              dialog.dismiss();
+            })
+            .setNegativeButton("取消", new DialogInterface.OnClickListener() {
+              @Override
+              public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
 
-              if (mEditorConnection == null) {
-                return;
+                if (mEditorConnection == null) {
+                  return;
+                }
+
+                mEditorConnection.close(true);
               }
-
-              mEditorConnection.close(true);
-            }
-          }).show();
+            }).show();
+      } catch (RuntimeException e) {
+        Log.w(LOGTAG, "Failed to show dialog of VTrack connector", e);
+      }
     }
 
     /**
@@ -869,7 +889,6 @@ public class ViewCrawler implements VTrack, DebugTracking {
   private static final int CLOSE_CODE_NOCODE = 1005;
 
   private final Context mContext;
-  private Context mActivityContext;
   private final LifecycleCallbacks mLifecycleCallbacks;
   private final DynamicEventTracker mDynamicEventTracker;
   private final EditState mEditState;
@@ -878,6 +897,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
   // VTrack Server 地址
   private String mVTrackServer = null;
 
+  private final HashSet<Activity> mStartedActivities = new HashSet<>();
   private final HashSet<String> mDisabledActivity = new HashSet<String>();
 
   private static final String SHARED_PREF_EDITS_FILE = "sensorsdata";
