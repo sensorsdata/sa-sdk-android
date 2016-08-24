@@ -152,7 +152,7 @@ public class EditState extends UIThreadSet<Activity> {
         binding.kill();
       }
 
-      bindingSet.clear();
+      mCurrentEdits.remove(activity);
     }
   }
 

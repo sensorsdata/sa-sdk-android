@@ -28,7 +28,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 /**
@@ -81,11 +83,11 @@ public class SensorsDataAPI {
    * XIAOMI - 小米推送
    */
   public enum AppPushService {
-    BAIDU("$app_push_id_baidu"),
-    JIGUANG("$app_push_id_jiguang"),
-    QQ("$app_push_id_qq"),
-    GETUI("$app_push_id_getui"),
-    XIAOMI("$app_push_id_xiaomi");
+    BAIDU("Android_Baidu_"),
+    JIGUANG("Android_Jiguang_"),
+    QQ("Android_QQ_"),
+    GETUI("Android_Getui_"),
+    XIAOMI("Android_Xiaomi_");
 
     private final String profileName;
 
@@ -97,6 +99,7 @@ public class SensorsDataAPI {
       return profileName;
     }
   }
+
 
   SensorsDataAPI(Context context, Context activityContext, String serverURL, String configureURL,
       String vtrackServerURL, DebugMode debugMode) {
@@ -218,9 +221,21 @@ public class SensorsDataAPI {
     }
 
     mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
-    mTrackTimer = new HashMap<String, Long>();
+    mTrackTimer = new HashMap<String, EventTimer>();
 
-    mPersistentIdentity = getPersistentIdentity(context);
+    final SharedPreferencesLoader.OnPrefsLoadedListener listener =
+        new SharedPreferencesLoader.OnPrefsLoadedListener() {
+          @Override public void onPrefsLoaded(SharedPreferences preferences) {
+          }
+        };
+
+    final String prefsName = "com.sensorsdata.analytics.android.sdk.SensorsDataAPI";
+    final Future<SharedPreferences> storedPreferences =
+        sPrefsLoader.loadPreferences(context, prefsName, listener);
+
+    mDistinctId = new PersistentDistinctId(storedPreferences);
+    mSuperProperties = new PersistentSuperProperties(storedPreferences);
+    mFirstStart = new PersistentFirstStart(storedPreferences);
 
     mMessages = AnalyticsMessages.getInstance(mContext, packageName);
 
@@ -244,7 +259,7 @@ public class SensorsDataAPI {
       SensorsDataAPI instance = sInstanceMap.get(appContext);
 
       if (null == instance) {
-        Log.w(LOGTAG, "The static method sharedInstance(context, serverURL, configureURL, "
+        Log.e(LOGTAG, "The static method sharedInstance(context, serverURL, configureURL, "
             + "vtrackServerURL, debugMode) should be called before calling sharedInstance()");
       }
       return instance;
@@ -413,7 +428,9 @@ public class SensorsDataAPI {
    * @return 当前用户的distinctId
    */
   public String getDistinctId() {
-    return new String(mPersistentIdentity.getDistinctId());
+    synchronized (mDistinctId) {
+      return mDistinctId.get();
+    }
   }
 
   /**
@@ -428,9 +445,8 @@ public class SensorsDataAPI {
    */
   public void identify(String distinctId) throws InvalidDataException {
     assertDistinctId(distinctId);
-
-    synchronized (mPersistentIdentity) {
-      mPersistentIdentity.setDistinctId(distinctId);
+    synchronized (mDistinctId) {
+      mDistinctId.commit(distinctId);
     }
   }
 
@@ -519,6 +535,19 @@ public class SensorsDataAPI {
   }
 
   /**
+   * 初始化事件的计时器，默认计时单位为毫秒。
+   *
+   * 详细用法请参考 trackTimer(String, TimeUnit)
+   *
+   * @param eventName 事件的名称
+   *
+   * @throws InvalidDataException 当事件名称不符合规范时抛出异常
+   */
+  public void trackTimer(final String eventName) throws InvalidDataException {
+    trackTimer(eventName, TimeUnit.MILLISECONDS);
+  }
+
+  /**
    * 初始化事件的计时器。
    *
    * 若需要统计某个事件的持续时间，先在事件开始时调用 trackTimer("Event") 记录事件开始时间，该方法并不会真正发
@@ -528,15 +557,16 @@ public class SensorsDataAPI {
    * 多次调用 trackTimer("Event") 时，事件 "Event" 的开始时间以最后一次调用时为准。
    *
    * @param eventName 事件的名称
+   * @param timeUnit 计时结果的时间单位
    *
    * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当事件名称
    * 不符合规范时抛出异常
    */
-  public void trackTimer(final String eventName) throws InvalidDataException {
+  public void trackTimer(final String eventName, final TimeUnit timeUnit) throws
+      InvalidDataException {
     assertKey(eventName);
-    final long eventBegin = System.currentTimeMillis();
     synchronized (mTrackTimer) {
-      mTrackTimer.put(eventName, eventBegin);
+      mTrackTimer.put(eventName, new EventTimer(timeUnit));
     }
   }
 
@@ -569,9 +599,9 @@ public class SensorsDataAPI {
    * @return 当前所有Super属性
    */
   public JSONObject getSuperProperties() {
-    JSONObject ret = new JSONObject();
-    mPersistentIdentity.addSuperPropertiesToObject(ret);
-    return ret;
+    synchronized (mSuperProperties) {
+      return mSuperProperties.get();
+    }
   }
 
   /**
@@ -583,8 +613,8 @@ public class SensorsDataAPI {
    */
   public void registerSuperProperties(JSONObject superProperties) throws InvalidDataException {
     assertPropertyTypes(EventType.REGISTER_SUPER_PROPERTIES, superProperties);
-    synchronized (mPersistentIdentity) {
-      mPersistentIdentity.registerSuperProperties(superProperties);
+    synchronized (mSuperProperties) {
+      mSuperProperties.commit(superProperties);
     }
   }
 
@@ -595,9 +625,10 @@ public class SensorsDataAPI {
    * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当属性名称不符合规范时抛出异常
    */
   public void unregisterSuperProperty(String superPropertyName) throws InvalidDataException {
-    assertKey(superPropertyName);
-    synchronized (mPersistentIdentity) {
-      mPersistentIdentity.unregisterSuperProperty(superPropertyName);
+    synchronized (mSuperProperties) {
+      JSONObject superProperties = mSuperProperties.get();
+      superProperties.remove(superPropertyName);
+      mSuperProperties.commit(superProperties);
     }
   }
 
@@ -605,8 +636,8 @@ public class SensorsDataAPI {
    * 删除所有事件公共属性
    */
   public void clearSuperProperties() {
-    synchronized (mPersistentIdentity) {
-      mPersistentIdentity.clearSuperProperties();
+    synchronized (mSuperProperties) {
+      mSuperProperties.commit(new JSONObject());
     }
   }
 
@@ -779,27 +810,21 @@ public class SensorsDataAPI {
    * 将第三方 App 推送平台的 Register Id 提交到 Sensors Analytics
    *
    * @param appPushService 第三方推送平台
-   * @param registerId 当前设备在第三方推送平台的注册ID
+   * @param appKey 当前 App 第三方推送平台中的 App Key
+   * @param registerId 当前设备在第三方推送平台的注册 ID
    *
    * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException
    * 当 Register ID 不符合规范时抛出异常
    */
-  public void profileSetAppPushService(AppPushService appPushService, String registerId) throws
-      InvalidDataException {
+  public void registerAppPushService(AppPushService appPushService, String appKey, String
+      registerId) throws InvalidDataException {
+    String profileKey = "$app_push_key_" + appKey.replaceAll("[^a-zA-Z0-9]","");
+    String profileValue = appPushService.getProfileName() + registerId;
     try {
-      trackEvent(EventType.PROFILE_SET, null, new JSONObject().put(appPushService.getProfileName
-          (), registerId), null);
+      trackEvent(EventType.PROFILE_SET, null, new JSONObject().put(profileKey, profileValue), null);
     } catch (JSONException e) {
       throw new InvalidDataException(e);
     }
-  }
-
-
-  /**
-   * 清除本地所有用户、事件相关信息
-   */
-  public void reset() {
-    mPersistentIdentity.clearPreferences();
   }
 
   boolean isDebugMode() {
@@ -818,21 +843,6 @@ public class SensorsDataAPI {
     return mConfigureUrl;
   }
 
-  // Conveniences for testing.
-
-  PersistentIdentity getPersistentIdentity(final Context context) {
-    final SharedPreferencesLoader.OnPrefsLoadedListener listener =
-        new SharedPreferencesLoader.OnPrefsLoadedListener() {
-          @Override public void onPrefsLoaded(SharedPreferences preferences) {
-          }
-        };
-
-    final String prefsName = "com.sensorsdata.analytics.android.sdk.SensorsDataAPI";
-    final Future<SharedPreferences> storedPreferences =
-        sPrefsLoader.loadPreferences(context, prefsName, listener);
-    return new PersistentIdentity(storedPreferences);
-  }
-
   private void trackEvent(EventType eventType, String eventName, JSONObject properties, String
       originalDistinctId) throws InvalidDataException {
     if (eventType.isTrack()) {
@@ -842,113 +852,106 @@ public class SensorsDataAPI {
 
     final long now = System.currentTimeMillis();
 
-    final Long eventBegin;
+    final EventTimer eventTimer;
     if (eventName != null) {
       synchronized (mTrackTimer) {
-        eventBegin = mTrackTimer.get(eventName);
+        eventTimer = mTrackTimer.get(eventName);
         mTrackTimer.remove(eventName);
       }
     } else {
-      eventBegin = null;
+      eventTimer = null;
     }
 
-    synchronized (mPersistentIdentity) {
-      try {
-        JSONObject sendProperties = null;
+    try {
+      JSONObject sendProperties = null;
 
-        if (eventType.isTrack()) {
-          sendProperties = new JSONObject(mDeviceInfo);
-          mPersistentIdentity.addSuperPropertiesToObject(sendProperties);
-          // 当前网络状况
-          String networkType = SensorsDataUtils.networkType(mContext);
-          sendProperties.put("$wifi", networkType.equals("WIFI"));
-          sendProperties.put("$network_type", networkType);
-        } else if (eventType.isProfile()) {
-          sendProperties = new JSONObject();
-        } else {
-          return;
+      if (eventType.isTrack()) {
+        sendProperties = new JSONObject(mDeviceInfo);
+
+        synchronized (mSuperProperties) {
+          JSONObject superProperties = mSuperProperties.get();
+          mergeJSONObject(superProperties, sendProperties);
         }
 
-        if (null != properties) {
-          final Iterator<?> propIter = properties.keys();
-          while (propIter.hasNext()) {
-            final String key = (String) propIter.next();
-            final Object value = properties.get(key);
-
-            if (value instanceof Date) {
-              sendProperties.put(key, mDateFormat.format((Date)value));
-            } else {
-              sendProperties.put(key, value);
-            }
-          }
-        }
-
-        if (null != eventBegin) {
-          sendProperties.put("event_duration", now - eventBegin);
-        }
-
-        JSONObject libProperties = new JSONObject();
-        libProperties.put("$lib", "Android");
-        libProperties.put("$lib_version", VERSION);
-
-        if (mDeviceInfo.containsKey("$app_version")) {
-          libProperties.put("$app_version", mDeviceInfo.get("$app_version"));
-        }
-
-        final JSONObject dataObj = new JSONObject();
-
-        dataObj.put("time", now);
-        dataObj.put("type", eventType.getEventType());
-        dataObj.put("properties", sendProperties);
-        dataObj.put("distinct_id", mPersistentIdentity.getDistinctId());
-        dataObj.put("lib", libProperties);
-
-        if (eventType == EventType.TRACK) {
-          dataObj.put("event", eventName);
-        } else if (eventType == EventType.TRACK_SIGNUP) {
-          dataObj.put("event", eventName);
-          dataObj.put("original_id", originalDistinctId);
-        }
-
-        // $binding_depolyed为true或者无该属性时，isDepolyed为true
-        final boolean isDepolyed = sendProperties.optBoolean("$binding_depolyed", true);
-
-        // 若$binding_depolyed为true，则删除这些属性
-        if (sendProperties.has("$binding_depolyed")) {
-          libProperties.put("$lib_method", "vtrack");
-          libProperties.put("$lib_detail", sendProperties.get("$binding_trigger_id").toString());
-
-          // 可视化埋点的事件
-          if (mVTrack instanceof DebugTracking) {
-            // Deep clone the event
-            JSONObject debugDataObj = new JSONObject(dataObj.toString());
-            ((DebugTracking) mVTrack).reportTrack(debugDataObj);
-          }
-
-          sendProperties.remove("$binding_path");
-          sendProperties.remove("$binding_depolyed");
-          sendProperties.remove("$binding_trigger_id");
-        } else {
-          libProperties.put("$lib_method", "code");
-
-          StackTraceElement[] trace = (new Exception()).getStackTrace();
-          if (trace.length > 2) {
-            StackTraceElement traceElement = trace[2];
-            libProperties.put("$lib_detail", String.format("%s##%s##%s##%s", traceElement
-                .getClassName(), traceElement.getMethodName(), traceElement.getFileName(),
-                traceElement.getLineNumber()));
-          }
-        }
-
-        if (isDepolyed) {
-          mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
-          if (SensorsDataAPI.ENABLE_LOG) {
-            Log.d(LOGTAG, String.format("track data %s", dataObj.toString()));
-          }
-        }
-      } catch (JSONException e) {
-        throw new InvalidDataException("Unexpteced property");
+        // 当前网络状况
+        String networkType = SensorsDataUtils.networkType(mContext);
+        sendProperties.put("$wifi", networkType.equals("WIFI"));
+        sendProperties.put("$network_type", networkType);
+      } else if (eventType.isProfile()) {
+        sendProperties = new JSONObject();
+      } else {
+        return;
       }
+
+      if (null != properties) {
+        mergeJSONObject(properties, sendProperties);
+      }
+
+      if (null != eventTimer) {
+        sendProperties.put("event_duration", eventTimer.duration());
+      }
+
+      JSONObject libProperties = new JSONObject();
+      libProperties.put("$lib", "Android");
+      libProperties.put("$lib_version", VERSION);
+
+      if (mDeviceInfo.containsKey("$app_version")) {
+        libProperties.put("$app_version", mDeviceInfo.get("$app_version"));
+      }
+
+      final JSONObject dataObj = new JSONObject();
+
+      dataObj.put("time", now);
+      dataObj.put("type", eventType.getEventType());
+      dataObj.put("properties", sendProperties);
+      dataObj.put("distinct_id", getDistinctId());
+      dataObj.put("lib", libProperties);
+
+      if (eventType == EventType.TRACK) {
+        dataObj.put("event", eventName);
+      } else if (eventType == EventType.TRACK_SIGNUP) {
+        dataObj.put("event", eventName);
+        dataObj.put("original_id", originalDistinctId);
+      }
+
+      // $binding_depolyed为true或者无该属性时，isDepolyed为true
+      final boolean isDepolyed = sendProperties.optBoolean("$binding_depolyed", true);
+
+      // 若$binding_depolyed为true，则删除这些属性
+      if (sendProperties.has("$binding_depolyed")) {
+        libProperties.put("$lib_method", "vtrack");
+        libProperties.put("$lib_detail", sendProperties.get("$binding_trigger_id").toString());
+
+        // 可视化埋点的事件
+        if (mVTrack instanceof DebugTracking) {
+          // Deep clone the event
+          JSONObject debugDataObj = new JSONObject(dataObj.toString());
+          ((DebugTracking) mVTrack).reportTrack(debugDataObj);
+        }
+
+        sendProperties.remove("$binding_path");
+        sendProperties.remove("$binding_depolyed");
+        sendProperties.remove("$binding_trigger_id");
+      } else {
+        libProperties.put("$lib_method", "code");
+
+        StackTraceElement[] trace = (new Exception()).getStackTrace();
+        if (trace.length > 2) {
+          StackTraceElement traceElement = trace[2];
+          libProperties.put("$lib_detail", String.format("%s##%s##%s##%s", traceElement
+                  .getClassName(), traceElement.getMethodName(), traceElement.getFileName(),
+              traceElement.getLineNumber()));
+        }
+      }
+
+      if (isDepolyed) {
+        mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
+        if (SensorsDataAPI.ENABLE_LOG) {
+          Log.d(LOGTAG, String.format("track data %s", dataObj.toString()));
+        }
+      }
+    } catch (JSONException e) {
+      throw new InvalidDataException("Unexpteced property");
     }
   }
 
@@ -1082,19 +1085,28 @@ public class SensorsDataAPI {
     }
 
     @Override public void onActivityStarted(Activity activity) {
-      if (mAutoTrack && activity.getClass().getCanonicalName().equals(mActivityContext.getClass()
-          .getCanonicalName())) {
-        try {
-          JSONObject properties = new JSONObject();
-          properties.put("$resume_from_background", resumeFromBackground);
+      if (activity.getClass().getCanonicalName()
+          .equals(mActivityContext.getClass().getCanonicalName())) {
+        // XXX: 注意内部执行顺序
+        boolean firstStart = mFirstStart.get();
+        if (firstStart) {
+          mFirstStart.commit(false);
+        }
 
-          track("$AppStart", properties);
+        if (mAutoTrack) {
+          try {
+            JSONObject properties = new JSONObject();
+            properties.put("$resume_from_background", resumeFromBackground);
+            properties.put("$is_first_time", firstStart);
 
-          trackTimer("$AppEnd");
-        } catch (InvalidDataException e) {
-          Log.w(LOGTAG, e);
-        } catch (JSONException e) {
-          Log.w(LOGTAG, e);
+            track("$AppStart", properties);
+
+            trackTimer("$AppEnd", TimeUnit.SECONDS);
+          } catch (InvalidDataException e) {
+            Log.w(LOGTAG, e);
+          } catch (JSONException e) {
+            Log.w(LOGTAG, e);
+          }
         }
 
         // 下次启动时，从后台恢复
@@ -1141,12 +1153,105 @@ public class SensorsDataAPI {
 
   }
 
+  static class PersistentDistinctId extends PersistentIdentity<String> {
+
+    PersistentDistinctId(Future<SharedPreferences> loadStoredPreferences) {
+      super(loadStoredPreferences, "events_distinct_id", new PersistentSerializer<String>() {
+        @Override public String load(String value) {
+          return value;
+        }
+
+        @Override public String save(String item) {
+          return item;
+        }
+
+        @Override public String create() {
+          return UUID.randomUUID().toString();
+        }
+      });
+    }
+
+  }
+
+  static class PersistentSuperProperties extends PersistentIdentity<JSONObject> {
+
+    PersistentSuperProperties(Future<SharedPreferences> loadStoredPreferences) {
+      super(loadStoredPreferences, "super_properties", new PersistentSerializer<JSONObject>() {
+        @Override public JSONObject load(String value) {
+          try {
+            return new JSONObject(value);
+          } catch (JSONException e) {
+            Log.e(LOGTAG, "failed to load SuperProperties from SharedPreferences.", e);
+            return null;
+          }
+        }
+
+        @Override public String save(JSONObject item) {
+          return item.toString();
+        }
+
+        @Override public JSONObject create() {
+          return new JSONObject();
+        }
+      });
+    }
+  }
+
+  static class PersistentFirstStart extends PersistentIdentity<Boolean> {
+    PersistentFirstStart(Future<SharedPreferences> loadStoredPreferences) {
+      super(loadStoredPreferences, "first_start", new PersistentSerializer<Boolean>() {
+        @Override public Boolean load(String value) {
+          return false;
+        }
+
+        @Override public String save(Boolean item) {
+          return String.valueOf(true);
+        }
+
+        @Override public Boolean create() {
+          return true;
+        }
+      });
+    }
+  }
+
+  private static class EventTimer {
+
+    EventTimer(TimeUnit timeUnit) {
+      this.startTime = System.currentTimeMillis();
+      this.timeUnit = timeUnit;
+    }
+
+    long duration() {
+      return timeUnit.convert(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS);
+    }
+
+    private final TimeUnit timeUnit;
+    private final long startTime;
+  }
+
+  private static void mergeJSONObject(final JSONObject source, JSONObject dest)
+      throws JSONException {
+    Iterator<String> superPropertiesIterator = source.keys();
+    while (superPropertiesIterator.hasNext()) {
+      String key = superPropertiesIterator.next();
+      Object value = source.get(key);
+      if (value instanceof Date) {
+        synchronized (mDateFormat) {
+          dest.put(key, mDateFormat.format((Date) value));
+        }
+      } else {
+        dest.put(key, value);
+      }
+    }
+  }
+
 
   // 可视化埋点功能最低API版本
   static final int VTRACK_SUPPORTED_MIN_API = 16;
 
   // SDK版本
-  static final String VERSION = "1.6.4";
+  static final String VERSION = "1.6.6";
 
   static Boolean ENABLE_LOG = false;
 
@@ -1175,9 +1280,11 @@ public class SensorsDataAPI {
   private final Context mContext;
   private final Context mActivityContext;
   private final AnalyticsMessages mMessages;
-  private final PersistentIdentity mPersistentIdentity;
+  private final PersistentDistinctId mDistinctId;
+  private final PersistentSuperProperties mSuperProperties;
+  private final PersistentFirstStart mFirstStart;
   private final Map<String, Object> mDeviceInfo;
-  private final Map<String, Long> mTrackTimer;
+  private final Map<String, EventTimer> mTrackTimer;
 
   private final VTrack mVTrack;
 

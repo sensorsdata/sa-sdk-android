@@ -135,7 +135,7 @@ class AnalyticsMessages {
           if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
             eventsData = mDbAdapter.generateDataString(DbAdapter.Table.EVENTS, 1);
           } else {
-            eventsData = mDbAdapter.generateDataString(DbAdapter.Table.EVENTS, 100);
+            eventsData = mDbAdapter.generateDataString(DbAdapter.Table.EVENTS, 50);
           }
         }
         if (eventsData == null) {
@@ -335,15 +335,16 @@ class AnalyticsMessages {
           }
         } catch (final RuntimeException e) {
           Log.e(LOGTAG, "Worker threw an unhandled exception", e);
-          synchronized (mHandlerLock) {
-            mHandler = null;
-            try {
-              Looper.myLooper().quit();
-              Log.e(LOGTAG, "SensorsData will not process any more analytics messages", e);
-            } catch (final Exception tooLate) {
-              Log.e(LOGTAG, "Could not halt looper", tooLate);
-            }
-          }
+          // XXX: 当遇到未知错误时，不停止 SDK 发送
+//          synchronized (mHandlerLock) {
+//            mHandler = null;
+//            try {
+//              Looper.myLooper().quit();
+//              Log.e(LOGTAG, "SensorsData will not process any more analytics messages", e);
+//            } catch (final Exception tooLate) {
+//              Log.e(LOGTAG, "Could not halt looper", tooLate);
+//            }
+//          }
         }
       }
     }
