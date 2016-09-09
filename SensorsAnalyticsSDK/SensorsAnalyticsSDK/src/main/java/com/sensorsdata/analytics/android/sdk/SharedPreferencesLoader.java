@@ -11,44 +11,45 @@ import java.util.concurrent.FutureTask;
 
 /* package */ class SharedPreferencesLoader {
 
-  /* package */ interface OnPrefsLoadedListener {
-    void onPrefsLoaded(SharedPreferences prefs);
-  }
-
-  public SharedPreferencesLoader() {
-    mExecutor = Executors.newSingleThreadExecutor();
-  }
-
-  public Future<SharedPreferences> loadPreferences(Context context, String name,
-      OnPrefsLoadedListener listener) {
-    final LoadSharedPreferences loadSharedPrefs =
-        new LoadSharedPreferences(context, name, listener);
-    final FutureTask<SharedPreferences> task = new FutureTask<SharedPreferences>(loadSharedPrefs);
-    mExecutor.execute(task);
-    return task;
-  }
-
-  private static class LoadSharedPreferences implements Callable<SharedPreferences> {
-    public LoadSharedPreferences(Context context, String prefsName,
-        OnPrefsLoadedListener listener) {
-      mContext = context;
-      mPrefsName = prefsName;
-      mListener = listener;
+    /* package */ interface OnPrefsLoadedListener {
+        void onPrefsLoaded(SharedPreferences prefs);
     }
 
-    @Override public SharedPreferences call() {
-      final SharedPreferences ret = mContext.getSharedPreferences(mPrefsName, Context.MODE_PRIVATE);
-      if (null != mListener) {
-        mListener.onPrefsLoaded(ret);
-      }
-      return ret;
+    public SharedPreferencesLoader() {
+        mExecutor = Executors.newSingleThreadExecutor();
     }
 
-    private final Context mContext;
-    private final String mPrefsName;
-    private final OnPrefsLoadedListener mListener;
-  }
+    public Future<SharedPreferences> loadPreferences(Context context, String name,
+                                                     OnPrefsLoadedListener listener) {
+        final LoadSharedPreferences loadSharedPrefs =
+                new LoadSharedPreferences(context, name, listener);
+        final FutureTask<SharedPreferences> task = new FutureTask<SharedPreferences>(loadSharedPrefs);
+        mExecutor.execute(task);
+        return task;
+    }
+
+    private static class LoadSharedPreferences implements Callable<SharedPreferences> {
+        public LoadSharedPreferences(Context context, String prefsName,
+                                     OnPrefsLoadedListener listener) {
+            mContext = context;
+            mPrefsName = prefsName;
+            mListener = listener;
+        }
+
+        @Override
+        public SharedPreferences call() {
+            final SharedPreferences ret = mContext.getSharedPreferences(mPrefsName, Context.MODE_PRIVATE);
+            if (null != mListener) {
+                mListener.onPrefsLoaded(ret);
+            }
+            return ret;
+        }
+
+        private final Context mContext;
+        private final String mPrefsName;
+        private final OnPrefsLoadedListener mListener;
+    }
 
 
-  private final Executor mExecutor;
+    private final Executor mExecutor;
 }

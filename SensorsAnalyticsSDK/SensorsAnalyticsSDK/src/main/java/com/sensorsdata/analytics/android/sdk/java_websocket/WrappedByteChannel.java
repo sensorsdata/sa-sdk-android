@@ -7,11 +7,13 @@ import java.nio.channels.ByteChannel;
 import javax.net.ssl.SSLException;
 
 public interface WrappedByteChannel extends ByteChannel {
-	public boolean isNeedWrite();
-	public void writeMore() throws IOException;
+    public boolean isNeedWrite();
 
-	public boolean isNeedRead();
+    public void writeMore() throws IOException;
 
-	public int readMore( ByteBuffer dst ) throws SSLException;
-	public boolean isBlocking();
+    public boolean isNeedRead();
+
+    public int readMore(ByteBuffer dst) throws SSLException;
+
+    public boolean isBlocking();
 }

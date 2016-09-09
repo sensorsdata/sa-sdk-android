@@ -5,10 +5,10 @@ package com.sensorsdata.analytics.android.sdk;
  */
 public interface ResourceIds {
 
-  boolean knownIdName(String name);
+    boolean knownIdName(String name);
 
-  int idFromName(String name);
+    int idFromName(String name);
 
-  String nameForId(int id);
+    String nameForId(int id);
 
 }

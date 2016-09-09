@@ -17,6 +17,7 @@ This is the official Android SDK for Sensors Analytics.
 ```xml
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 ```
 
 ## To Learn More

@@ -7,6 +7,6 @@ import org.json.JSONObject;
  **/
 public interface DebugTracking {
 
-  void reportTrack(JSONObject eventJson);
+    void reportTrack(JSONObject eventJson);
 
 }

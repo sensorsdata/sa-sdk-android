@@ -2,33 +2,33 @@ package com.sensorsdata.analytics.android.sdk;
 
 /* package */ class PropertyDescription {
 
-  public PropertyDescription(String name, Class<?> targetClass, Caller accessor,
-      String mutatorName) {
-    this.name = name;
-    this.targetClass = targetClass;
-    this.accessor = accessor;
+    public PropertyDescription(String name, Class<?> targetClass, Caller accessor,
+                               String mutatorName) {
+        this.name = name;
+        this.targetClass = targetClass;
+        this.accessor = accessor;
 
-    mMutatorName = mutatorName;
-  }
-
-  public Caller makeMutator(Object[] methodArgs)
-      throws NoSuchMethodException {
-    if (null == mMutatorName) {
-      return null;
+        mMutatorName = mutatorName;
     }
 
-    return new Caller(this.targetClass, mMutatorName, methodArgs, Void.TYPE);
-  }
+    public Caller makeMutator(Object[] methodArgs)
+            throws NoSuchMethodException {
+        if (null == mMutatorName) {
+            return null;
+        }
 
-  @Override
-  public String toString() {
-    return "[PropertyDescription " + name + "," + targetClass + ", " + accessor + "/" + mMutatorName
-        + "]";
-  }
+        return new Caller(this.targetClass, mMutatorName, methodArgs, Void.TYPE);
+    }
 
-  public final String name;
-  public final Class<?> targetClass;
-  public final Caller accessor;
+    @Override
+    public String toString() {
+        return "[PropertyDescription " + name + "," + targetClass + ", " + accessor + "/" + mMutatorName
+                + "]";
+    }
 
-  private final String mMutatorName;
+    public final String name;
+    public final Class<?> targetClass;
+    public final Caller accessor;
+
+    private final String mMutatorName;
 }
