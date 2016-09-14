@@ -44,10 +44,10 @@ public class SensorsDataAPI {
     /**
      * Debug 模式，用于检验数据导入是否正确。该模式下，事件会逐条实时发送到 Sensors Analytics，并根据返回值检查
      * 数据导入是否正确。
-     * <p/>
+     *
      * Debug 模式的具体使用方式，请参考:
      * http://www.sensorsdata.cn/manual/debug_mode.html
-     * <p/>
+     *
      * Debug 模式有三种：
      * DEBUG_OFF - 关闭DEBUG模式
      * DEBUG_ONLY - 打开DEBUG模式，但该模式下发送的数据仅用于调试，不进行数据导入
@@ -78,7 +78,7 @@ public class SensorsDataAPI {
 
     /**
      * 第三方 App 推送平台。
-     * <p/>
+     *
      * BAIDU - 百度云推送
      * JIGUANG - 极光推送
      * QQ - 腾讯云推送
@@ -332,15 +332,15 @@ public class SensorsDataAPI {
 
     /**
      * 两次数据发送的最小时间间隔，单位毫秒
-     * <p/>
+     *
      * 默认值为15 * 1000毫秒
      * 在每次调用track、signUp以及profileSet等接口的时候，都会检查如下条件，以判断是否向服务器上传数据:
-     * <p/>
+     *
      * 1. 是否是WIFI/3G/4G网络条件
      * 2. 是否满足发送条件之一:
      * 1) 与上次发送的时间间隔是否大于 flushInterval
      * 2) 本地缓存日志数目是否大于 flushBulkSize
-     * <p/>
+     *
      * 如果满足这两个条件，则向服务器发送一次数据；如果不满足，则把数据加入到队列中，等待下次检查时把整个队列的内
      * 容一并发送。需要注意的是，为了避免占用过多存储，队列最多只缓存20MB数据。
      *
@@ -361,15 +361,15 @@ public class SensorsDataAPI {
 
     /**
      * 返回本地缓存日志的最大条目数
-     * <p/>
+     *
      * 默认值为100条
      * 在每次调用track、signUp以及profileSet等接口的时候，都会检查如下条件，以判断是否向服务器上传数据:
-     * <p/>
+     *
      * 1. 是否是WIFI/3G/4G网络条件
      * 2. 是否满足发送条件之一:
      * 1) 与上次发送的时间间隔是否大于 flushInterval
      * 2) 本地缓存日志数目是否大于 flushBulkSize
-     * <p/>
+     *
      * 如果满足这两个条件，则向服务器发送一次数据；如果不满足，则把数据加入到队列中，等待下次检查时把整个队列的内
      * 容一并发送。需要注意的是，为了避免占用过多存储，队列最多只缓存20MB数据。
      *
@@ -390,7 +390,7 @@ public class SensorsDataAPI {
 
     /**
      * 允许 App 连接可视化埋点管理界面
-     * <p/>
+     *
      * 调用这个方法，允许 App 连接可视化埋点管理界面并设置可视化埋点。建议用户只在 DEBUG 编译模式下，打开该选项。
      */
     public void enableEditingVTrack() {
@@ -410,10 +410,10 @@ public class SensorsDataAPI {
 
     /**
      * 打开 SDK 自动追踪
-     * <p/>
+     *
      * 该功能自动追踪 App 的一些行为，例如 SDK 初始化、App 启动 / 关闭、进入页面 等等，具体信息请参考文档:
      * https://sensorsdata.cn/manual/android_sdk.html
-     * <p/>
+     *
      * 该功能仅在 API 16 及以上版本中生效，默认关闭
      */
     public void enableAutoTrack() {
@@ -422,7 +422,7 @@ public class SensorsDataAPI {
 
     /**
      * 向WebView注入本地方法, 将distinctId传递给当前的WebView
-     * <p/>
+     *
      * @param webView 当前WebView
      * @param isSupportJellyBean 是否支持API level 16及以下的版本。
      * 因为API level 16及以下的版本, addJavascriptInterface有安全漏洞,请谨慎使用
@@ -442,7 +442,7 @@ public class SensorsDataAPI {
 
     /**
      * 获取当前用户的distinctId
-     * <p/>
+     *
      * 若调用前未调用 {@link #identify(String)} 设置用户的 distinctId，SDK 会调用 {@link java.util.UUID} 随机生成
      * UUID，作为用户的 distinctId
      *
@@ -472,7 +472,7 @@ public class SensorsDataAPI {
 
     /**
      * 记录第一次登录行为
-     * <p/>
+     *
      * 这个接口是一个较为复杂的功能，请在使用前先阅读相关说明:
      * http://www.sensorsdata.cn/manual/track_signup.html
      * 并在必要时联系我们的技术支持人员。
@@ -491,7 +491,7 @@ public class SensorsDataAPI {
 
     /**
      * 与 {@link #trackSignUp(String, org.json.JSONObject)} 类似，无事件属性
-     * <p/>
+     *
      * 这个接口是一个较为复杂的功能，请在使用前先阅读相关说明:
      * http://www.sensorsdata.cn/manual/track_signup.html，
      * 并在必要时联系我们的技术支持人员。
@@ -509,7 +509,7 @@ public class SensorsDataAPI {
 
     /**
      * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
-     * <p/>
+     *
      * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
      *
      * @param eventName  渠道追踪事件的名称
@@ -551,7 +551,7 @@ public class SensorsDataAPI {
 
     /**
      * 初始化事件的计时器，默认计时单位为毫秒。
-     * <p/>
+     *
      * 详细用法请参考 trackTimer(String, TimeUnit)
      *
      * @param eventName 事件的名称
@@ -563,11 +563,11 @@ public class SensorsDataAPI {
 
     /**
      * 初始化事件的计时器。
-     * <p/>
+     *
      * 若需要统计某个事件的持续时间，先在事件开始时调用 trackTimer("Event") 记录事件开始时间，该方法并不会真正发
      * 送事件；随后在事件结束时，调用 track("Event", properties)，SDK 会追踪 "Event" 事件，并自动将事件持续时
      * 间记录在事件属性 "event_duration" 中。
-     * <p/>
+     *
      * 多次调用 trackTimer("Event") 时，事件 "Event" 的开始时间以最后一次调用时为准。
      *
      * @param eventName 事件的名称
@@ -589,6 +589,55 @@ public class SensorsDataAPI {
     public void clearTrackTimer() {
         synchronized (mTrackTimer) {
             mTrackTimer.clear();
+        }
+    }
+
+    /**
+     * app进入后台
+     * 遍历mTrackTimer
+     * eventAccumulatedDuration = eventAccumulatedDuration + System.currentTimeMillis() - startTime
+     */
+    protected void appEnterBackground() {
+        synchronized (mTrackTimer) {
+            try {
+                Iterator iter = mTrackTimer.entrySet().iterator();
+                while (iter.hasNext()) {
+                    Map.Entry entry = (Map.Entry) iter.next();
+                    if (entry != null) {
+                        EventTimer eventTimer = (EventTimer) entry.getValue();
+                        if (eventTimer != null) {
+                            long eventAccumulatedDuration = eventTimer.getEventAccumulatedDuration() + System.currentTimeMillis() - eventTimer.getStartTime();
+                            eventTimer.setEventAccumulatedDuration(eventAccumulatedDuration);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Log.d(LOGTAG, "appEnterBackground error:" + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * app从后台恢复
+     * 遍历mTrackTimer
+     * startTime = System.currentTimeMillis()
+     */
+    protected void appBecomeActive() {
+        synchronized (mTrackTimer) {
+            try {
+                Iterator iter = mTrackTimer.entrySet().iterator();
+                while (iter.hasNext()) {
+                    Map.Entry entry = (Map.Entry) iter.next();
+                    if (entry != null) {
+                        EventTimer eventTimer = (EventTimer) entry.getValue();
+                        if (eventTimer != null) {
+                            eventTimer.setStartTime(System.currentTimeMillis());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Log.d(LOGTAG, "appBecomeActive error:" + e.getMessage());
+            }
         }
     }
 
@@ -682,7 +731,7 @@ public class SensorsDataAPI {
 
     /**
      * 首次设置用户的一个或多个Profile。
-     * 与profileSet接口不同的是，Profile如果存在，则覆盖；否则，新创建。
+     * 与profileSet接口不同的是，如果之前存在，则忽略，否则，新创建
      *
      * @param properties 属性列表
      * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当属性名称或属性值不符合规范时抛出异常
@@ -1229,14 +1278,33 @@ public class SensorsDataAPI {
         EventTimer(TimeUnit timeUnit) {
             this.startTime = System.currentTimeMillis();
             this.timeUnit = timeUnit;
+            this.eventAccumulatedDuration = 0;
         }
 
         long duration() {
-            return timeUnit.convert(System.currentTimeMillis() - startTime, TimeUnit.MILLISECONDS);
+            long duration = timeUnit.convert(System.currentTimeMillis() - startTime + eventAccumulatedDuration, TimeUnit.MILLISECONDS);
+            return duration < 0 ? 0: duration;
+        }
+
+        public long getStartTime() {
+            return startTime;
+        }
+
+        public long getEventAccumulatedDuration() {
+            return eventAccumulatedDuration;
+        }
+
+        public void setStartTime(long startTime) {
+            this.startTime = startTime;
+        }
+
+        public void setEventAccumulatedDuration(long eventAccumulatedDuration) {
+            this.eventAccumulatedDuration = eventAccumulatedDuration;
         }
 
         private final TimeUnit timeUnit;
-        private final long startTime;
+        private long startTime;
+        private long eventAccumulatedDuration;
     }
 
     private static void mergeJSONObject(final JSONObject source, JSONObject dest)
@@ -1260,7 +1328,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.7";
+    static final String VERSION = "1.6.8";
 
     static Boolean ENABLE_LOG = false;
 

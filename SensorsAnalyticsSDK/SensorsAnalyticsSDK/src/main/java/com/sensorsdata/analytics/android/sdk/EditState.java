@@ -18,7 +18,7 @@ import java.util.Set;
 /**
  * Handles applying and managing the life cycle of edits in an application. Clients
  * can replace all of the edits in an app with {@link EditState#setEdits(java.util.Map)}.
- * <p/>
+ *
  * Some client is responsible for informing the EditState about the presence or absence
  * of Activities, by calling {@link EditState#add(android.app.Activity)} and {@link EditState#remove(android.app.Activity)}
  */
@@ -51,13 +51,13 @@ public class EditState extends UIThreadSet<Activity> {
 
     /**
      * Sets the entire set of edits to be applied to the application.
-     * <p/>
+     *
      * Edits are represented by ViewVisitors, batched in a map by the String name of the activity
      * they should be applied to. Edits to apply to all views should be in a list associated with
      * the key {@code null} (Not the string "null", the actual null value!)
-     * <p/>
+     *
      * The given edits will completely replace any existing edits.
-     * <p/>
+     *
      * setEdits can be called from any thread, although the changes will occur (eventually) on the
      * UI thread of the application, and may not appear immediately.
      *

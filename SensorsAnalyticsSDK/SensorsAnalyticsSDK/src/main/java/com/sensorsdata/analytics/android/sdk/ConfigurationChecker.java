@@ -34,6 +34,11 @@ import android.util.Log;
         final PackageManager packageManager = context.getPackageManager();
         final String packageName = context.getPackageName();
 
+        if (packageManager == null || packageName == null) {
+            Log.w(LOGTAG, "Can't check configuration when using a Context with null packageManager or packageName");
+            return false;
+        }
+
         if (PackageManager.PERMISSION_GRANTED != packageManager
                 .checkPermission("android.permission.INTERNET", packageName)) {
             Log.w(LOGTAG,

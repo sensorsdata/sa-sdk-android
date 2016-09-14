@@ -11,7 +11,7 @@ import java.util.List;
 
 /**
  * Paths in the view hierarchy, and the machinery for finding views using them.
- * <p/>
+ *
  * An individual pathfinder is NOT THREAD SAFE, and should only be used by one thread at a time.
  */
 public class Pathfinder {
@@ -19,33 +19,33 @@ public class Pathfinder {
     /**
      * a path element E matches a view V if each non "prefix" or "index"
      * attribute of E is equal to (or characteristic of) V.
-     * <p/>
+     *
      * So
-     * <p/>
+     *
      * E.viewClassName == 'com.temp.Awesome' =) V instanceof com.tempAwesome
      * E.id == 123 =) V.getId() == 123
-     * <p/>
+     *
      * The index attribute, counting from root to leaf, and first child to last child, selects a particular
      * matching view amongst all possible matches. Indexing starts at zero, like an array
      * index. So E.index == 2 means "Select the third possible match for this element"
-     * <p/>
+     *
      * The prefix attribute refers to the position of the matched views in the hierarchy,
      * relative to the current position of the path being searched. The "current position" of
      * a path element is determined by the path that preceeded that element:
-     * <p/>
+     *
      * - The current position of the empty path is the root view
-     * <p/>
+     *
      * - The current position of a non-empty path is the children of any element that matched the last
      * element of that path.
-     * <p/>
+     *
      * Prefix values can be:
-     * <p/>
+     *
      * ZERO_LENGTH_PREFIX- the next match must occur at the current position (so at the root
      * view if this is the first element of a path, or at the matching children of the views
      * already matched by the preceeding portion of the path.) If a path element with ZERO_LENGTH_PREFIX
      * has no index, then *all* matching elements of the path will be matched, otherwise indeces
      * will count from first child to last child.
-     * <p/>
+     *
      * SHORTEST_PREFIX- the next match must occur at some descendant of the current position.
      * SHORTEST_PREFIX elements are indexed depth-first, first child to last child. For performance
      * reasons, at most one element will ever be matched to a SHORTEST_PREFIX element, so
