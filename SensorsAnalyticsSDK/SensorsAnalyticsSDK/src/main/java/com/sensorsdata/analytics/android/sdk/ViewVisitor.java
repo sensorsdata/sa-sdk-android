@@ -87,7 +87,7 @@ public abstract class ViewVisitor implements Pathfinder.Accumulator {
             }
 
             public boolean willFireEvent(final String eventName) {
-                if (getEventName() == eventName) {
+                if (getEventName().equals(eventName)) {
                     return true;
                 } else if (mRealDelegate instanceof TrackingAccessibilityDelegate) {
                     return ((TrackingAccessibilityDelegate) mRealDelegate).willFireEvent(eventName);

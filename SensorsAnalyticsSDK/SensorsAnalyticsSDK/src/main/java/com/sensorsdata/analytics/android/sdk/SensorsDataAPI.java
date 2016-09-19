@@ -1146,9 +1146,7 @@ public class SensorsDataAPI {
                         track("$AppStart", properties);
 
                         trackTimer("$AppEnd", TimeUnit.SECONDS);
-                    } catch (InvalidDataException e) {
-                        Log.w(LOGTAG, e);
-                    } catch (JSONException e) {
+                    } catch (InvalidDataException | JSONException e) {
                         Log.w(LOGTAG, e);
                     }
                 }
@@ -1166,9 +1164,7 @@ public class SensorsDataAPI {
                     properties.put("$screen_name", activity.getClass().getCanonicalName());
 
                     track("$AppViewScreen", properties);
-                } catch (JSONException e) {
-                    Log.w(LOGTAG, e);
-                } catch (InvalidDataException e) {
+                } catch (InvalidDataException | JSONException e) {
                     Log.w(LOGTAG, e);
                 }
             }
@@ -1328,7 +1324,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.8";
+    static final String VERSION = "1.6.9";
 
     static Boolean ENABLE_LOG = false;
 
