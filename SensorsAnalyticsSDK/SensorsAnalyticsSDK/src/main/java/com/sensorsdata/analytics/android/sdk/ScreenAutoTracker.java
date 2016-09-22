@@ -21,6 +21,7 @@ public interface ScreenAutoTracker {
      * 注意:screen_name的前面必须要要加"$"符号
      *
      * @return JSONObject
+     * @throws JSONException JSONException
      */
     JSONObject getTrackProperties() throws JSONException;
 }
