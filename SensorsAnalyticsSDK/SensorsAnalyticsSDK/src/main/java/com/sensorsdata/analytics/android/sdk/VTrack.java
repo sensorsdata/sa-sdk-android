@@ -1,6 +1,5 @@
 package com.sensorsdata.analytics.android.sdk;
 
-import android.content.Context;
 
 import org.json.JSONArray;
 

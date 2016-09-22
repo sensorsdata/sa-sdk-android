@@ -16,6 +16,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
+import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.webkit.WebView;
@@ -1162,6 +1163,19 @@ public class SensorsDataAPI {
                 try {
                     JSONObject properties = new JSONObject();
                     properties.put("$screen_name", activity.getClass().getCanonicalName());
+                    if (activity instanceof ScreenAutoTracker) {
+                        ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
+
+                        if (!TextUtils.isEmpty(mLastScreenUrl)) {
+                            properties.put("$referrer", mLastScreenUrl);
+                        }
+                        mLastScreenUrl = screenAutoTracker.getUrl();
+
+                        JSONObject otherProperties = screenAutoTracker.getTrackProperties();
+                        if (otherProperties != null) {
+                            mergeJSONObject(otherProperties, properties);
+                        }
+                    }
 
                     track("$AppViewScreen", properties);
                 } catch (InvalidDataException | JSONException e) {
@@ -1324,7 +1338,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.9";
+    static final String VERSION = "1.6.10";
 
     static Boolean ENABLE_LOG = false;
 
@@ -1349,6 +1363,8 @@ public class SensorsDataAPI {
     private int mFlushBulkSize;
     /* SDK 自动采集事件 */
     private boolean mAutoTrack;
+    /* 上个页面的Url*/
+    private String mLastScreenUrl;
 
     private final Context mContext;
     private final Context mActivityContext;

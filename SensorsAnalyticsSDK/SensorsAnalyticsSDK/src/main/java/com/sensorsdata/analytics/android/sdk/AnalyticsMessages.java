@@ -8,12 +8,10 @@ import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import android.content.Context;
-import android.net.ConnectivityManager;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
-import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import org.apache.http.HttpResponse;

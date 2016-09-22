@@ -3,7 +3,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 
-version = "1.6.9"
+version = "1.6.10"
 
 android {
     compileSdkVersion 21
@@ -75,10 +75,28 @@ task javadoc(type: Javadoc) {
     classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
 }
 
+javadoc {
+    options {
+        encoding "UTF-8"
+        charSet 'UTF-8'
+    }
+}
+
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
     from javadoc.destinationDir
 }
+
+task makeJar(type: Copy) {
+    def jarName = 'SensorsAnalytics-Android-SDK-Release-' + version + '.jar';
+    delete 'build/libs/' + jarName
+    from('build/intermediates/bundles/release/')
+    into('build/libs/')
+    include('classes.jar')
+    rename ('classes.jar', jarName)
+}
+
+makeJar.dependsOn(build)
 
 artifacts {
     archives javadocJar
