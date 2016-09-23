@@ -8,32 +8,25 @@ import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import android.content.Context;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
@@ -125,9 +118,28 @@ class AnalyticsMessages {
         mWorker.runMessage(m);
     }
 
+    private byte[] slurp(final InputStream inputStream)
+            throws IOException {
+        final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+        int nRead;
+        byte[] data = new byte[8192];
+
+        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+            buffer.write(data, 0, nRead);
+        }
+
+        buffer.flush();
+        return buffer.toByteArray();
+    }
+
     public void sendData() {
         int count = 100;
         while (count > 0) {
+            InputStream in = null;
+            OutputStream out = null;
+            BufferedOutputStream bout = null;
+            HttpURLConnection connection = null;
             try {
                 String[] eventsData;
                 synchronized (mDbAdapter) {
@@ -152,31 +164,40 @@ class AnalyticsMessages {
                     throw new InvalidDataException(e);
                 }
 
-                final List<NameValuePair> params = new ArrayList<NameValuePair>(1);
-                params.add(new BasicNameValuePair("data_list", data));
-                params.add(new BasicNameValuePair("gzip", "1"));
-
-                HttpClient httpClient = new DefaultHttpClient();
-                HttpPost httpPost = new HttpPost(SensorsDataAPI.sharedInstance(mContext).getServerUrl());
-
                 try {
-                    httpPost.setEntity(new UrlEncodedFormEntity(params));
-                } catch (UnsupportedEncodingException e) {
-                    // 格式错误，直接将数据删除
-                    throw new InvalidDataException(e);
-                }
+                    final URL url = new URL(SensorsDataAPI.sharedInstance(mContext).getServerUrl());
+                    connection = (HttpURLConnection) url.openConnection();
+                    connection.addRequestProperty("User-Agent", "SensorsAnalytics Android SDK");
+                    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() && !SensorsDataAPI.sharedInstance
+                            (mContext).isDebugWriteData()) {
+                        connection.addRequestProperty("Dry-Run", "true");
+                    }
+                    Uri.Builder builder = new Uri.Builder();
+                    builder.appendQueryParameter("data_list", data);
+                    builder.appendQueryParameter("gzip", "1");
 
-                httpPost.setHeader("User-Agent", "SensorsAnalytics Android SDK");
-                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() && !SensorsDataAPI.sharedInstance
-                        (mContext).isDebugWriteData()) {
-                    httpPost.setHeader("Dry-Run", "true");
-                }
+                    String query = builder.build().getEncodedQuery();
 
-                try {
-                    HttpResponse response = httpClient.execute(httpPost);
+                    connection.setFixedLengthStreamingMode(query.getBytes().length);
+                    connection.setDoOutput(true);
+                    connection.setRequestMethod("POST");
+                    out = connection.getOutputStream();
+                    bout = new BufferedOutputStream(out);
+                    bout.write(query.getBytes("UTF-8"));
+                    bout.flush();
+                    bout.close();
+                    bout = null;
+                    out.close();
+                    out = null;
 
-                    int responseCode = response.getStatusLine().getStatusCode();
-                    String responseBody = EntityUtils.toString(response.getEntity(), "UTF-8");
+                    int responseCode = connection.getResponseCode();
+                    in = connection.getInputStream();
+                    byte[] responseBody = slurp(in);
+                    in.close();
+                    in = null;
+
+                    String response = new String(responseBody, "UTF-8");
+
 
                     if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
                         if (responseCode == 200) {
@@ -184,41 +205,57 @@ class AnalyticsMessages {
                         } else {
                             Log.i(LOGTAG, String.format("invalid message: %s", rawMessage));
                             Log.i(LOGTAG, String.format("ret_code: %d", responseCode));
-                            Log.i(LOGTAG, String.format("ret_content: %s", responseBody));
+                            Log.i(LOGTAG, String.format("ret_content: %s", response));
                         }
                     }
 
                     if (responseCode < 200 || responseCode >= 300) {
                         // 校验错误，直接将数据删除
                         throw new ResponseErrorException(String.format("flush failure with response '%s'",
-                                responseBody));
+                                response));
                     }
-                } catch (ClientProtocolException e) {
-                    throw new ConnectErrorException(e);
                 } catch (IOException e) {
                     throw new ConnectErrorException(e);
                 } finally {
                     count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
                     if (SensorsDataAPI.ENABLE_LOG) {
-                        Log.d(LOGTAG, String.format("Events flushed. [left = %d]", count));
+                        Log.i(LOGTAG, String.format("Events flushed. [left = %d]", count));
                     }
                 }
 
             } catch (ConnectErrorException e) {
                 Log.w(LOGTAG, "Connection error: " + e.getMessage());
-                break;
             } catch (InvalidDataException e) {
                 if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
                     throw new DebugModeException(e.getMessage());
                 } else {
-                    Log.w(LOGTAG, "Invalid data: " + e.getMessage());
+                    Log.i(LOGTAG, "Invalid data: " + e.getMessage());
                 }
             } catch (ResponseErrorException e) {
-                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-                    throw new DebugModeException(e.getMessage());
-                } else {
-                    Log.w(LOGTAG, "Unexpected response from Sensors Analytics: " + e.getMessage());
-                }
+                Log.i(LOGTAG, "ResponseErrorException: " + e.getMessage());
+            } catch (Exception e) {
+                Log.i(LOGTAG, "Exception: " + e.getMessage());
+            } finally {
+                if (null != bout)
+                    try {
+                        bout.close();
+                    } catch (final IOException e) {
+                        // TODO: 16/9/23 ignore Exception
+                    }
+                if (null != out)
+                    try {
+                        out.close();
+                    } catch (final IOException e) {
+                        // TODO: 16/9/23 ignore Exception
+                    }
+                if (null != in)
+                    try {
+                        in.close();
+                    } catch (final IOException e) {
+                        // TODO: 16/9/23 ignore Exception
+                    }
+                if (null != connection)
+                    connection.disconnect();
             }
         }
     }
@@ -234,24 +271,37 @@ class AnalyticsMessages {
     }
 
     private String getCheckConfigure() throws ConnectErrorException {
-        HttpClient httpClient = new DefaultHttpClient();
-        HttpGet httpPost = new HttpGet(SensorsDataAPI.sharedInstance(mContext).getConfigureUrl());
-
+        Log.w(LOGTAG, "getCheckConfigure");
+        HttpURLConnection connection = null;
+        InputStream in = null;
         try {
-            HttpResponse response = httpClient.execute(httpPost);
+            final URL url = new URL(SensorsDataAPI.sharedInstance(mContext).getConfigureUrl());
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
 
-            int responseCode = response.getStatusLine().getStatusCode();
-            String responseBody = EntityUtils.toString(response.getEntity(), "UTF-8");
+            int responseCode = connection.getResponseCode();
+            in = connection.getInputStream();
+            byte[] responseBody = slurp(in);
+            in.close();
+            in = null;
 
+            String response = new String(responseBody, "UTF-8");
             if (responseCode != 200) {
                 throw new ConnectErrorException("Response error.");
             }
 
-            return responseBody;
-        } catch (ClientProtocolException e) {
-            throw new ConnectErrorException(e);
+            return response;
         } catch (IOException e) {
             throw new ConnectErrorException(e);
+        } finally {
+            if (null != in)
+                try {
+                    in.close();
+                } catch (final IOException e) {
+                    Log.w(LOGTAG, "getCheckConfigure close inputStream error:" + e.getMessage());
+                }
+            if (null != connection)
+                connection.disconnect();
         }
     }
 

@@ -1342,7 +1342,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.12";
+    static final String VERSION = "1.6.13";
 
     static Boolean ENABLE_LOG = false;
 
