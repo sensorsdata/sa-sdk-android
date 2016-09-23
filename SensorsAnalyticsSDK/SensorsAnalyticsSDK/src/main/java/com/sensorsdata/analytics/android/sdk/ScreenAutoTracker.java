@@ -12,7 +12,7 @@ public interface ScreenAutoTracker {
      * 用作下个页面的referrer
      * @return String
      */
-    String getUrl();
+    String getScreenUrl();
 
     /**
      * 返回自定义属性集合

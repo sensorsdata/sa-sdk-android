@@ -153,9 +153,11 @@ public class SensorsDataAPI {
                     100);
             mAutoTrack = configBundle.getBoolean("com.sensorsdata.analytics.android.AutoTrack",
                     false);
+            mEnableVTrack = configBundle.getBoolean("com.sensorsdata.analytics.android.VTrack",
+                    true);
 
             if (Build.VERSION.SDK_INT >= VTRACK_SUPPORTED_MIN_API
-                    && configBundle.getBoolean("com.sensorsdata.analytics.android.VTrack", true)) {
+                    && mEnableVTrack) {
                 String resourcePackageName =
                         configBundle.getString("com.sensorsdata.analytics.android.ResourcePackageName");
                 if (null == resourcePackageName) {
@@ -245,7 +247,9 @@ public class SensorsDataAPI {
         mMessages = AnalyticsMessages.getInstance(mContext, packageName);
 
         mVTrack.startUpdates();
-        mMessages.checkConfigure(new DecideMessages(mVTrack));
+        if (mEnableVTrack) {
+            mMessages.checkConfigure(new DecideMessages(mVTrack));
+        }
     }
 
     /**
@@ -1169,7 +1173,7 @@ public class SensorsDataAPI {
                         if (!TextUtils.isEmpty(mLastScreenUrl)) {
                             properties.put("$referrer", mLastScreenUrl);
                         }
-                        mLastScreenUrl = screenAutoTracker.getUrl();
+                        mLastScreenUrl = screenAutoTracker.getScreenUrl();
 
                         JSONObject otherProperties = screenAutoTracker.getTrackProperties();
                         if (otherProperties != null) {
@@ -1338,7 +1342,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.11";
+    static final String VERSION = "1.6.12";
 
     static Boolean ENABLE_LOG = false;
 
@@ -1363,6 +1367,8 @@ public class SensorsDataAPI {
     private int mFlushBulkSize;
     /* SDK 自动采集事件 */
     private boolean mAutoTrack;
+    /* SDK 开启可视化埋点功能 */
+    private boolean mEnableVTrack;
     /* 上个页面的Url*/
     private String mLastScreenUrl;
 
