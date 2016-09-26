@@ -1174,6 +1174,7 @@ public class SensorsDataAPI {
                             properties.put("$referrer", mLastScreenUrl);
                         }
                         mLastScreenUrl = screenAutoTracker.getScreenUrl();
+                        properties.put("$url", mLastScreenUrl);
 
                         JSONObject otherProperties = screenAutoTracker.getTrackProperties();
                         if (otherProperties != null) {
@@ -1342,7 +1343,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.13";
+    static final String VERSION = "1.6.14";
 
     static Boolean ENABLE_LOG = false;
 
