@@ -598,6 +598,50 @@ public class SensorsDataAPI {
     }
 
     /**
+     * 获取LastScreenUrl
+     * @return String
+     */
+    public String getLastScreenUrl() {
+        return mLastScreenUrl;
+    }
+
+    /**
+     * 获取LastScreenTrackProperties
+     * @return JSONObject
+     */
+    public JSONObject getLastScreenTrackProperties() {
+        return mLastScreenTrackProperties;
+    }
+
+    /**
+     * Track进入页面事件
+     * @param url String
+     * @param properties JSONObject
+     * @throws InvalidDataException 当公共属性不符合规范时抛出异常
+     */
+    public void trackViewScreen(String url, JSONObject properties) throws InvalidDataException {
+        if (!TextUtils.isEmpty(url) || properties != null) {
+            try {
+                JSONObject trackProperties = new JSONObject();
+                mLastScreenTrackProperties = properties;
+
+                if (!TextUtils.isEmpty(mLastScreenUrl)) {
+                    trackProperties.put("$referrer", mLastScreenUrl);
+                }
+
+                trackProperties.put("$url", url);
+                mLastScreenUrl = url;
+                if (properties != null) {
+                    mergeJSONObject(properties, trackProperties);
+                }
+                track("$AppViewScreen", trackProperties);
+            } catch (JSONException e) {
+                Log.w(LOGTAG, "trackViewScreen:" + e);
+            }
+        }
+    }
+
+    /**
      * app进入后台
      * 遍历mTrackTimer
      * eventAccumulatedDuration = eventAccumulatedDuration + System.currentTimeMillis() - startTime
@@ -1170,19 +1214,16 @@ public class SensorsDataAPI {
                     if (activity instanceof ScreenAutoTracker) {
                         ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
 
-                        if (!TextUtils.isEmpty(mLastScreenUrl)) {
-                            properties.put("$referrer", mLastScreenUrl);
-                        }
-                        mLastScreenUrl = screenAutoTracker.getScreenUrl();
-                        properties.put("$url", mLastScreenUrl);
-
+                        String screenUrl = screenAutoTracker.getScreenUrl();
                         JSONObject otherProperties = screenAutoTracker.getTrackProperties();
                         if (otherProperties != null) {
                             mergeJSONObject(otherProperties, properties);
                         }
-                    }
 
-                    track("$AppViewScreen", properties);
+                        trackViewScreen(screenUrl, properties);
+                    } else {
+                        track("$AppViewScreen", properties);
+                    }
                 } catch (InvalidDataException | JSONException e) {
                     Log.w(LOGTAG, e);
                 }
@@ -1343,7 +1384,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.14";
+    static final String VERSION = "1.6.15";
 
     static Boolean ENABLE_LOG = false;
 
@@ -1372,6 +1413,7 @@ public class SensorsDataAPI {
     private boolean mEnableVTrack;
     /* 上个页面的Url*/
     private String mLastScreenUrl;
+    private JSONObject mLastScreenTrackProperties;
 
     private final Context mContext;
     private final Context mActivityContext;
