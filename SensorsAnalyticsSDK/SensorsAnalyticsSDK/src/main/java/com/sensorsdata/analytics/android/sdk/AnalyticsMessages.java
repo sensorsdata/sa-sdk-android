@@ -70,36 +70,40 @@ class AnalyticsMessages {
     }
 
     public void enqueueEventMessage(final String type, final JSONObject eventJson) {
-        synchronized (mDbAdapter) {
-            int ret = mDbAdapter.addJSON(eventJson, DbAdapter.Table.EVENTS);
-            if (ret < 0) {
-                String error = "Failed to enqueue the event: " + eventJson;
-                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-                    throw new DebugModeException(error);
-                } else {
-                    Log.w(LOGTAG, error);
-                }
-            }
-
-            final Message m = Message.obtain();
-            m.what = FLUSH_QUEUE;
-
-            if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() || ret ==
-                    DbAdapter.DB_OUT_OF_MEMORY_ERROR) {
-                mWorker.runMessage(m);
-            } else {
-                String networkType = SensorsDataUtils.networkType(mContext);
-                if (networkType.equals("WIFI") || networkType.equals("3G") || networkType.equals("4G")) {
-                    // track_signup 立即发送
-                    if (type.equals("track_signup") || ret > SensorsDataAPI.sharedInstance(mContext)
-                            .getFlushBulkSize()) {
-                        mWorker.runMessage(m);
+        try {
+            synchronized (mDbAdapter) {
+                int ret = mDbAdapter.addJSON(eventJson, DbAdapter.Table.EVENTS);
+                if (ret < 0) {
+                    String error = "Failed to enqueue the event: " + eventJson;
+                    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+                        throw new DebugModeException(error);
                     } else {
-                        final int interval = SensorsDataAPI.sharedInstance(mContext).getFlushInterval();
-                        mWorker.runMessageOnce(m, interval);
+                        Log.w(LOGTAG, error);
+                    }
+                }
+
+                final Message m = Message.obtain();
+                m.what = FLUSH_QUEUE;
+
+                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() || ret ==
+                        DbAdapter.DB_OUT_OF_MEMORY_ERROR) {
+                    mWorker.runMessage(m);
+                } else {
+                    String networkType = SensorsDataUtils.networkType(mContext);
+                    if (networkType.equals("WIFI") || networkType.equals("3G") || networkType.equals("4G")) {
+                        // track_signup 立即发送
+                        if (type.equals("track_signup") || ret > SensorsDataAPI.sharedInstance(mContext)
+                                .getFlushBulkSize()) {
+                            mWorker.runMessage(m);
+                        } else {
+                            final int interval = SensorsDataAPI.sharedInstance(mContext).getFlushInterval();
+                            mWorker.runMessageOnce(m, interval);
+                        }
                     }
                 }
             }
+        } catch (Exception e) {
+            Log.w(LOGTAG, "enqueueEventMessage error:" + e);
         }
     }
 
