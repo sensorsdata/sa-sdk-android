@@ -20,7 +20,6 @@ import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.webkit.WebView;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -105,10 +104,9 @@ public class SensorsDataAPI {
     }
 
 
-    SensorsDataAPI(Context context, Context activityContext, String serverURL, String configureURL,
+    SensorsDataAPI(Context context, String serverURL, String configureURL,
                    String vtrackServerURL, DebugMode debugMode) {
         mContext = context;
-        mActivityContext = activityContext;
 
         final String packageName = context.getApplicationContext().getPackageName();
 
@@ -295,8 +293,7 @@ public class SensorsDataAPI {
 
             SensorsDataAPI instance = sInstanceMap.get(appContext);
             if (null == instance && ConfigurationChecker.checkBasicConfiguration(appContext)) {
-                instance = new SensorsDataAPI(appContext, context, serverURL, configureUrl, null,
-                        debugMode);
+                instance = new SensorsDataAPI(appContext, serverURL, configureUrl, null, debugMode);
                 sInstanceMap.put(appContext, instance);
             }
 
@@ -316,7 +313,7 @@ public class SensorsDataAPI {
      * @return SensorsDataAPI单例
      */
     public static SensorsDataAPI sharedInstance(Context context, String serverURL,
-                                                String configureURL, String vtrackServerURL, DebugMode debugMode) {
+        String configureURL, String vtrackServerURL, DebugMode debugMode) {
         if (null == context) {
             return null;
         }
@@ -326,7 +323,7 @@ public class SensorsDataAPI {
 
             SensorsDataAPI instance = sInstanceMap.get(appContext);
             if (null == instance && ConfigurationChecker.checkBasicConfiguration(appContext)) {
-                instance = new SensorsDataAPI(appContext, context, serverURL, configureURL, vtrackServerURL,
+                instance = new SensorsDataAPI(appContext, serverURL, configureURL, vtrackServerURL,
                         debugMode);
                 sInstanceMap.put(appContext, instance);
             }
@@ -434,6 +431,19 @@ public class SensorsDataAPI {
      */
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     public void showUpWebView(WebView webView, boolean isSupportJellyBean) {
+        showUpWebView(webView, isSupportJellyBean, null);
+    }
+
+    /**
+     * 向WebView注入本地方法, 将distinctId传递给当前的WebView
+     *
+     * @param webView 当前WebView
+     * @param isSupportJellyBean 是否支持API level 16及以下的版本。
+     *                           因为API level 16及以下的版本, addJavascriptInterface有安全漏洞,请谨慎使用
+     * @param properties 用户自定义属性
+     */
+    @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
+    public void showUpWebView(WebView webView, boolean isSupportJellyBean, JSONObject properties) {
         if (Build.VERSION.SDK_INT < 17 && !isSupportJellyBean) {
             Log.i(LOGTAG, "For applications targeted to API level JELLY_BEAN or below, this feature NOT SUPPORTED");
             return;
@@ -441,7 +451,7 @@ public class SensorsDataAPI {
 
         if (webView != null) {
             webView.getSettings().setJavaScriptEnabled(true);
-            webView.addJavascriptInterface(new AppWebViewInterface(mContext), "SensorsData_APP_JS_Bridge");
+            webView.addJavascriptInterface(new AppWebViewInterface(mContext, properties), "SensorsData_APP_JS_Bridge");
         }
     }
 
@@ -1168,6 +1178,7 @@ public class SensorsDataAPI {
     private class LifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
 
         private boolean resumeFromBackground = false;
+        private Integer startedActivityCount = 0;
 
         public LifecycleCallbacks() {
         }
@@ -1178,30 +1189,33 @@ public class SensorsDataAPI {
 
         @Override
         public void onActivityStarted(Activity activity) {
-            if (activity.getClass().getCanonicalName()
-                    .equals(mActivityContext.getClass().getCanonicalName())) {
-                // XXX: 注意内部执行顺序
-                boolean firstStart = mFirstStart.get();
-                if (firstStart) {
-                    mFirstStart.commit(false);
-                }
-
-                if (mAutoTrack) {
-                    try {
-                        JSONObject properties = new JSONObject();
-                        properties.put("$resume_from_background", resumeFromBackground);
-                        properties.put("$is_first_time", firstStart);
-
-                        track("$AppStart", properties);
-
-                        trackTimer("$AppEnd", TimeUnit.SECONDS);
-                    } catch (InvalidDataException | JSONException e) {
-                        Log.w(LOGTAG, e);
+            synchronized (startedActivityCount) {
+                if (startedActivityCount == 0) {
+                    // XXX: 注意内部执行顺序
+                    boolean firstStart = mFirstStart.get();
+                    if (firstStart) {
+                        mFirstStart.commit(false);
                     }
+
+                    if (mAutoTrack) {
+                        try {
+                            JSONObject properties = new JSONObject();
+                            properties.put("$resume_from_background", resumeFromBackground);
+                            properties.put("$is_first_time", firstStart);
+
+                            track("$AppStart", properties);
+
+                            trackTimer("$AppEnd", TimeUnit.SECONDS);
+                        } catch (InvalidDataException | JSONException e) {
+                            Log.w(LOGTAG, e);
+                        }
+                    }
+
+                    // 下次启动时，从后台恢复
+                    resumeFromBackground = true;
                 }
 
-                // 下次启动时，从后台恢复
-                resumeFromBackground = true;
+                startedActivityCount = startedActivityCount + 1;
             }
         }
 
@@ -1236,12 +1250,15 @@ public class SensorsDataAPI {
 
         @Override
         public void onActivityStopped(Activity activity) {
-            if (mAutoTrack && activity.getClass().getCanonicalName().equals(mActivityContext.getClass()
-                    .getCanonicalName())) {
-                try {
-                    track("$AppEnd");
-                } catch (Exception e) {
-                    Log.w(LOGTAG, e);
+            synchronized (startedActivityCount) {
+                startedActivityCount = startedActivityCount - 1;
+
+                if (startedActivityCount == 0) {
+                    try {
+                        track("$AppEnd");
+                    } catch (Exception e) {
+                        Log.w(LOGTAG, e);
+                    }
                 }
             }
 
@@ -1384,7 +1401,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.16";
+    static final String VERSION = "1.6.17";
 
     static Boolean ENABLE_LOG = false;
 
@@ -1416,7 +1433,6 @@ public class SensorsDataAPI {
     private JSONObject mLastScreenTrackProperties;
 
     private final Context mContext;
-    private final Context mActivityContext;
     private final AnalyticsMessages mMessages;
     private final PersistentDistinctId mDistinctId;
     private final PersistentSuperProperties mSuperProperties;
