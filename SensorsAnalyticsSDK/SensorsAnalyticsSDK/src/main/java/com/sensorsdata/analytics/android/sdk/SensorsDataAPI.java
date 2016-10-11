@@ -1253,11 +1253,13 @@ public class SensorsDataAPI {
             synchronized (startedActivityCount) {
                 startedActivityCount = startedActivityCount - 1;
 
-                if (startedActivityCount == 0) {
-                    try {
-                        track("$AppEnd");
-                    } catch (Exception e) {
-                        Log.w(LOGTAG, e);
+                if (mAutoTrack) {
+                    if (startedActivityCount == 0) {
+                        try {
+                            track("$AppEnd");
+                        } catch (Exception e) {
+                            Log.w(LOGTAG, e);
+                        }
                     }
                 }
             }
@@ -1401,7 +1403,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.17";
+    static final String VERSION = "1.6.18";
 
     static Boolean ENABLE_LOG = false;
 
