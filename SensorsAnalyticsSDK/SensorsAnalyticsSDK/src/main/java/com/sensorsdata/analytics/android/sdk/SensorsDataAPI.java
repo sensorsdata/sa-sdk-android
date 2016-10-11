@@ -667,6 +667,7 @@ public class SensorsDataAPI {
                         if (eventTimer != null) {
                             long eventAccumulatedDuration = eventTimer.getEventAccumulatedDuration() + System.currentTimeMillis() - eventTimer.getStartTime();
                             eventTimer.setEventAccumulatedDuration(eventAccumulatedDuration);
+                            eventTimer.setStartTime(System.currentTimeMillis());
                         }
                     }
                 }
@@ -1403,7 +1404,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.18";
+    static final String VERSION = "1.6.19";
 
     static Boolean ENABLE_LOG = false;
 
