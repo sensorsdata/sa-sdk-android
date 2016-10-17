@@ -429,6 +429,7 @@ public class SensorsDataAPI {
      * @param isSupportJellyBean 是否支持API level 16及以下的版本。
      * 因为API level 16及以下的版本, addJavascriptInterface有安全漏洞,请谨慎使用
      */
+    @Deprecated
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     public void showUpWebView(WebView webView, boolean isSupportJellyBean) {
         showUpWebView(webView, isSupportJellyBean, null);
@@ -1254,18 +1255,17 @@ public class SensorsDataAPI {
             synchronized (startedActivityCount) {
                 startedActivityCount = startedActivityCount - 1;
 
-                if (mAutoTrack) {
-                    if (startedActivityCount == 0) {
+                if (startedActivityCount == 0) {
+                    if (mAutoTrack) {
                         try {
                             track("$AppEnd");
                         } catch (Exception e) {
                             Log.w(LOGTAG, e);
                         }
                     }
+                    mMessages.flush();
                 }
             }
-
-            mMessages.flush();
         }
 
         @Override
@@ -1404,7 +1404,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.19";
+    static final String VERSION = "1.6.20";
 
     static Boolean ENABLE_LOG = false;
 
