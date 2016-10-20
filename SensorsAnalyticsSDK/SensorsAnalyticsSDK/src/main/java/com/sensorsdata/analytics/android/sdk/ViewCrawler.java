@@ -336,6 +336,12 @@ public class ViewCrawler implements VTrack, DebugTracking {
             applyVariantsAndEventBindings();
         }
 
+        private void retrySendDeviceInfo(final JSONObject message) {
+            final Message msg = mMessageThreadHandler.obtainMessage(ViewCrawler.MESSAGE_SEND_DEVICE_INFO);
+            msg.obj = message;
+            mMessageThreadHandler.sendMessageDelayed(msg, 1000);
+        }
+
         /**
          * Try to connect to the remote interactive editor, if a connection does not already exist.
          */
@@ -371,6 +377,10 @@ public class ViewCrawler implements VTrack, DebugTracking {
             }
 
             Iterator<Activity> activityIt = mStartedActivities.iterator();
+            if (!activityIt.hasNext()) {
+                retrySendDeviceInfo(message);
+                return;
+            }
             Activity activity = activityIt.next();
 
             if (activity == null) {
