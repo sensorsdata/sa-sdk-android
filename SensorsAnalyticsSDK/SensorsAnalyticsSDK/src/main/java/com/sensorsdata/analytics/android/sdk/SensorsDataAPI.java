@@ -110,6 +110,24 @@ public class SensorsDataAPI {
 
         final String packageName = context.getApplicationContext().getPackageName();
 
+        {
+            //中国移动
+            sCarrierMap.put("46000", " 中国移动");
+            sCarrierMap.put("46002", " 中国移动");
+            sCarrierMap.put("46007", " 中国移动");
+            sCarrierMap.put("46008", " 中国移动");
+
+            //中国联通
+            sCarrierMap.put("46001", " 中国联通");
+            sCarrierMap.put("46006", " 中国联通");
+            sCarrierMap.put("46009", " 中国联通");
+
+            //中国电信
+            sCarrierMap.put("46003", " 中国电信");
+            sCarrierMap.put("46005", " 中国电信");
+            sCarrierMap.put("46011", " 中国电信");
+        }
+
         try {
             final ApplicationInfo appInfo = context.getApplicationContext().getPackageManager()
                     .getApplicationInfo(packageName, PackageManager.GET_META_DATA);
@@ -211,16 +229,12 @@ public class SensorsDataAPI {
                     .TELEPHONY_SERVICE);
             String operatorString = telephonyManager.getSimOperator();
 
-            if (operatorString == null) {
-                // DO NOTHING
-            } else if (operatorString.equals("46000") || operatorString.equals("46002")) {
-                deviceInfo.put("$carrier", "中国移动");
-            } else if (operatorString.equals("46001")) {
-                deviceInfo.put("$carrier", "中国联通");
-            } else if (operatorString.equals("46003")) {
-                deviceInfo.put("$carrier", "中国电信");
-            } else {
-                deviceInfo.put("$carrier", "其他");
+            if (!TextUtils.isEmpty(operatorString)) {
+                if (sCarrierMap.containsKey(operatorString)) {
+                    deviceInfo.put("$carrier", sCarrierMap.get(operatorString));
+                } else {
+                    deviceInfo.put("$carrier", "其他");
+                }
             }
         }
 
@@ -1404,7 +1418,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.21";
+    static final String VERSION = "1.6.22";
 
     static Boolean ENABLE_LOG = false;
 
@@ -1415,6 +1429,7 @@ public class SensorsDataAPI {
     // Maps each token to a singleton SensorsDataAPI instance
     private static final Map<Context, SensorsDataAPI> sInstanceMap = new HashMap<Context, SensorsDataAPI>();
     private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
+    private static final Map<String, String> sCarrierMap = new HashMap<>();
 
     // Configures
   /* SensorsAnalytics 地址 */

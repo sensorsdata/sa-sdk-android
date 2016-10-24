@@ -105,8 +105,12 @@ import android.view.WindowManager;
                 .checkCallingOrSelfPermission(Manifest.permission.ACCESS_NETWORK_STATE)) {
             ConnectivityManager connManager =
                     (ConnectivityManager) this.mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-            NetworkInfo wifiInfo = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-            ret = wifiInfo.isConnected();
+            if (connManager != null) {
+                NetworkInfo wifiInfo = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+                if (wifiInfo != null) {
+                    ret = wifiInfo.isConnected();
+                }
+            }
         }
 
         return ret;

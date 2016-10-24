@@ -60,8 +60,11 @@ public final class SensorsDataUtils {
         // Wifi
         ConnectivityManager manager = (ConnectivityManager)
                 context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).isConnectedOrConnecting()) {
-            return "WIFI";
+        if (manager != null) {
+            NetworkInfo networkInfo = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+            if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
+                return "WIFI";
+            }
         }
 
         // Mobile network
