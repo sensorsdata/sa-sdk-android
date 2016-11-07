@@ -20,15 +20,19 @@ import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.webkit.WebView;
+import android.widget.Toast;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -128,6 +132,8 @@ public class SensorsDataAPI {
             sCarrierMap.put("46011", " 中国电信");
         }
 
+        mFilterActivities = new ArrayList<>();
+
         try {
             final ApplicationInfo appInfo = context.getApplicationContext().getPackageManager()
                     .getApplicationInfo(packageName, PackageManager.GET_META_DATA);
@@ -159,6 +165,10 @@ public class SensorsDataAPI {
             }
 
             mDebugMode = debugMode;
+            //打开debug模式，弹出提示
+            if (mDebugMode != DebugMode.DEBUG_OFF) {
+                showDebugModeWarning();
+            }
 
             ENABLE_LOG = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
                     false);
@@ -253,8 +263,10 @@ public class SensorsDataAPI {
                 sPrefsLoader.loadPreferences(context, prefsName, listener);
 
         mDistinctId = new PersistentDistinctId(storedPreferences);
+        mLoginId = new PersistentLoginId(storedPreferences);
         mSuperProperties = new PersistentSuperProperties(storedPreferences);
         mFirstStart = new PersistentFirstStart(storedPreferences);
+        mFirstTrackInstallation = new PersistentFirstTrackInstallation(storedPreferences);
 
         mMessages = AnalyticsMessages.getInstance(mContext, packageName);
 
@@ -471,16 +483,69 @@ public class SensorsDataAPI {
     }
 
     /**
+     * 指定哪些 activity 不被AutoTrack
+     *
+     * 指定activity的格式为：activity.getClass().getCanonicalName()
+     *
+     * @param activitiesList  activity列表
+     */
+    public void filterAutoTrackActivities(List<String> activitiesList) {
+        if (activitiesList == null || activitiesList.size() == 0) {
+            return;
+        }
+
+        if (mFilterActivities == null) {
+            mFilterActivities = new ArrayList<>();
+        }
+
+        for (String activity: activitiesList) {
+            if (!TextUtils.isEmpty(activity) && !mFilterActivities.contains(activity)) {
+                mFilterActivities.add(activity);
+            }
+        }
+    }
+
+    /**
      * 获取当前用户的distinctId
      *
      * 若调用前未调用 {@link #identify(String)} 设置用户的 distinctId，SDK 会调用 {@link java.util.UUID} 随机生成
      * UUID，作为用户的 distinctId
      *
+     * 该方法已不推荐使用，请参考 {@link #getAnonymousId()}
+     *
      * @return 当前用户的distinctId
      */
+    @Deprecated
     public String getDistinctId() {
         synchronized (mDistinctId) {
             return mDistinctId.get();
+        }
+    }
+
+    /**
+     * 获取当前用户的匿名id
+     *
+     * 若调用前未调用 {@link #identify(String)} 设置用户的匿名id，SDK 会调用 {@link java.util.UUID} 随机生成
+     * UUID，作为用户的匿名id
+     *
+     * @return 当前用户的匿名id
+     */
+    public String getAnonymousId() {
+        synchronized (mDistinctId) {
+            return mDistinctId.get();
+        }
+    }
+
+    /**
+     * 获取当前用户的 loginId
+     *
+     * 若调用前未调用 {@link #login(String)} 设置用户的 loginId，会返回null
+     *
+     * @return 当前用户的 loginId
+     */
+    public String getLoginId() {
+        synchronized (mLoginId) {
+            return mLoginId.get();
         }
     }
 
@@ -501,17 +566,47 @@ public class SensorsDataAPI {
     }
 
     /**
+     * 登录，设置当前用户的 loginId
+     *
+     * @param loginId 当前用户的 loginId，不能为空，且长度不能大于255
+     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当 loginId
+     *                                                                               不符合规范时抛出异常
+     */
+    public void login(String loginId) throws InvalidDataException {
+        assertDistinctId(loginId);
+        synchronized (mLoginId) {
+            if (!loginId.equals(mLoginId.get())) {
+                mLoginId.commit(loginId);
+                if (!loginId.equals(getAnonymousId())) {
+                    trackEvent(EventType.TRACK_SIGNUP, "$SignUp", null, getAnonymousId());
+                }
+            }
+        }
+    }
+
+    /**
+     * 注销，清空当前用户的 loginId
+     */
+    public void logout() {
+        synchronized (mLoginId) {
+            mLoginId.commit(null);
+        }
+    }
+
+    /**
      * 记录第一次登录行为
      *
      * 这个接口是一个较为复杂的功能，请在使用前先阅读相关说明:
      * http://www.sensorsdata.cn/manual/track_signup.html
      * 并在必要时联系我们的技术支持人员。
+     * 该方法已不推荐使用，可以具体参考 {@link #login(String)} 方法
      *
      * @param newDistinctId 用户完成注册后生成的注册ID
      * @param properties    事件的属性
      * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当 distinctId
      *                                                                               不符合规范或事件属性不符合规范时抛出异常
      */
+    @Deprecated
     public void trackSignUp(String newDistinctId, JSONObject properties) throws InvalidDataException {
         String originalDistinctId = getDistinctId();
         identify(newDistinctId);
@@ -525,11 +620,13 @@ public class SensorsDataAPI {
      * 这个接口是一个较为复杂的功能，请在使用前先阅读相关说明:
      * http://www.sensorsdata.cn/manual/track_signup.html，
      * 并在必要时联系我们的技术支持人员。
+     * 该方法已不推荐使用，可以具体参考 {@link #login(String)} 方法
      *
      * @param newDistinctId 用户完成注册后生成的注册ID
      * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当 distinctId
      *                                                                               不符合规范时抛出异常
      */
+    @Deprecated
     public void trackSignUp(String newDistinctId) throws InvalidDataException {
         String originalDistinctId = getDistinctId();
         identify(newDistinctId);
@@ -549,11 +646,16 @@ public class SensorsDataAPI {
      */
     public void trackInstallation(String eventName, JSONObject properties)
             throws InvalidDataException {
-        // 先发送 track
-        trackEvent(EventType.TRACK, eventName, properties, null);
+        boolean firstTrackInstallation = mFirstTrackInstallation.get();
+        if (firstTrackInstallation) {
+            // 先发送 track
+            trackEvent(EventType.TRACK, eventName, properties, null);
 
-        // 再发送 profile_set_once
-        trackEvent(EventType.PROFILE_SET_ONCE, null, properties, null);
+            // 再发送 profile_set_once
+            trackEvent(EventType.PROFILE_SET_ONCE, null, properties, null);
+
+            mFirstTrackInstallation.commit(false);
+        }
     }
 
     /**
@@ -958,6 +1060,24 @@ public class SensorsDataAPI {
         return mConfigureUrl;
     }
 
+    private void showDebugModeWarning() {
+        try {
+            if (mDebugMode == DebugMode.DEBUG_OFF) {
+                return;
+            }
+            String info = null;
+            if (mDebugMode == DebugMode.DEBUG_ONLY) {
+                info = "现在您打开了神策SDK的'DEBUG_ONLY'模式，此模式下只校验数据但不导入数据，数据出错时会以 App Crash 的方式提示开发者，请上线前一定关闭。";
+            } else if (mDebugMode == DebugMode.DEBUG_AND_TRACK) {
+                info = "现在您打开了神策SDK的'DEBUG_AND_TRACK'模式，此模式下校验数据并且导入数据，数据出错时会以 App Crash 的方式提示开发者，请上线前一定关闭。";
+            }
+
+            Toast.makeText(mContext, info, Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private void trackEvent(EventType eventType, String eventName, JSONObject properties, String
             originalDistinctId) throws InvalidDataException {
         if (eventType.isTrack()) {
@@ -1019,7 +1139,11 @@ public class SensorsDataAPI {
             dataObj.put("time", now);
             dataObj.put("type", eventType.getEventType());
             dataObj.put("properties", sendProperties);
-            dataObj.put("distinct_id", getDistinctId());
+            if (!TextUtils.isEmpty(getLoginId())) {
+                dataObj.put("distinct_id", getLoginId());
+            } else {
+                dataObj.put("distinct_id", getAnonymousId());
+            }
             dataObj.put("lib", libProperties);
 
             if (eventType == EventType.TRACK) {
@@ -1113,10 +1237,10 @@ public class SensorsDataAPI {
 
     private void assertDistinctId(String key) throws InvalidDataException {
         if (key == null || key.length() < 1) {
-            throw new InvalidDataException("The distinct_id or original_id is empty.");
+            throw new InvalidDataException("The distinct_id or original_id or login_id is empty.");
         }
         if (key.length() > 255) {
-            throw new InvalidDataException("The max length of distinct_id or original_id is 255.");
+            throw new InvalidDataException("The max length of distinct_id or original_id or login_id is 255.");
         }
     }
 
@@ -1237,7 +1361,11 @@ public class SensorsDataAPI {
 
         @Override
         public void onActivityResumed(Activity activity) {
-            if (mAutoTrack) {
+            boolean mShowAutoTrack = true;
+            if (mFilterActivities != null && mFilterActivities.contains(activity.getClass().getCanonicalName())) {
+                mShowAutoTrack = false;
+            }
+            if (mAutoTrack && mShowAutoTrack) {
                 try {
                     JSONObject properties = new JSONObject();
                     properties.put("$screen_name", activity.getClass().getCanonicalName());
@@ -1315,6 +1443,29 @@ public class SensorsDataAPI {
 
     }
 
+    static class PersistentLoginId extends PersistentIdentity<String> {
+
+        PersistentLoginId(Future<SharedPreferences> loadStoredPreferences) {
+            super(loadStoredPreferences, "events_login_id", new PersistentSerializer<String>() {
+                @Override
+                public String load(String value) {
+                    return value;
+                }
+
+                @Override
+                public String save(String item) {
+                    return item;
+                }
+
+                @Override
+                public String create() {
+                    return null;
+                }
+            });
+        }
+
+    }
+
     static class PersistentSuperProperties extends PersistentIdentity<JSONObject> {
 
         PersistentSuperProperties(Future<SharedPreferences> loadStoredPreferences) {
@@ -1345,6 +1496,27 @@ public class SensorsDataAPI {
     static class PersistentFirstStart extends PersistentIdentity<Boolean> {
         PersistentFirstStart(Future<SharedPreferences> loadStoredPreferences) {
             super(loadStoredPreferences, "first_start", new PersistentSerializer<Boolean>() {
+                @Override
+                public Boolean load(String value) {
+                    return false;
+                }
+
+                @Override
+                public String save(Boolean item) {
+                    return String.valueOf(true);
+                }
+
+                @Override
+                public Boolean create() {
+                    return true;
+                }
+            });
+        }
+    }
+
+    static class PersistentFirstTrackInstallation extends PersistentIdentity<Boolean> {
+        PersistentFirstTrackInstallation(Future<SharedPreferences> loadStoredPreferences) {
+            super(loadStoredPreferences, "first_track_installation", new PersistentSerializer<Boolean>() {
                 @Override
                 public Boolean load(String value) {
                     return false;
@@ -1418,7 +1590,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.22";
+    static final String VERSION = "1.6.23";
 
     static Boolean ENABLE_LOG = false;
 
@@ -1453,10 +1625,13 @@ public class SensorsDataAPI {
     private final Context mContext;
     private final AnalyticsMessages mMessages;
     private final PersistentDistinctId mDistinctId;
+    private final PersistentLoginId mLoginId;
     private final PersistentSuperProperties mSuperProperties;
     private final PersistentFirstStart mFirstStart;
+    private final PersistentFirstTrackInstallation mFirstTrackInstallation;
     private final Map<String, Object> mDeviceInfo;
     private final Map<String, EventTimer> mTrackTimer;
+    private List<String> mFilterActivities;
 
     private final VTrack mVTrack;
 

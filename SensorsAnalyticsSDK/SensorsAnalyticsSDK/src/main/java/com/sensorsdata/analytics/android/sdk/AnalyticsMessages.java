@@ -236,9 +236,17 @@ class AnalyticsMessages {
                     Log.i(LOGTAG, "Invalid data: " + e.getMessage());
                 }
             } catch (ResponseErrorException e) {
-                Log.i(LOGTAG, "ResponseErrorException: " + e.getMessage());
+                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+                    throw new DebugModeException(e.getMessage());
+                } else {
+                    Log.i(LOGTAG, "ResponseErrorException: " + e.getMessage());
+                }
             } catch (Exception e) {
-                Log.i(LOGTAG, "Exception: " + e.getMessage());
+                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+                    throw new DebugModeException(e.getMessage());
+                } else {
+                    Log.i(LOGTAG, "Exception: " + e.getMessage());
+                }
             } finally {
                 if (null != bout)
                     try {

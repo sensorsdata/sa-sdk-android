@@ -1,6 +1,7 @@
 package com.sensorsdata.analytics.android.sdk;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
 
@@ -27,7 +28,12 @@ import org.json.JSONObject;
                 properties = new JSONObject();
             }
             properties.put("type", "Android");
-            properties.put("distinct_id", SensorsDataAPI.sharedInstance(mContext).getDistinctId());
+            String loginId = SensorsDataAPI.sharedInstance(mContext).getLoginId();
+            if (!TextUtils.isEmpty(loginId)) {
+                properties.put("distinct_id", loginId);
+            } else {
+                properties.put("distinct_id", SensorsDataAPI.sharedInstance(mContext).getAnonymousId());
+            }
             return properties.toString();
         } catch (JSONException e) {
             Log.i(LOGTAG, e.getMessage());
