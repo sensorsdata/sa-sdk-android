@@ -97,6 +97,20 @@ public final class SensorsDataUtils {
         return "NULL";
     }
 
+    public static boolean isNetworkAvailable(Context context) {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo networkInfo = cm.getActiveNetworkInfo();
+            if (networkInfo != null && networkInfo.isConnected()) {
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     private static final String SHARED_PREF_EDITS_FILE = "sensorsdata";
     private static final String SHARED_PREF_DEVICE_ID_KEY = "sensorsdata.device.id";
 

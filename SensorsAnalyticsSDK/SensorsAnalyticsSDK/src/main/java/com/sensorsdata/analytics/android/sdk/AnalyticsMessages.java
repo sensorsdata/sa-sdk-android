@@ -89,8 +89,7 @@ class AnalyticsMessages {
                         DbAdapter.DB_OUT_OF_MEMORY_ERROR) {
                     mWorker.runMessage(m);
                 } else {
-                    String networkType = SensorsDataUtils.networkType(mContext);
-                    if (networkType.equals("WIFI") || networkType.equals("3G") || networkType.equals("4G")) {
+                    if (SensorsDataUtils.isNetworkAvailable(mContext)) {
                         // track_signup 立即发送
                         if (type.equals("track_signup") || ret > SensorsDataAPI.sharedInstance(mContext)
                                 .getFlushBulkSize()) {

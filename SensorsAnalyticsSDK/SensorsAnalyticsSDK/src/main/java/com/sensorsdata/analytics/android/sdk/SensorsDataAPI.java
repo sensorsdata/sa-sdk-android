@@ -1405,7 +1405,13 @@ public class SensorsDataAPI {
                             Log.w(LOGTAG, e);
                         }
                     }
-                    mMessages.flush();
+                    try {
+                        if (SensorsDataUtils.isNetworkAvailable(mContext)) {
+                            mMessages.flush();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }
@@ -1590,7 +1596,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.23";
+    static final String VERSION = "1.6.24";
 
     static Boolean ENABLE_LOG = false;
 
