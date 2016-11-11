@@ -21,6 +21,7 @@ import org.json.JSONObject;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -194,7 +195,11 @@ class AnalyticsMessages {
                     out = null;
 
                     int responseCode = connection.getResponseCode();
-                    in = connection.getInputStream();
+                    try {
+                        in = connection.getInputStream();
+                    } catch (FileNotFoundException e) {
+                        in = connection.getErrorStream();
+                    }
                     byte[] responseBody = slurp(in);
                     in.close();
                     in = null;
