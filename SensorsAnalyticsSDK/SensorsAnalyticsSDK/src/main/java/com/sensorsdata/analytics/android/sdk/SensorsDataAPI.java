@@ -1140,9 +1140,6 @@ public class SensorsDataAPI {
                 sendProperties.put("event_duration", eventTimer.duration());
             }
 
-            //是否首日访问
-            sendProperties.put("$is_first_day", isFirstDay());
-
             JSONObject libProperties = new JSONObject();
             libProperties.put("$lib", "Android");
             libProperties.put("$lib_version", VERSION);
@@ -1165,6 +1162,8 @@ public class SensorsDataAPI {
 
             if (eventType == EventType.TRACK) {
                 dataObj.put("event", eventName);
+                //是否首日访问
+                sendProperties.put("$is_first_day", isFirstDay());
             } else if (eventType == EventType.TRACK_SIGNUP) {
                 dataObj.put("event", eventName);
                 dataObj.put("original_id", originalDistinctId);
@@ -1640,7 +1639,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.26";
+    static final String VERSION = "1.6.27";
 
     static Boolean ENABLE_LOG = false;
 
