@@ -33,6 +33,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -267,6 +268,10 @@ public class SensorsDataAPI {
         mSuperProperties = new PersistentSuperProperties(storedPreferences);
         mFirstStart = new PersistentFirstStart(storedPreferences);
         mFirstTrackInstallation = new PersistentFirstTrackInstallation(storedPreferences);
+        mFirstDay = new PersistentFirstDay(storedPreferences);
+        if (mFirstDay.get() == null) {
+            mFirstDay.commit(mIsFirstDayDateFormat.format(System.currentTimeMillis()));
+        }
 
         mMessages = AnalyticsMessages.getInstance(mContext, packageName);
 
@@ -537,6 +542,15 @@ public class SensorsDataAPI {
     }
 
     /**
+     * 重置默认匿名id
+     */
+    public void resetAnonymousId() {
+        synchronized (mDistinctId) {
+            mDistinctId.commit(UUID.randomUUID().toString());
+        }
+    }
+
+    /**
      * 获取当前用户的 loginId
      *
      * 若调用前未调用 {@link #login(String)} 设置用户的 loginId，会返回null
@@ -789,7 +803,7 @@ public class SensorsDataAPI {
                     }
                 }
             } catch (Exception e) {
-                Log.d(LOGTAG, "appEnterBackground error:" + e.getMessage());
+                Log.i(LOGTAG, "appEnterBackground error:" + e.getMessage());
             }
         }
     }
@@ -813,7 +827,7 @@ public class SensorsDataAPI {
                     }
                 }
             } catch (Exception e) {
-                Log.d(LOGTAG, "appBecomeActive error:" + e.getMessage());
+                Log.i(LOGTAG, "appBecomeActive error:" + e.getMessage());
             }
         }
     }
@@ -1126,6 +1140,9 @@ public class SensorsDataAPI {
                 sendProperties.put("event_duration", eventTimer.duration());
             }
 
+            //是否首日访问
+            sendProperties.put("$is_first_day", isFirstDay());
+
             JSONObject libProperties = new JSONObject();
             libProperties.put("$lib", "Android");
             libProperties.put("$lib_version", VERSION);
@@ -1186,12 +1203,18 @@ public class SensorsDataAPI {
             if (isDepolyed) {
                 mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
                 if (SensorsDataAPI.ENABLE_LOG) {
-                    Log.d(LOGTAG, String.format("track data %s", dataObj.toString()));
+                    Log.i(LOGTAG, String.format("track data %s", dataObj.toString()));
                 }
             }
         } catch (JSONException e) {
             throw new InvalidDataException("Unexpteced property");
         }
+    }
+
+    private boolean isFirstDay() {
+        String firstDay = mFirstDay.get();
+        String current = mIsFirstDayDateFormat.format(System.currentTimeMillis());
+        return firstDay.equals(current);
     }
 
     private void assertPropertyTypes(EventType eventType, JSONObject properties) throws
@@ -1520,6 +1543,27 @@ public class SensorsDataAPI {
         }
     }
 
+    static class PersistentFirstDay extends PersistentIdentity<String> {
+        PersistentFirstDay(Future<SharedPreferences> loadStoredPreferences) {
+            super(loadStoredPreferences, "first_day", new PersistentSerializer<String>() {
+                @Override
+                public String load(String value) {
+                    return value;
+                }
+
+                @Override
+                public String save(String item) {
+                    return item;
+                }
+
+                @Override
+                public String create() {
+                    return null;
+                }
+            });
+        }
+    }
+
     static class PersistentFirstTrackInstallation extends PersistentIdentity<Boolean> {
         PersistentFirstTrackInstallation(Future<SharedPreferences> loadStoredPreferences) {
             super(loadStoredPreferences, "first_track_installation", new PersistentSerializer<Boolean>() {
@@ -1596,7 +1640,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.25";
+    static final String VERSION = "1.6.26";
 
     static Boolean ENABLE_LOG = false;
 
@@ -1634,6 +1678,7 @@ public class SensorsDataAPI {
     private final PersistentLoginId mLoginId;
     private final PersistentSuperProperties mSuperProperties;
     private final PersistentFirstStart mFirstStart;
+    private final PersistentFirstDay mFirstDay;
     private final PersistentFirstTrackInstallation mFirstTrackInstallation;
     private final Map<String, Object> mDeviceInfo;
     private final Map<String, EventTimer> mTrackTimer;
@@ -1643,6 +1688,7 @@ public class SensorsDataAPI {
 
     private static final SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"
             + ".SSS");
+    private static final SimpleDateFormat mIsFirstDayDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
     private static final String LOGTAG = "SA.SensorsDataAPI";
 }

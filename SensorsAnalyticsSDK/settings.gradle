@@ -1,1 +1,1 @@
-include ':SensorsAnalyticsSDK', ':clockdemo'
+include ':SensorsAnalyticsSDK', ':demo'

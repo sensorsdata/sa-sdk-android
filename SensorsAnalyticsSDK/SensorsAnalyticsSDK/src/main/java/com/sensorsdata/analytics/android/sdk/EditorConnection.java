@@ -70,7 +70,7 @@ public class EditorConnection {
 
     public void sendMessage(String message) {
         if (SensorsDataAPI.ENABLE_LOG) {
-            Log.d(LOGTAG, "Sending message: " + message);
+            Log.i(LOGTAG, "Sending message: " + message);
         }
         try {
             mClient.send(message);
@@ -103,7 +103,7 @@ public class EditorConnection {
         @Override
         public void onOpen(ServerHandshake handshakedata) {
             if (SensorsDataAPI.ENABLE_LOG) {
-                Log.d(LOGTAG, "Websocket connected: " + handshakedata.getHttpStatus() + " " + handshakedata
+                Log.i(LOGTAG, "Websocket connected: " + handshakedata.getHttpStatus() + " " + handshakedata
                         .getHttpStatusMessage());
             }
 
@@ -112,7 +112,7 @@ public class EditorConnection {
 
         @Override
         public void onMessage(String message) {
-//      Log.d(LOGTAG, "Received message from editor:\n" + message);
+//      Log.i(LOGTAG, "Received message from editor:\n" + message);
 
             try {
                 final JSONObject messageJson = new JSONObject(message);
@@ -134,7 +134,7 @@ public class EditorConnection {
         @Override
         public void onClose(int code, String reason, boolean remote) {
             if (SensorsDataAPI.ENABLE_LOG) {
-                Log.d(LOGTAG, "WebSocket closed. Code: " + code + ", reason: " + reason + "\nURI: " + mURI);
+                Log.i(LOGTAG, "WebSocket closed. Code: " + code + ", reason: " + reason + "\nURI: " + mURI);
             }
             mService.cleanup();
             mService.onWebSocketClose(code);

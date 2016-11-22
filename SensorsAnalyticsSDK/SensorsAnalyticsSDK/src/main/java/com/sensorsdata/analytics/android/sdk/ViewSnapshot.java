@@ -369,9 +369,9 @@ public class ViewSnapshot {
                 rawBitmap =
                         (Bitmap) createSnapshot.invoke(rootView, Bitmap.Config.RGB_565, Color.WHITE, false);
             } catch (final NoSuchMethodException e) {
-                Log.d(LOGTAG, "Can't call createSnapshot, will use drawCache", e);
+                Log.i(LOGTAG, "Can't call createSnapshot, will use drawCache", e);
             } catch (final IllegalArgumentException e) {
-                Log.d(LOGTAG, "Can't call createSnapshot with arguments", e);
+                Log.i(LOGTAG, "Can't call createSnapshot with arguments", e);
             } catch (final InvocationTargetException e) {
                 Log.e(LOGTAG, "Exception when calling createSnapshot", e);
             } catch (final IllegalAccessException e) {

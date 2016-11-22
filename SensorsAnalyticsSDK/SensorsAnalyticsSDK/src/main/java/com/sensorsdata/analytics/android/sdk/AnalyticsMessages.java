@@ -389,7 +389,7 @@ class AnalyticsMessages {
                                 decideMessages.setVTrackServer(vtrackServer);
                             } catch (JSONException e1) {
                                 if (SensorsDataAPI.ENABLE_LOG) {
-                                    Log.d(LOGTAG, "Failed to load SDK configure with" + configureResult);
+                                    Log.i(LOGTAG, "Failed to load SDK configure with" + configureResult);
                                 }
                             }
                         } catch (ConnectErrorException e) {

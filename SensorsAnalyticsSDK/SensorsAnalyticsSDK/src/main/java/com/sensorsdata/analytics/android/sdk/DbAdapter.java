@@ -72,7 +72,7 @@ import java.io.File;
         @Override
         public void onCreate(SQLiteDatabase db) {
             if (SensorsDataAPI.ENABLE_LOG) {
-                Log.d(LOGTAG, "Creating a new Sensors Analytics DB");
+                Log.i(LOGTAG, "Creating a new Sensors Analytics DB");
             }
 
             db.execSQL(CREATE_EVENTS_TABLE);
@@ -82,7 +82,7 @@ import java.io.File;
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
             if (SensorsDataAPI.ENABLE_LOG) {
-                Log.d(LOGTAG, "Upgrading app, replacing Sensors Analytics DB");
+                Log.i(LOGTAG, "Upgrading app, replacing Sensors Analytics DB");
             }
 
             db.execSQL("DROP TABLE IF EXISTS " + Table.EVENTS.getName());
