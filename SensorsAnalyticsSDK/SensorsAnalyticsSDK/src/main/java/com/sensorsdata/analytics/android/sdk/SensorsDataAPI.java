@@ -864,9 +864,18 @@ public class SensorsDataAPI {
      * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当公共属性不符合规范时抛出异常
      */
     public void registerSuperProperties(JSONObject superProperties) throws InvalidDataException {
+        if (superProperties == null) {
+            return;
+        }
         assertPropertyTypes(EventType.REGISTER_SUPER_PROPERTIES, superProperties);
         synchronized (mSuperProperties) {
-            mSuperProperties.commit(superProperties);
+            try {
+                JSONObject properties = mSuperProperties.get();
+                mergeJSONObject(superProperties, properties);
+                mSuperProperties.commit(properties);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -1639,7 +1648,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.27";
+    static final String VERSION = "1.6.28";
 
     static Boolean ENABLE_LOG = false;
 
