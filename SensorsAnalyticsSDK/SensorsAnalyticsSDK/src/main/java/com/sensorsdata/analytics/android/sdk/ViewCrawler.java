@@ -336,10 +336,14 @@ public class ViewCrawler implements VTrack, DebugTracking {
             applyVariantsAndEventBindings();
         }
 
+        private int mHasRetryCount = 0;
         private void retrySendDeviceInfo(final JSONObject message) {
-            final Message msg = mMessageThreadHandler.obtainMessage(ViewCrawler.MESSAGE_SEND_DEVICE_INFO);
-            msg.obj = message;
-            mMessageThreadHandler.sendMessageDelayed(msg, 1000);
+            if (mHasRetryCount < 3) {
+                mHasRetryCount++;
+                final Message msg = mMessageThreadHandler.obtainMessage(ViewCrawler.MESSAGE_SEND_DEVICE_INFO);
+                msg.obj = message;
+                mMessageThreadHandler.sendMessageDelayed(msg, 3000);
+            }
         }
 
         /**
@@ -908,7 +912,6 @@ public class ViewCrawler implements VTrack, DebugTracking {
     }
 
     private static boolean mIsRetryConnect = true;
-    ;
     private static int mCurrentRetryTimes = 0;
     private static final int CONNECT_RETRY_TIMES = 40;
     private static final long RETRY_TIME_INTERVAL = 30 * 1000;
