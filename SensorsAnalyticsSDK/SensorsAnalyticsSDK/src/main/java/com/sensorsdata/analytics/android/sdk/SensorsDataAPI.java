@@ -80,35 +80,6 @@ public class SensorsDataAPI {
         }
     }
 
-
-    /**
-     * 第三方 App 推送平台。
-     *
-     * BAIDU - 百度云推送
-     * JIGUANG - 极光推送
-     * QQ - 腾讯云推送
-     * GETUI - 个推
-     * XIAOMI - 小米推送
-     */
-    public enum AppPushService {
-        BAIDU("Android_Baidu_"),
-        JIGUANG("Android_Jiguang_"),
-        QQ("Android_QQ_"),
-        GETUI("Android_Getui_"),
-        XIAOMI("Android_Xiaomi_");
-
-        private final String profileName;
-
-        AppPushService(String profileName) {
-            this.profileName = profileName;
-        }
-
-        String getProfileName() {
-            return profileName;
-        }
-    }
-
-
     SensorsDataAPI(Context context, String serverURL, String configureURL,
                    String vtrackServerURL, DebugMode debugMode) {
         mContext = context;
@@ -117,20 +88,20 @@ public class SensorsDataAPI {
 
         {
             //中国移动
-            sCarrierMap.put("46000", " 中国移动");
-            sCarrierMap.put("46002", " 中国移动");
-            sCarrierMap.put("46007", " 中国移动");
-            sCarrierMap.put("46008", " 中国移动");
+            sCarrierMap.put("46000", "中国移动");
+            sCarrierMap.put("46002", "中国移动");
+            sCarrierMap.put("46007", "中国移动");
+            sCarrierMap.put("46008", "中国移动");
 
             //中国联通
-            sCarrierMap.put("46001", " 中国联通");
-            sCarrierMap.put("46006", " 中国联通");
-            sCarrierMap.put("46009", " 中国联通");
+            sCarrierMap.put("46001", "中国联通");
+            sCarrierMap.put("46006", "中国联通");
+            sCarrierMap.put("46009", "中国联通");
 
             //中国电信
-            sCarrierMap.put("46003", " 中国电信");
-            sCarrierMap.put("46005", " 中国电信");
-            sCarrierMap.put("46011", " 中国电信");
+            sCarrierMap.put("46003", "中国电信");
+            sCarrierMap.put("46005", "中国电信");
+            sCarrierMap.put("46011", "中国电信");
         }
 
         mFilterActivities = new ArrayList<>();
@@ -1048,25 +1019,6 @@ public class SensorsDataAPI {
         trackEvent(EventType.PROFILE_DELETE, null, null, null);
     }
 
-    /**
-     * 将第三方 App 推送平台的 Register Id 提交到 Sensors Analytics
-     *
-     * @param appPushService 第三方推送平台
-     * @param appKey         当前 App 第三方推送平台中的 App Key
-     * @param registerId     当前设备在第三方推送平台的注册 ID
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当 Register ID 不符合规范时抛出异常
-     */
-    public void registerAppPushService(AppPushService appPushService, String appKey, String
-            registerId) throws InvalidDataException {
-        String profileKey = "$app_push_key_" + appKey.replaceAll("[^a-zA-Z0-9]", "");
-        String profileValue = appPushService.getProfileName() + registerId;
-        try {
-            trackEvent(EventType.PROFILE_SET, null, new JSONObject().put(profileKey, profileValue), null);
-        } catch (JSONException e) {
-            throw new InvalidDataException(e);
-        }
-    }
-
     boolean isDebugMode() {
         return mDebugMode.isDebugMode();
     }
@@ -1400,6 +1352,7 @@ public class SensorsDataAPI {
                 try {
                     JSONObject properties = new JSONObject();
                     properties.put("$screen_name", activity.getClass().getCanonicalName());
+
                     if (activity instanceof ScreenAutoTracker) {
                         ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
 
@@ -1648,7 +1601,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.29";
+    static final String VERSION = "1.6.30";
 
     static Boolean ENABLE_LOG = false;
 
