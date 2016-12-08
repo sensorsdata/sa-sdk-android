@@ -5,10 +5,12 @@ import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -418,7 +420,7 @@ public class SensorsDataAPI {
      * 该功能自动追踪 App 的一些行为，例如 SDK 初始化、App 启动 / 关闭、进入页面 等等，具体信息请参考文档:
      * https://sensorsdata.cn/manual/android_sdk.html
      *
-     * 该功能仅在 API 16 及以上版本中生效，默认关闭
+     * 该功能仅在 API 14 及以上版本中生效，默认关闭
      */
     public void enableAutoTrack() {
         mAutoTrack = true;
@@ -633,6 +635,36 @@ public class SensorsDataAPI {
             throws InvalidDataException {
         boolean firstTrackInstallation = mFirstTrackInstallation.get();
         if (firstTrackInstallation) {
+            try {
+                if (properties == null) {
+                    properties = new JSONObject();
+                }
+
+                if (!hasUtmProperties(properties)) {
+                    Map<String, String> utmMap = new HashMap<>();
+                    utmMap.put("SENSORS_ANALYTICS_UTM_SOURCE", "$utm_source");
+                    utmMap.put("SENSORS_ANALYTICS_UTM_MEDIUM", "$utm_medium");
+                    utmMap.put("SENSORS_ANALYTICS_UTM_TERM", "$utm_term");
+                    utmMap.put("SENSORS_ANALYTICS_UTM_CONTENT", "$utm_content");
+                    utmMap.put("SENSORS_ANALYTICS_UTM_CAMPAIGN", "$utm_campaign");
+
+                    for (Map.Entry<String, String> entry : utmMap.entrySet()) {
+                        if (entry != null) {
+                            String utmValue = getApplicationMetaData(entry.getKey());
+                            if (!TextUtils.isEmpty(utmValue)) {
+                                properties.put(entry.getValue(), utmValue);
+                            }
+                        }
+                    }
+                }
+
+                if (!hasUtmProperties(properties)) {
+                    properties.put("$ios_install_source", "");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
             // 先发送 track
             trackEvent(EventType.TRACK, eventName, properties, null);
 
@@ -641,6 +673,33 @@ public class SensorsDataAPI {
 
             mFirstTrackInstallation.commit(false);
         }
+    }
+
+    private String getApplicationMetaData(String metaKey) {
+        try {
+            ApplicationInfo appInfo = mContext.getApplicationContext().getPackageManager()
+                    .getApplicationInfo(mContext.getApplicationContext().getPackageName(),
+                            PackageManager.GET_META_DATA);
+            return appInfo.metaData.getString(metaKey);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private boolean hasUtmProperties(JSONObject properties) {
+        if (properties == null) {
+            return false;
+        }
+
+        if (properties.has("$utm_source") ||
+                properties.has("$utm_medium") ||
+                properties.has("$utm_term") ||
+                properties.has("$utm_content") ||
+                properties.has("$utm_campaign")) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -1353,6 +1412,33 @@ public class SensorsDataAPI {
                     JSONObject properties = new JSONObject();
                     properties.put("$screen_name", activity.getClass().getCanonicalName());
 
+                    /**
+                     * 尝试读取页面 title
+                     */
+                    try {
+                        String activityTitle = activity.getTitle().toString();
+                        ActionBar actionBar = activity.getActionBar();
+                        if (actionBar != null) {
+                            if (!TextUtils.isEmpty(actionBar.getTitle())) {
+                                activityTitle = actionBar.getTitle().toString();
+                            }
+                        }
+                        if (TextUtils.isEmpty(activityTitle)) {
+                            PackageManager packageManager = activity.getPackageManager();
+                            if (packageManager != null) {
+                                ActivityInfo activityInfo = packageManager.getActivityInfo(activity.getComponentName(), 0);
+                                if (activityInfo != null) {
+                                    activityTitle = activityInfo.loadLabel(packageManager).toString();
+                                }
+                            }
+                        }
+                        if (!TextUtils.isEmpty(activityTitle)) {
+                            properties.put("$title", activityTitle);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
                     if (activity instanceof ScreenAutoTracker) {
                         ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
 
@@ -1601,7 +1687,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.30";
+    static final String VERSION = "1.6.31";
 
     static Boolean ENABLE_LOG = false;
 
