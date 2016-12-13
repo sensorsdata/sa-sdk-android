@@ -121,8 +121,8 @@ public final class SensorsDataUtils {
 
     /**
      * 获取IMEI
-     *
-     * @return imei
+     * @param mContext Context
+     * @return IMEI
      */
     public static String getIMEI(Context mContext) {
         String imei = "";
@@ -142,8 +142,8 @@ public final class SensorsDataUtils {
 
     /**
      * 获取 Android ID
-     *
-     * @return
+     * @param mContext Context
+     * @return androidID
      */
     public static String getAndroidID(Context mContext) {
         String androidID = "";
@@ -168,8 +168,7 @@ public final class SensorsDataUtils {
 
     /**
      * 获取手机的MAC地址
-     *
-     * @return
+     * @return mac address
      */
     public static String getMacAddress() {
         String str = "";
