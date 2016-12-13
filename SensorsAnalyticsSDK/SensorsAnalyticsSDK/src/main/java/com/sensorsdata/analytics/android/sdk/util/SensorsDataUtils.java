@@ -2,12 +2,20 @@ package com.sensorsdata.analytics.android.sdk.util;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
+import android.provider.Settings;
 import android.telephony.TelephonyManager;
-import android.util.Log;
 
+import org.json.JSONObject;
+
+import java.io.FileReader;
+import java.io.InputStreamReader;
+import java.io.LineNumberReader;
+import java.io.Reader;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -109,6 +117,130 @@ public final class SensorsDataUtils {
             e.printStackTrace();
             return false;
         }
+    }
+
+    /**
+     * 获取IMEI
+     *
+     * @return imei
+     */
+    public static String getIMEI(Context mContext) {
+        String imei = "";
+        try {
+            if (mContext.checkCallingOrSelfPermission("android.permission.READ_PHONE_STATE") != PackageManager.PERMISSION_GRANTED) {
+                return imei;
+            }
+            TelephonyManager tm = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
+            if (tm != null) {
+                imei = tm.getDeviceId();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return imei;
+    }
+
+    /**
+     * 获取 Android ID
+     *
+     * @return
+     */
+    public static String getAndroidID(Context mContext) {
+        String androidID = "";
+        try {
+            androidID = Settings.Secure.getString(mContext.getContentResolver(), Settings.Secure.ANDROID_ID);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return androidID;
+    }
+
+    public static String getApplicationMetaData(Context mContext, String metaKey) {
+        try {
+            ApplicationInfo appInfo = mContext.getApplicationContext().getPackageManager()
+                    .getApplicationInfo(mContext.getApplicationContext().getPackageName(),
+                            PackageManager.GET_META_DATA);
+            return appInfo.metaData.getString(metaKey);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * 获取手机的MAC地址
+     *
+     * @return
+     */
+    public static String getMacAddress() {
+        String str = "";
+        String macSerial = "";
+        try {
+            Process pp = Runtime.getRuntime().exec(
+                    "cat /sys/class/net/wlan0/address ");
+            InputStreamReader ir = new InputStreamReader(pp.getInputStream());
+            LineNumberReader input = new LineNumberReader(ir);
+
+            for (; null != str; ) {
+                str = input.readLine();
+                if (str != null) {
+                    macSerial = str.trim();// 去空格
+                    break;
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        if ("".equals(macSerial)) {
+            try {
+                return loadFileAsString("/sys/class/net/eth0/address")
+                        .toUpperCase().substring(0, 17);
+            } catch (Exception e) {
+                e.printStackTrace();
+
+            }
+
+        }
+        return macSerial;
+    }
+
+    private static String loadFileAsString(String fileName) throws Exception {
+        try {
+            FileReader reader = new FileReader(fileName);
+            String text = loadReaderAsString(reader);
+            reader.close();
+            return text;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
+
+    private static String loadReaderAsString(Reader reader) throws Exception {
+        try {
+            StringBuilder builder = new StringBuilder();
+            char[] buffer = new char[4096];
+            int readLength = reader.read(buffer);
+            while (readLength >= 0) {
+                builder.append(buffer, 0, readLength);
+                readLength = reader.read(buffer);
+            }
+            return builder.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
+
+    public static boolean hasUtmProperties(JSONObject properties) {
+        if (properties == null) {
+            return false;
+        }
+
+        return properties.has("$utm_source") ||
+                properties.has("$utm_medium") ||
+                properties.has("$utm_term") ||
+                properties.has("$utm_content") ||
+                properties.has("$utm_campaign");
     }
 
     private static final String SHARED_PREF_EDITS_FILE = "sensorsdata";

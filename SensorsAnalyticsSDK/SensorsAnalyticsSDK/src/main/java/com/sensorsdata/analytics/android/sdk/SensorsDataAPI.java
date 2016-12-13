@@ -15,8 +15,11 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
@@ -640,7 +643,7 @@ public class SensorsDataAPI {
                     properties = new JSONObject();
                 }
 
-                if (!hasUtmProperties(properties)) {
+                if (!SensorsDataUtils.hasUtmProperties(properties)) {
                     Map<String, String> utmMap = new HashMap<>();
                     utmMap.put("SENSORS_ANALYTICS_UTM_SOURCE", "$utm_source");
                     utmMap.put("SENSORS_ANALYTICS_UTM_MEDIUM", "$utm_medium");
@@ -650,7 +653,7 @@ public class SensorsDataAPI {
 
                     for (Map.Entry<String, String> entry : utmMap.entrySet()) {
                         if (entry != null) {
-                            String utmValue = getApplicationMetaData(entry.getKey());
+                            String utmValue = SensorsDataUtils.getApplicationMetaData(mContext, entry.getKey());
                             if (!TextUtils.isEmpty(utmValue)) {
                                 properties.put(entry.getValue(), utmValue);
                             }
@@ -658,8 +661,12 @@ public class SensorsDataAPI {
                     }
                 }
 
-                if (!hasUtmProperties(properties)) {
-                    properties.put("$ios_install_source", "");
+                if (!SensorsDataUtils.hasUtmProperties(properties)) {
+                    String installSource = String.format("android_id=%s##imei=%s##mac=%s",
+                            SensorsDataUtils.getAndroidID(mContext),
+                            SensorsDataUtils.getIMEI(mContext),
+                            SensorsDataUtils.getMacAddress());
+                    properties.put("$ios_install_source", installSource);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -673,33 +680,6 @@ public class SensorsDataAPI {
 
             mFirstTrackInstallation.commit(false);
         }
-    }
-
-    private String getApplicationMetaData(String metaKey) {
-        try {
-            ApplicationInfo appInfo = mContext.getApplicationContext().getPackageManager()
-                    .getApplicationInfo(mContext.getApplicationContext().getPackageName(),
-                            PackageManager.GET_META_DATA);
-            return appInfo.metaData.getString(metaKey);
-        } catch (Exception e) {
-            return "";
-        }
-    }
-
-    private boolean hasUtmProperties(JSONObject properties) {
-        if (properties == null) {
-            return false;
-        }
-
-        if (properties.has("$utm_source") ||
-                properties.has("$utm_medium") ||
-                properties.has("$utm_term") ||
-                properties.has("$utm_content") ||
-                properties.has("$utm_campaign")) {
-            return true;
-        }
-
-        return false;
     }
 
     /**
@@ -1687,7 +1667,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.31";
+    static final String VERSION = "1.6.32";
 
     static Boolean ENABLE_LOG = false;
 
