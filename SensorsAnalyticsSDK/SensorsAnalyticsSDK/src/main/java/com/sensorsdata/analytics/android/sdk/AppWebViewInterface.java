@@ -31,8 +31,10 @@ import org.json.JSONObject;
             String loginId = SensorsDataAPI.sharedInstance(mContext).getLoginId();
             if (!TextUtils.isEmpty(loginId)) {
                 properties.put("distinct_id", loginId);
+                properties.put("is_login", true);
             } else {
                 properties.put("distinct_id", SensorsDataAPI.sharedInstance(mContext).getAnonymousId());
+                properties.put("is_login", false);
             }
             return properties.toString();
         } catch (JSONException e) {
