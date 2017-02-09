@@ -174,8 +174,7 @@ class AnalyticsMessages {
                     final URL url = new URL(SensorsDataAPI.sharedInstance(mContext).getServerUrl());
                     connection = (HttpURLConnection) url.openConnection();
                     try {
-                        WebView webView = new WebView(mContext);
-                        String ua = webView.getSettings().getUserAgentString();
+                        String ua = SensorsDataUtils.getUserAgent(mContext);
                         if (TextUtils.isEmpty(ua)) {
                             ua = "SensorsAnalytics Android SDK";
                         }

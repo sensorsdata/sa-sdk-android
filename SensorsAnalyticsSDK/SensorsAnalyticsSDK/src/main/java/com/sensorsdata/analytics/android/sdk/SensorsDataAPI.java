@@ -112,6 +112,12 @@ public class SensorsDataAPI {
         mFilterActivities = new ArrayList<>();
 
         try {
+            SensorsDataUtils.cleanUserAgent(mContext);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        try {
             final ApplicationInfo appInfo = context.getApplicationContext().getPackageManager()
                     .getApplicationInfo(packageName, PackageManager.GET_META_DATA);
             Bundle configBundle = appInfo.metaData;
@@ -1675,7 +1681,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.35";
+    static final String VERSION = "1.6.36";
 
     static Boolean ENABLE_LOG = false;
 

@@ -9,6 +9,8 @@ import android.net.NetworkInfo;
 import android.os.Build;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
+import android.text.TextUtils;
+import android.webkit.WebSettings;
 
 import org.json.JSONObject;
 
@@ -16,6 +18,8 @@ import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.io.Reader;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -24,6 +28,55 @@ public final class SensorsDataUtils {
     private static SharedPreferences getSharedPreferences(Context context) {
         final String sharedPrefsName = SHARED_PREF_EDITS_FILE;
         return context.getSharedPreferences(sharedPrefsName, Context.MODE_PRIVATE);
+    }
+
+    public static void cleanUserAgent(Context context) {
+        try {
+            final SharedPreferences preferences = getSharedPreferences(context);
+            final SharedPreferences.Editor editor = preferences.edit();
+            editor.putString(SHARED_PREF_USER_AGENT_KEY, null);
+            editor.apply();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 获取 UA 值
+     * @param context
+     * @return
+     */
+    public static String getUserAgent(Context context) {
+        try {
+            final SharedPreferences preferences = getSharedPreferences(context);
+            String userAgent = preferences.getString(SHARED_PREF_USER_AGENT_KEY, null);
+            if (TextUtils.isEmpty(userAgent)) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                    userAgent = WebSettings.getDefaultUserAgent(context);
+                } else {
+                    try {
+                        final Class<?> webSettingsClassicClass = Class.forName("android.webkit.WebSettingsClassic");
+                        final Constructor<?> constructor = webSettingsClassicClass.getDeclaredConstructor(Context.class, Class.forName("android.webkit.WebViewClassic"));
+                        constructor.setAccessible(true);
+                        final Method method = webSettingsClassicClass.getMethod("getUserAgentString");
+                        userAgent = (String) method.invoke(constructor.newInstance(context, null));
+                    } catch (final Exception e) {
+                        e.printStackTrace();
+                        userAgent = System.getProperty("http.agent");
+                    }
+                }
+            }
+
+            if (!TextUtils.isEmpty(userAgent)) {
+                final SharedPreferences.Editor editor = preferences.edit();
+                editor.putString(SHARED_PREF_USER_AGENT_KEY, userAgent);
+                editor.apply();
+            }
+
+            return userAgent;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public static String getDeviceID(Context context) {
@@ -244,6 +297,7 @@ public final class SensorsDataUtils {
 
     private static final String SHARED_PREF_EDITS_FILE = "sensorsdata";
     private static final String SHARED_PREF_DEVICE_ID_KEY = "sensorsdata.device.id";
+    private static final String SHARED_PREF_USER_AGENT_KEY = "sensorsdata.user.agent";
 
     private static final String LOGTAG = "SA.SensorsDataUtils";
 }
