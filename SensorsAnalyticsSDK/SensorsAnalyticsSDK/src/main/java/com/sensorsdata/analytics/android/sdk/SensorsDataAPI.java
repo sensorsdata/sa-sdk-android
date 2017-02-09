@@ -205,7 +205,7 @@ public class SensorsDataAPI {
                 final PackageManager manager = mContext.getPackageManager();
                 final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
                 deviceInfo.put("$app_version", info.versionName);
-            } catch (final PackageManager.NameNotFoundException e) {
+            } catch (final Exception e) {
                 Log.e(LOGTAG, "Exception getting app version name", e);
             }
             final DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
@@ -1148,6 +1148,14 @@ public class SensorsDataAPI {
                 libProperties.put("$app_version", mDeviceInfo.get("$app_version"));
             }
 
+            //update lib $app_version from super properties
+            JSONObject superProperties = mSuperProperties.get();
+            if (superProperties != null) {
+                if (superProperties.has("$app_version")) {
+                    libProperties.put("$app_version", superProperties.get("$app_version"));
+                }
+            }
+
             final JSONObject dataObj = new JSONObject();
 
             dataObj.put("time", now);
@@ -1667,7 +1675,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.34";
+    static final String VERSION = "1.6.35";
 
     static Boolean ENABLE_LOG = false;
 

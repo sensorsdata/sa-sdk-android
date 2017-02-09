@@ -13,7 +13,9 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
+import android.text.TextUtils;
 import android.util.Log;
+import android.webkit.WebView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -171,7 +173,16 @@ class AnalyticsMessages {
                 try {
                     final URL url = new URL(SensorsDataAPI.sharedInstance(mContext).getServerUrl());
                     connection = (HttpURLConnection) url.openConnection();
-                    connection.addRequestProperty("User-Agent", "SensorsAnalytics Android SDK");
+                    try {
+                        WebView webView = new WebView(mContext);
+                        String ua = webView.getSettings().getUserAgentString();
+                        if (TextUtils.isEmpty(ua)) {
+                            ua = "SensorsAnalytics Android SDK";
+                        }
+                        connection.addRequestProperty("User-Agent", ua);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() && !SensorsDataAPI.sharedInstance
                             (mContext).isDebugWriteData()) {
                         connection.addRequestProperty("Dry-Run", "true");
