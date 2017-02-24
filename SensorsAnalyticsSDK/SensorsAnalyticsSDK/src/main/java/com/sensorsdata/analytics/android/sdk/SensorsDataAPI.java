@@ -15,11 +15,8 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
@@ -229,6 +226,11 @@ public class SensorsDataAPI {
                     deviceInfo.put("$carrier", "其他");
                 }
             }
+
+//            String androidID = SensorsDataUtils.getAndroidID(mContext);
+//            if (!TextUtils.isEmpty(androidID)) {
+//                deviceInfo.put("$device_id", androidID);
+//            }
         }
 
         mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
@@ -1373,6 +1375,12 @@ public class SensorsDataAPI {
                         mFirstStart.commit(false);
                     }
 
+                    try {
+                        appBecomeActive();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
                     if (mAutoTrack) {
                         try {
                             JSONObject properties = new JSONObject();
@@ -1462,6 +1470,12 @@ public class SensorsDataAPI {
                 startedActivityCount = startedActivityCount - 1;
 
                 if (startedActivityCount == 0) {
+                    try {
+                        appEnterBackground();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
                     if (mAutoTrack) {
                         try {
                             track("$AppEnd");
@@ -1681,7 +1695,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.36";
+    static final String VERSION = "1.6.37";
 
     static Boolean ENABLE_LOG = false;
 

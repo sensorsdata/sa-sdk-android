@@ -199,10 +199,6 @@ public class ViewCrawler implements VTrack, DebugTracking {
 
             mStartedActivities.add(activity);
 
-            if (mStartedActivities.size() == 1) {
-                SensorsDataAPI.sharedInstance(mContext).appBecomeActive();
-            }
-
             for (String className : mDisabledActivity) {
                 if (className.equals(activity.getClass().getCanonicalName())) {
                     return;
@@ -223,9 +219,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
 
         @Override
         public void onActivityStopped(Activity activity) {
-            if (mStartedActivities.size() == 0) {
-                SensorsDataAPI.sharedInstance(mContext).appEnterBackground();
-            }
+
         }
 
         @Override

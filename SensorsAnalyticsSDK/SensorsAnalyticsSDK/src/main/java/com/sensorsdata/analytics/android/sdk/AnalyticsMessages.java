@@ -88,11 +88,11 @@ class AnalyticsMessages {
                 final Message m = Message.obtain();
                 m.what = FLUSH_QUEUE;
 
-                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() || ret ==
-                        DbAdapter.DB_OUT_OF_MEMORY_ERROR) {
-                    mWorker.runMessage(m);
-                } else {
-                    if (SensorsDataUtils.isNetworkAvailable(mContext)) {
+                if (SensorsDataUtils.isNetworkAvailable(mContext)) {
+                    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() || ret ==
+                            DbAdapter.DB_OUT_OF_MEMORY_ERROR) {
+                        mWorker.runMessage(m);
+                    } else {
                         // track_signup 立即发送
                         if (type.equals("track_signup") || ret > SensorsDataAPI.sharedInstance(mContext)
                                 .getFlushBulkSize()) {
