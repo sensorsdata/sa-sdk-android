@@ -184,14 +184,16 @@ public class SensorsDataAPI {
                     e);
         }
 
+        mMessages = AnalyticsMessages.getInstance(mContext, packageName);
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
             final Application app = (Application) context.getApplicationContext();
             app.registerActivityLifecycleCallbacks(new LifecycleCallbacks());
         }
 
         Log.i(LOGTAG, String.format("Initialized the instance of Sensors Analytics SDK with server"
-                        + " url '%s', configure url '%s' flush interval %d ms", mServerUrl,
-                mConfigureUrl, mFlushInterval));
+                        + " url '%s', configure url '%s' flush interval %d ms, debugMode: %s", mServerUrl,
+                mConfigureUrl, mFlushInterval, debugMode));
 
         final Map<String, Object> deviceInfo = new HashMap<String, Object>();
 
@@ -256,8 +258,6 @@ public class SensorsDataAPI {
         if (mFirstDay.get() == null) {
             mFirstDay.commit(mIsFirstDayDateFormat.format(System.currentTimeMillis()));
         }
-
-        mMessages = AnalyticsMessages.getInstance(mContext, packageName);
 
         mVTrack.startUpdates();
         if (mEnableVTrack) {
@@ -1089,9 +1089,9 @@ public class SensorsDataAPI {
             }
             String info = null;
             if (mDebugMode == DebugMode.DEBUG_ONLY) {
-                info = "现在您打开了神策SDK的'DEBUG_ONLY'模式，此模式下只校验数据但不导入数据，数据出错时会以 App Crash 的方式提示开发者，请上线前一定关闭。";
+                info = "现在您打开了神策SDK的'DEBUG_ONLY'模式，此模式下只校验数据但不导入数据，数据出错时会以 Toast 的方式提示开发者，请上线前一定使用 DEBUG_OFF 模式。";
             } else if (mDebugMode == DebugMode.DEBUG_AND_TRACK) {
-                info = "现在您打开了神策SDK的'DEBUG_AND_TRACK'模式，此模式下校验数据并且导入数据，数据出错时会以 App Crash 的方式提示开发者，请上线前一定关闭。";
+                info = "现在您打开了神策SDK的'DEBUG_AND_TRACK'模式，此模式下校验数据并且导入数据，数据出错时会以 Toast 的方式提示开发者，请上线前一定使用 DEBUG_OFF 模式。";
             }
 
             Toast.makeText(mContext, info, Toast.LENGTH_LONG).show();
@@ -1484,9 +1484,7 @@ public class SensorsDataAPI {
                         }
                     }
                     try {
-                        if (SensorsDataUtils.isNetworkAvailable(mContext)) {
-                            mMessages.flush();
-                        }
+                        mMessages.flush();
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -1695,7 +1693,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.37";
+    static final String VERSION = "1.6.38";
 
     static Boolean ENABLE_LOG = false;
 

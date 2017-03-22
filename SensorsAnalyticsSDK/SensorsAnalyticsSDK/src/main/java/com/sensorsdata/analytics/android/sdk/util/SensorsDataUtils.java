@@ -52,7 +52,15 @@ public final class SensorsDataUtils {
             String userAgent = preferences.getString(SHARED_PREF_USER_AGENT_KEY, null);
             if (TextUtils.isEmpty(userAgent)) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                    userAgent = WebSettings.getDefaultUserAgent(context);
+                    try {
+                        Class webSettingsClass = Class.forName("android.webkit.WebSettings");
+                        Method getDefaultUserAgentMethod = webSettingsClass.getMethod("getDefaultUserAgent");
+                        if (getDefaultUserAgentMethod != null) {
+                            userAgent = WebSettings.getDefaultUserAgent(context);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 } else {
                     try {
                         final Class<?> webSettingsClassicClass = Class.forName("android.webkit.WebSettingsClassic");
@@ -62,9 +70,12 @@ public final class SensorsDataUtils {
                         userAgent = (String) method.invoke(constructor.newInstance(context, null));
                     } catch (final Exception e) {
                         e.printStackTrace();
-                        userAgent = System.getProperty("http.agent");
                     }
                 }
+            }
+
+            if (TextUtils.isEmpty(userAgent)) {
+                userAgent = System.getProperty("http.agent");
             }
 
             if (!TextUtils.isEmpty(userAgent)) {
@@ -75,6 +86,7 @@ public final class SensorsDataUtils {
 
             return userAgent;
         } catch (Exception e) {
+            e.printStackTrace();
             return null;
         }
     }

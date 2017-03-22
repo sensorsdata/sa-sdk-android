@@ -16,6 +16,7 @@ import android.os.Message;
 import android.text.TextUtils;
 import android.util.Log;
 import android.webkit.WebView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -88,19 +89,17 @@ class AnalyticsMessages {
                 final Message m = Message.obtain();
                 m.what = FLUSH_QUEUE;
 
-                if (SensorsDataUtils.isNetworkAvailable(mContext)) {
-                    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() || ret ==
-                            DbAdapter.DB_OUT_OF_MEMORY_ERROR) {
+                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() || ret ==
+                        DbAdapter.DB_OUT_OF_MEMORY_ERROR) {
+                    mWorker.runMessage(m);
+                } else {
+                    // track_signup 立即发送
+                    if (type.equals("track_signup") || ret > SensorsDataAPI.sharedInstance(mContext)
+                            .getFlushBulkSize()) {
                         mWorker.runMessage(m);
                     } else {
-                        // track_signup 立即发送
-                        if (type.equals("track_signup") || ret > SensorsDataAPI.sharedInstance(mContext)
-                                .getFlushBulkSize()) {
-                            mWorker.runMessage(m);
-                        } else {
-                            final int interval = SensorsDataAPI.sharedInstance(mContext).getFlushInterval();
-                            mWorker.runMessageOnce(m, interval);
-                        }
+                        final int interval = SensorsDataAPI.sharedInstance(mContext).getFlushInterval();
+                        mWorker.runMessageOnce(m, interval);
                     }
                 }
             }
@@ -118,10 +117,16 @@ class AnalyticsMessages {
     }
 
     public void flush() {
-        final Message m = Message.obtain();
-        m.what = FLUSH_QUEUE;
+        try {
+            if (SensorsDataUtils.isNetworkAvailable(mContext)) {
+                final Message m = Message.obtain();
+                m.what = FLUSH_QUEUE;
 
-        mWorker.runMessage(m);
+                mWorker.runMessage(m);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private byte[] slurp(final InputStream inputStream)
@@ -141,26 +146,30 @@ class AnalyticsMessages {
 
     public void sendData() {
         int count = 100;
+        Toast toast = null;
         while (count > 0) {
+            boolean deleteEvents = true;
             InputStream in = null;
             OutputStream out = null;
             BufferedOutputStream bout = null;
             HttpURLConnection connection = null;
-            try {
-                String[] eventsData;
-                synchronized (mDbAdapter) {
-                    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-                        eventsData = mDbAdapter.generateDataString(DbAdapter.Table.EVENTS, 1);
-                    } else {
-                        eventsData = mDbAdapter.generateDataString(DbAdapter.Table.EVENTS, 50);
-                    }
+            String[] eventsData;
+            synchronized (mDbAdapter) {
+                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+                    eventsData = mDbAdapter.generateDataString(DbAdapter.Table.EVENTS, 1);
+                } else {
+                    eventsData = mDbAdapter.generateDataString(DbAdapter.Table.EVENTS, 50);
                 }
-                if (eventsData == null) {
-                    return;
-                }
+            }
+            if (eventsData == null) {
+                return;
+            }
 
-                final String lastId = eventsData[0];
-                final String rawMessage = eventsData[1];
+            final String lastId = eventsData[0];
+            final String rawMessage = eventsData[1];
+            String errorMessage = null;
+
+            try {
 
                 String data;
                 try {
@@ -216,7 +225,6 @@ class AnalyticsMessages {
 
                     String response = new String(responseBody, "UTF-8");
 
-
                     if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
                         if (responseCode == 200) {
                             Log.i(LOGTAG, String.format("valid message: %s", rawMessage));
@@ -234,34 +242,44 @@ class AnalyticsMessages {
                     }
                 } catch (IOException e) {
                     throw new ConnectErrorException(e);
-                } finally {
-                    count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
-                    if (SensorsDataAPI.ENABLE_LOG) {
-                        Log.i(LOGTAG, String.format("Events flushed. [left = %d]", count));
+                }
+            } catch (ConnectErrorException e) {
+                deleteEvents = false;
+                errorMessage = "Connection error: " + e.getMessage();
+            } catch (InvalidDataException e) {
+                deleteEvents = true;
+                errorMessage = "Invalid data: " + e.getMessage();
+            } catch (ResponseErrorException e) {
+                deleteEvents = true;
+                errorMessage = "ResponseErrorException: " + e.getMessage();
+            } catch (Exception e) {
+                deleteEvents = false;
+                errorMessage = "Exception: " + e.getMessage();
+            } finally {
+                boolean isDebugMode = SensorsDataAPI.sharedInstance(mContext).isDebugMode();
+                if (!TextUtils.isEmpty(errorMessage)) {
+                    if (isDebugMode || SensorsDataAPI.ENABLE_LOG) {
+                        Log.i(LOGTAG, errorMessage);
+                        if (isDebugMode) {
+                            try {
+                                if (toast != null) {
+                                    toast.cancel();
+                                }
+                                toast = Toast.makeText(mContext, errorMessage, Toast.LENGTH_LONG);
+                                toast.show();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
                     }
                 }
 
-            } catch (ConnectErrorException e) {
-                Log.w(LOGTAG, "Connection error: " + e.getMessage());
-            } catch (InvalidDataException e) {
-                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-                    throw new DebugModeException(e.getMessage());
-                } else {
-                    Log.i(LOGTAG, "Invalid data: " + e.getMessage());
+                if (deleteEvents) {
+                    count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
+                    if (isDebugMode || SensorsDataAPI.ENABLE_LOG) {
+                        Log.i(LOGTAG, String.format("Events flushed. [left = %d]", count));
+                    }
                 }
-            } catch (ResponseErrorException e) {
-                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-                    throw new DebugModeException(e.getMessage());
-                } else {
-                    Log.i(LOGTAG, "ResponseErrorException: " + e.getMessage());
-                }
-            } catch (Exception e) {
-                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-                    throw new DebugModeException(e.getMessage());
-                } else {
-                    Log.i(LOGTAG, "Exception: " + e.getMessage());
-                }
-            } finally {
                 if (null != bout)
                     try {
                         bout.close();
