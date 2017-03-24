@@ -117,16 +117,10 @@ class AnalyticsMessages {
     }
 
     public void flush() {
-        try {
-            if (SensorsDataUtils.isNetworkAvailable(mContext)) {
-                final Message m = Message.obtain();
-                m.what = FLUSH_QUEUE;
+        final Message m = Message.obtain();
+        m.what = FLUSH_QUEUE;
 
-                mWorker.runMessage(m);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        mWorker.runMessage(m);
     }
 
     private byte[] slurp(final InputStream inputStream)
@@ -145,6 +139,13 @@ class AnalyticsMessages {
     }
 
     public void sendData() {
+        try {
+            if (!SensorsDataUtils.isNetworkAvailable(mContext)) {
+                return;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         int count = 100;
         Toast toast = null;
         while (count > 0) {
@@ -265,7 +266,7 @@ class AnalyticsMessages {
                                 if (toast != null) {
                                     toast.cancel();
                                 }
-                                toast = Toast.makeText(mContext, errorMessage, Toast.LENGTH_LONG);
+                                toast = Toast.makeText(mContext, errorMessage, Toast.LENGTH_SHORT);
                                 toast.show();
                             } catch (Exception e) {
                                 e.printStackTrace();
@@ -279,6 +280,8 @@ class AnalyticsMessages {
                     if (isDebugMode || SensorsDataAPI.ENABLE_LOG) {
                         Log.i(LOGTAG, String.format("Events flushed. [left = %d]", count));
                     }
+                } else {
+                    count = 0;
                 }
                 if (null != bout)
                     try {
