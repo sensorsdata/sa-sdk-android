@@ -15,7 +15,6 @@ import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
 import android.util.Log;
-import android.webkit.WebView;
 import android.widget.Toast;
 
 import org.json.JSONArray;
@@ -261,7 +260,7 @@ class AnalyticsMessages {
                 if (!TextUtils.isEmpty(errorMessage)) {
                     if (isDebugMode || SensorsDataAPI.ENABLE_LOG) {
                         Log.i(LOGTAG, errorMessage);
-                        if (isDebugMode) {
+                        if (isDebugMode && SensorsDataAPI.SHOW_DEBUG_INFO_VIEW) {
                             try {
                                 if (toast != null) {
                                     toast.cancel();
@@ -431,16 +430,6 @@ class AnalyticsMessages {
                     }
                 } catch (final RuntimeException e) {
                     Log.e(LOGTAG, "Worker threw an unhandled exception", e);
-                    // XXX: 当遇到未知错误时，不停止 SDK 发送
-//          synchronized (mHandlerLock) {
-//            mHandler = null;
-//            try {
-//              Looper.myLooper().quit();
-//              Log.e(LOGTAG, "SensorsData will not process any more analytics messages", e);
-//            } catch (final Exception tooLate) {
-//              Log.e(LOGTAG, "Could not halt looper", tooLate);
-//            }
-//          }
                 }
             }
         }

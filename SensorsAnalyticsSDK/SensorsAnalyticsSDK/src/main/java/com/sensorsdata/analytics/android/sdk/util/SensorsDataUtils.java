@@ -12,6 +12,7 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.webkit.WebSettings;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.FileReader;
@@ -20,10 +21,28 @@ import java.io.LineNumberReader;
 import java.io.Reader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 public final class SensorsDataUtils {
+
+    public static String operatorToCarrier(String operator) {
+        String other = "其他";
+        if (TextUtils.isEmpty(operator)) {
+            return other;
+        }
+
+        if (sCarrierMap.containsKey(operator)) {
+            return sCarrierMap.get(operator);
+        } else {
+            return other;
+        }
+    }
 
     private static SharedPreferences getSharedPreferences(Context context) {
         final String sharedPrefsName = SHARED_PREF_EDITS_FILE;
@@ -41,10 +60,26 @@ public final class SensorsDataUtils {
         }
     }
 
+    public static void mergeJSONObject(final JSONObject source, JSONObject dest)
+            throws JSONException {
+        Iterator<String> superPropertiesIterator = source.keys();
+        while (superPropertiesIterator.hasNext()) {
+            String key = superPropertiesIterator.next();
+            Object value = source.get(key);
+            if (value instanceof Date) {
+                synchronized (mDateFormat) {
+                    dest.put(key, mDateFormat.format((Date) value));
+                }
+            } else {
+                dest.put(key, value);
+            }
+        }
+    }
+
     /**
      * 获取 UA 值
-     * @param context
-     * @return
+     * @param context Context
+     * @return 当前 UA 值
      */
     public static String getUserAgent(Context context) {
         try {
@@ -310,6 +345,28 @@ public final class SensorsDataUtils {
     private static final String SHARED_PREF_EDITS_FILE = "sensorsdata";
     private static final String SHARED_PREF_DEVICE_ID_KEY = "sensorsdata.device.id";
     private static final String SHARED_PREF_USER_AGENT_KEY = "sensorsdata.user.agent";
+
+    private static final SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"
+            + ".SSS", Locale.CHINA);
+    private static final Map<String, String> sCarrierMap = new HashMap<String, String>() {
+        {
+            //中国移动
+            put("46000", "中国移动");
+            put("46002", "中国移动");
+            put("46007", "中国移动");
+            put("46008", "中国移动");
+
+            //中国联通
+            put("46001", "中国联通");
+            put("46006", "中国联通");
+            put("46009", "中国联通");
+
+            //中国电信
+            put("46003", "中国电信");
+            put("46005", "中国电信");
+            put("46011", "中国电信");
+        }
+    };
 
     private static final String LOGTAG = "SA.SensorsDataUtils";
 }

@@ -88,24 +88,6 @@ public class SensorsDataAPI {
 
         final String packageName = context.getApplicationContext().getPackageName();
 
-        {
-            //中国移动
-            sCarrierMap.put("46000", "中国移动");
-            sCarrierMap.put("46002", "中国移动");
-            sCarrierMap.put("46007", "中国移动");
-            sCarrierMap.put("46008", "中国移动");
-
-            //中国联通
-            sCarrierMap.put("46001", "中国联通");
-            sCarrierMap.put("46006", "中国联通");
-            sCarrierMap.put("46009", "中国联通");
-
-            //中国电信
-            sCarrierMap.put("46003", "中国电信");
-            sCarrierMap.put("46005", "中国电信");
-            sCarrierMap.put("46011", "中国电信");
-        }
-
         mFilterActivities = new ArrayList<>();
 
         try {
@@ -144,14 +126,10 @@ public class SensorsDataAPI {
                 mConfigureUrl = configureURL;
             }
 
-            mDebugMode = debugMode;
-            //打开debug模式，弹出提示
-            if (mDebugMode != DebugMode.DEBUG_OFF) {
-                showDebugModeWarning();
-            }
-
             ENABLE_LOG = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
                     false);
+            SHOW_DEBUG_INFO_VIEW = configBundle.getBoolean("com.sensorsdata.analytics.android.ShowDebugInfoView",
+                    true);
 
             mFlushInterval = configBundle.getInt("com.sensorsdata.analytics.android.FlushInterval",
                     15000);
@@ -161,6 +139,16 @@ public class SensorsDataAPI {
                     false);
             mEnableVTrack = configBundle.getBoolean("com.sensorsdata.analytics.android.VTrack",
                     true);
+            mEnableAndroidId = configBundle.getBoolean("com.sensorsdata.analytics.android.AndroidId",
+                    false);
+
+            mDebugMode = debugMode;
+            //打开debug模式，弹出提示
+            if (mDebugMode != DebugMode.DEBUG_OFF) {
+                showDebugModeWarning();
+            } else {
+                SHOW_DEBUG_INFO_VIEW = false;
+            }
 
             if (Build.VERSION.SDK_INT >= VTRACK_SUPPORTED_MIN_API
                     && mEnableVTrack) {
@@ -195,7 +183,7 @@ public class SensorsDataAPI {
                         + " url '%s', configure url '%s' flush interval %d ms, debugMode: %s", mServerUrl,
                 mConfigureUrl, mFlushInterval, debugMode));
 
-        final Map<String, Object> deviceInfo = new HashMap<String, Object>();
+        final Map<String, Object> deviceInfo = new HashMap<>();
 
         {
             deviceInfo.put("$lib", "Android");
@@ -222,11 +210,7 @@ public class SensorsDataAPI {
             String operatorString = telephonyManager.getSimOperator();
 
             if (!TextUtils.isEmpty(operatorString)) {
-                if (sCarrierMap.containsKey(operatorString)) {
-                    deviceInfo.put("$carrier", sCarrierMap.get(operatorString));
-                } else {
-                    deviceInfo.put("$carrier", "其他");
-                }
+                deviceInfo.put("$carrier", SensorsDataUtils.operatorToCarrier(operatorString));
             }
 
 //            String androidID = SensorsDataUtils.getAndroidID(mContext);
@@ -236,7 +220,7 @@ public class SensorsDataAPI {
         }
 
         mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
-        mTrackTimer = new HashMap<String, EventTimer>();
+        mTrackTimer = new HashMap<>();
 
         final SharedPreferencesLoader.OnPrefsLoadedListener listener =
                 new SharedPreferencesLoader.OnPrefsLoadedListener() {
@@ -250,6 +234,16 @@ public class SensorsDataAPI {
                 sPrefsLoader.loadPreferences(context, prefsName, listener);
 
         mDistinctId = new PersistentDistinctId(storedPreferences);
+        if (mEnableAndroidId) {
+            try {
+                String androidId = SensorsDataUtils.getAndroidID(mContext);
+                if (!TextUtils.isEmpty(androidId) && !"9774d56d682e549c".equals(androidId)) {
+                    identify(androidId);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         mLoginId = new PersistentLoginId(storedPreferences);
         mSuperProperties = new PersistentSuperProperties(storedPreferences);
         mFirstStart = new PersistentFirstStart(storedPreferences);
@@ -415,6 +409,14 @@ public class SensorsDataAPI {
     }
 
     /**
+     * 开启 debug 模式，控制是否显示 debugInfoView，对于 Android，是 Toast
+     * @param show true:显示，false:不显示
+     */
+    public void showDebugInfoView(boolean show) {
+        this.SHOW_DEBUG_INFO_VIEW = show;
+    }
+
+    /**
      * 屏蔽某个 Activity 的可视化埋点功能
      *
      * @param canonicalName Activity 的 Canonical Name
@@ -530,6 +532,13 @@ public class SensorsDataAPI {
      */
     public void resetAnonymousId() {
         synchronized (mDistinctId) {
+            if (mEnableAndroidId) {
+                String androidId = SensorsDataUtils.getAndroidID(mContext);
+                if (!TextUtils.isEmpty(androidId) && !"9774d56d682e549c".equals(androidId)) {
+                    mDistinctId.commit(androidId);
+                    return;
+                }
+            }
             mDistinctId.commit(UUID.randomUUID().toString());
         }
     }
@@ -791,7 +800,7 @@ public class SensorsDataAPI {
                 trackProperties.put("$url", url);
                 mLastScreenUrl = url;
                 if (properties != null) {
-                    mergeJSONObject(properties, trackProperties);
+                    SensorsDataUtils.mergeJSONObject(properties, trackProperties);
                 }
                 track("$AppViewScreen", trackProperties);
             } catch (JSONException e) {
@@ -805,7 +814,7 @@ public class SensorsDataAPI {
      * 遍历mTrackTimer
      * eventAccumulatedDuration = eventAccumulatedDuration + System.currentTimeMillis() - startTime
      */
-    protected void appEnterBackground() {
+    private void appEnterBackground() {
         synchronized (mTrackTimer) {
             try {
                 Iterator iter = mTrackTimer.entrySet().iterator();
@@ -831,7 +840,7 @@ public class SensorsDataAPI {
      * 遍历mTrackTimer
      * startTime = System.currentTimeMillis()
      */
-    protected void appBecomeActive() {
+    private void appBecomeActive() {
         synchronized (mTrackTimer) {
             try {
                 Iterator iter = mTrackTimer.entrySet().iterator();
@@ -889,7 +898,7 @@ public class SensorsDataAPI {
         synchronized (mSuperProperties) {
             try {
                 JSONObject properties = mSuperProperties.get();
-                mergeJSONObject(superProperties, properties);
+                SensorsDataUtils.mergeJSONObject(superProperties, properties);
                 mSuperProperties.commit(properties);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -1127,7 +1136,7 @@ public class SensorsDataAPI {
 
                 synchronized (mSuperProperties) {
                     JSONObject superProperties = mSuperProperties.get();
-                    mergeJSONObject(superProperties, sendProperties);
+                    SensorsDataUtils.mergeJSONObject(superProperties, sendProperties);
                 }
 
                 // 当前网络状况
@@ -1141,7 +1150,7 @@ public class SensorsDataAPI {
             }
 
             if (null != properties) {
-                mergeJSONObject(properties, sendProperties);
+                SensorsDataUtils.mergeJSONObject(properties, sendProperties);
             }
 
             if (null != eventTimer) {
@@ -1282,76 +1291,6 @@ public class SensorsDataAPI {
         }
     }
 
-    private class VTrackUnsupported implements VTrack, DebugTracking {
-
-        public VTrackUnsupported() {
-        }
-
-        @Override
-        public void startUpdates() {
-            // do NOTHING
-        }
-
-        @Override
-        public void setEventBindings(JSONArray bindings) {
-            // do NOTHING
-        }
-
-        @Override
-        public void setVTrackServer(String serverUrl) {
-            // do NOTHING
-        }
-
-        @Override
-        public void enableEditingVTrack() {
-            // do NOTHING
-        }
-
-        @Override
-        public void disableActivity(String canonicalName) {
-            // do NOTHING
-        }
-
-        @Override
-        public void reportTrack(JSONObject eventJson) {
-            // do NOTHING
-        }
-    }
-
-    private enum EventType {
-        TRACK("track", true, false),
-        TRACK_SIGNUP("track_signup", true, false),
-        PROFILE_SET("profile_set", false, true),
-        PROFILE_SET_ONCE("profile_set_once", false, true),
-        PROFILE_UNSET("profile_unset", false, true),
-        PROFILE_INCREMENT("profile_increment", false, true),
-        PROFILE_APPEND("profile_append", false, true),
-        PROFILE_DELETE("profile_delete", false, true),
-        REGISTER_SUPER_PROPERTIES("register_super_properties", false, false);
-
-        EventType(String eventType, boolean isTrack, boolean isProfile) {
-            this.eventType = eventType;
-            this.track = isTrack;
-            this.profile = isProfile;
-        }
-
-        public String getEventType() {
-            return eventType;
-        }
-
-        public boolean isTrack() {
-            return track;
-        }
-
-        public boolean isProfile() {
-            return profile;
-        }
-
-        private String eventType;
-        private boolean track;
-        private boolean profile;
-    }
-
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     private class LifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
 
@@ -1367,7 +1306,7 @@ public class SensorsDataAPI {
 
         @Override
         public void onActivityStarted(Activity activity) {
-            synchronized (startedActivityCount) {
+            synchronized (mActivityLifecycleCallbacksLock) {
                 if (startedActivityCount == 0) {
                     // XXX: 注意内部执行顺序
                     boolean firstStart = mFirstStart.get();
@@ -1447,7 +1386,7 @@ public class SensorsDataAPI {
                         String screenUrl = screenAutoTracker.getScreenUrl();
                         JSONObject otherProperties = screenAutoTracker.getTrackProperties();
                         if (otherProperties != null) {
-                            mergeJSONObject(otherProperties, properties);
+                            SensorsDataUtils.mergeJSONObject(otherProperties, properties);
                         }
 
                         trackViewScreen(screenUrl, properties);
@@ -1466,7 +1405,7 @@ public class SensorsDataAPI {
 
         @Override
         public void onActivityStopped(Activity activity) {
-            synchronized (startedActivityCount) {
+            synchronized (mActivityLifecycleCallbacksLock) {
                 startedActivityCount = startedActivityCount - 1;
 
                 if (startedActivityCount == 0) {
@@ -1502,209 +1441,22 @@ public class SensorsDataAPI {
 
     }
 
-    static class PersistentDistinctId extends PersistentIdentity<String> {
-
-        PersistentDistinctId(Future<SharedPreferences> loadStoredPreferences) {
-            super(loadStoredPreferences, "events_distinct_id", new PersistentSerializer<String>() {
-                @Override
-                public String load(String value) {
-                    return value;
-                }
-
-                @Override
-                public String save(String item) {
-                    return item;
-                }
-
-                @Override
-                public String create() {
-                    return UUID.randomUUID().toString();
-                }
-            });
-        }
-
-    }
-
-    static class PersistentLoginId extends PersistentIdentity<String> {
-
-        PersistentLoginId(Future<SharedPreferences> loadStoredPreferences) {
-            super(loadStoredPreferences, "events_login_id", new PersistentSerializer<String>() {
-                @Override
-                public String load(String value) {
-                    return value;
-                }
-
-                @Override
-                public String save(String item) {
-                    return item;
-                }
-
-                @Override
-                public String create() {
-                    return null;
-                }
-            });
-        }
-
-    }
-
-    static class PersistentSuperProperties extends PersistentIdentity<JSONObject> {
-
-        PersistentSuperProperties(Future<SharedPreferences> loadStoredPreferences) {
-            super(loadStoredPreferences, "super_properties", new PersistentSerializer<JSONObject>() {
-                @Override
-                public JSONObject load(String value) {
-                    try {
-                        return new JSONObject(value);
-                    } catch (JSONException e) {
-                        Log.e(LOGTAG, "failed to load SuperProperties from SharedPreferences.", e);
-                        return null;
-                    }
-                }
-
-                @Override
-                public String save(JSONObject item) {
-                    return item.toString();
-                }
-
-                @Override
-                public JSONObject create() {
-                    return new JSONObject();
-                }
-            });
-        }
-    }
-
-    static class PersistentFirstStart extends PersistentIdentity<Boolean> {
-        PersistentFirstStart(Future<SharedPreferences> loadStoredPreferences) {
-            super(loadStoredPreferences, "first_start", new PersistentSerializer<Boolean>() {
-                @Override
-                public Boolean load(String value) {
-                    return false;
-                }
-
-                @Override
-                public String save(Boolean item) {
-                    return String.valueOf(true);
-                }
-
-                @Override
-                public Boolean create() {
-                    return true;
-                }
-            });
-        }
-    }
-
-    static class PersistentFirstDay extends PersistentIdentity<String> {
-        PersistentFirstDay(Future<SharedPreferences> loadStoredPreferences) {
-            super(loadStoredPreferences, "first_day", new PersistentSerializer<String>() {
-                @Override
-                public String load(String value) {
-                    return value;
-                }
-
-                @Override
-                public String save(String item) {
-                    return item;
-                }
-
-                @Override
-                public String create() {
-                    return null;
-                }
-            });
-        }
-    }
-
-    static class PersistentFirstTrackInstallation extends PersistentIdentity<Boolean> {
-        PersistentFirstTrackInstallation(Future<SharedPreferences> loadStoredPreferences) {
-            super(loadStoredPreferences, "first_track_installation", new PersistentSerializer<Boolean>() {
-                @Override
-                public Boolean load(String value) {
-                    return false;
-                }
-
-                @Override
-                public String save(Boolean item) {
-                    return String.valueOf(true);
-                }
-
-                @Override
-                public Boolean create() {
-                    return true;
-                }
-            });
-        }
-    }
-
-    private static class EventTimer {
-
-        EventTimer(TimeUnit timeUnit) {
-            this.startTime = System.currentTimeMillis();
-            this.timeUnit = timeUnit;
-            this.eventAccumulatedDuration = 0;
-        }
-
-        long duration() {
-            long duration = timeUnit.convert(System.currentTimeMillis() - startTime + eventAccumulatedDuration, TimeUnit.MILLISECONDS);
-            return duration < 0 ? 0: duration;
-        }
-
-        public long getStartTime() {
-            return startTime;
-        }
-
-        public long getEventAccumulatedDuration() {
-            return eventAccumulatedDuration;
-        }
-
-        public void setStartTime(long startTime) {
-            this.startTime = startTime;
-        }
-
-        public void setEventAccumulatedDuration(long eventAccumulatedDuration) {
-            this.eventAccumulatedDuration = eventAccumulatedDuration;
-        }
-
-        private final TimeUnit timeUnit;
-        private long startTime;
-        private long eventAccumulatedDuration;
-    }
-
-    private static void mergeJSONObject(final JSONObject source, JSONObject dest)
-            throws JSONException {
-        Iterator<String> superPropertiesIterator = source.keys();
-        while (superPropertiesIterator.hasNext()) {
-            String key = superPropertiesIterator.next();
-            Object value = source.get(key);
-            if (value instanceof Date) {
-                synchronized (mDateFormat) {
-                    dest.put(key, mDateFormat.format((Date) value));
-                }
-            } else {
-                dest.put(key, value);
-            }
-        }
-    }
-
-
     // 可视化埋点功能最低API版本
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.39";
+    static final String VERSION = "1.6.40";
 
     static Boolean ENABLE_LOG = false;
+    static Boolean SHOW_DEBUG_INFO_VIEW = true;
 
     private static final Pattern KEY_PATTERN = Pattern.compile(
             "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
             Pattern.CASE_INSENSITIVE);
 
     // Maps each token to a singleton SensorsDataAPI instance
-    private static final Map<Context, SensorsDataAPI> sInstanceMap = new HashMap<Context, SensorsDataAPI>();
+    private static final Map<Context, SensorsDataAPI> sInstanceMap = new HashMap<>();
     private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
-    private static final Map<String, String> sCarrierMap = new HashMap<>();
 
     // Configures
   /* SensorsAnalytics 地址 */
@@ -1721,6 +1473,8 @@ public class SensorsDataAPI {
     private boolean mAutoTrack;
     /* SDK 开启可视化埋点功能 */
     private boolean mEnableVTrack;
+    /* AndroidId 作为默认匿名Id */
+    private boolean mEnableAndroidId;
     /* 上个页面的Url*/
     private String mLastScreenUrl;
     private JSONObject mLastScreenTrackProperties;
@@ -1736,11 +1490,11 @@ public class SensorsDataAPI {
     private final Map<String, Object> mDeviceInfo;
     private final Map<String, EventTimer> mTrackTimer;
     private List<String> mFilterActivities;
+    //LifecycleCallbacks 同步锁
+    private final Object mActivityLifecycleCallbacksLock = new Object();
 
     private final VTrack mVTrack;
 
-    private static final SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"
-            + ".SSS");
     private static final SimpleDateFormat mIsFirstDayDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
     private static final String LOGTAG = "SA.SensorsDataAPI";
