@@ -478,7 +478,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
                 }
 
                 if (null == mSnapshot) {
-                    Log.w(LOGTAG, "Snapshot should be initialize at first callsing.");
+                    Log.w(LOGTAG, "Snapshot should be initialize at first calling.");
                     return;
                 }
 

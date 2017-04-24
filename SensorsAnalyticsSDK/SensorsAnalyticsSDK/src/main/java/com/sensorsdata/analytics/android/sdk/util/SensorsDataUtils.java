@@ -1,7 +1,10 @@
 package com.sensorsdata.analytics.android.sdk.util;
 
+import android.app.ActionBar;
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
@@ -10,6 +13,7 @@ import android.os.Build;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+import android.util.Log;
 import android.webkit.WebSettings;
 
 import org.json.JSONException;
@@ -22,9 +26,11 @@ import java.io.Reader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -47,6 +53,41 @@ public final class SensorsDataUtils {
     private static SharedPreferences getSharedPreferences(Context context) {
         final String sharedPrefsName = SHARED_PREF_EDITS_FILE;
         return context.getSharedPreferences(sharedPrefsName, Context.MODE_PRIVATE);
+    }
+
+    public static void getScreenNameAndTitleFromActivity(JSONObject properties, Activity activity) {
+        if (activity == null || properties == null) {
+            return;
+        }
+
+        /**
+         * 尝试读取页面 title
+         */
+        try {
+            properties.put("$screen_name", activity.getClass().getCanonicalName());
+
+            String activityTitle = activity.getTitle().toString();
+            ActionBar actionBar = activity.getActionBar();
+            if (actionBar != null) {
+                if (!TextUtils.isEmpty(actionBar.getTitle())) {
+                    activityTitle = actionBar.getTitle().toString();
+                }
+            }
+            if (TextUtils.isEmpty(activityTitle)) {
+                PackageManager packageManager = activity.getPackageManager();
+                if (packageManager != null) {
+                    ActivityInfo activityInfo = packageManager.getActivityInfo(activity.getComponentName(), 0);
+                    if (activityInfo != null) {
+                        activityTitle = activityInfo.loadLabel(packageManager).toString();
+                    }
+                }
+            }
+            if (!TextUtils.isEmpty(activityTitle)) {
+                properties.put("$title", activityTitle);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public static void cleanUserAgent(Context context) {
@@ -164,7 +205,42 @@ public final class SensorsDataUtils {
         return true;
     }
 
+    /**
+     * 检测权限
+     * @param context Context
+     * @param permission 权限名称
+     * @return true:已允许该权限; false:没有允许该权限
+     */
+    public static boolean checkHasPermission(Context context, String permission) {
+        try {
+            final PackageManager packageManager = context.getPackageManager();
+            final String packageName = context.getPackageName();
+
+            if (packageManager == null || packageName == null) {
+                Log.w(LOGTAG, "Can't check configuration when using a Context with null packageManager or packageName");
+                return false;
+            }
+
+            if (PackageManager.PERMISSION_GRANTED != packageManager
+                    .checkPermission(permission, packageName)) {
+                Log.i(LOGTAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n"
+                        + "<uses-permission android:name=\"" + permission+ "\" />");
+                return false;
+            }
+
+            return true;
+        } catch (Exception e) {
+            Log.w(LOGTAG, e.toString());
+            return false;
+        }
+    }
+
     public static String networkType(Context context) {
+        // 检测权限
+        if (!checkHasPermission(context, "android.permission.ACCESS_NETWORK_STATE")) {
+            return "NULL";
+        }
+
         // Wifi
         ConnectivityManager manager = (ConnectivityManager)
                 context.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -206,6 +282,10 @@ public final class SensorsDataUtils {
     }
 
     public static boolean isNetworkAvailable(Context context) {
+        // 检测权限
+        if (!checkHasPermission(context, "android.permission.ACCESS_NETWORK_STATE")) {
+            return false;
+        }
         try {
             ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
             NetworkInfo networkInfo = cm.getActiveNetworkInfo();
@@ -330,6 +410,18 @@ public final class SensorsDataUtils {
         }
     }
 
+    public static boolean isValidAndroidId(String androidId) {
+        if (TextUtils.isEmpty(androidId)) {
+            return false;
+        }
+
+        if (mInvalidAndroidId.contains(androidId.toLowerCase())) {
+            return false;
+        }
+
+        return true;
+    }
+
     public static boolean hasUtmProperties(JSONObject properties) {
         if (properties == null) {
             return false;
@@ -365,6 +457,12 @@ public final class SensorsDataUtils {
             put("46003", "中国电信");
             put("46005", "中国电信");
             put("46011", "中国电信");
+        }
+    };
+    private static final List<String> mInvalidAndroidId = new ArrayList<String>() {
+        {
+            add("9774d56d682e549c");
+            add("0123456789abcdef");
         }
     };
 

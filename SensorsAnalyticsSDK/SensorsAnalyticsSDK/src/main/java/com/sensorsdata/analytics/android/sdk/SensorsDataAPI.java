@@ -4,13 +4,10 @@ import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
-import android.app.ActionBar;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -82,13 +79,32 @@ public class SensorsDataAPI {
         }
     }
 
+    /**
+     * AutoTrack 默认采集的事件类型
+     */
+    public enum AutoTrackEventType {
+        APP_START("$AppStart"),
+        APP_END("$AppEnd"),
+        APP_CLICK("$AppClick"),
+        APP_VIEW_SCREEN("$AppViewScreen");
+        private final String eventName;
+
+        AutoTrackEventType(String eventName) {
+            this.eventName = eventName;
+        }
+
+        String getEventName() {
+            return eventName;
+        }
+    }
+
     SensorsDataAPI(Context context, String serverURL, String configureURL,
                    String vtrackServerURL, DebugMode debugMode) {
         mContext = context;
 
         final String packageName = context.getApplicationContext().getPackageName();
 
-        mFilterActivities = new ArrayList<>();
+        mAutoTrackIgnoredActivities = new ArrayList<>();
 
         try {
             SensorsDataUtils.cleanUserAgent(mContext);
@@ -174,9 +190,40 @@ public class SensorsDataAPI {
 
         mMessages = AnalyticsMessages.getInstance(mContext, packageName);
 
+        final SharedPreferencesLoader.OnPrefsLoadedListener listener =
+                new SharedPreferencesLoader.OnPrefsLoadedListener() {
+                    @Override
+                    public void onPrefsLoaded(SharedPreferences preferences) {
+                    }
+                };
+
+        final String prefsName = "com.sensorsdata.analytics.android.sdk.SensorsDataAPI";
+        final Future<SharedPreferences> storedPreferences =
+                sPrefsLoader.loadPreferences(context, prefsName, listener);
+
+        mDistinctId = new PersistentDistinctId(storedPreferences);
+        if (mEnableAndroidId) {
+            try {
+                String androidId = SensorsDataUtils.getAndroidID(mContext);
+                if (SensorsDataUtils.isValidAndroidId(androidId)) {
+                    identify(androidId);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        mLoginId = new PersistentLoginId(storedPreferences);
+        mSuperProperties = new PersistentSuperProperties(storedPreferences);
+        mFirstStart = new PersistentFirstStart(storedPreferences);
+        mFirstTrackInstallation = new PersistentFirstTrackInstallation(storedPreferences);
+        mFirstDay = new PersistentFirstDay(storedPreferences);
+        if (mFirstDay.get() == null) {
+            mFirstDay.commit(mIsFirstDayDateFormat.format(System.currentTimeMillis()));
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
             final Application app = (Application) context.getApplicationContext();
-            app.registerActivityLifecycleCallbacks(new LifecycleCallbacks());
+            app.registerActivityLifecycleCallbacks(new SensorsDataActivityLifecycleCallbacks(this, mFirstStart));
         }
 
         Log.i(LOGTAG, String.format("Initialized the instance of Sensors Analytics SDK with server"
@@ -221,37 +268,6 @@ public class SensorsDataAPI {
 
         mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
         mTrackTimer = new HashMap<>();
-
-        final SharedPreferencesLoader.OnPrefsLoadedListener listener =
-                new SharedPreferencesLoader.OnPrefsLoadedListener() {
-                    @Override
-                    public void onPrefsLoaded(SharedPreferences preferences) {
-                    }
-                };
-
-        final String prefsName = "com.sensorsdata.analytics.android.sdk.SensorsDataAPI";
-        final Future<SharedPreferences> storedPreferences =
-                sPrefsLoader.loadPreferences(context, prefsName, listener);
-
-        mDistinctId = new PersistentDistinctId(storedPreferences);
-        if (mEnableAndroidId) {
-            try {
-                String androidId = SensorsDataUtils.getAndroidID(mContext);
-                if (!TextUtils.isEmpty(androidId) && !"9774d56d682e549c".equals(androidId)) {
-                    identify(androidId);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        mLoginId = new PersistentLoginId(storedPreferences);
-        mSuperProperties = new PersistentSuperProperties(storedPreferences);
-        mFirstStart = new PersistentFirstStart(storedPreferences);
-        mFirstTrackInstallation = new PersistentFirstTrackInstallation(storedPreferences);
-        mFirstDay = new PersistentFirstDay(storedPreferences);
-        if (mFirstDay.get() == null) {
-            mFirstDay.commit(mIsFirstDayDateFormat.format(System.currentTimeMillis()));
-        }
 
         mVTrack.startUpdates();
         if (mEnableVTrack) {
@@ -341,6 +357,18 @@ public class SensorsDataAPI {
         }
     }
 
+    public static SensorsDataAPI sharedInstance() {
+        synchronized (sInstanceMap) {
+            if (sInstanceMap.size() > 0) {
+                Iterator<SensorsDataAPI> iterator = sInstanceMap.values().iterator();
+                if (iterator.hasNext()) {
+                    return iterator.next();
+                }
+            }
+            return null;
+        }
+    }
+
     /**
      * 两次数据发送的最小时间间隔，单位毫秒
      *
@@ -409,14 +437,6 @@ public class SensorsDataAPI {
     }
 
     /**
-     * 开启 debug 模式，控制是否显示 debugInfoView，对于 Android，是 Toast
-     * @param show true:显示，false:不显示
-     */
-    public void showDebugInfoView(boolean show) {
-        this.SHOW_DEBUG_INFO_VIEW = show;
-    }
-
-    /**
      * 屏蔽某个 Activity 的可视化埋点功能
      *
      * @param canonicalName Activity 的 Canonical Name
@@ -437,6 +457,14 @@ public class SensorsDataAPI {
      */
     public void enableAutoTrack() {
         mAutoTrack = true;
+    }
+
+    /**
+     * 是否开启 AutoTrack
+     * @return true: 开启 AutoTrack; false：没有开启 AutoTrack
+     */
+    public boolean isAutoTrackEnabled() {
+        return mAutoTrack;
     }
 
     /**
@@ -480,20 +508,125 @@ public class SensorsDataAPI {
      *
      * @param activitiesList  activity列表
      */
-    public void filterAutoTrackActivities(List<String> activitiesList) {
+    public void ignoreAutoTrackActivities(List<Class<?>> activitiesList) {
         if (activitiesList == null || activitiesList.size() == 0) {
             return;
         }
 
-        if (mFilterActivities == null) {
-            mFilterActivities = new ArrayList<>();
+        if (mAutoTrackIgnoredActivities == null) {
+            mAutoTrackIgnoredActivities = new ArrayList<>();
         }
 
-        for (String activity: activitiesList) {
-            if (!TextUtils.isEmpty(activity) && !mFilterActivities.contains(activity)) {
-                mFilterActivities.add(activity);
+        for (Class<?> activity : activitiesList) {
+            if (activity != null && !mAutoTrackIgnoredActivities.contains(activity.hashCode())) {
+                mAutoTrackIgnoredActivities.add(activity.hashCode());
             }
         }
+    }
+
+    /**
+     * 指定某个 activity 不被 AutoTrack
+     * @param activity Activity
+     */
+    public void ignoreAutoTrackActivity(Class<?> activity) {
+        if (activity == null) {
+            return;
+        }
+
+        if (mAutoTrackIgnoredActivities == null) {
+            mAutoTrackIgnoredActivities = new ArrayList<>();
+        }
+
+        if (!mAutoTrackIgnoredActivities.contains(activity.hashCode())) {
+            mAutoTrackIgnoredActivities.add(activity.hashCode());
+        }
+    }
+
+    /**
+     * 指定哪些 activity 不被AutoTrack
+     *
+     * @param activitiesList  activity列表
+     */
+    @Deprecated
+    public void filterAutoTrackActivities(List<Class<?>> activitiesList) {
+        ignoreAutoTrackActivities(activitiesList);
+    }
+
+    /**
+     * 指定某个 activity 不被 AutoTrack
+     * @param activity Activity
+     */
+    @Deprecated
+    public void filterAutoTrackActivity(Class<?> activity) {
+        ignoreAutoTrackActivity(activity);
+    }
+
+    /**
+     * 判断 AutoTrack 时，某个 Activity 是否被过滤
+     * 如果过滤的话，会过滤掉 Activity 的 $AppViewScreen 事件及控件的 $AppClick 事件
+     * @param activity Activity
+     * @return Activity 是否被过滤
+     */
+    public boolean isActivityAutoTrackIgnored(Class<?> activity) {
+        if (activity != null &&
+                mAutoTrackIgnoredActivities != null &&
+                mAutoTrackIgnoredActivities.contains(activity.hashCode())) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private List<AutoTrackEventType> mAutoTrackIgnoreEventList = new ArrayList<>();
+
+    /**
+     * 过滤掉 AutoTrack 的某个事件类型
+     * @param autoTrackEventType AutoTrackEventType
+     */
+    public void ignoreAutoTrackEventType(AutoTrackEventType autoTrackEventType) {
+        if (autoTrackEventType == null) {
+            return;
+        }
+
+        if (mAutoTrackIgnoreEventList == null) {
+            mAutoTrackIgnoreEventList = new ArrayList<>();
+        }
+
+        if (!mAutoTrackIgnoreEventList.contains(autoTrackEventType)) {
+            mAutoTrackIgnoreEventList.add(autoTrackEventType);
+        }
+    }
+
+    /**
+     * 过滤掉 AutoTrack 的某些事件类型
+     * @param eventTypeList AutoTrackEventType List
+     */
+    public void ignoreAutoTrackEventType(List<AutoTrackEventType> eventTypeList) {
+        if (eventTypeList == null) {
+            return;
+        }
+
+        if (mAutoTrackIgnoreEventList == null) {
+            mAutoTrackIgnoreEventList = new ArrayList<>();
+        }
+
+        for (AutoTrackEventType eventType: eventTypeList) {
+            if (eventType != null && !mAutoTrackIgnoreEventList.contains(eventType)) {
+                mAutoTrackIgnoreEventList.add(eventType);
+            }
+        }
+    }
+
+    /**
+     * 判断 某个 AutoTrackEventType 是否被忽略
+     * @param eventType AutoTrackEventType
+     * @return true 被忽略; false 没有被忽略
+     */
+    public boolean isAutoTrackEventTypeIgnored(AutoTrackEventType eventType) {
+        if (eventType != null && mAutoTrackIgnoreEventList != null && mAutoTrackIgnoreEventList.contains(eventType)) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -534,7 +667,7 @@ public class SensorsDataAPI {
         synchronized (mDistinctId) {
             if (mEnableAndroidId) {
                 String androidId = SensorsDataUtils.getAndroidID(mContext);
-                if (!TextUtils.isEmpty(androidId) && !"9774d56d682e549c".equals(androidId)) {
+                if (SensorsDataUtils.isValidAndroidId(androidId)) {
                     mDistinctId.commit(androidId);
                     return;
                 }
@@ -559,7 +692,7 @@ public class SensorsDataAPI {
     /**
      * 设置当前用户的distinctId。一般情况下，如果是一个注册用户，则应该使用注册系统内
      * 的user_id，如果是个未注册用户，则可以选择一个不会重复的匿名ID，如设备ID等，如果
-     * 客户没有设置indentify，则使用SDK自动生成的匿名ID
+     * 客户没有调用identify，则使用SDK自动生成的匿名ID
      *
      * @param distinctId 当前用户的distinctId，仅接受数字、下划线和大小写字母
      * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当 distinctId
@@ -814,7 +947,7 @@ public class SensorsDataAPI {
      * 遍历mTrackTimer
      * eventAccumulatedDuration = eventAccumulatedDuration + System.currentTimeMillis() - startTime
      */
-    private void appEnterBackground() {
+    protected void appEnterBackground() {
         synchronized (mTrackTimer) {
             try {
                 Iterator iter = mTrackTimer.entrySet().iterator();
@@ -840,7 +973,7 @@ public class SensorsDataAPI {
      * 遍历mTrackTimer
      * startTime = System.currentTimeMillis()
      */
-    private void appBecomeActive() {
+    protected void appBecomeActive() {
         synchronized (mTrackTimer) {
             try {
                 Iterator iter = mTrackTimer.entrySet().iterator();
@@ -1215,13 +1348,46 @@ public class SensorsDataAPI {
             } else {
                 libProperties.put("$lib_method", "code");
 
-                StackTraceElement[] trace = (new Exception()).getStackTrace();
-                if (trace.length > 2) {
-                    StackTraceElement traceElement = trace[2];
-                    libProperties.put("$lib_detail", String.format("%s##%s##%s##%s", traceElement
-                                    .getClassName(), traceElement.getMethodName(), traceElement.getFileName(),
-                            traceElement.getLineNumber()));
+                String libDetail = null;
+                if (mAutoTrack && properties != null) {
+                    if (AutoTrackEventType.APP_VIEW_SCREEN.getEventName().equals(eventName)) {
+                        if (!mAutoTrackIgnoreEventList.contains(AutoTrackEventType.APP_VIEW_SCREEN)) {
+                            if (properties.has("$screen_name")) {
+                                libDetail = String.format("%s##%s##%s##%s", properties.get("$screen_name").toString(), "", "", "");
+                            }
+                        }
+                    } else if (AutoTrackEventType.APP_CLICK.getEventName().equals(eventName)) {
+                        if (!mAutoTrackIgnoreEventList.contains(AutoTrackEventType.APP_CLICK)) {
+                            if (properties.has("$screen_name")) {
+                                libDetail = String.format("%s##%s##%s##%s", properties.get("$screen_name").toString(), "", "", "");
+                            }
+                        }
+                    } else if (AutoTrackEventType.APP_START.getEventName().equals(eventName)) {
+                        if (!mAutoTrackIgnoreEventList.contains(AutoTrackEventType.APP_START)) {
+                            if (properties.has("$screen_name")) {
+                                libDetail = String.format("%s##%s##%s##%s", properties.get("$screen_name").toString(), "", "", "");
+                            }
+                        }
+                    } else if (AutoTrackEventType.APP_END.getEventName().equals(eventName)) {
+                        if (!mAutoTrackIgnoreEventList.contains(AutoTrackEventType.APP_END)) {
+                            if (properties.has("$screen_name")) {
+                                libDetail = String.format("%s##%s##%s##%s", properties.get("$screen_name").toString(), "", "", "");
+                            }
+                        }
+                    }
                 }
+
+                if (TextUtils.isEmpty(libDetail)) {
+                    StackTraceElement[] trace = (new Exception()).getStackTrace();
+                    if (trace.length > 2) {
+                        StackTraceElement traceElement = trace[2];
+                        libDetail = String.format("%s##%s##%s##%s", traceElement
+                                        .getClassName(), traceElement.getMethodName(), traceElement.getFileName(),
+                                traceElement.getLineNumber());
+                    }
+                }
+
+                libProperties.put("$lib_detail", libDetail);
             }
 
             if (isDepolyed) {
@@ -1231,7 +1397,7 @@ public class SensorsDataAPI {
                 }
             }
         } catch (JSONException e) {
-            throw new InvalidDataException("Unexpteced property");
+            throw new InvalidDataException("Unexpected property");
         }
     }
 
@@ -1291,161 +1457,11 @@ public class SensorsDataAPI {
         }
     }
 
-    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-    private class LifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
-
-        private boolean resumeFromBackground = false;
-        private Integer startedActivityCount = 0;
-
-        public LifecycleCallbacks() {
-        }
-
-        @Override
-        public void onActivityCreated(Activity activity, Bundle bundle) {
-        }
-
-        @Override
-        public void onActivityStarted(Activity activity) {
-            synchronized (mActivityLifecycleCallbacksLock) {
-                if (startedActivityCount == 0) {
-                    // XXX: 注意内部执行顺序
-                    boolean firstStart = mFirstStart.get();
-                    if (firstStart) {
-                        mFirstStart.commit(false);
-                    }
-
-                    try {
-                        appBecomeActive();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-
-                    if (mAutoTrack) {
-                        try {
-                            JSONObject properties = new JSONObject();
-                            properties.put("$resume_from_background", resumeFromBackground);
-                            properties.put("$is_first_time", firstStart);
-
-                            track("$AppStart", properties);
-
-                            trackTimer("$AppEnd", TimeUnit.SECONDS);
-                        } catch (InvalidDataException | JSONException e) {
-                            Log.w(LOGTAG, e);
-                        }
-                    }
-
-                    // 下次启动时，从后台恢复
-                    resumeFromBackground = true;
-                }
-
-                startedActivityCount = startedActivityCount + 1;
-            }
-        }
-
-        @Override
-        public void onActivityResumed(Activity activity) {
-            boolean mShowAutoTrack = true;
-            if (mFilterActivities != null && mFilterActivities.contains(activity.getClass().getCanonicalName())) {
-                mShowAutoTrack = false;
-            }
-            if (mAutoTrack && mShowAutoTrack) {
-                try {
-                    JSONObject properties = new JSONObject();
-                    properties.put("$screen_name", activity.getClass().getCanonicalName());
-
-                    /**
-                     * 尝试读取页面 title
-                     */
-                    try {
-                        String activityTitle = activity.getTitle().toString();
-                        ActionBar actionBar = activity.getActionBar();
-                        if (actionBar != null) {
-                            if (!TextUtils.isEmpty(actionBar.getTitle())) {
-                                activityTitle = actionBar.getTitle().toString();
-                            }
-                        }
-                        if (TextUtils.isEmpty(activityTitle)) {
-                            PackageManager packageManager = activity.getPackageManager();
-                            if (packageManager != null) {
-                                ActivityInfo activityInfo = packageManager.getActivityInfo(activity.getComponentName(), 0);
-                                if (activityInfo != null) {
-                                    activityTitle = activityInfo.loadLabel(packageManager).toString();
-                                }
-                            }
-                        }
-                        if (!TextUtils.isEmpty(activityTitle)) {
-                            properties.put("$title", activityTitle);
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-
-                    if (activity instanceof ScreenAutoTracker) {
-                        ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
-
-                        String screenUrl = screenAutoTracker.getScreenUrl();
-                        JSONObject otherProperties = screenAutoTracker.getTrackProperties();
-                        if (otherProperties != null) {
-                            SensorsDataUtils.mergeJSONObject(otherProperties, properties);
-                        }
-
-                        trackViewScreen(screenUrl, properties);
-                    } else {
-                        track("$AppViewScreen", properties);
-                    }
-                } catch (Exception e) {
-                    Log.w(LOGTAG, e);
-                }
-            }
-        }
-
-        @Override
-        public void onActivityPaused(Activity activity) {
-        }
-
-        @Override
-        public void onActivityStopped(Activity activity) {
-            synchronized (mActivityLifecycleCallbacksLock) {
-                startedActivityCount = startedActivityCount - 1;
-
-                if (startedActivityCount == 0) {
-                    try {
-                        appEnterBackground();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-
-                    if (mAutoTrack) {
-                        try {
-                            track("$AppEnd");
-                        } catch (Exception e) {
-                            Log.w(LOGTAG, e);
-                        }
-                    }
-                    try {
-                        mMessages.flush();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
-
-        @Override
-        public void onActivitySaveInstanceState(Activity activity, Bundle bundle) {
-        }
-
-        @Override
-        public void onActivityDestroyed(Activity activity) {
-        }
-
-    }
-
     // 可视化埋点功能最低API版本
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.40";
+    static final String VERSION = "1.6.41";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -1489,9 +1505,7 @@ public class SensorsDataAPI {
     private final PersistentFirstTrackInstallation mFirstTrackInstallation;
     private final Map<String, Object> mDeviceInfo;
     private final Map<String, EventTimer> mTrackTimer;
-    private List<String> mFilterActivities;
-    //LifecycleCallbacks 同步锁
-    private final Object mActivityLifecycleCallbacksLock = new Object();
+    private List<Integer> mAutoTrackIgnoredActivities;
 
     private final VTrack mVTrack;
 
