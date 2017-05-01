@@ -4,7 +4,6 @@ import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -18,6 +17,7 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.View;
 import android.webkit.WebView;
 import android.widget.Toast;
 
@@ -157,6 +157,8 @@ public class SensorsDataAPI {
                     true);
             mEnableAndroidId = configBundle.getBoolean("com.sensorsdata.analytics.android.AndroidId",
                     false);
+            mEnableButterknifeOnClick = configBundle.getBoolean("com.sensorsdata.analytics.android.ButterknifeOnClick",
+                    true);
 
             mDebugMode = debugMode;
             //打开debug模式，弹出提示
@@ -260,10 +262,10 @@ public class SensorsDataAPI {
                 deviceInfo.put("$carrier", SensorsDataUtils.operatorToCarrier(operatorString));
             }
 
-//            String androidID = SensorsDataUtils.getAndroidID(mContext);
-//            if (!TextUtils.isEmpty(androidID)) {
-//                deviceInfo.put("$device_id", androidID);
-//            }
+            String androidID = SensorsDataUtils.getAndroidID(mContext);
+            if (!TextUtils.isEmpty(androidID)) {
+                deviceInfo.put("$device_id", androidID);
+            }
         }
 
         mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
@@ -450,7 +452,8 @@ public class SensorsDataAPI {
     /**
      * 打开 SDK 自动追踪
      *
-     * 该功能自动追踪 App 的一些行为，例如 SDK 初始化、App 启动 / 关闭、进入页面 等等，具体信息请参考文档:
+     * 该功能自动追踪 App 的一些行为，例如 SDK 初始化、App 启动（$AppStart） / 关闭（$AppEnd）、
+     * 进入页面（$AppViewScreen）、控件被点击（$AppClick） 等等，具体信息请参考文档:
      * https://sensorsdata.cn/manual/android_sdk.html
      *
      * 该功能仅在 API 14 及以上版本中生效，默认关闭
@@ -465,6 +468,10 @@ public class SensorsDataAPI {
      */
     public boolean isAutoTrackEnabled() {
         return mAutoTrack;
+    }
+
+    public boolean isButterknifeOnClickEnabled() {
+        return mEnableButterknifeOnClick;
     }
 
     /**
@@ -627,6 +634,108 @@ public class SensorsDataAPI {
             return true;
         }
         return false;
+    }
+
+    /**
+     * 设置界面元素ID
+     *
+     * @param view   要设置的View
+     * @param viewID String 给这个View的ID
+     */
+    public void setViewID(View view, String viewID) {
+        if (view != null && !TextUtils.isEmpty(viewID)) {
+            view.setTag(R.id.sensors_analytics_tag_view_id, viewID);
+        }
+    }
+
+    /**
+     * 设置界面元素ID
+     *
+     * @param view   要设置的View
+     * @param viewID String 给这个View的ID
+     */
+    public void setViewID(android.app.Dialog view, String viewID) {
+        try {
+            if (view != null && !TextUtils.isEmpty(viewID)) {
+                if (view.getWindow() != null) {
+                    view.getWindow().getDecorView().setTag(R.id.sensors_analytics_tag_view_id, viewID);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 设置界面元素ID
+     *
+     * @param view   要设置的View
+     * @param viewID String 给这个View的ID
+     */
+    public void setViewID(android.support.v7.app.AlertDialog view, String viewID) {
+        try {
+            if (view != null && !TextUtils.isEmpty(viewID)) {
+                if (view.getWindow() != null) {
+                    view.getWindow().getDecorView().setTag(R.id.sensors_analytics_tag_view_id, viewID);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 忽略View
+     *
+     * @param view 要忽略的View
+     */
+    public void ignoreView(View view) {
+        if (view != null) {
+            view.setTag(R.id.sensors_analytics_tag_view_ignored, "1");
+        }
+    }
+
+    /**
+     * 设置View属性
+     *
+     * @param view       要设置的View
+     * @param properties 要设置的View的属性
+     */
+    public void setViewProperties(View view, JSONObject properties) {
+        if (view == null || properties == null) {
+            return;
+        }
+
+        view.setTag(R.id.sensors_analytics_tag_view_properties, properties);
+    }
+
+    private List<Class> mIgnoredViewTypeList = new ArrayList<>();
+
+    public List<Class> getIgnoredViewTypeList() {
+        if (mIgnoredViewTypeList == null) {
+            mIgnoredViewTypeList = new ArrayList<>();
+        }
+
+        return mIgnoredViewTypeList;
+    }
+
+    /**
+     * 忽略某一类型的 View
+     *
+     * @param viewType Class
+     */
+    public void ignoreViewType(Class viewType) {
+        if (viewType == null) {
+            return;
+        }
+
+        if (mIgnoredViewTypeList == null) {
+            mIgnoredViewTypeList = new ArrayList<>();
+        }
+
+        if (!mIgnoredViewTypeList.contains(viewType)) {
+            mIgnoredViewTypeList.add(viewType);
+        }
     }
 
     /**
@@ -1461,7 +1570,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.6.41";
+    static final String VERSION = "1.7.0";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -1494,6 +1603,7 @@ public class SensorsDataAPI {
     /* 上个页面的Url*/
     private String mLastScreenUrl;
     private JSONObject mLastScreenTrackProperties;
+    private boolean mEnableButterknifeOnClick;
 
     private final Context mContext;
     private final AnalyticsMessages mMessages;

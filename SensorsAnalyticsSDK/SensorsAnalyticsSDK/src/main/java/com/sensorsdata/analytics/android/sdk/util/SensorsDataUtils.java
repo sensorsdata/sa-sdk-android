@@ -51,18 +51,19 @@ public final class SensorsDataUtils {
     }
 
     private static SharedPreferences getSharedPreferences(Context context) {
-        final String sharedPrefsName = SHARED_PREF_EDITS_FILE;
-        return context.getSharedPreferences(sharedPrefsName, Context.MODE_PRIVATE);
+        return context.getSharedPreferences(SHARED_PREF_EDITS_FILE, Context.MODE_PRIVATE);
     }
 
+    /**
+     * 尝试读取页面 title
+     * @param properties JSONObject
+     * @param activity Activity
+     */
     public static void getScreenNameAndTitleFromActivity(JSONObject properties, Activity activity) {
         if (activity == null || properties == null) {
             return;
         }
 
-        /**
-         * 尝试读取页面 title
-         */
         try {
             properties.put("$screen_name", activity.getClass().getCanonicalName());
 
@@ -135,7 +136,7 @@ public final class SensorsDataUtils {
                             userAgent = WebSettings.getDefaultUserAgent(context);
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        Log.i(LOGTAG, "WebSettings NoSuchMethod: getDefaultUserAgent");
                     }
                 } else {
                     try {
@@ -179,30 +180,6 @@ public final class SensorsDataUtils {
         }
 
         return storedDeviceID;
-    }
-
-    public static boolean isInEmulator() {
-        if (!Build.HARDWARE.equals("goldfish")) {
-            return false;
-        }
-
-        if (!Build.BRAND.startsWith("generic")) {
-            return false;
-        }
-
-        if (!Build.DEVICE.startsWith("generic")) {
-            return false;
-        }
-
-        if (!Build.PRODUCT.contains("sdk")) {
-            return false;
-        }
-
-        if (!Build.MODEL.toLowerCase(Locale.US).contains("sdk")) {
-            return false;
-        }
-
-        return true;
     }
 
     /**

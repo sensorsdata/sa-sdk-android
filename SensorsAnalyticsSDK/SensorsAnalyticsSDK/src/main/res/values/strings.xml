@@ -1,1 +1,7 @@
-<resources></resources>
+<resources>
+    <item type="id" name="sensors_analytics_tag_view_value"/>
+    <item type="id" name="sensors_analytics_tag_view_id"/>
+    <item type="id" name="sensors_analytics_tag_view_ignored"/>
+    <item type="id" name="sensors_analytics_tag_view_properties"/>
+    <item type="id" name="sensors_analytics_tag_view_onclick_timestamp"/>
+</resources>
