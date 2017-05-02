@@ -232,6 +232,8 @@ public class SensorsDataAPI {
                         + " url '%s', configure url '%s' flush interval %d ms, debugMode: %s", mServerUrl,
                 mConfigureUrl, mFlushInterval, debugMode));
 
+        mAutoTrackEventTypeList = new ArrayList<>();
+
         final Map<String, Object> deviceInfo = new HashMap<>();
 
         {
@@ -453,13 +455,36 @@ public class SensorsDataAPI {
      * 打开 SDK 自动追踪
      *
      * 该功能自动追踪 App 的一些行为，例如 SDK 初始化、App 启动（$AppStart） / 关闭（$AppEnd）、
-     * 进入页面（$AppViewScreen）、控件被点击（$AppClick） 等等，具体信息请参考文档:
+     * 进入页面（$AppViewScreen）等等，具体信息请参考文档:
      * https://sensorsdata.cn/manual/android_sdk.html
      *
      * 该功能仅在 API 14 及以上版本中生效，默认关闭
      */
+    @Deprecated
     public void enableAutoTrack() {
+        List<AutoTrackEventType> eventTypeList = new ArrayList<>();
+        eventTypeList.add(AutoTrackEventType.APP_START);
+        eventTypeList.add(AutoTrackEventType.APP_END);
+        eventTypeList.add(AutoTrackEventType.APP_VIEW_SCREEN);
+        enableAutoTrack(eventTypeList);
+    }
+
+    /**
+     * 打开 SDK 自动追踪
+     *
+     * 该功能自动追踪 App 的一些行为，指定哪些 AutoTrack 事件被追踪，具体信息请参考文档:
+     * https://sensorsdata.cn/manual/android_sdk.html
+     *
+     * 该功能仅在 API 14 及以上版本中生效，默认关闭
+     */
+    public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
         mAutoTrack = true;
+        if (eventTypeList == null || eventTypeList.size() == 0) {
+            return;
+        }
+
+        mAutoTrackEventTypeList.clear();
+        mAutoTrackEventTypeList.addAll(eventTypeList);
     }
 
     /**
@@ -584,23 +609,20 @@ public class SensorsDataAPI {
         return false;
     }
 
-    private List<AutoTrackEventType> mAutoTrackIgnoreEventList = new ArrayList<>();
+    private List<AutoTrackEventType> mAutoTrackEventTypeList;
 
     /**
      * 过滤掉 AutoTrack 的某个事件类型
      * @param autoTrackEventType AutoTrackEventType
      */
+    @Deprecated
     public void ignoreAutoTrackEventType(AutoTrackEventType autoTrackEventType) {
         if (autoTrackEventType == null) {
             return;
         }
 
-        if (mAutoTrackIgnoreEventList == null) {
-            mAutoTrackIgnoreEventList = new ArrayList<>();
-        }
-
-        if (!mAutoTrackIgnoreEventList.contains(autoTrackEventType)) {
-            mAutoTrackIgnoreEventList.add(autoTrackEventType);
+        if (mAutoTrackEventTypeList.contains(autoTrackEventType)) {
+            mAutoTrackEventTypeList.remove(autoTrackEventType);
         }
     }
 
@@ -608,18 +630,15 @@ public class SensorsDataAPI {
      * 过滤掉 AutoTrack 的某些事件类型
      * @param eventTypeList AutoTrackEventType List
      */
+    @Deprecated
     public void ignoreAutoTrackEventType(List<AutoTrackEventType> eventTypeList) {
         if (eventTypeList == null) {
             return;
         }
 
-        if (mAutoTrackIgnoreEventList == null) {
-            mAutoTrackIgnoreEventList = new ArrayList<>();
-        }
-
         for (AutoTrackEventType eventType: eventTypeList) {
-            if (eventType != null && !mAutoTrackIgnoreEventList.contains(eventType)) {
-                mAutoTrackIgnoreEventList.add(eventType);
+            if (eventType != null && mAutoTrackEventTypeList.contains(eventType)) {
+                mAutoTrackEventTypeList.remove(eventType);
             }
         }
     }
@@ -630,7 +649,7 @@ public class SensorsDataAPI {
      * @return true 被忽略; false 没有被忽略
      */
     public boolean isAutoTrackEventTypeIgnored(AutoTrackEventType eventType) {
-        if (eventType != null && mAutoTrackIgnoreEventList != null && mAutoTrackIgnoreEventList.contains(eventType)) {
+        if (eventType != null  && !mAutoTrackEventTypeList.contains(eventType)) {
             return true;
         }
         return false;
@@ -1460,25 +1479,25 @@ public class SensorsDataAPI {
                 String libDetail = null;
                 if (mAutoTrack && properties != null) {
                     if (AutoTrackEventType.APP_VIEW_SCREEN.getEventName().equals(eventName)) {
-                        if (!mAutoTrackIgnoreEventList.contains(AutoTrackEventType.APP_VIEW_SCREEN)) {
+                        if (mAutoTrackEventTypeList.contains(AutoTrackEventType.APP_VIEW_SCREEN)) {
                             if (properties.has("$screen_name")) {
                                 libDetail = String.format("%s##%s##%s##%s", properties.get("$screen_name").toString(), "", "", "");
                             }
                         }
                     } else if (AutoTrackEventType.APP_CLICK.getEventName().equals(eventName)) {
-                        if (!mAutoTrackIgnoreEventList.contains(AutoTrackEventType.APP_CLICK)) {
+                        if (mAutoTrackEventTypeList.contains(AutoTrackEventType.APP_CLICK)) {
                             if (properties.has("$screen_name")) {
                                 libDetail = String.format("%s##%s##%s##%s", properties.get("$screen_name").toString(), "", "", "");
                             }
                         }
                     } else if (AutoTrackEventType.APP_START.getEventName().equals(eventName)) {
-                        if (!mAutoTrackIgnoreEventList.contains(AutoTrackEventType.APP_START)) {
+                        if (mAutoTrackEventTypeList.contains(AutoTrackEventType.APP_START)) {
                             if (properties.has("$screen_name")) {
                                 libDetail = String.format("%s##%s##%s##%s", properties.get("$screen_name").toString(), "", "", "");
                             }
                         }
                     } else if (AutoTrackEventType.APP_END.getEventName().equals(eventName)) {
-                        if (!mAutoTrackIgnoreEventList.contains(AutoTrackEventType.APP_END)) {
+                        if (mAutoTrackEventTypeList.contains(AutoTrackEventType.APP_END)) {
                             if (properties.has("$screen_name")) {
                                 libDetail = String.format("%s##%s##%s##%s", properties.get("$screen_name").toString(), "", "", "");
                             }
@@ -1570,7 +1589,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.7.0";
+    static final String VERSION = "1.7.1";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
