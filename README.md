@@ -6,7 +6,7 @@ This is the official Android SDK for Sensors Analytics.
 
  __Gradle 编译环境（Android Studio）__
 
-**第一步：**在 **project** 级别的 build.gradle 文件中添加 Sensors Analytics android-gradle-plugin 依赖：
+第一步：在 **project** 级别的 build.gradle 文件中添加 Sensors Analytics android-gradle-plugin 依赖：
 
 ```android
 buildscript {
@@ -30,7 +30,7 @@ allprojects {
 如下示例图：
 ![](https://www.sensorsdata.cn/manual/img/android_sdk_autotrack_1.png)
 
-**第二步：**在 **主 module** 的 build.gradle 文件中添加 com.sensorsdata.analytics.android 插件、Sensors Analytics SDK 依赖：
+第二步：在 **主 module** 的 build.gradle 文件中添加 com.sensorsdata.analytics.android 插件、Sensors Analytics SDK 依赖：
 
 ```android
 apply plugin: 'com.android.application'
@@ -48,7 +48,7 @@ SensorsAnalyticsSDK 的最新版本号请参考 [github 更新日志](https://gi
 如下示例图：
 ![](https://www.sensorsdata.cn/manual/img/android_sdk_autotrack_2.png)
 
-**第三步：**添加 Sensors Analytics SDK 需要的权限
+第三步：添加 Sensors Analytics SDK 需要的权限
 
 修改 `app/src/main/AndroidManifest.xml`，添加 Sensors Analytics SDK 需要的权限:
 
@@ -61,7 +61,7 @@ SensorsAnalyticsSDK 的最新版本号请参考 [github 更新日志](https://gi
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 ```
 
-**第四步：** 在 project 级别的 gradle.properties 中添加如下配置：
+第四步：在 project 级别的 gradle.properties 中添加如下配置：
 
 ```android
 android.enableBuildCache=false
@@ -72,12 +72,12 @@ android.enableBuildCache=false
 
 如果开启 [buildCache](https://developer.android.com/studio/build/build-cache.html)，Android Studio 会把依赖的 jar 或 arr 缓存到本地，并且把模块名称设置为 hash 值，导致 includeJarFilter 配置失效。
 
-**第五步：**目前全埋点不支持 Android Studio 的 instant run 特性，使用全埋点需要关闭该特性。
+第五步：目前全埋点不支持 Android Studio 的 instant run 特性，使用全埋点需要关闭该特性。
 
 如下示例图：
 ![](https://www.sensorsdata.cn/manual/img/android_sdk_autotrack_4.png)
 
-**第六步：**由于 SDK 会依赖 appcompat-v7 处理下面几个控件：
+第六步：由于 SDK 会依赖 appcompat-v7 处理下面几个控件：
 
 * android.support.v7.widget.SwitchCompat
 * android.support.v7.app.AlertDialog
