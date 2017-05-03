@@ -28,7 +28,7 @@ allprojects {
 ```
 
 如下示例图：
-![](https://www.sensorsdata.cn/manual/img/android_sdk_autotrack_1.png)
+![](https://github.com/sensorsdata/sa-sdk-android/blob/master/SensorsAnalyticsSDK/screenshots/android_sdk_autotrack_1.png)
 
 第二步：在 **主 module** 的 build.gradle 文件中添加 com.sensorsdata.analytics.android 插件、Sensors Analytics SDK 依赖：
 
@@ -46,7 +46,7 @@ dependencies {
 SensorsAnalyticsSDK 的最新版本号请参考 [github 更新日志](https://github.com/sensorsdata/sa-sdk-android/releases)。
 
 如下示例图：
-![](https://www.sensorsdata.cn/manual/img/android_sdk_autotrack_2.png)
+![](https://github.com/sensorsdata/sa-sdk-android/blob/master/SensorsAnalyticsSDK/screenshots/android_sdk_autotrack_2.png)
 
 第三步：添加 Sensors Analytics SDK 需要的权限
 
@@ -68,14 +68,14 @@ android.enableBuildCache=false
 ```
 
 如下示例图：
-![](https://www.sensorsdata.cn/manual/img/android_sdk_autotrack_5.png)
+![](https://github.com/sensorsdata/sa-sdk-android/blob/master/SensorsAnalyticsSDK/screenshots/android_sdk_autotrack_5.png)
 
 如果开启 [buildCache](https://developer.android.com/studio/build/build-cache.html)，Android Studio 会把依赖的 jar 或 arr 缓存到本地，并且把模块名称设置为 hash 值，导致 includeJarFilter 配置失效。
 
 第五步：目前全埋点不支持 Android Studio 的 instant run 特性，使用全埋点需要关闭该特性。
 
 如下示例图：
-![](https://www.sensorsdata.cn/manual/img/android_sdk_autotrack_4.png)
+![](https://github.com/sensorsdata/sa-sdk-android/blob/master/SensorsAnalyticsSDK/screenshots/android_sdk_autotrack_4.png)
 
 第六步：由于 SDK 会依赖 appcompat-v7 处理下面几个控件：
 
