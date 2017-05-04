@@ -56,11 +56,7 @@ class DynamicEventTracker implements ViewVisitor.OnEventListener {
                 }
             }
         } else {
-            try {
-                SensorsDataAPI.sharedInstance(mContext).track(eventInfo.mEventName, properties);
-            } catch (InvalidDataException e) {
-                Log.w("Unexpected exception", e);
-            }
+            SensorsDataAPI.sharedInstance(mContext).track(eventInfo.mEventName, properties);
         }
     }
 
@@ -78,12 +74,8 @@ class DynamicEventTracker implements ViewVisitor.OnEventListener {
                     final Map.Entry<Signature, UnsentEvent> entry = iter.next();
                     final UnsentEvent val = entry.getValue();
                     if (now - val.timeSentMillis > DEBOUNCE_TIME_MILLIS) {
-                        try {
-                            SensorsDataAPI.sharedInstance(mContext)
-                                    .track(val.eventInfo.mEventName, val.properties);
-                        } catch (InvalidDataException e) {
-                            Log.w("Unexpected exception", e);
-                        }
+                        SensorsDataAPI.sharedInstance(mContext)
+                                .track(val.eventInfo.mEventName, val.properties);
                         iter.remove();
                     }
                 }

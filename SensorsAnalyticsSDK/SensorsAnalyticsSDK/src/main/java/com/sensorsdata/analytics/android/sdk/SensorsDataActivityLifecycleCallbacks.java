@@ -1,20 +1,14 @@
 package com.sensorsdata.analytics.android.sdk;
 
 import android.annotation.TargetApi;
-import android.app.ActionBar;
 import android.app.Activity;
 import android.app.Application;
-import android.content.pm.ActivityInfo;
-import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
 
-import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.concurrent.TimeUnit;
@@ -71,7 +65,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                         if (!mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_END)) {
                             mSensorsDataInstance.trackTimer("$AppEnd", TimeUnit.SECONDS);
                         }
-                    } catch (InvalidDataException | JSONException e) {
+                    } catch (Exception e) {
                         Log.w(LOGTAG, e);
                     }
                 }

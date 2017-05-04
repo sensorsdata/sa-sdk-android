@@ -80,6 +80,37 @@ public class SensorsDataAPI {
     }
 
     /**
+     * 网络类型
+     */
+    public final class NetworkType {
+        public static final int TYPE_NONE = 0;//NULL
+        public static final int TYPE_2G = 1 << 0;//2G
+        public static final int TYPE_3G = 1 << 1;//3G
+        public static final int TYPE_4G = 1 << 2;//4G
+        public static final int TYPE_WIFI = 1 << 3;//WIFI
+        public static final int TYPE_ALL = 0xFF;//ALL
+    }
+
+    protected boolean isShouldFlush(String networkType) {
+        return (toNetworkType(networkType) & mFlushNetworkPolicy) != 0;
+    }
+
+    private int toNetworkType(String networkType) {
+        if ("NULL".equals(networkType)) {
+            return NetworkType.TYPE_ALL;
+        } else if ("WIFI".equals(networkType)) {
+            return NetworkType.TYPE_WIFI;
+        } else if ("2G".equals(networkType)) {
+            return NetworkType.TYPE_2G;
+        } else if ("3G".equals(networkType)) {
+            return NetworkType.TYPE_3G;
+        } else if ("4G".equals(networkType)) {
+            return NetworkType.TYPE_4G;
+        }
+        return NetworkType.TYPE_ALL;
+    }
+
+    /**
      * AutoTrack 默认采集的事件类型
      */
     public enum AutoTrackEventType {
@@ -374,6 +405,14 @@ public class SensorsDataAPI {
     }
 
     /**
+     * 设置 flush 时网络发送策略，默认 3G、4G、WI-FI 环境下都会尝试 flush
+     * @param networkType int 网络类型
+     */
+    public void setFlushNetworkPolicy(int networkType) {
+        mFlushNetworkPolicy = networkType;
+    }
+
+    /**
      * 两次数据发送的最小时间间隔，单位毫秒
      *
      * 默认值为15 * 1000毫秒
@@ -572,25 +611,6 @@ public class SensorsDataAPI {
         if (!mAutoTrackIgnoredActivities.contains(activity.hashCode())) {
             mAutoTrackIgnoredActivities.add(activity.hashCode());
         }
-    }
-
-    /**
-     * 指定哪些 activity 不被AutoTrack
-     *
-     * @param activitiesList  activity列表
-     */
-    @Deprecated
-    public void filterAutoTrackActivities(List<Class<?>> activitiesList) {
-        ignoreAutoTrackActivities(activitiesList);
-    }
-
-    /**
-     * 指定某个 activity 不被 AutoTrack
-     * @param activity Activity
-     */
-    @Deprecated
-    public void filterAutoTrackActivity(Class<?> activity) {
-        ignoreAutoTrackActivity(activity);
     }
 
     /**
@@ -823,13 +843,15 @@ public class SensorsDataAPI {
      * 客户没有调用identify，则使用SDK自动生成的匿名ID
      *
      * @param distinctId 当前用户的distinctId，仅接受数字、下划线和大小写字母
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当 distinctId
-     *                                                                               不符合规范时抛出异常
      */
-    public void identify(String distinctId) throws InvalidDataException {
-        assertDistinctId(distinctId);
-        synchronized (mDistinctId) {
-            mDistinctId.commit(distinctId);
+    public void identify(String distinctId) {
+        try {
+            assertDistinctId(distinctId);
+            synchronized (mDistinctId) {
+                mDistinctId.commit(distinctId);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -837,18 +859,20 @@ public class SensorsDataAPI {
      * 登录，设置当前用户的 loginId
      *
      * @param loginId 当前用户的 loginId，不能为空，且长度不能大于255
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当 loginId
-     *                                                                               不符合规范时抛出异常
      */
-    public void login(String loginId) throws InvalidDataException {
-        assertDistinctId(loginId);
-        synchronized (mLoginId) {
-            if (!loginId.equals(mLoginId.get())) {
-                mLoginId.commit(loginId);
-                if (!loginId.equals(getAnonymousId())) {
-                    trackEvent(EventType.TRACK_SIGNUP, "$SignUp", null, getAnonymousId());
+    public void login(String loginId) {
+        try {
+            assertDistinctId(loginId);
+            synchronized (mLoginId) {
+                if (!loginId.equals(mLoginId.get())) {
+                    mLoginId.commit(loginId);
+                    if (!loginId.equals(getAnonymousId())) {
+                        trackEvent(EventType.TRACK_SIGNUP, "$SignUp", null, getAnonymousId());
+                    }
                 }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -871,15 +895,17 @@ public class SensorsDataAPI {
      *
      * @param newDistinctId 用户完成注册后生成的注册ID
      * @param properties    事件的属性
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当 distinctId
-     *                                                                               不符合规范或事件属性不符合规范时抛出异常
      */
     @Deprecated
-    public void trackSignUp(String newDistinctId, JSONObject properties) throws InvalidDataException {
-        String originalDistinctId = getDistinctId();
-        identify(newDistinctId);
+    public void trackSignUp(String newDistinctId, JSONObject properties) {
+        try {
+            String originalDistinctId = getDistinctId();
+            identify(newDistinctId);
 
-        trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, originalDistinctId);
+            trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, originalDistinctId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -891,15 +917,17 @@ public class SensorsDataAPI {
      * 该方法已不推荐使用，可以具体参考 {@link #login(String)} 方法
      *
      * @param newDistinctId 用户完成注册后生成的注册ID
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当 distinctId
-     *                                                                               不符合规范时抛出异常
      */
     @Deprecated
-    public void trackSignUp(String newDistinctId) throws InvalidDataException {
-        String originalDistinctId = getDistinctId();
-        identify(newDistinctId);
+    public void trackSignUp(String newDistinctId) {
+        try {
+            String originalDistinctId = getDistinctId();
+            identify(newDistinctId);
 
-        trackEvent(EventType.TRACK_SIGNUP, "$SignUp", null, originalDistinctId);
+            trackEvent(EventType.TRACK_SIGNUP, "$SignUp", null, originalDistinctId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -909,54 +937,55 @@ public class SensorsDataAPI {
      *
      * @param eventName  渠道追踪事件的名称
      * @param properties 渠道追踪事件的属性
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当事件名称或属性
-     *                                                                               不符合规范时抛出异常
      */
-    public void trackInstallation(String eventName, JSONObject properties)
-            throws InvalidDataException {
-        boolean firstTrackInstallation = mFirstTrackInstallation.get();
-        if (firstTrackInstallation) {
-            try {
-                if (properties == null) {
-                    properties = new JSONObject();
-                }
+    public void trackInstallation(String eventName, JSONObject properties) {
+        try {
+            boolean firstTrackInstallation = mFirstTrackInstallation.get();
+            if (firstTrackInstallation) {
+                try {
+                    if (properties == null) {
+                        properties = new JSONObject();
+                    }
 
-                if (!SensorsDataUtils.hasUtmProperties(properties)) {
-                    Map<String, String> utmMap = new HashMap<>();
-                    utmMap.put("SENSORS_ANALYTICS_UTM_SOURCE", "$utm_source");
-                    utmMap.put("SENSORS_ANALYTICS_UTM_MEDIUM", "$utm_medium");
-                    utmMap.put("SENSORS_ANALYTICS_UTM_TERM", "$utm_term");
-                    utmMap.put("SENSORS_ANALYTICS_UTM_CONTENT", "$utm_content");
-                    utmMap.put("SENSORS_ANALYTICS_UTM_CAMPAIGN", "$utm_campaign");
+                    if (!SensorsDataUtils.hasUtmProperties(properties)) {
+                        Map<String, String> utmMap = new HashMap<>();
+                        utmMap.put("SENSORS_ANALYTICS_UTM_SOURCE", "$utm_source");
+                        utmMap.put("SENSORS_ANALYTICS_UTM_MEDIUM", "$utm_medium");
+                        utmMap.put("SENSORS_ANALYTICS_UTM_TERM", "$utm_term");
+                        utmMap.put("SENSORS_ANALYTICS_UTM_CONTENT", "$utm_content");
+                        utmMap.put("SENSORS_ANALYTICS_UTM_CAMPAIGN", "$utm_campaign");
 
-                    for (Map.Entry<String, String> entry : utmMap.entrySet()) {
-                        if (entry != null) {
-                            String utmValue = SensorsDataUtils.getApplicationMetaData(mContext, entry.getKey());
-                            if (!TextUtils.isEmpty(utmValue)) {
-                                properties.put(entry.getValue(), utmValue);
+                        for (Map.Entry<String, String> entry : utmMap.entrySet()) {
+                            if (entry != null) {
+                                String utmValue = SensorsDataUtils.getApplicationMetaData(mContext, entry.getKey());
+                                if (!TextUtils.isEmpty(utmValue)) {
+                                    properties.put(entry.getValue(), utmValue);
+                                }
                             }
                         }
                     }
+
+                    if (!SensorsDataUtils.hasUtmProperties(properties)) {
+                        String installSource = String.format("android_id=%s##imei=%s##mac=%s",
+                                SensorsDataUtils.getAndroidID(mContext),
+                                SensorsDataUtils.getIMEI(mContext),
+                                SensorsDataUtils.getMacAddress());
+                        properties.put("$ios_install_source", installSource);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
 
-                if (!SensorsDataUtils.hasUtmProperties(properties)) {
-                    String installSource = String.format("android_id=%s##imei=%s##mac=%s",
-                            SensorsDataUtils.getAndroidID(mContext),
-                            SensorsDataUtils.getIMEI(mContext),
-                            SensorsDataUtils.getMacAddress());
-                    properties.put("$ios_install_source", installSource);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+                // 先发送 track
+                trackEvent(EventType.TRACK, eventName, properties, null);
+
+                // 再发送 profile_set_once
+                trackEvent(EventType.PROFILE_SET_ONCE, null, properties, null);
+
+                mFirstTrackInstallation.commit(false);
             }
-
-            // 先发送 track
-            trackEvent(EventType.TRACK, eventName, properties, null);
-
-            // 再发送 profile_set_once
-            trackEvent(EventType.PROFILE_SET_ONCE, null, properties, null);
-
-            mFirstTrackInstallation.commit(false);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -965,22 +994,26 @@ public class SensorsDataAPI {
      *
      * @param eventName  事件的名称
      * @param properties 事件的属性
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当事件名称或属性
-     *                                                                               不符合规范时抛出异常
      */
-    public void track(String eventName, JSONObject properties) throws InvalidDataException {
-        trackEvent(EventType.TRACK, eventName, properties, null);
+    public void track(String eventName, JSONObject properties) {
+        try {
+            trackEvent(EventType.TRACK, eventName, properties, null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
      * 与 {@link #track(String, org.json.JSONObject)} 类似，无事件属性
      *
      * @param eventName 事件的名称
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当事件名称
-     *                                                                               不符合规范时抛出异常
      */
-    public void track(String eventName) throws InvalidDataException {
-        trackEvent(EventType.TRACK, eventName, null, null);
+    public void track(String eventName) {
+        try {
+            trackEvent(EventType.TRACK, eventName, null, null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -989,10 +1022,13 @@ public class SensorsDataAPI {
      * 详细用法请参考 trackTimer(String, TimeUnit)
      *
      * @param eventName 事件的名称
-     * @throws InvalidDataException 当事件名称不符合规范时抛出异常
      */
-    public void trackTimer(final String eventName) throws InvalidDataException {
-        trackTimer(eventName, TimeUnit.MILLISECONDS);
+    public void trackTimer(final String eventName) {
+        try {
+            trackTimer(eventName, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -1006,14 +1042,15 @@ public class SensorsDataAPI {
      *
      * @param eventName 事件的名称
      * @param timeUnit  计时结果的时间单位
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当事件名称
-     *                                                                               不符合规范时抛出异常
      */
-    public void trackTimer(final String eventName, final TimeUnit timeUnit) throws
-            InvalidDataException {
-        assertKey(eventName);
-        synchronized (mTrackTimer) {
-            mTrackTimer.put(eventName, new EventTimer(timeUnit));
+    public void trackTimer(final String eventName, final TimeUnit timeUnit) {
+        try {
+            assertKey(eventName);
+            synchronized (mTrackTimer) {
+                mTrackTimer.put(eventName, new EventTimer(timeUnit));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -1046,11 +1083,10 @@ public class SensorsDataAPI {
      * Track进入页面事件
      * @param url String
      * @param properties JSONObject
-     * @throws InvalidDataException 当公共属性不符合规范时抛出异常
      */
-    public void trackViewScreen(String url, JSONObject properties) throws InvalidDataException {
-        if (!TextUtils.isEmpty(url) || properties != null) {
-            try {
+    public void trackViewScreen(String url, JSONObject properties) {
+        try {
+            if (!TextUtils.isEmpty(url) || properties != null) {
                 JSONObject trackProperties = new JSONObject();
                 mLastScreenTrackProperties = properties;
 
@@ -1064,9 +1100,9 @@ public class SensorsDataAPI {
                     SensorsDataUtils.mergeJSONObject(properties, trackProperties);
                 }
                 track("$AppViewScreen", trackProperties);
-            } catch (JSONException e) {
-                Log.w(LOGTAG, "trackViewScreen:" + e);
             }
+        } catch (JSONException e) {
+            Log.w(LOGTAG, "trackViewScreen:" + e);
         }
     }
 
@@ -1149,21 +1185,20 @@ public class SensorsDataAPI {
      * 注册所有事件都有的公共属性
      *
      * @param superProperties 事件公共属性
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当公共属性不符合规范时抛出异常
      */
-    public void registerSuperProperties(JSONObject superProperties) throws InvalidDataException {
-        if (superProperties == null) {
-            return;
-        }
-        assertPropertyTypes(EventType.REGISTER_SUPER_PROPERTIES, superProperties);
-        synchronized (mSuperProperties) {
-            try {
+    public void registerSuperProperties(JSONObject superProperties) {
+        try {
+            if (superProperties == null) {
+                return;
+            }
+            assertPropertyTypes(EventType.REGISTER_SUPER_PROPERTIES, superProperties);
+            synchronized (mSuperProperties) {
                 JSONObject properties = mSuperProperties.get();
                 SensorsDataUtils.mergeJSONObject(superProperties, properties);
                 mSuperProperties.commit(properties);
-            } catch (Exception e) {
-                e.printStackTrace();
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -1171,13 +1206,16 @@ public class SensorsDataAPI {
      * 删除事件公共属性
      *
      * @param superPropertyName 事件属性名称
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当属性名称不符合规范时抛出异常
      */
-    public void unregisterSuperProperty(String superPropertyName) throws InvalidDataException {
-        synchronized (mSuperProperties) {
-            JSONObject superProperties = mSuperProperties.get();
-            superProperties.remove(superPropertyName);
-            mSuperProperties.commit(superProperties);
+    public void unregisterSuperProperty(String superPropertyName) {
+        try {
+            synchronized (mSuperProperties) {
+                JSONObject superProperties = mSuperProperties.get();
+                superProperties.remove(superPropertyName);
+                mSuperProperties.commit(superProperties);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -1195,10 +1233,13 @@ public class SensorsDataAPI {
      * Profile如果存在，则覆盖；否则，新创建。
      *
      * @param properties 属性列表
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当属性名称或属性值不符合规范时抛出异常
      */
-    public void profileSet(JSONObject properties) throws InvalidDataException {
-        trackEvent(EventType.PROFILE_SET, null, properties, null);
+    public void profileSet(JSONObject properties) {
+        try {
+            trackEvent(EventType.PROFILE_SET, null, properties, null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -1207,13 +1248,12 @@ public class SensorsDataAPI {
      * @param property 属性名称
      * @param value    属性的值，值的类型只允许为
      *                 {@link java.lang.String}, {@link java.lang.Number}, {@link java.util.Date}, {@link java.util.List}
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当属性名称或属性值不符合规范时抛出异常
      */
-    public void profileSet(String property, Object value) throws InvalidDataException {
+    public void profileSet(String property, Object value) {
         try {
             trackEvent(EventType.PROFILE_SET, null, new JSONObject().put(property, value), null);
-        } catch (JSONException e) {
-            throw new InvalidDataException("Unexpected property name or value.");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -1222,10 +1262,13 @@ public class SensorsDataAPI {
      * 与profileSet接口不同的是，如果之前存在，则忽略，否则，新创建
      *
      * @param properties 属性列表
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当属性名称或属性值不符合规范时抛出异常
      */
-    public void profileSetOnce(JSONObject properties) throws InvalidDataException {
-        trackEvent(EventType.PROFILE_SET_ONCE, null, properties, null);
+    public void profileSetOnce(JSONObject properties)  {
+        try {
+            trackEvent(EventType.PROFILE_SET_ONCE, null, properties, null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -1235,13 +1278,12 @@ public class SensorsDataAPI {
      * @param property 属性名称
      * @param value    属性的值，值的类型只允许为
      *                 {@link java.lang.String}, {@link java.lang.Number}, {@link java.util.Date}, {@link java.util.List}
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当属性名称或属性值不符合规范时抛出异常
      */
-    public void profileSetOnce(String property, Object value) throws InvalidDataException {
+    public void profileSetOnce(String property, Object value) {
         try {
             trackEvent(EventType.PROFILE_SET_ONCE, null, new JSONObject().put(property, value), null);
-        } catch (JSONException e) {
-            throw new InvalidDataException("Unexpected property name or value.");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -1250,11 +1292,13 @@ public class SensorsDataAPI {
      * 未设置，则添加属性并设置默认值为0
      *
      * @param properties 一个或多个属性集合
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当属性名称或属性值不符合规范时抛出异常
      */
-    public void profileIncrement(Map<String, ? extends Number> properties)
-            throws InvalidDataException {
-        trackEvent(EventType.PROFILE_INCREMENT, null, new JSONObject(properties), null);
+    public void profileIncrement(Map<String, ? extends Number> properties) {
+        try {
+            trackEvent(EventType.PROFILE_INCREMENT, null, new JSONObject(properties), null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -1263,13 +1307,12 @@ public class SensorsDataAPI {
      *
      * @param property 属性名称
      * @param value    属性的值，值的类型只允许为 {@link java.lang.Number}
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当属性名称或属性值不符合规范时抛出异常
      */
-    public void profileIncrement(String property, Number value) throws InvalidDataException {
+    public void profileIncrement(String property, Number value) {
         try {
             trackEvent(EventType.PROFILE_INCREMENT, null, new JSONObject().put(property, value), null);
-        } catch (JSONException e) {
-            throw new InvalidDataException("Unexpected property name or value.");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -1278,17 +1321,16 @@ public class SensorsDataAPI {
      *
      * @param property 属性名称
      * @param value    新增的元素
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当属性名称或属性值不符合规范时抛出异常
      */
-    public void profileAppend(String property, String value) throws InvalidDataException {
+    public void profileAppend(String property, String value) {
         try {
             final JSONArray append_values = new JSONArray();
             append_values.put(value);
             final JSONObject properties = new JSONObject();
             properties.put(property, append_values);
             trackEvent(EventType.PROFILE_APPEND, null, properties, null);
-        } catch (final JSONException e) {
-            throw new InvalidDataException("Unexpected property name or value");
+        } catch (final Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -1297,9 +1339,8 @@ public class SensorsDataAPI {
      *
      * @param property 属性名称
      * @param values   新增的元素集合
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当属性名称或属性值不符合规范时抛出异常
      */
-    public void profileAppend(String property, Set<String> values) throws InvalidDataException {
+    public void profileAppend(String property, Set<String> values) {
         try {
             final JSONArray append_values = new JSONArray();
             for (String value : values) {
@@ -1308,8 +1349,8 @@ public class SensorsDataAPI {
             final JSONObject properties = new JSONObject();
             properties.put(property, append_values);
             trackEvent(EventType.PROFILE_APPEND, null, properties, null);
-        } catch (final JSONException e) {
-            throw new InvalidDataException("Unexpected property name or value");
+        } catch (final Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -1317,23 +1358,24 @@ public class SensorsDataAPI {
      * 删除用户的一个Profile
      *
      * @param property 属性名称
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当属性名称不符合规范时抛出异常
      */
-    public void profileUnset(String property) throws InvalidDataException {
+    public void profileUnset(String property) {
         try {
             trackEvent(EventType.PROFILE_UNSET, null, new JSONObject().put(property, true), null);
-        } catch (final JSONException e) {
-            throw new InvalidDataException("Unexpected property name");
+        } catch (final Exception e) {
+            e.printStackTrace();
         }
     }
 
     /**
      * 删除用户所有Profile
-     *
-     * @throws com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException 当属性名称不符合规范时抛出异常
      */
-    public void profileDelete() throws InvalidDataException {
-        trackEvent(EventType.PROFILE_DELETE, null, null, null);
+    public void profileDelete() {
+        try {
+            trackEvent(EventType.PROFILE_DELETE, null, null, null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     boolean isDebugMode() {
@@ -1589,7 +1631,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.7.1";
+    static final String VERSION = "1.7.2";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -1635,6 +1677,7 @@ public class SensorsDataAPI {
     private final Map<String, Object> mDeviceInfo;
     private final Map<String, EventTimer> mTrackTimer;
     private List<Integer> mAutoTrackIgnoredActivities;
+    private int mFlushNetworkPolicy = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
 
     private final VTrack mVTrack;
 

@@ -102,7 +102,7 @@ public class ViewOnClickListenerAspectj {
                     if (!TextUtils.isEmpty(tag)) {
                         try {
                             long lastOnClickTimestamp = Long.parseLong(tag);
-                            if ((currentOnClickTimestamp - lastOnClickTimestamp) < 200) {
+                            if ((currentOnClickTimestamp - lastOnClickTimestamp) < 500) {
                                 Log.i(TAG, "This onClick maybe extends from super, IGNORE");
                                 return;
                             }

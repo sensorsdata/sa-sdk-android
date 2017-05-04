@@ -122,8 +122,16 @@ import java.io.File;
     public int addJSON(JSONObject j, Table table) {
         // we are aware of the race condition here, but what can we do..?
         if (!mDb.belowMemThreshold()) {
-            Log.e(LOGTAG, "There is not enough space left on the device to store events, so data was discarded");
-            return DB_OUT_OF_MEMORY_ERROR;
+            Log.e(LOGTAG, "There is not enough space left on the device to store events, so will delete some old events");
+            String[] eventsData = generateDataString(DbAdapter.Table.EVENTS, 100);
+            if (eventsData == null) {
+                return DB_OUT_OF_MEMORY_ERROR;
+            }
+            final String lastId = eventsData[0];
+            int count = cleanupEvents(lastId, DbAdapter.Table.EVENTS);
+            if (count <= 0) {
+                return DB_OUT_OF_MEMORY_ERROR;
+            }
         }
 
         final String tableName = table.getName();

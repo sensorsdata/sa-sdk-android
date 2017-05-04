@@ -142,6 +142,11 @@ class AnalyticsMessages {
             if (!SensorsDataUtils.isNetworkAvailable(mContext)) {
                 return;
             }
+
+            String networkType = SensorsDataUtils.networkType(mContext);
+            if (!SensorsDataAPI.sharedInstance(mContext).isShouldFlush(networkType)) {
+                return;
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
