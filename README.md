@@ -88,7 +88,7 @@ android.enableBuildCache=false
 compile 'com.android.support:appcompat-v7:25.1.1'
 ```
 
-Android SDK 要求最低系统版本为 API 11（Android 3.0），特别地，AutoTrack功能要求系统最低版本为 API 14 （Android 4.0），可视化埋点功能要求最低系统版本为 API 16（Android 4.2）。目前，Android SDK (aar格式) 大小约为 230 KB。
+Android SDK 要求最低系统版本为 API 11（Android 3.0），特别地，AutoTrack功能要求系统最低版本为 API 14 （Android 4.0），可视化埋点功能要求最低系统版本为 API 16（Android 4.1）。目前，Android SDK (aar格式) 大小约为 230 KB。
 
 **注：** 由于 SDK 中有一部分类或方法是被 javascript 调用的，再加上 SDK 的源码本身就是开源的，所以建议不要混淆 Android SDK。
 
