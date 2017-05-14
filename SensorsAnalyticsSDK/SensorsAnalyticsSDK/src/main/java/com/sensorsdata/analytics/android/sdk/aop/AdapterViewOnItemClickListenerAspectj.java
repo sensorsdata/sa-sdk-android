@@ -3,7 +3,6 @@ package com.sensorsdata.analytics.android.sdk.aop;
 import android.app.Activity;
 import android.content.Context;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.widget.Adapter;
 import android.widget.AdapterView;
@@ -11,6 +10,7 @@ import android.widget.GridView;
 import android.widget.ListView;
 
 import com.sensorsdata.analytics.android.sdk.R;
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsAdapterViewItemTrackProperties;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
@@ -146,7 +146,7 @@ public class AdapterViewOnItemClickListenerAspectj {
                     SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Log.i(TAG, " AdapterView.OnItemClickListener.onItemClick AOP ERROR: " + e.getMessage());
+                    SALog.i(TAG, " AdapterView.OnItemClickListener.onItemClick AOP ERROR: " + e.getMessage());
                 }
             }
         });

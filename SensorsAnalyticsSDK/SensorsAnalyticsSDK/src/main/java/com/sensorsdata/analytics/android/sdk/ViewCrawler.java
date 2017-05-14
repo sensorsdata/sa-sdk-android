@@ -23,7 +23,6 @@ import android.os.Message;
 import android.os.Process;
 import android.util.DisplayMetrics;
 import android.util.JsonWriter;
-import android.util.Log;
 import android.util.Pair;
 
 import org.json.JSONArray;
@@ -41,6 +40,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -102,22 +102,18 @@ public class ViewCrawler implements VTrack, DebugTracking {
         // 对应 2.
         if (mVTrackServer == null && serverUrl != null && serverUrl.length() > 0) {
             mVTrackServer = serverUrl;
-            if (SensorsDataAPI.ENABLE_LOG) {
-                Log.i(LOGTAG, "Gets VTrack server URL '" + mVTrackServer + "' from configure.");
-            }
+            SALog.i(TAG, "Gets VTrack server URL '" + mVTrackServer + "' from configure.");
         }
 
         // 对应 3.
         if (mVTrackServer == null) {
             Uri configureURI = Uri.parse(SensorsDataAPI.sharedInstance(mContext).getConfigureUrl());
             mVTrackServer = configureURI.buildUpon().path("/api/ws").scheme("ws").build().toString();
-            if (SensorsDataAPI.ENABLE_LOG) {
-                Log.i(LOGTAG, "Generates VTrack server URL '" + mVTrackServer + "' with configure URL.");
-            }
+            SALog.i(TAG, "Generates VTrack server URL '" + mVTrackServer + "' with configure URL.");
         }
 
         if (mVTrackServer == null) {
-            Log.w(LOGTAG, "Unknown VTrack server URL.");
+            SALog.i(TAG, "Unknown VTrack server URL.");
         }
     }
 
@@ -307,9 +303,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
             final String storedBindings = preferences.getString(SHARED_PREF_BINDINGS_KEY, null);
             try {
                 if (null != storedBindings) {
-                    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-                        Log.i(LOGTAG, "Initialize event bindings: " + storedBindings);
-                    }
+                    SALog.i(TAG, "Initialize event bindings: " + storedBindings);
 
                     final JSONArray bindings = new JSONArray(storedBindings);
 
@@ -321,7 +315,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
                     }
                 }
             } catch (final JSONException e) {
-                Log.w(LOGTAG, "JSON error when initializing saved changes, clearing persistent memory", e);
+                SALog.i(TAG, "JSON error when initializing saved changes, clearing persistent memory", e);
                 final SharedPreferences.Editor editor = preferences.edit();
                 editor.remove(SHARED_PREF_BINDINGS_KEY);
                 editor.apply();
@@ -345,23 +339,19 @@ public class ViewCrawler implements VTrack, DebugTracking {
          */
         private void connectToEditor() {
             if (mEditorConnection != null && mEditorConnection.isValid()) {
-                if (SensorsDataAPI.ENABLE_LOG) {
-                    Log.i(LOGTAG, "The VTrack server has been connected.");
-                }
+                SALog.i(TAG, "The VTrack server has been connected.");
                 return;
             }
 
             if (mVTrackServer != null) {
-                if (SensorsDataAPI.ENABLE_LOG) {
-                    Log.i(LOGTAG, "Connecting to the VTrack server with " + mVTrackServer);
-                }
+                SALog.i(TAG, "Connecting to the VTrack server with " + mVTrackServer);
 
                 try {
                     mEditorConnection = new EditorConnection(new URI(mVTrackServer), new Editor());
                 } catch (final URISyntaxException e) {
-                    Log.e(LOGTAG, "Error parsing URI " + mVTrackServer + " for VTrack websocket", e);
+                    SALog.i(TAG, "Error parsing URI " + mVTrackServer + " for VTrack websocket", e);
                 } catch (final EditorConnection.EditorConnectionException e) {
-                    Log.e(LOGTAG, "Error connecting to URI " + mVTrackServer, e);
+                    SALog.i(TAG, "Error connecting to URI " + mVTrackServer, e);
                 }
             }
         }
@@ -438,9 +428,9 @@ public class ViewCrawler implements VTrack, DebugTracking {
                                                 .sendMessage(setUpPayload("device_info_response", payload).toString());
                                     }
                                 } catch (JSONException e) {
-                                    Log.w(LOGTAG, "Can't write the response for device information.", e);
+                                    SALog.i(TAG, "Can't write the response for device information.", e);
                                 } catch (IOException e) {
-                                    Log.w(LOGTAG, "Can't write the response for device information.", e);
+                                    SALog.i(TAG, "Can't write the response for device information.", e);
                                 }
                             }
                         })
@@ -457,7 +447,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
                             }
                         }).show();
             } catch (RuntimeException e) {
-                Log.w(LOGTAG, "Failed to show dialog of VTrack connector", e);
+                SALog.i(TAG, "Failed to show dialog of VTrack connector", e);
             }
         }
 
@@ -478,7 +468,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
                 }
 
                 if (null == mSnapshot) {
-                    Log.w(LOGTAG, "Snapshot should be initialize at first calling.");
+                    SALog.i(TAG, "Snapshot should be initialize at first calling.");
                     return;
                 }
 
@@ -487,10 +477,10 @@ public class ViewCrawler implements VTrack, DebugTracking {
                     mSnapshot.updateLastImageHashArray(lastImageHash);
                 }
             } catch (final JSONException e) {
-                Log.e(LOGTAG, "Payload with snapshot config required with snapshot request", e);
+                SALog.i(TAG, "Payload with snapshot config required with snapshot request", e);
                 return;
             } catch (final EditProtocol.BadInstructionsException e) {
-                Log.e(LOGTAG, "VTrack server sent malformed message with snapshot request", e);
+                SALog.i(TAG, "VTrack server sent malformed message with snapshot request", e);
                 return;
             }
 
@@ -543,12 +533,12 @@ public class ViewCrawler implements VTrack, DebugTracking {
                 writer.write("}");
                 writer.flush();
             } catch (final IOException e) {
-                Log.e(LOGTAG, "Can't write snapshot request to server", e);
+                SALog.i(TAG, "Can't write snapshot request to server", e);
             } finally {
                 try {
                     writer.close();
                 } catch (final IOException e) {
-                    Log.e(LOGTAG, "Can't close writer.", e);
+                    SALog.i(TAG, "Can't close writer.", e);
                 }
             }
 
@@ -577,12 +567,12 @@ public class ViewCrawler implements VTrack, DebugTracking {
                 j.endObject();
                 j.endObject();
             } catch (final IOException e) {
-                Log.e(LOGTAG, "Can't write event_binding_response to server", e);
+                SALog.i(TAG, "Can't write event_binding_response to server", e);
             } finally {
                 try {
                     j.close();
                 } catch (final IOException e) {
-                    Log.e(LOGTAG, "Can't close websocket writer", e);
+                    SALog.i(TAG, "Can't close websocket writer", e);
                 }
             }
 
@@ -604,9 +594,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
                 return;
             }
 
-            if (SensorsDataAPI.ENABLE_LOG) {
-                Log.i(LOGTAG, "Sending debug track to vtrack. original event: " + eventJson.toString());
-            }
+            SALog.i(TAG, "Sending debug track to vtrack. original event: " + eventJson.toString());
 
             final String fromVTrack = sendProperties.optString("$from_vtrack", "");
             if (fromVTrack.length() < 1) {
@@ -636,14 +624,14 @@ public class ViewCrawler implements VTrack, DebugTracking {
                 writer.write(result.toString());
                 writer.flush();
             } catch (JSONException e) {
-                Log.e(LOGTAG, "Invalied proprties", e);
+                SALog.i(TAG, "Invalied proprties", e);
             } catch (final IOException e) {
-                Log.e(LOGTAG, "Can't write track_message to server", e);
+                SALog.i(TAG, "Can't write track_message to server", e);
             } finally {
                 try {
                     writer.close();
                 } catch (final IOException e) {
-                    Log.e(LOGTAG, "Can't close writer.", e);
+                    SALog.i(TAG, "Can't close writer.", e);
                 }
             }
         }
@@ -663,10 +651,8 @@ public class ViewCrawler implements VTrack, DebugTracking {
          * Accept and apply a temporary event binding from the connected UI.
          */
         private void handleEditorBindingsReceived(JSONObject message) {
-            if (SensorsDataAPI.ENABLE_LOG) {
-                Log.i(LOGTAG, String.format("Received event bindings from VTrack editor: %s", message
-                        .toString()));
-            }
+            SALog.i(TAG, String.format("Received event bindings from VTrack editor: %s", message
+                    .toString()));
 
             final JSONArray eventBindings;
 
@@ -676,7 +662,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
                 final JSONObject payload = message.getJSONObject("payload");
                 eventBindings = payload.getJSONArray("events");
             } catch (final JSONException e) {
-                Log.e(LOGTAG, "Bad event bindings received", e);
+                SALog.i(TAG, "Bad event bindings received", e);
                 return;
             }
 
@@ -689,7 +675,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
                     final String targetActivity = JSONUtils.optionalStringKey(event, "target_activity");
                     mEditorEventBindings.add(new Pair<String, JSONObject>(targetActivity, event));
                 } catch (final JSONException e) {
-                    Log.e(LOGTAG, "Bad event binding received from VTrack server in " + eventBindings
+                    SALog.i(TAG, "Bad event binding received from VTrack server in " + eventBindings
                             .toString(), e);
                 }
             }
@@ -701,9 +687,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
          * Clear state associated with the editor now that the editor is gone.
          */
         private void handleEditorClosed() {
-            if (SensorsDataAPI.ENABLE_LOG) {
-                Log.i(LOGTAG, "VTrack server connection closed.");
-            }
+            SALog.i(TAG, "VTrack server connection closed.");
 
             mSnapshot = null;
 
@@ -737,11 +721,9 @@ public class ViewCrawler implements VTrack, DebugTracking {
             final List<Pair<String, ViewVisitor>> newVisitors =
                     new ArrayList<Pair<String, ViewVisitor>>();
 
-            if (SensorsDataAPI.ENABLE_LOG) {
-                Log.i(LOGTAG, String.format("Event bindings are loaded. %d events from VTrack editor "
-                                + "，%d events from VTrack configure",
-                        mEditorEventBindings.size(), mPersistentEventBindings.size()));
-            }
+            SALog.i(TAG, String.format(Locale.CHINA, "Event bindings are loaded. %d events from VTrack editor "
+                            + "，%d events from VTrack configure",
+                    mEditorEventBindings.size(), mPersistentEventBindings.size()));
 
             if (mEditorEventBindings.size() > 0) {
                 // 如果mEditorEventBindings.size() > 0，说明连接了VTrack模拟器，只是用模拟器下发的事件配置
@@ -751,9 +733,9 @@ public class ViewCrawler implements VTrack, DebugTracking {
                                 mProtocol.readEventBinding(changeInfo.second, mDynamicEventTracker);
                         newVisitors.add(new Pair<String, ViewVisitor>(changeInfo.first, visitor));
                     } catch (final EditProtocol.InapplicableInstructionsException e) {
-                        Log.w(LOGTAG, e.getMessage());
+                        SALog.i(TAG, e.getMessage());
                     } catch (final EditProtocol.BadInstructionsException e) {
-                        Log.e(LOGTAG, "Bad editor event binding cannot be applied.", e);
+                        SALog.i(TAG, "Bad editor event binding cannot be applied.", e);
                     }
                 }
             } else {
@@ -763,9 +745,9 @@ public class ViewCrawler implements VTrack, DebugTracking {
                                 mProtocol.readEventBinding(changeInfo.second, mDynamicEventTracker);
                         newVisitors.add(new Pair<String, ViewVisitor>(changeInfo.first, visitor));
                     } catch (final EditProtocol.InapplicableInstructionsException e) {
-                        Log.w(LOGTAG, e.getMessage());
+                        SALog.i(TAG, e.getMessage());
                     } catch (final EditProtocol.BadInstructionsException e) {
-                        Log.e(LOGTAG, "Bad persistent event binding cannot be applied.", e);
+                        SALog.i(TAG, "Bad persistent event binding cannot be applied.", e);
                     }
                 }
             }
@@ -870,9 +852,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
 
         @Override
         public void onWebSocketOpen() {
-            if (SensorsDataAPI.ENABLE_LOG) {
-                Log.i(LOGTAG, "onWebSocketOpen");
-            }
+            SALog.i(TAG, "onWebSocketOpen");
 
             mCurrentRetryTimes = 0;
             mIsRetryConnect = true;
@@ -880,11 +860,9 @@ public class ViewCrawler implements VTrack, DebugTracking {
 
         @Override
         public void onWebSocketClose(int code) {
-            if (SensorsDataAPI.ENABLE_LOG) {
-                Log.i(LOGTAG, "onWebSocketClose; mIsRetryConnect=" + mIsRetryConnect + ";"
-                        + "mCurrentRetryTimes="
-                        + mCurrentRetryTimes);
-            }
+            SALog.i(TAG, "onWebSocketClose; mIsRetryConnect=" + mIsRetryConnect + ";"
+                    + "mCurrentRetryTimes="
+                    + mCurrentRetryTimes);
 
             if (code != CLOSE_CODE_NOCODE) {
                 mIsRetryConnect = false;
@@ -944,5 +922,5 @@ public class ViewCrawler implements VTrack, DebugTracking {
 
     private static final int EMULATOR_CONNECT_ATTEMPT_INTERVAL_MILLIS = 1000 * 30;
 
-    private static final String LOGTAG = "SA.ViewCrawler";
+    private static final String TAG = "SA.ViewCrawler";
 }

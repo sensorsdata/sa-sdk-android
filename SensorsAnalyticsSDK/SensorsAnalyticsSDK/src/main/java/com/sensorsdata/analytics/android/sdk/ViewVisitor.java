@@ -20,7 +20,7 @@ public abstract class ViewVisitor implements Pathfinder.Accumulator {
     private final List<Pathfinder.PathElement> mPath;
     private final Pathfinder mPathfinder;
 
-    private static final String LOGTAG = "SA.ViewVisitor";
+    private static final String TAG = "SA.ViewVisitor";
 
     public void visit(View rootView) {
         mPathfinder.findTargetsInRoot(rootView, mPath, this);
@@ -165,9 +165,7 @@ public abstract class ViewVisitor implements Pathfinder.Accumulator {
                 }
             }
 
-            if (SensorsDataAPI.ENABLE_LOG) {
-                Log.i(LOGTAG, String.format("ClickVisitor accumulated. View %s", found.toString()));
-            }
+            SALog.i(TAG, String.format("ClickVisitor accumulated. View %s", found.toString()));
 
             // We aren't already in the tracking call chain of the view
             final TrackingAccessibilityDelegate newDelegate =
@@ -192,7 +190,7 @@ public abstract class ViewVisitor implements Pathfinder.Accumulator {
             } catch (IllegalAccessException e) {
                 // In this case, we just overwrite the original.
             } catch (InvocationTargetException e) {
-                Log.w(LOGTAG, "getAccessibilityDelegate threw an exception when called.", e);
+                SALog.i(TAG, "getAccessibilityDelegate threw an exception when called.", e);
             }
 
             return ret;

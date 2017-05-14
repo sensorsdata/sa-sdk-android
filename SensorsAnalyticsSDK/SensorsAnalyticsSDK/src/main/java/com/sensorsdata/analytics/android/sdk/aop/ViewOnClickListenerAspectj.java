@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.support.v7.widget.SwitchCompat;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -16,6 +15,7 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.sensorsdata.analytics.android.sdk.R;
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataIgnoreTrackOnClick;
 
@@ -103,7 +103,7 @@ public class ViewOnClickListenerAspectj {
                         try {
                             long lastOnClickTimestamp = Long.parseLong(tag);
                             if ((currentOnClickTimestamp - lastOnClickTimestamp) < 500) {
-                                Log.i(TAG, "This onClick maybe extends from super, IGNORE");
+                                SALog.i(TAG, "This onClick maybe extends from super, IGNORE");
                                 return;
                             }
                         } catch (Exception e) {
@@ -210,7 +210,7 @@ public class ViewOnClickListenerAspectj {
                     SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Log.i(TAG, "onViewClickMethod error: " + e.getMessage());
+                    SALog.i(TAG, "onViewClickMethod error: " + e.getMessage());
                 }
             }
         });

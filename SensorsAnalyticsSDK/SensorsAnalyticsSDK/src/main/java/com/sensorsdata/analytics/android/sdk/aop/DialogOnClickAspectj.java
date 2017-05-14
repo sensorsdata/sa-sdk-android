@@ -5,12 +5,12 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.text.TextUtils;
-import android.util.Log;
 import android.widget.Button;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 
 import com.sensorsdata.analytics.android.sdk.R;
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
 import org.aspectj.lang.JoinPoint;
@@ -159,7 +159,7 @@ public class DialogOnClickAspectj {
                     SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Log.i(TAG, " DialogInterface.OnClickListener.onClick AOP ERROR: " + e.getMessage());
+                    SALog.i(TAG, " DialogInterface.OnClickListener.onClick AOP ERROR: " + e.getMessage());
                 }
             }
         });
@@ -299,7 +299,7 @@ public class DialogOnClickAspectj {
                     SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Log.i(TAG, " DialogInterface.OnMultiChoiceClickListener.onClick AOP ERROR: " + e.getMessage());
+                    SALog.i(TAG, " DialogInterface.OnMultiChoiceClickListener.onClick AOP ERROR: " + e.getMessage());
                 }
             }
         });

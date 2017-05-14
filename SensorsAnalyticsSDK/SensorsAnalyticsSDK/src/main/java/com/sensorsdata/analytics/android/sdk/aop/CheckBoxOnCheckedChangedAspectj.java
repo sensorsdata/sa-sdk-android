@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.support.v7.widget.SwitchCompat;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -12,6 +11,7 @@ import android.widget.RadioButton;
 import android.widget.ToggleButton;
 
 import com.sensorsdata.analytics.android.sdk.R;
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
 import org.aspectj.lang.JoinPoint;
@@ -149,7 +149,7 @@ public class CheckBoxOnCheckedChangedAspectj {
                     SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Log.i(TAG, " onCheckedChanged AOP ERROR: " + e.getMessage());
+                    SALog.i(TAG, " onCheckedChanged AOP ERROR: " + e.getMessage());
                 }
             }
         });

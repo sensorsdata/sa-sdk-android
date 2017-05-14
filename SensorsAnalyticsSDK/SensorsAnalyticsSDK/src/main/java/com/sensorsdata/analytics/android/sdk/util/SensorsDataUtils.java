@@ -2,6 +2,7 @@ package com.sensorsdata.analytics.android.sdk.util;
 
 import android.app.ActionBar;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
@@ -13,8 +14,9 @@ import android.os.Build;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
-import android.util.Log;
 import android.webkit.WebSettings;
+
+import com.sensorsdata.analytics.android.sdk.SALog;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -36,6 +38,41 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class SensorsDataUtils {
+    /**
+     * 获得当前进程的名字
+     *
+     * @param context Context
+     * @return 进程号
+     */
+    public static String getCurrentProcessName(Context context) {
+
+        int pid = android.os.Process.myPid();
+
+        ActivityManager activityManager = (ActivityManager) context
+                .getSystemService(Context.ACTIVITY_SERVICE);
+
+        for (ActivityManager.RunningAppProcessInfo appProcess : activityManager
+                .getRunningAppProcesses()) {
+
+            if (appProcess.pid == pid) {
+                return appProcess.processName;
+            }
+        }
+        return null;
+    }
+
+    public static boolean isMainProcess(Context context, String mainProcessName) {
+        if (TextUtils.isEmpty(mainProcessName)) {
+            return true;
+        }
+
+        String currentProcess = getCurrentProcessName(context.getApplicationContext());
+        if (mainProcessName.equals(currentProcess)) {
+            return true;
+        }
+
+        return false;
+    }
 
     public static String operatorToCarrier(String operator) {
         String other = "其他";
@@ -136,7 +173,7 @@ public final class SensorsDataUtils {
                             userAgent = WebSettings.getDefaultUserAgent(context);
                         }
                     } catch (Exception e) {
-                        Log.i(LOGTAG, "WebSettings NoSuchMethod: getDefaultUserAgent");
+                        SALog.i(TAG, "WebSettings NoSuchMethod: getDefaultUserAgent");
                     }
                 } else {
                     try {
@@ -194,20 +231,20 @@ public final class SensorsDataUtils {
             final String packageName = context.getPackageName();
 
             if (packageManager == null || packageName == null) {
-                Log.w(LOGTAG, "Can't check configuration when using a Context with null packageManager or packageName");
+                SALog.i(TAG, "Can't check configuration when using a Context with null packageManager or packageName");
                 return false;
             }
 
             if (PackageManager.PERMISSION_GRANTED != packageManager
                     .checkPermission(permission, packageName)) {
-                Log.i(LOGTAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n"
+                SALog.i(TAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n"
                         + "<uses-permission android:name=\"" + permission+ "\" />");
                 return false;
             }
 
             return true;
         } catch (Exception e) {
-            Log.w(LOGTAG, e.toString());
+            SALog.i(TAG, e.toString());
             return false;
         }
     }
@@ -443,5 +480,5 @@ public final class SensorsDataUtils {
         }
     };
 
-    private static final String LOGTAG = "SA.SensorsDataUtils";
+    private static final String TAG = "SA.SensorsDataUtils";
 }

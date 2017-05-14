@@ -1,8 +1,8 @@
 package com.sensorsdata.analytics.android.sdk.aop;
 
 import android.text.TextUtils;
-import android.util.Log;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataTrackEvent;
 
@@ -51,7 +51,7 @@ public class TrackEventAspectj {
                     SensorsDataAPI.sharedInstance().track(eventName, properties);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Log.i(TAG, "trackEventAOP error: " + e.getMessage());
+                    SALog.i(TAG, "trackEventAOP error: " + e.getMessage());
                 }
             }
         });

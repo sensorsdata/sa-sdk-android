@@ -3,7 +3,6 @@ package com.sensorsdata.analytics.android.sdk.aop;
 import android.app.Activity;
 import android.content.Context;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -15,6 +14,7 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.sensorsdata.analytics.android.sdk.R;
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
 import org.aspectj.lang.JoinPoint;
@@ -176,7 +176,7 @@ public class TrackViewOnClickAspectj {
                     SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Log.i(TAG, "TrackViewOnClick error: " + e.getMessage());
+                    SALog.i(TAG, "TrackViewOnClick error: " + e.getMessage());
                 }
             }
         });

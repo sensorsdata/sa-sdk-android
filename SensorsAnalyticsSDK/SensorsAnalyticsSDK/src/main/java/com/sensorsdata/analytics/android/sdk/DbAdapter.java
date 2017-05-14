@@ -1,12 +1,11 @@
 package com.sensorsdata.analytics.android.sdk;
 
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
-import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
+import android.net.Uri;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -16,7 +15,9 @@ import java.io.File;
 
 /* package */ class DbAdapter {
 
-    private static final String LOGTAG = "SA.DbAdapter";
+    private static final String TAG = "SA.DbAdapter";
+    private final File mDatabaseFile;
+    private Uri mUri;
 
     public enum Table {
         EVENTS("events");
@@ -37,77 +38,26 @@ import java.io.File;
 
     public static final int DB_UPDATE_ERROR = -1;
     public static final int DB_OUT_OF_MEMORY_ERROR = -2;
-    public static final int DB_UNDEFINED_CODE = -3;
-
-    private static final int DATABASE_VERSION = 4;
-
-    private static final String CREATE_EVENTS_TABLE =
-            "CREATE TABLE " + Table.EVENTS.getName() + " (_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    KEY_DATA + " STRING NOT NULL, " +
-                    KEY_CREATED_AT + " INTEGER NOT NULL);";
-    private static final String EVENTS_TIME_INDEX =
-            "CREATE INDEX IF NOT EXISTS time_idx ON " + Table.EVENTS.getName() +
-                    " (" + KEY_CREATED_AT + ");";
 
     private final Context mContext;
-    private final String mDbName;
 
-    private DatabaseHelper mDb = null;
-
-    private static class DatabaseHelper extends SQLiteOpenHelper {
-
-        DatabaseHelper(Context context, String dbName) {
-            super(context, dbName, null, DATABASE_VERSION);
-            mDatabaseFile = context.getDatabasePath(dbName);
+    private boolean belowMemThreshold() {
+        if (mDatabaseFile.exists()) {
+            return Math.max(
+                    mDatabaseFile.getUsableSpace(),
+                    32 * 1024 * 1024 // 32MB
+            ) >= mDatabaseFile.length();
         }
-
-        /**
-         * Completely deletes the DB file from the file system.
-         */
-        public void deleteDatabase() {
-            close();
-            mDatabaseFile.delete();
-        }
-
-        @Override
-        public void onCreate(SQLiteDatabase db) {
-            if (SensorsDataAPI.ENABLE_LOG) {
-                Log.i(LOGTAG, "Creating a new Sensors Analytics DB");
-            }
-
-            db.execSQL(CREATE_EVENTS_TABLE);
-            db.execSQL(EVENTS_TIME_INDEX);
-        }
-
-        @Override
-        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-            if (SensorsDataAPI.ENABLE_LOG) {
-                Log.i(LOGTAG, "Upgrading app, replacing Sensors Analytics DB");
-            }
-
-            db.execSQL("DROP TABLE IF EXISTS " + Table.EVENTS.getName());
-            db.execSQL(CREATE_EVENTS_TABLE);
-            db.execSQL(EVENTS_TIME_INDEX);
-        }
-
-        public boolean belowMemThreshold() {
-            if (mDatabaseFile.exists()) {
-                return Math.max(
-                        mDatabaseFile.getUsableSpace(),
-                        32 * 1024 * 1024 // 32MB
-                ) >= mDatabaseFile.length();
-            }
-            return true;
-        }
-
-        private final File mDatabaseFile;
+        return true;
     }
+
+    private ContentResolver contentResolver;
 
     public DbAdapter(Context context, String dbName) {
         mContext = context;
-        mDbName = dbName;
-
-        initDB();
+        contentResolver = mContext.getContentResolver();
+        mDatabaseFile = context.getDatabasePath(dbName);
+        mUri = Uri.parse("content://" + dbName + ".SensorsDataContentProvider/" + Table.EVENTS.getName());
     }
 
     /**
@@ -121,67 +71,39 @@ import java.io.File;
      */
     public int addJSON(JSONObject j, Table table) {
         // we are aware of the race condition here, but what can we do..?
-        if (!mDb.belowMemThreshold()) {
-            Log.e(LOGTAG, "There is not enough space left on the device to store events, so will delete some old events");
-            String[] eventsData = generateDataString(DbAdapter.Table.EVENTS, 100);
-            if (eventsData == null) {
-                return DB_OUT_OF_MEMORY_ERROR;
-            }
-            final String lastId = eventsData[0];
-            int count = cleanupEvents(lastId, DbAdapter.Table.EVENTS);
-            if (count <= 0) {
-                return DB_OUT_OF_MEMORY_ERROR;
-            }
-        }
-
-        final String tableName = table.getName();
-
-        Cursor c = null;
         int count = DB_UPDATE_ERROR;
+        Cursor c = null;
+        try {
+            if (!belowMemThreshold()) {
+                SALog.i(TAG, "There is not enough space left on the device to store events, so will delete some old events");
+                String[] eventsData = generateDataString(DbAdapter.Table.EVENTS, 100);
+                if (eventsData == null) {
+                    return DB_OUT_OF_MEMORY_ERROR;
+                }
+                final String lastId = eventsData[0];
+                count = cleanupEvents(lastId, DbAdapter.Table.EVENTS);
+                if (count <= 0) {
+                    return DB_OUT_OF_MEMORY_ERROR;
+                }
+            }
 
-        synchronized (mDb) {
+            final ContentValues cv = new ContentValues();
+            cv.put(KEY_DATA, j.toString());
+            cv.put(KEY_CREATED_AT, System.currentTimeMillis());
+            contentResolver.insert(mUri, cv);
+            c = contentResolver.query(mUri, null, null, null, null);
+            if (c != null) {
+                count = c.getCount();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
             try {
-                final SQLiteDatabase db = mDb.getWritableDatabase();
-
-                final ContentValues cv = new ContentValues();
-                cv.put(KEY_DATA, j.toString());
-                cv.put(KEY_CREATED_AT, System.currentTimeMillis());
-                db.insert(tableName, null, cv);
-
-                c = db.rawQuery("SELECT COUNT(*) FROM " + tableName, null);
-                c.moveToFirst();
-                count = c.getInt(0);
-            } catch (final SQLiteException e) {
-                Log.e(LOGTAG, "Could not add data to table " + tableName + ". Re-initializing database.",
-                        e);
-
-                // We assume that in general, the results of a SQL exception are
-                // unrecoverable, and could be associated with an oversized or
-                // otherwise unusable DB. Better to bomb it and get back on track
-                // than to leave it junked up (and maybe filling up the disk.)
                 if (c != null) {
                     c.close();
-                    c = null;
                 }
-                initDB();
-            } catch (final IllegalStateException e) {
-                Log.e(LOGTAG, "Could not add data to table " + tableName + ". Re-initializing database.",
-                        e);
-
-                // We assume that in general, the results of a SQL exception are
-                // unrecoverable, and could be associated with an oversized or
-                // otherwise unusable DB. Better to bomb it and get back on track
-                // than to leave it junked up (and maybe filling up the disk.)
-                if (c != null) {
-                    c.close();
-                    c = null;
-                }
-                initDB();
             } finally {
-                if (c != null) {
-                    c.close();
-                }
-                mDb.close();
+
             }
         }
         return count;
@@ -195,42 +117,27 @@ import java.io.File;
      * @return the number of rows in the table
      */
     public int cleanupEvents(String last_id, Table table) {
-        final String tableName = table.getName();
         Cursor c = null;
         int count = DB_UPDATE_ERROR;
 
-        synchronized (mDb) {
-
+        try {
+            contentResolver.delete(mUri, "_id <= ?", new String[]{last_id});
+            c = contentResolver.query(mUri, null, null, null, null);
+            if (c != null) {
+                count = c.getCount();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
             try {
-                final SQLiteDatabase db = mDb.getWritableDatabase();
-                db.delete(tableName, "_id <= " + last_id, null);
-
-                c = db.rawQuery("SELECT COUNT(*) FROM " + tableName, null);
-                c.moveToFirst();
-                count = c.getInt(0);
-            } catch (final SQLiteException e) {
-                Log.e(LOGTAG,
-                        "Could not clean sent records from " + tableName + ". Re-initializing database.", e);
-                initDB();
-            } catch (final IllegalStateException e) {
-                Log.e(LOGTAG,
-                        "Could not clean sent records from " + tableName + ". Re-initializing database.", e);
-                initDB();
-            } finally {
                 if (c != null) {
                     c.close();
                 }
-                mDb.close();
+            } finally {
+
             }
         }
         return count;
-    }
-
-    public void initDB() {
-        if (mDb != null) {
-            mDb.deleteDatabase();
-        }
-        mDb = new DatabaseHelper(mContext, mDbName);
     }
 
     public String[] generateDataString(Table table, int limit) {
@@ -238,14 +145,11 @@ import java.io.File;
         String data = null;
         String last_id = null;
         final String tableName = table.getName();
+        try {
+            c = contentResolver.query(mUri, null, null, null, KEY_CREATED_AT + " ASC LIMIT " + String.valueOf(limit));
+            final JSONArray arr = new JSONArray();
 
-        synchronized (mDb) {
-            try {
-                final SQLiteDatabase db = mDb.getReadableDatabase();
-                c = db.rawQuery("SELECT * FROM " + tableName +
-                        " ORDER BY " + KEY_CREATED_AT + " ASC LIMIT " + String.valueOf(limit), null);
-                final JSONArray arr = new JSONArray();
-
+            if (c != null) {
                 while (c.moveToNext()) {
                     if (c.isLast()) {
                         last_id = c.getString(c.getColumnIndex("_id"));
@@ -261,21 +165,15 @@ import java.io.File;
                 if (arr.length() > 0) {
                     data = arr.toString();
                 }
-            } catch (final SQLiteException e) {
-                Log.e(LOGTAG, "Could not pull records for SensorsData out of database " + tableName
-                        + ". Waiting to send.", e);
-                last_id = null;
-                data = null;
-            } catch (final IllegalStateException e) {
-                Log.e(LOGTAG, "Could not pull records for SensorsData out of database " + tableName
-                        + ". Waiting to send.", e);
-                last_id = null;
-                data = null;
-            } finally {
-                if (c != null) {
-                    c.close();
-                }
-                mDb.close();
+            }
+        } catch (final SQLiteException e) {
+            SALog.i(TAG, "Could not pull records for SensorsData out of database " + tableName
+                    + ". Waiting to send.", e);
+            last_id = null;
+            data = null;
+        } finally {
+            if (c != null) {
+                c.close();
             }
         }
 

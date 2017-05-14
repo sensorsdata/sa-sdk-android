@@ -2,7 +2,6 @@ package com.sensorsdata.analytics.android.sdk;
 
 import android.content.Context;
 import android.text.TextUtils;
-import android.util.Log;
 import android.webkit.JavascriptInterface;
 
 import org.json.JSONException;
@@ -12,7 +11,7 @@ import org.json.JSONObject;
  * Created by wangzhuozhou on 16/9/1
  */
 /* package */ class AppWebViewInterface {
-    private static final String LOGTAG = "SA.AppWebViewInterface";
+    private static final String TAG = "SA.AppWebViewInterface";
     private Context mContext;
     private JSONObject properties;
 
@@ -38,7 +37,7 @@ import org.json.JSONObject;
             }
             return properties.toString();
         } catch (JSONException e) {
-            Log.i(LOGTAG, e.getMessage());
+            SALog.i(TAG, e.getMessage());
         }
         return null;
     }

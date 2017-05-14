@@ -5,6 +5,7 @@ import com.sensorsdata.analytics.android.sdk.exceptions.DebugModeException;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.exceptions.ResponseErrorException;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import android.content.Context;
@@ -14,7 +15,6 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
-import android.util.Log;
 import android.widget.Toast;
 
 import org.json.JSONArray;
@@ -30,6 +30,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
@@ -81,7 +82,7 @@ class AnalyticsMessages {
                     if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
                         throw new DebugModeException(error);
                     } else {
-                        Log.w(LOGTAG, error);
+                        SALog.i(TAG, error);
                     }
                 }
 
@@ -103,7 +104,7 @@ class AnalyticsMessages {
                 }
             }
         } catch (Exception e) {
-            Log.w(LOGTAG, "enqueueEventMessage error:" + e);
+            SALog.i(TAG, "enqueueEventMessage error:" + e);
         }
     }
 
@@ -139,10 +140,17 @@ class AnalyticsMessages {
 
     public void sendData() {
         try {
+            //不是主进程
+            if (!SensorsDataUtils.isMainProcess(mContext, SensorsDataAPI.sharedInstance(mContext).getMainProcessName())) {
+                return;
+            }
+
+            //无网络
             if (!SensorsDataUtils.isNetworkAvailable(mContext)) {
                 return;
             }
 
+            //不符合同步数据的网络策略
             String networkType = SensorsDataUtils.networkType(mContext);
             if (!SensorsDataAPI.sharedInstance(mContext).isShouldFlush(networkType)) {
                 return;
@@ -230,15 +238,15 @@ class AnalyticsMessages {
 
                     String response = new String(responseBody, "UTF-8");
 
-                    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+                    //if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
                         if (responseCode == 200) {
-                            Log.i(LOGTAG, String.format("valid message: %s", rawMessage));
+                            SALog.i(TAG, String.format("valid message: \n%s", JSONUtils.formatJson(rawMessage)));
                         } else {
-                            Log.i(LOGTAG, String.format("invalid message: %s", rawMessage));
-                            Log.i(LOGTAG, String.format("ret_code: %d", responseCode));
-                            Log.i(LOGTAG, String.format("ret_content: %s", response));
+                            SALog.i(TAG, String.format("invalid message: \n%s", JSONUtils.formatJson(rawMessage)));
+                            SALog.i(TAG, String.format(Locale.CHINA, "ret_code: %d", responseCode));
+                            SALog.i(TAG, String.format(Locale.CHINA, "ret_content: %s", response));
                         }
-                    }
+                    //}
 
                     if (responseCode < 200 || responseCode >= 300) {
                         // 校验错误，直接将数据删除
@@ -264,7 +272,7 @@ class AnalyticsMessages {
                 boolean isDebugMode = SensorsDataAPI.sharedInstance(mContext).isDebugMode();
                 if (!TextUtils.isEmpty(errorMessage)) {
                     if (isDebugMode || SensorsDataAPI.ENABLE_LOG) {
-                        Log.i(LOGTAG, errorMessage);
+                        SALog.i(TAG, errorMessage);
                         if (isDebugMode && SensorsDataAPI.SHOW_DEBUG_INFO_VIEW) {
                             try {
                                 if (toast != null) {
@@ -281,9 +289,7 @@ class AnalyticsMessages {
 
                 if (deleteEvents) {
                     count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
-                    if (isDebugMode || SensorsDataAPI.ENABLE_LOG) {
-                        Log.i(LOGTAG, String.format("Events flushed. [left = %d]", count));
-                    }
+                    SALog.i(TAG, String.format(Locale.CHINA, "Events flushed. [left = %d]", count));
                 } else {
                     count = 0;
                 }
@@ -322,7 +328,7 @@ class AnalyticsMessages {
     }
 
     private String getCheckConfigure() throws ConnectErrorException {
-        Log.w(LOGTAG, "getCheckConfigure");
+        SALog.i(TAG, "getCheckConfigure");
         HttpURLConnection connection = null;
         InputStream in = null;
         try {
@@ -349,7 +355,7 @@ class AnalyticsMessages {
                 try {
                     in.close();
                 } catch (final IOException e) {
-                    Log.w(LOGTAG, "getCheckConfigure close inputStream error:" + e.getMessage());
+                    SALog.i(TAG, "getCheckConfigure close inputStream error:" + e.getMessage());
                 }
             if (null != connection)
                 connection.disconnect();
@@ -373,7 +379,7 @@ class AnalyticsMessages {
             synchronized (mHandlerLock) {
                 if (mHandler == null) {
                     // We died under suspicious circumstances. Don't try to send any more events.
-                    Log.w(LOGTAG, "Dead worker dropping a message: " + msg.what);
+                    SALog.i(TAG, "Dead worker dropping a message: " + msg.what);
                 } else {
                     mHandler.sendMessage(msg);
                 }
@@ -384,7 +390,7 @@ class AnalyticsMessages {
             synchronized (mHandlerLock) {
                 if (mHandler == null) {
                     // We died under suspicious circumstances. Don't try to send any more events.
-                    Log.w(LOGTAG, "Dead worker dropping a message: " + msg.what);
+                    SALog.i(TAG, "Dead worker dropping a message: " + msg.what);
                 } else {
                     if (!mHandler.hasMessages(msg.what)) {
                         mHandler.sendMessageDelayed(msg, delay);
@@ -423,18 +429,16 @@ class AnalyticsMessages {
                                 // XXX: 为兼容老版本，这里无论是否为 null，都需要调用 setVTrackServer
                                 decideMessages.setVTrackServer(vtrackServer);
                             } catch (JSONException e1) {
-                                if (SensorsDataAPI.ENABLE_LOG) {
-                                    Log.i(LOGTAG, "Failed to load SDK configure with" + configureResult);
-                                }
+                                SALog.i(TAG, "Failed to load SDK configure with" + configureResult);
                             }
                         } catch (ConnectErrorException e) {
-                            Log.e(LOGTAG, "Failed to get vtrack configure from SensorsAnalaytics.", e);
+                            SALog.i(TAG, "Failed to get vtrack configure from SensorsAnalaytics.", e);
                         }
                     } else {
-                        Log.e(LOGTAG, "Unexpected message received by SensorsData worker: " + msg);
+                        SALog.i(TAG, "Unexpected message received by SensorsData worker: " + msg);
                     }
                 } catch (final RuntimeException e) {
-                    Log.e(LOGTAG, "Worker threw an unhandled exception", e);
+                    SALog.i(TAG, "Worker threw an unhandled exception", e);
                 }
             }
         }
@@ -452,7 +456,7 @@ class AnalyticsMessages {
     private static final int FLUSH_QUEUE = 3;
     private static final int CHECK_CONFIGURE = 4; // 从SA获取配置信息
 
-    private static final String LOGTAG = "SA.AnalyticsMessages";
+    private static final String TAG = "SA.AnalyticsMessages";
 
     private static final Map<Context, AnalyticsMessages> sInstances =
             new HashMap<Context, AnalyticsMessages>();

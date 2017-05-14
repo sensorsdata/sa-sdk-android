@@ -1,10 +1,8 @@
 package com.sensorsdata.analytics.android.sdk;
 
-import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 
 import android.content.Context;
 import android.os.Handler;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -36,7 +34,7 @@ class DynamicEventTracker implements ViewVisitor.OnEventListener {
             properties.put("$binding_path", eventInfo.mPath);
             properties.put("$binding_depolyed", eventInfo.mIsDeployed);
         } catch (JSONException e) {
-            Log.e(LOGTAG, "Can't format properties from view due to JSON issue", e);
+            SALog.i(TAG, "Can't format properties from view due to JSON issue", e);
         }
 
         // 对于Clicked事件，事件发生时即调用track记录事件；对于Edited事件，由于多次Edit时会触发多次Edited，
@@ -176,5 +174,5 @@ class DynamicEventTracker implements ViewVisitor.OnEventListener {
     private static final int MAX_PROPERTY_LENGTH = 128;
     private static final int DEBOUNCE_TIME_MILLIS = 3000; // 3 second delay before sending
 
-    private static String LOGTAG = "SA.DynamicEventTracker";
+    private static String TAG = "SA.DynamicEventTracker";
 }

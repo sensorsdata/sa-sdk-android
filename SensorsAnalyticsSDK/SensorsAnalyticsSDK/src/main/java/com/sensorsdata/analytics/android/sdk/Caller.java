@@ -1,6 +1,5 @@
 package com.sensorsdata.analytics.android.sdk;
 
-import android.util.Log;
 import android.view.View;
 
 import java.lang.reflect.InvocationTargetException;
@@ -46,12 +45,12 @@ class Caller {
             try {
                 return mTargetMethod.invoke(target, arguments);
             } catch (final IllegalAccessException e) {
-                Log.e(LOGTAG, "Method " + mTargetMethod.getName() + " appears not to be public", e);
+                SALog.i(TAG, "Method " + mTargetMethod.getName() + " appears not to be public", e);
             } catch (final IllegalArgumentException e) {
-                Log.e(LOGTAG,
+                SALog.i(TAG,
                         "Method " + mTargetMethod.getName() + " called with arguments of the wrong type", e);
             } catch (final InvocationTargetException e) {
-                Log.e(LOGTAG, "Method " + mTargetMethod.getName() + " threw an exception", e);
+                SALog.i(TAG, "Method " + mTargetMethod.getName() + " threw an exception", e);
             }
         }
 
@@ -159,5 +158,5 @@ class Caller {
     private final Class<?> mTargetClass;
     private final Method mTargetMethod;
 
-    private static final String LOGTAG = "SA.Caller";
+    private static final String TAG = "SA.Caller";
 }

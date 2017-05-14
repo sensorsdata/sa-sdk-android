@@ -1,13 +1,12 @@
 package com.sensorsdata.analytics.android.sdk.aop;
 
 import android.text.TextUtils;
-import android.util.Log;
 import android.widget.TabHost;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
 import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.annotation.After;
 import org.aspectj.lang.annotation.Aspect;
 import org.json.JSONObject;
 
@@ -64,7 +63,7 @@ public class TabHostOnTabChangedAspectj {
                     SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Log.i(TAG, " onTabChanged AOP ERROR: " + e.getMessage());
+                    SALog.i(TAG, " onTabChanged AOP ERROR: " + e.getMessage());
                 }
             }
         });

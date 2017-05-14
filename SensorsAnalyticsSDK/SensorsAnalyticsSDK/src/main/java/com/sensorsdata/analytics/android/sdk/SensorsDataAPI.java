@@ -1,6 +1,7 @@
 package com.sensorsdata.analytics.android.sdk;
 
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import android.annotation.SuppressLint;
@@ -144,6 +145,7 @@ public class SensorsDataAPI {
         }
 
         try {
+            SALog.init(this);
             final ApplicationInfo appInfo = context.getApplicationContext().getPackageManager()
                     .getApplicationInfo(packageName, PackageManager.GET_META_DATA);
             Bundle configBundle = appInfo.metaData;
@@ -173,8 +175,13 @@ public class SensorsDataAPI {
                 mConfigureUrl = configureURL;
             }
 
-            ENABLE_LOG = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
-                    false);
+            if (debugMode == DebugMode.DEBUG_OFF) {
+                ENABLE_LOG = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
+                        false);
+            } else {
+                ENABLE_LOG = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
+                        true);
+            }
             SHOW_DEBUG_INFO_VIEW = configBundle.getBoolean("com.sensorsdata.analytics.android.ShowDebugInfoView",
                     true);
 
@@ -190,10 +197,11 @@ public class SensorsDataAPI {
                     false);
             mEnableButterknifeOnClick = configBundle.getBoolean("com.sensorsdata.analytics.android.ButterknifeOnClick",
                     true);
+            mMainProcessName = configBundle.getString("com.sensorsdata.analytics.android.MainProcessName");
 
             mDebugMode = debugMode;
             //打开debug模式，弹出提示
-            if (mDebugMode != DebugMode.DEBUG_OFF) {
+            if (mDebugMode != DebugMode.DEBUG_OFF && SensorsDataUtils.isMainProcess(mContext.getApplicationContext(), mMainProcessName)) {
                 showDebugModeWarning();
             } else {
                 SHOW_DEBUG_INFO_VIEW = false;
@@ -209,7 +217,7 @@ public class SensorsDataAPI {
 
                 mVTrack = new ViewCrawler(mContext, resourcePackageName);
             } else {
-                Log.i(LOGTAG, "VTrack is not supported on this Android OS Version");
+                SALog.d(TAG, "VTrack is not supported on this Android OS Version");
                 mVTrack = new VTrackUnsupported();
             }
 
@@ -256,10 +264,10 @@ public class SensorsDataAPI {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
             final Application app = (Application) context.getApplicationContext();
-            app.registerActivityLifecycleCallbacks(new SensorsDataActivityLifecycleCallbacks(this, mFirstStart));
+            app.registerActivityLifecycleCallbacks(new SensorsDataActivityLifecycleCallbacks(this, mFirstStart, mMainProcessName));
         }
 
-        Log.i(LOGTAG, String.format("Initialized the instance of Sensors Analytics SDK with server"
+        SALog.d(TAG, String.format(Locale.CHINA, "Initialized the instance of Sensors Analytics SDK with server"
                         + " url '%s', configure url '%s' flush interval %d ms, debugMode: %s", mServerUrl,
                 mConfigureUrl, mFlushInterval, debugMode));
 
@@ -281,7 +289,7 @@ public class SensorsDataAPI {
                 final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
                 deviceInfo.put("$app_version", info.versionName);
             } catch (final Exception e) {
-                Log.e(LOGTAG, "Exception getting app version name", e);
+                SALog.d(TAG, "Exception getting app version name", e);
             }
             final DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
             deviceInfo.put("$screen_height", displayMetrics.heightPixels);
@@ -325,7 +333,7 @@ public class SensorsDataAPI {
             SensorsDataAPI instance = sInstanceMap.get(appContext);
 
             if (null == instance) {
-                Log.e(LOGTAG, "The static method sharedInstance(context, serverURL, configureURL, "
+                SALog.d(TAG, "The static method sharedInstance(context, serverURL, configureURL, "
                         + "vtrackServerURL, debugMode) should be called before calling sharedInstance()");
             }
             return instance;
@@ -402,6 +410,14 @@ public class SensorsDataAPI {
             }
             return null;
         }
+    }
+
+    /**
+     * 设置是否开启 log
+     * @param enable boolean
+     */
+    public void enableLog(boolean enable) {
+        this.ENABLE_LOG = enable;
     }
 
     /**
@@ -562,7 +578,7 @@ public class SensorsDataAPI {
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     public void showUpWebView(WebView webView, boolean isSupportJellyBean, JSONObject properties) {
         if (Build.VERSION.SDK_INT < 17 && !isSupportJellyBean) {
-            Log.i(LOGTAG, "For applications targeted to API level JELLY_BEAN or below, this feature NOT SUPPORTED");
+            SALog.d(TAG, "For applications targeted to API level JELLY_BEAN or below, this feature NOT SUPPORTED");
             return;
         }
 
@@ -1071,6 +1087,10 @@ public class SensorsDataAPI {
         return mLastScreenUrl;
     }
 
+    protected String getMainProcessName() {
+        return mMainProcessName;
+    }
+
     /**
      * 获取LastScreenTrackProperties
      * @return JSONObject
@@ -1102,7 +1122,7 @@ public class SensorsDataAPI {
                 track("$AppViewScreen", trackProperties);
             }
         } catch (JSONException e) {
-            Log.w(LOGTAG, "trackViewScreen:" + e);
+            SALog.i(TAG, "trackViewScreen:" + e);
         }
     }
 
@@ -1127,7 +1147,7 @@ public class SensorsDataAPI {
                     }
                 }
             } catch (Exception e) {
-                Log.i(LOGTAG, "appEnterBackground error:" + e.getMessage());
+                SALog.i(TAG, "appEnterBackground error:" + e.getMessage());
             }
         }
     }
@@ -1151,7 +1171,7 @@ public class SensorsDataAPI {
                     }
                 }
             } catch (Exception e) {
-                Log.i(LOGTAG, "appBecomeActive error:" + e.getMessage());
+                SALog.i(TAG, "appBecomeActive error:" + e.getMessage());
             }
         }
     }
@@ -1562,9 +1582,7 @@ public class SensorsDataAPI {
 
             if (isDepolyed) {
                 mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
-                if (SensorsDataAPI.ENABLE_LOG) {
-                    Log.i(LOGTAG, String.format("track data %s", dataObj.toString()));
-                }
+                SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(dataObj.toString()));
             }
         } catch (JSONException e) {
             throw new InvalidDataException("Unexpected property");
@@ -1600,7 +1618,7 @@ public class SensorsDataAPI {
                 }
 
                 if (value instanceof String && !key.startsWith("$") && ((String) value).length() > 8191) {
-                    Log.e(LOGTAG, "The property value is too long. [key='" + key
+                    SALog.d(TAG, "The property value is too long. [key='" + key
                             + "', value='" + value.toString() + "']");
                 }
             } catch (JSONException e) {
@@ -1631,7 +1649,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.7.2";
+    static final String VERSION = "1.7.3";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -1678,10 +1696,11 @@ public class SensorsDataAPI {
     private final Map<String, EventTimer> mTrackTimer;
     private List<Integer> mAutoTrackIgnoredActivities;
     private int mFlushNetworkPolicy = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
+    private final String mMainProcessName;
 
     private final VTrack mVTrack;
 
     private static final SimpleDateFormat mIsFirstDayDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
-    private static final String LOGTAG = "SA.SensorsDataAPI";
+    private static final String TAG = "SA.SensorsDataAPI";
 }

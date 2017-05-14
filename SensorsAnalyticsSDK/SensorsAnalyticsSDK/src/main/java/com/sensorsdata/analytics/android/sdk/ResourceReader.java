@@ -1,7 +1,6 @@
 package com.sensorsdata.analytics.android.sdk;
 
 import android.content.Context;
-import android.util.Log;
 import android.util.SparseArray;
 
 import java.lang.reflect.Field;
@@ -101,7 +100,7 @@ public abstract class ResourceReader implements ResourceIds {
                 }
             }
         } catch (IllegalAccessException e) {
-            Log.e(LOGTAG, "Can't read built-in id names from " + platformIdClass.getName(), e);
+            SALog.i(TAG, "Can't read built-in id names from " + platformIdClass.getName(), e);
         }
     }
 
@@ -121,9 +120,9 @@ public abstract class ResourceReader implements ResourceIds {
             final Class<?> rIdClass = Class.forName(localClassName);
             readClassIds(rIdClass, null, mIdNameToId);
         } catch (ClassNotFoundException e) {
-            Log.w(LOGTAG, "Can't load names for Android view ids from '" + localClassName
+            SALog.i(TAG, "Can't load names for Android view ids from '" + localClassName
                     + "', ids by name will not be available in the events editor.");
-            Log.i(LOGTAG,
+            SALog.i(TAG,
                     "You may be missing a Resources class for your package due to your proguard configuration, "
                             + "or you may be using an applicationId in your build that isn't the same as the "
                             + "package declared in your AndroidManifest.xml file.\n"
@@ -150,7 +149,7 @@ public abstract class ResourceReader implements ResourceIds {
     }
 
     @SuppressWarnings("unused")
-    private static final String LOGTAG = "SA.ResourceReader";
+    private static final String TAG = "SA.ResourceReader";
 
     private final Context mContext;
     private final Map<String, Integer> mIdNameToId;

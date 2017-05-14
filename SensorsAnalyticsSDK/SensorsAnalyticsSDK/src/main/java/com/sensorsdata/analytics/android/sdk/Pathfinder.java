@@ -1,6 +1,5 @@
 package com.sensorsdata.analytics.android.sdk;
 
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -107,7 +106,7 @@ public class Pathfinder {
         }
 
         if (mIndexStack.full()) {
-            Log.w(LOGTAG, "Path is too deep, there is no memory to perfrom the finding");
+            SALog.i(TAG, "Path is too deep, there is no memory to perfrom the finding");
             return;
         }
 
@@ -132,7 +131,7 @@ public class Pathfinder {
         }
 
         if (mIndexStack.full()) {
-            Log.w(LOGTAG, "Path is too deep, there is no memory to perfrom the finding");
+            SALog.i(TAG, "Path is too deep, there is no memory to perfrom the finding");
             return;
         }
 
@@ -269,6 +268,6 @@ public class Pathfinder {
 
     private final IntStack mIndexStack;
 
-    private static final String LOGTAG = "SA.PathFinder";
+    private static final String TAG = "SA.PathFinder";
 
 }

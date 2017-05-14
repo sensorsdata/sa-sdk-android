@@ -1,8 +1,6 @@
 package com.sensorsdata.analytics.android.sdk;
 
 import android.content.Context;
-import android.content.pm.PackageManager;
-import android.util.Log;
 
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
@@ -29,8 +27,6 @@ import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 
 /* package */ class ConfigurationChecker {
-
-    public static String LOGTAG = "SA.ConfigurationChecker";
 
     public static boolean checkBasicConfiguration(Context context) {
         return SensorsDataUtils.checkHasPermission(context, "android.permission.INTERNET");

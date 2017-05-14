@@ -31,7 +31,7 @@ import android.view.WindowManager;
             foundAppVersionName = packageInfo.versionName;
             foundAppVersionCode = packageInfo.versionCode;
         } catch (NameNotFoundException e) {
-            Log.w(LOGTAG, "System information constructed with a context that apparently doesn't exist.");
+            SALog.i(TAG, "System information constructed with a context that apparently doesn't exist.");
         }
 
         mAppVersionName = foundAppVersionName;
@@ -123,5 +123,5 @@ import android.view.WindowManager;
     private final String mAppVersionName;
     private final Integer mAppVersionCode;
 
-    private static final String LOGTAG = "SA.SysInfo";
+    private static final String TAG = "SA.SysInfo";
 }

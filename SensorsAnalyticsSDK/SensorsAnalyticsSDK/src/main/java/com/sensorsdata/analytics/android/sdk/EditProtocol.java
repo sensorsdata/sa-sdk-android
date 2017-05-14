@@ -2,7 +2,6 @@ package com.sensorsdata.analytics.android.sdk;
 
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 
-import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 
 import org.json.JSONArray;
@@ -131,7 +130,7 @@ public class EditProtocol {
             } else if (null == prefixCode) {
                 prefix = Pathfinder.PathElement.ZERO_LENGTH_PREFIX;
             } else {
-                Log.w(LOGTAG, "Unrecognized prefix type \"" + prefixCode + "\". No views will be matched");
+                SALog.i(TAG, "Unrecognized prefix type \"" + prefixCode + "\". No views will be matched");
                 return NEVER_MATCH_PATH;
             }
 
@@ -157,7 +156,7 @@ public class EditProtocol {
             if (idNameToId.knownIdName(idName)) {
                 idFromName = idNameToId.idFromName(idName);
             } else {
-                Log.w(LOGTAG,
+                SALog.i(TAG,
                         "Path element contains an id name not known to the system. No views will be matched.\n"
                                 + "Make sure that you're not stripping your packages R class out with proguard.\n"
                                 + "id name was \"" + idName + "\""
@@ -169,7 +168,7 @@ public class EditProtocol {
         }
 
         if (-1 != idFromName && -1 != explicitId && idFromName != explicitId) {
-            Log.e(LOGTAG,
+            SALog.i(TAG,
                     "Path contains both a named and an explicit id, and they don't match. No views will be matched.");
             return null;
         }
@@ -221,5 +220,5 @@ public class EditProtocol {
     private static final List<Pathfinder.PathElement> NEVER_MATCH_PATH =
             Collections.<Pathfinder.PathElement>emptyList();
 
-    private static final String LOGTAG = "SA.EProtocol";
+    private static final String TAG = "SA.EProtocol";
 } // EditProtocol

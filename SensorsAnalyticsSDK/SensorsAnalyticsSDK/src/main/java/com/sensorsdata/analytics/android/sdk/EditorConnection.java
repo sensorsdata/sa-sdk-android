@@ -69,13 +69,11 @@ public class EditorConnection {
     }
 
     public void sendMessage(String message) {
-        if (SensorsDataAPI.ENABLE_LOG) {
-            Log.i(LOGTAG, "Sending message: " + message);
-        }
+        SALog.i(TAG, "Sending message: " + message);
         try {
             mClient.send(message);
         } catch (Exception e) {
-            Log.e(LOGTAG, "sendMessage;error", e);
+            SALog.i(TAG, "sendMessage;error", e);
         }
     }
 
@@ -90,7 +88,7 @@ public class EditorConnection {
                 mClient.close();
             }
         } catch (Exception e) {
-            Log.e(LOGTAG, "close;error", e);
+            SALog.i(TAG, "close;error", e);
         }
     }
 
@@ -103,7 +101,7 @@ public class EditorConnection {
         @Override
         public void onOpen(ServerHandshake handshakedata) {
             if (SensorsDataAPI.ENABLE_LOG) {
-                Log.i(LOGTAG, "Websocket connected: " + handshakedata.getHttpStatus() + " " + handshakedata
+                SALog.i(TAG, "Websocket connected: " + handshakedata.getHttpStatus() + " " + handshakedata
                         .getHttpStatusMessage());
             }
 
@@ -127,15 +125,13 @@ public class EditorConnection {
                     mService.disconnect();
                 }
             } catch (final JSONException e) {
-                Log.e(LOGTAG, "Bad JSON received:" + message, e);
+                SALog.i(TAG, "Bad JSON received:" + message, e);
             }
         }
 
         @Override
         public void onClose(int code, String reason, boolean remote) {
-            if (SensorsDataAPI.ENABLE_LOG) {
-                Log.i(LOGTAG, "WebSocket closed. Code: " + code + ", reason: " + reason + "\nURI: " + mURI);
-            }
+            Log.i(TAG, "WebSocket closed. Code: " + code + ", reason: " + reason + "\nURI: " + mURI);
             mService.cleanup();
             mService.onWebSocketClose(code);
         }
@@ -143,9 +139,9 @@ public class EditorConnection {
         @Override
         public void onError(Exception ex) {
             if (ex != null && ex.getMessage() != null) {
-                Log.e(LOGTAG, "Websocket Error: " + ex.getMessage());
+                SALog.i(TAG, "Websocket Error: " + ex.getMessage());
             } else {
-                Log.e(LOGTAG, "Unknown websocket error occurred");
+                SALog.i(TAG, "Unknown websocket error occurred");
             }
         }
     }
@@ -200,5 +196,5 @@ public class EditorConnection {
     private static final int CONNECT_TIMEOUT = 1000;
     private static final ByteBuffer EMPTY_BYTE_BUFFER = ByteBuffer.allocate(0);
 
-    private static final String LOGTAG = "SA.EditorConnection";
+    private static final String TAG = "SA.EditorConnection";
 }

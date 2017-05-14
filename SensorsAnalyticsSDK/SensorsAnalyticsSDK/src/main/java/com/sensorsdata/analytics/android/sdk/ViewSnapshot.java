@@ -67,13 +67,13 @@ public class ViewSnapshot {
         try {
             infoList = infoFuture.get(1, TimeUnit.SECONDS);
         } catch (final InterruptedException e) {
-            Log.w(LOGTAG, "Screenshot interrupted, no screenshot will be sent.", e);
+            SALog.i(TAG, "Screenshot interrupted, no screenshot will be sent.", e);
         } catch (final TimeoutException e) {
-            Log.i(LOGTAG,
+            SALog.i(TAG,
                     "Screenshot took more than 1 second to be scheduled and executed. No screenshot will be sent.",
                     e);
         } catch (final ExecutionException e) {
-            Log.e(LOGTAG, "Exception thrown during screenshot attempt", e);
+            SALog.i(TAG, "Exception thrown during screenshot attempt", e);
         }
 
         final int infoCount = infoList.size();
@@ -369,15 +369,15 @@ public class ViewSnapshot {
                 rawBitmap =
                         (Bitmap) createSnapshot.invoke(rootView, Bitmap.Config.RGB_565, Color.WHITE, false);
             } catch (final NoSuchMethodException e) {
-                Log.i(LOGTAG, "Can't call createSnapshot, will use drawCache", e);
+                SALog.i(TAG, "Can't call createSnapshot, will use drawCache", e);
             } catch (final IllegalArgumentException e) {
-                Log.i(LOGTAG, "Can't call createSnapshot with arguments", e);
+                SALog.i(TAG, "Can't call createSnapshot with arguments", e);
             } catch (final InvocationTargetException e) {
-                Log.e(LOGTAG, "Exception when calling createSnapshot", e);
+                SALog.i(TAG, "Exception when calling createSnapshot", e);
             } catch (final IllegalAccessException e) {
-                Log.e(LOGTAG, "Can't access createSnapshot, using drawCache", e);
+                SALog.i(TAG, "Can't access createSnapshot, using drawCache", e);
             } catch (final ClassCastException e) {
-                Log.e(LOGTAG, "createSnapshot didn't return a bitmap?", e);
+                SALog.i(TAG, "createSnapshot didn't return a bitmap?", e);
             }
 
             Boolean originalCacheState = null;
@@ -389,7 +389,7 @@ public class ViewSnapshot {
                     rawBitmap = rootView.getDrawingCache();
                 }
             } catch (final RuntimeException e) {
-                Log.w(LOGTAG, "Can't take a bitmap snapshot of view " + rootView + ", skipping for now.",
+                SALog.i(TAG, "Can't take a bitmap snapshot of view " + rootView + ", skipping for now.",
                         e);
             }
 
@@ -458,7 +458,7 @@ public class ViewSnapshot {
                     byte[] md5 = MessageDigest.getInstance("MD5").digest(byteArray);
                     mImageHash = toHex(md5);
                 } catch (Exception e) {
-                    Log.e(LOGTAG, "CachedBitmap.recreate;Create image_hash error=" + e);
+                    SALog.i(TAG, "CachedBitmap.recreate;Create image_hash error=" + e);
                 }
             }
         }
@@ -522,5 +522,5 @@ public class ViewSnapshot {
     ;
     private static final int MAX_CLASS_NAME_CACHE_SIZE = 255;
 
-    private static final String LOGTAG = "SA.Snapshot";
+    private static final String TAG = "SA.Snapshot";
 }
