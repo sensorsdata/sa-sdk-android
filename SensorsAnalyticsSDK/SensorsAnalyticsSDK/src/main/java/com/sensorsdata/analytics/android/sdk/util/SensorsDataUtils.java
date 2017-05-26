@@ -46,17 +46,29 @@ public final class SensorsDataUtils {
      */
     public static String getCurrentProcessName(Context context) {
 
-        int pid = android.os.Process.myPid();
+        try {
+            int pid = android.os.Process.myPid();
 
-        ActivityManager activityManager = (ActivityManager) context
-                .getSystemService(Context.ACTIVITY_SERVICE);
+            ActivityManager activityManager = (ActivityManager) context
+                    .getSystemService(Context.ACTIVITY_SERVICE);
 
-        for (ActivityManager.RunningAppProcessInfo appProcess : activityManager
-                .getRunningAppProcesses()) {
 
-            if (appProcess.pid == pid) {
-                return appProcess.processName;
+            if (activityManager == null) {
+                return null;
             }
+
+            for (ActivityManager.RunningAppProcessInfo appProcess : activityManager
+                    .getRunningAppProcesses()) {
+
+                if (appProcess != null) {
+                    if (appProcess.pid == pid) {
+                        return appProcess.processName;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
         return null;
     }

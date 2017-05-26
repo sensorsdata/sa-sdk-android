@@ -17,7 +17,6 @@ import android.os.Bundle;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
 import android.widget.Toast;
@@ -418,6 +417,20 @@ public class SensorsDataAPI {
      */
     public void enableLog(boolean enable) {
         this.ENABLE_LOG = enable;
+    }
+
+    public long getMaxCacheSize() {
+        return mMaxCacheSize;
+    }
+
+    /**
+     * 设置本地缓存上限值，单位 byte，默认为 32MB：32 * 1024 * 1024
+     * @param maxCacheSize 单位 byte
+     */
+    public void setMaxCacheSize(long maxCacheSize) {
+        if (maxCacheSize > 0) {
+            this.mMaxCacheSize = maxCacheSize;
+        }
     }
 
     /**
@@ -1039,6 +1052,7 @@ public class SensorsDataAPI {
      *
      * @param eventName 事件的名称
      */
+    @Deprecated
     public void trackTimer(final String eventName) {
         try {
             trackTimer(eventName, TimeUnit.MILLISECONDS);
@@ -1059,6 +1073,7 @@ public class SensorsDataAPI {
      * @param eventName 事件的名称
      * @param timeUnit  计时结果的时间单位
      */
+    @Deprecated
     public void trackTimer(final String eventName, final TimeUnit timeUnit) {
         try {
             assertKey(eventName);
@@ -1068,6 +1083,50 @@ public class SensorsDataAPI {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 初始化事件的计时器，默认计时单位为毫秒。
+     *
+     * 详细用法请参考 trackTimerBegin(String, TimeUnit)
+     *
+     * @param eventName 事件的名称
+     */
+    public void trackTimerBegin(final String eventName) {
+        trackTimer(eventName);
+    }
+
+    /**
+     * 初始化事件的计时器。
+     *
+     * 若需要统计某个事件的持续时间，先在事件开始时调用 trackTimerBegin("Event") 记录事件开始时间，该方法并不会真正发
+     * 送事件；随后在事件结束时，调用 track("Event", properties)，SDK 会追踪 "Event" 事件，并自动将事件持续时
+     * 间记录在事件属性 "event_duration" 中。
+     *
+     * 多次调用 trackTimerBegin("Event") 时，事件 "Event" 的开始时间以最后一次调用时为准。
+     *
+     * @param eventName 事件的名称
+     * @param timeUnit  计时结果的时间单位
+     */
+    public void trackTimerBegin(final String eventName, final TimeUnit timeUnit) {
+        trackTimer(eventName, timeUnit);
+    }
+
+    /**
+     * 停止事件计时器
+     * @param eventName 事件的名称
+     * @param properties 事件的属性
+     */
+    public void trackTimerEnd(final String eventName, JSONObject properties) {
+        track(eventName, properties);
+    }
+
+    /**
+     * 停止事件计时器
+     * @param eventName 事件的名称
+     */
+    public void trackTimerEnd(final String eventName) {
+        track(eventName);
     }
 
     /**
@@ -1649,7 +1708,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.7.3";
+    static final String VERSION = "1.7.4";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -1697,6 +1756,7 @@ public class SensorsDataAPI {
     private List<Integer> mAutoTrackIgnoredActivities;
     private int mFlushNetworkPolicy = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
     private final String mMainProcessName;
+    private long mMaxCacheSize = 32 * 1024 * 1024; //default 32MB
 
     private final VTrack mVTrack;
 

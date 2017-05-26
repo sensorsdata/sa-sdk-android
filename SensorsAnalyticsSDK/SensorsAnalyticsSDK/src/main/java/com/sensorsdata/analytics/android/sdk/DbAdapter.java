@@ -41,11 +41,20 @@ import java.io.File;
 
     private final Context mContext;
 
+    private long getMaxCacheSize(Context context) {
+        try {
+            return SensorsDataAPI.sharedInstance(context).getMaxCacheSize();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 32 * 1024 * 1024;
+        }
+    }
+
     private boolean belowMemThreshold() {
         if (mDatabaseFile.exists()) {
             return Math.max(
                     mDatabaseFile.getUsableSpace(),
-                    32 * 1024 * 1024 // 32MB
+                    getMaxCacheSize(mContext)
             ) >= mDatabaseFile.length();
         }
         return true;
