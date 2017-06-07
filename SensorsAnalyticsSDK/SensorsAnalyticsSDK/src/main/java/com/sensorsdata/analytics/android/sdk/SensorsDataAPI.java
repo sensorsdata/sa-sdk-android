@@ -482,7 +482,7 @@ public class SensorsDataAPI {
      * 2) 本地缓存日志数目是否大于 flushBulkSize
      *
      * 如果满足这两个条件，则向服务器发送一次数据；如果不满足，则把数据加入到队列中，等待下次检查时把整个队列的内
-     * 容一并发送。需要注意的是，为了避免占用过多存储，队列最多只缓存20MB数据。
+     * 容一并发送。需要注意的是，为了避免占用过多存储，队列最多只缓存32MB数据。
      *
      * @return 返回本地缓存日志的最大条目数
      */
@@ -1197,6 +1197,9 @@ public class SensorsDataAPI {
                 while (iter.hasNext()) {
                     Map.Entry entry = (Map.Entry) iter.next();
                     if (entry != null) {
+                        if ("$AppEnd".equals(entry.getKey().toString())) {
+                            continue;
+                        }
                         EventTimer eventTimer = (EventTimer) entry.getValue();
                         if (eventTimer != null) {
                             long eventAccumulatedDuration = eventTimer.getEventAccumulatedDuration() + System.currentTimeMillis() - eventTimer.getStartTime();
@@ -1491,6 +1494,79 @@ public class SensorsDataAPI {
         }
     }
 
+    protected void trackEventFromH5(String eventInfo) {
+        try {
+            if (TextUtils.isEmpty(eventInfo)) {
+                return;
+            }
+
+            JSONObject eventObject = new JSONObject(eventInfo);
+            if (!TextUtils.isEmpty(getLoginId())) {
+                eventObject.put("distinct_id", getLoginId());
+            } else {
+                eventObject.put("distinct_id", getAnonymousId());
+            }
+
+            JSONObject propertiesObject = eventObject.optJSONObject("properties");
+            if (propertiesObject == null) {
+                return;
+            }
+
+            JSONObject libObject = eventObject.optJSONObject("lib");
+            if (libObject != null) {
+                if (mDeviceInfo.containsKey("$app_version")) {
+                    libObject.put("$app_version", mDeviceInfo.get("$app_version"));
+                }
+
+                //update lib $app_version from super properties
+                JSONObject superProperties = mSuperProperties.get();
+                if (superProperties != null) {
+                    if (superProperties.has("$app_version")) {
+                        libObject.put("$app_version", superProperties.get("$app_version"));
+                    }
+                }
+            }
+
+            if (mDeviceInfo != null) {
+                for (Map.Entry<String, Object> entry : mDeviceInfo.entrySet()) {
+                    String key = entry.getKey();
+                    if (!TextUtils.isEmpty(key)) {
+                        if ("$lib".equals(key) || "$lib_version".equals(key)) {
+                            continue;
+                        }
+                        propertiesObject.put(entry.getKey(), entry.getValue());
+                    }
+                }
+            }
+
+            // 当前网络状况
+            String networkType = SensorsDataUtils.networkType(mContext);
+            propertiesObject.put("$wifi", networkType.equals("WIFI"));
+            propertiesObject.put("$network_type", networkType);
+
+            // SuperProperties
+            synchronized (mSuperProperties) {
+                JSONObject superProperties = mSuperProperties.get();
+                SensorsDataUtils.mergeJSONObject(superProperties, propertiesObject);
+            }
+
+            String type = eventObject.getString("type");
+            if ("track".equals(type)) {
+                //是否首日访问
+                propertiesObject.put("$is_first_day", isFirstDay());
+            }
+
+            mMessages.enqueueEventMessage(type, eventObject);
+        } catch (Exception e) {
+            try {
+                mMessages.enqueueEventMessage(EventType.TRACK.getEventType(), new JSONObject(eventInfo));
+            } catch (Exception ignored){
+                //ignore
+            }
+            e.printStackTrace();
+        }
+    }
+
     private void trackEvent(EventType eventType, String eventName, JSONObject properties, String
             originalDistinctId) throws InvalidDataException {
         if (eventType.isTrack()) {
@@ -1536,7 +1612,12 @@ public class SensorsDataAPI {
             }
 
             if (null != eventTimer) {
-                sendProperties.put("event_duration", eventTimer.duration());
+                try {
+                    sendProperties.put("event_duration", Double.valueOf(eventTimer.duration()));
+                } catch (Exception e) {
+                    sendProperties.put("event_duration", 0f);
+                    e.printStackTrace();
+                }
             }
 
             JSONObject libProperties = new JSONObject();
@@ -1708,7 +1789,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.7.4";
+    static final String VERSION = "1.7.5";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;

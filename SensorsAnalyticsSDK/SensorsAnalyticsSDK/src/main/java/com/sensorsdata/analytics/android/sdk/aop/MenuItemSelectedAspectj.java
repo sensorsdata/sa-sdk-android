@@ -103,7 +103,6 @@ public class MenuItemSelectedAspectj {
                         e.printStackTrace();
                     }
 
-                    //获取View自定义属性
                     JSONObject properties = new JSONObject();
 
                     //$screen_name & $title

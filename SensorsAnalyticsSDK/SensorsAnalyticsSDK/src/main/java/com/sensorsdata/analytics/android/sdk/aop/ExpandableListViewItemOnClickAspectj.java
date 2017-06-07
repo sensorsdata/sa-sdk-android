@@ -167,96 +167,89 @@ public class ExpandableListViewItemOnClickAspectj {
             @Override
             public void run() {
                 try {
-                    /**
-                     * 关闭 AutoTrack
-                     */
+                    //关闭 AutoTrack
                     if (!SensorsDataAPI.sharedInstance().isAutoTrackEnabled()) {
                         return;
                     }
 
-                    /**
-                     * $AppClick 被过滤
-                     */
+                    //$AppClick 被过滤
                     if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_CLICK)) {
                         return;
                     }
 
-                    /**
-                     * 基本校验
-                     */
+                    //基本校验
                     if (joinPoint == null || joinPoint.getArgs() == null || joinPoint.getArgs().length != 4) {
                         return;
                     }
 
-                    /**
-                     * 获取 ExpandableListView
-                     */
+                    //获取 ExpandableListView
                     ExpandableListView expandableListView = (ExpandableListView) joinPoint.getArgs()[0];
                     if (expandableListView == null) {
                         return;
                     }
 
-                    /**
-                     * 获取所在的 Context
-                     */
+                    //获取所在的 Context
                     Context context = expandableListView.getContext();
                     if (context == null) {
                         return;
                     }
 
-                    /**
-                     * 将 Context 转成 Activity
-                     */
+                    //将 Context 转成 Activity
                     Activity activity = null;
                     if (context instanceof Activity) {
                         activity = (Activity) context;
                     }
 
-                    /**
-                     * Activity 被忽略
-                     */
+                    //Activity 被忽略
                     if (activity != null) {
                         if (SensorsDataAPI.sharedInstance().isActivityAutoTrackIgnored(activity.getClass())) {
                             return;
                         }
                     }
 
-                    /**
-                     * ExpandableListView Type 被忽略
-                     */
+                    // ExpandableListView Type 被忽略
                     if (AopUtil.isViewIgnored(joinPoint.getArgs()[0].getClass())) {
                         return;
                     }
 
-                    /**
-                     * View 被忽略
-                     */
+                    // View 被忽略
                     if (AopUtil.isViewIgnored(expandableListView)) {
                         return;
                     }
 
-                    /**
-                     * 获取 View
-                     */
+                    // 获取 View
                     View view = (View) joinPoint.getArgs()[1];
 
-                    /**
-                     * 获取 groupPosition 位置
-                     */
+                    // 获取 groupPosition 位置
                     int groupPosition = (int) joinPoint.getArgs()[2];
 
-                    /**
-                     * 获取 View 自定义属性
-                     */
-                    JSONObject properties = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
+                    JSONObject properties = new JSONObject();
 
-                    if (properties == null) {
-                        properties = new JSONObject();
+                    // $screen_name & $title
+                    if (activity != null) {
+                        properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
+                        String activityTitle = AopUtil.getActivityTitle(activity);
+                        if (!TextUtils.isEmpty(activityTitle)) {
+                            properties.put(AopConstants.TITLE, activityTitle);
+                        }
                     }
 
-                    /**
-                     * 扩展属性
-                     */
+                    // ViewId
+                    String idString = AopUtil.getViewId(expandableListView);
+                    if (!TextUtils.isEmpty(idString)) {
+                        properties.put(AopConstants.ELEMENT_ID, idString);
+                    }
+
+//                    properties.put(AopConstants.ELEMENT_ACTION, "onGroupClick");
+                    properties.put(AopConstants.ELEMENT_TYPE, "ExpandableListView");
+
+                    // 获取 View 自定义属性
+                    JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
+                    if (p != null) {
+                        AopUtil.mergeJSONObject(p, properties);
+                    }
+
+                    // 扩展属性
                     ExpandableListAdapter listAdapter = expandableListView.getExpandableListAdapter();
                     if (listAdapter != null) {
                         if (listAdapter instanceof SensorsExpandableListViewItemTrackProperties) {
@@ -271,28 +264,6 @@ public class ExpandableListViewItemOnClickAspectj {
                             }
                         }
                     }
-
-                    /**
-                     * $screen_name & $title
-                     */
-                    if (activity != null) {
-                        properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
-                        String activityTitle = AopUtil.getActivityTitle(activity);
-                        if (!TextUtils.isEmpty(activityTitle)) {
-                            properties.put(AopConstants.TITLE, activityTitle);
-                        }
-                    }
-
-                    /**
-                     * ViewId
-                     */
-                    String idString = AopUtil.getViewId(expandableListView);
-                    if (!TextUtils.isEmpty(idString)) {
-                        properties.put(AopConstants.ELEMENT_ID, idString);
-                    }
-
-//                    properties.put(AopConstants.ELEMENT_ACTION, "onGroupClick");
-                    properties.put(AopConstants.ELEMENT_TYPE, "ExpandableListView");
 
                     SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
                 } catch (Exception e) {

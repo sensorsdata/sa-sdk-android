@@ -1,5 +1,6 @@
 package com.sensorsdata.analytics.android.sdk;
 
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -13,9 +14,26 @@ class EventTimer {
         this.eventAccumulatedDuration = 0;
     }
 
-    long duration() {
-        long duration = timeUnit.convert(System.currentTimeMillis() - startTime + eventAccumulatedDuration, TimeUnit.MILLISECONDS);
-        return duration < 0 ? 0 : duration;
+    String duration() {
+        long duration = System.currentTimeMillis() - startTime + eventAccumulatedDuration;
+        try {
+            float durationFloat;
+            if (timeUnit == TimeUnit.MILLISECONDS) {
+                durationFloat = duration;
+            } else if (timeUnit == TimeUnit.SECONDS) {
+                durationFloat = duration / 1000.0f;
+            } else if (timeUnit == TimeUnit.MINUTES) {
+                durationFloat = duration / 1000.0f / 60.0f;
+            } else if (timeUnit == TimeUnit.HOURS) {
+                durationFloat = duration / 1000.0f / 60.0f / 60.0f;
+            } else {
+                durationFloat = duration;
+            }
+            return durationFloat < 0 ? String.valueOf(0) : String.format(Locale.CHINA, "%.3f", durationFloat);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return String.valueOf(0);
+        }
     }
 
     public long getStartTime() {

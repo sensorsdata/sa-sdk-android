@@ -91,12 +91,7 @@ public class AdapterViewOnItemClickListenerAspectj {
                     //position
                     int position = (int) joinPoint.getArgs()[2];
 
-                    //获取 View 自定义属性
-                    JSONObject properties = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
-
-                    if (properties == null) {
-                        properties = new JSONObject();
-                    }
+                    JSONObject properties = new JSONObject();
 
                     //View 被忽略
                     AdapterView adapterView = (AdapterView) object;
@@ -142,6 +137,12 @@ public class AdapterViewOnItemClickListenerAspectj {
                     //点击的 position
                     properties.put(AopConstants.ELEMENT_POSITION, String.valueOf(position));
 //                    properties.put(AopConstants.ELEMENT_ACTION, "onItemClick");
+
+                    //获取 View 自定义属性
+                    JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
+                    if (p != null) {
+                        AopUtil.mergeJSONObject(p, properties);
+                    }
 
                     SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
                 } catch (Exception e) {

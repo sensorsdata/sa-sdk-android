@@ -79,12 +79,7 @@ public class SpinnerOnItemSelectedAspectj {
                     //position
                     int position = (int) joinPoint.getArgs()[2];
 
-                    //获取 View 自定义属性
-                    JSONObject properties = (JSONObject) adapterView.getTag(R.id.sensors_analytics_tag_view_properties);
-
-                    if (properties == null) {
-                        properties = new JSONObject();
-                    }
+                    JSONObject properties = new JSONObject();
 
                     //ViewId
                     String idString = AopUtil.getViewId(adapterView);
@@ -125,6 +120,12 @@ public class SpinnerOnItemSelectedAspectj {
                         }
                     } else {
                         properties.put(AopConstants.ELEMENT_TYPE, adapterView.getClass().getCanonicalName());
+                    }
+
+                    //获取 View 自定义属性
+                    JSONObject p = (JSONObject) adapterView.getTag(R.id.sensors_analytics_tag_view_properties);
+                    if (p != null) {
+                        AopUtil.mergeJSONObject(p, properties);
                     }
 
                     SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);

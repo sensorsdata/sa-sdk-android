@@ -82,12 +82,7 @@ public class CheckBoxOnCheckedChangedAspectj {
                     //是否选中
                     boolean isChecked = (boolean) joinPoint.getArgs()[1];
 
-                    //获取 View 自定义属性
-                    JSONObject properties = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
-
-                    if (properties == null) {
-                        properties = new JSONObject();
-                    }
+                    JSONObject properties = new JSONObject();
 
                     //ViewId
                     String idString = AopUtil.getViewId(view);
@@ -144,6 +139,12 @@ public class CheckBoxOnCheckedChangedAspectj {
                     //Content
                     if (!TextUtils.isEmpty(viewText)) {
                         properties.put(AopConstants.ELEMENT_CONTENT, viewText);
+                    }
+
+                    //获取 View 自定义属性
+                    JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
+                    if (p != null) {
+                        AopUtil.mergeJSONObject(p, properties);
                     }
 
                     SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
