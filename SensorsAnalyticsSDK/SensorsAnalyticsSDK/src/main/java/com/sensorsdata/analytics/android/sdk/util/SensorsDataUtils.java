@@ -1,5 +1,6 @@
 package com.sensorsdata.analytics.android.sdk.util;
 
+import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.ActivityManager;
@@ -103,6 +104,17 @@ public final class SensorsDataUtils {
         return context.getSharedPreferences(SHARED_PREF_EDITS_FILE, Context.MODE_PRIVATE);
     }
 
+    @TargetApi(11)
+    private static String getToolbarTitle(Activity activity) {
+        ActionBar actionBar = activity.getActionBar();
+        if (actionBar != null) {
+            if (!TextUtils.isEmpty(actionBar.getTitle())) {
+                return actionBar.getTitle().toString();
+            }
+        }
+        return null;
+    }
+
     /**
      * 尝试读取页面 title
      * @param properties JSONObject
@@ -117,12 +129,14 @@ public final class SensorsDataUtils {
             properties.put("$screen_name", activity.getClass().getCanonicalName());
 
             String activityTitle = activity.getTitle().toString();
-            ActionBar actionBar = activity.getActionBar();
-            if (actionBar != null) {
-                if (!TextUtils.isEmpty(actionBar.getTitle())) {
-                    activityTitle = actionBar.getTitle().toString();
+
+            if (Build.VERSION.SDK_INT >= 11) {
+                String toolbarTitle = getToolbarTitle(activity);
+                if (!TextUtils.isEmpty(toolbarTitle)) {
+                    activityTitle = toolbarTitle;
                 }
             }
+
             if (TextUtils.isEmpty(activityTitle)) {
                 PackageManager packageManager = activity.getPackageManager();
                 if (packageManager != null) {
@@ -195,7 +209,7 @@ public final class SensorsDataUtils {
                         final Method method = webSettingsClassicClass.getMethod("getUserAgentString");
                         userAgent = (String) method.invoke(constructor.newInstance(context, null));
                     } catch (final Exception e) {
-                        e.printStackTrace();
+                        //ignore
                     }
                 }
             }
