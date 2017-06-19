@@ -105,7 +105,7 @@ public final class SensorsDataUtils {
     }
 
     @TargetApi(11)
-    private static String getToolbarTitle(Activity activity) {
+    public static String getToolbarTitle(Activity activity) {
         ActionBar actionBar = activity.getActionBar();
         if (actionBar != null) {
             if (!TextUtils.isEmpty(actionBar.getTitle())) {

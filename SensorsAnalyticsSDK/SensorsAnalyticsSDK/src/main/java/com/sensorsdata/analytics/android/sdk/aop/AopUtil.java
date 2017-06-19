@@ -4,11 +4,13 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.text.TextUtils;
 import android.view.View;
 
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -107,12 +109,14 @@ class AopUtil {
             if (activity != null) {
                 try {
                     String activityTitle = activity.getTitle().toString();
-                    ActionBar actionBar = activity.getActionBar();
-                    if (actionBar != null) {
-                        if (!TextUtils.isEmpty(actionBar.getTitle())) {
-                            activityTitle = actionBar.getTitle().toString();
+
+                    if (Build.VERSION.SDK_INT >= 11) {
+                        String toolbarTitle = SensorsDataUtils.getToolbarTitle(activity);
+                        if (!TextUtils.isEmpty(toolbarTitle)) {
+                            activityTitle = toolbarTitle;
                         }
                     }
+
                     if (TextUtils.isEmpty(activityTitle)) {
                         PackageManager packageManager = activity.getPackageManager();
                         if (packageManager != null) {
