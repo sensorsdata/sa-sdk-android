@@ -195,7 +195,7 @@ public class SensorsDataAPI {
             mEnableAndroidId = configBundle.getBoolean("com.sensorsdata.analytics.android.AndroidId",
                     false);
             mEnableButterknifeOnClick = configBundle.getBoolean("com.sensorsdata.analytics.android.ButterknifeOnClick",
-                    true);
+                    false);
             mMainProcessName = configBundle.getString("com.sensorsdata.analytics.android.MainProcessName");
 
             mDebugMode = debugMode;
@@ -553,6 +553,54 @@ public class SensorsDataAPI {
 
         mAutoTrackEventTypeList.clear();
         mAutoTrackEventTypeList.addAll(eventTypeList);
+    }
+
+    /**
+     * 关闭 AutoTrack 中的部分事件
+     * @param eventTypeList List<AutoTrackEventType>
+     */
+    public void disableAutoTrack(List<AutoTrackEventType> eventTypeList) {
+        if (eventTypeList == null || eventTypeList.size() == 0) {
+            return;
+        }
+
+        if (mAutoTrackEventTypeList == null) {
+            return;
+        }
+
+        for (AutoTrackEventType autoTrackEventType: eventTypeList) {
+            if (autoTrackEventType != null) {
+                if (mAutoTrackEventTypeList.contains(autoTrackEventType)) {
+                    mAutoTrackEventTypeList.remove(autoTrackEventType);
+                }
+            }
+        }
+
+        if (mAutoTrackEventTypeList.size() == 0) {
+            mAutoTrack = false;
+        }
+    }
+
+    /**
+     * 关闭 AutoTrack 中的某个事件
+     * @param autoTrackEventType AutoTrackEventType
+     */
+    public void disableAutoTrack(AutoTrackEventType autoTrackEventType) {
+        if (autoTrackEventType == null) {
+            return;
+        }
+
+        if (mAutoTrackEventTypeList == null) {
+            return;
+        }
+
+        if (mAutoTrackEventTypeList.contains(autoTrackEventType)) {
+            mAutoTrackEventTypeList.remove(autoTrackEventType);
+        }
+
+        if (mAutoTrackEventTypeList.size() == 0) {
+            mAutoTrack = false;
+        }
     }
 
     /**
@@ -1789,7 +1837,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.7.7";
+    static final String VERSION = "1.7.8";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
