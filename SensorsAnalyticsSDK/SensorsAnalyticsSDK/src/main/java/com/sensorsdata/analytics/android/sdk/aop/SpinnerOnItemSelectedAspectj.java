@@ -8,12 +8,10 @@ import android.widget.Spinner;
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.SensorsObjectTrackProperties;
 
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.After;
 import org.aspectj.lang.annotation.Aspect;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
@@ -59,10 +57,7 @@ public class SpinnerOnItemSelectedAspectj {
                     }
 
                     //将 Context 转成 Activity
-                    Activity activity = null;
-                    if (context instanceof Activity) {
-                        activity = (Activity) context;
-                    }
+                    Activity activity = AopUtil.getActivityFromContext(context, adapterView);
 
                     //Activity 被忽略
                     if (activity != null) {
@@ -106,21 +101,14 @@ public class SpinnerOnItemSelectedAspectj {
                         if (item != null) {
                             if (item instanceof String) {
                                 properties.put(AopConstants.ELEMENT_CONTENT, item);
-                            } else if (item instanceof SensorsObjectTrackProperties) {
-                                try {
-                                    SensorsObjectTrackProperties objectTrackProperties = (SensorsObjectTrackProperties) item;
-                                    JSONObject trackProperties = objectTrackProperties.getSensorsTrackProperties();
-                                    if (trackProperties != null) {
-                                        AopUtil.mergeJSONObject(trackProperties, properties);
-                                    }
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                }
                             }
                         }
                     } else {
                         properties.put(AopConstants.ELEMENT_TYPE, adapterView.getClass().getCanonicalName());
                     }
+
+                    //fragmentName
+                    AopUtil.getFragmentNameFromView(adapterView, properties);
 
                     //获取 View 自定义属性
                     JSONObject p = (JSONObject) adapterView.getTag(R.id.sensors_analytics_tag_view_properties);

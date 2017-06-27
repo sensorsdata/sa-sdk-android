@@ -7,6 +7,7 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
 import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.After;
 import org.aspectj.lang.annotation.Aspect;
 import org.json.JSONObject;
 
@@ -19,7 +20,7 @@ import org.json.JSONObject;
 public class TabHostOnTabChangedAspectj {
     private final static String TAG = TabHostOnTabChangedAspectj.class.getCanonicalName();
 
-    //@After("execution(* android.widget.TabHost.OnTabChangeListener.onTabChanged(String))")
+    @After("execution(* android.widget.TabHost.OnTabChangeListener.onTabChanged(String))")
     public void onTabChangedAOP(final JoinPoint joinPoint) throws Throwable {
         AopThreadPool.getInstance().execute(new Runnable() {
             @Override
@@ -50,9 +51,24 @@ public class TabHostOnTabChangedAspectj {
 
                     JSONObject properties = new JSONObject();
 
-                    //Content
-                    if (!TextUtils.isEmpty(tabName)) {
+                    //$title、$screen_name、$element_content
+                    try {
+                        if (!TextUtils.isEmpty(tabName)) {
+                            String[] temp = tabName.split("##");
+
+                            switch (temp.length) {
+                                case 3:
+                                    properties.put(AopConstants.TITLE, temp[2]);
+                                case 2:
+                                    properties.put(AopConstants.SCREEN_NAME, temp[1]);
+                                case 1:
+                                    properties.put(AopConstants.ELEMENT_CONTENT, temp[0]);
+                                    break;
+                            }
+                        }
+                    } catch (Exception e) {
                         properties.put(AopConstants.ELEMENT_CONTENT, tabName);
+                        e.printStackTrace();
                     }
 
                     //Action

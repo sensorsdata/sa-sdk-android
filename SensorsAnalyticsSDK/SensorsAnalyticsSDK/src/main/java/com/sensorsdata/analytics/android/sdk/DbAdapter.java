@@ -165,6 +165,13 @@ import java.io.File;
                     }
                     try {
                         final JSONObject j = new JSONObject(c.getString(c.getColumnIndex(KEY_DATA)));
+
+                        try {
+                            j.put("_flush_time", System.currentTimeMillis());
+                        } catch (Exception e) {
+                            //ignore
+                        }
+
                         arr.put(j);
                     } catch (final JSONException e) {
                         // Ignore this object

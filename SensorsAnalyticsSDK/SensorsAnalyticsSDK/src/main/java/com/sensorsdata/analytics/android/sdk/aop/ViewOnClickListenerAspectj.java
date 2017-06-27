@@ -5,6 +5,7 @@ import android.content.Context;
 import android.support.v7.widget.SwitchCompat;
 import android.text.TextUtils;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CheckedTextView;
@@ -75,21 +76,17 @@ public class ViewOnClickListenerAspectj {
                     //获取所在的 Context
                     Context context = view.getContext();
                     if (context == null) {
-                        return;
+//                        return;
                     }
 
                     //将 Context 转成 Activity
-                    Activity activity = null;
-                    if (context instanceof Activity) {
-                        activity = (Activity) context;
-                    } else {
-                        //ContextThemeWrapper
-                        return;
-                    }
+                    Activity activity = AopUtil.getActivityFromContext(context, view);
 
                     //Activity 被忽略
-                    if (SensorsDataAPI.sharedInstance().isActivityAutoTrackIgnored(activity.getClass())) {
-                        return;
+                    if (activity != null) {
+                        if (SensorsDataAPI.sharedInstance().isActivityAutoTrackIgnored(activity.getClass())) {
+                            return;
+                        }
                     }
 
                     //View 被忽略
@@ -124,18 +121,20 @@ public class ViewOnClickListenerAspectj {
 //                    properties.put(AopConstants.ELEMENT_ACTION, "onClick");
 
                     //$screen_name & $title
-                    properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
-                    String activityTitle = AopUtil.getActivityTitle(activity);
-                    if (!TextUtils.isEmpty(activityTitle)) {
-                        properties.put(AopConstants.TITLE, activityTitle);
+                    if (activity != null) {
+                        properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
+                        String activityTitle = AopUtil.getActivityTitle(activity);
+                        if (!TextUtils.isEmpty(activityTitle)) {
+                            properties.put(AopConstants.TITLE, activityTitle);
+                        }
                     }
 
                     String viewType = view.getClass().getCanonicalName();
-                    String viewText = null;
+                    CharSequence viewText = null;
                     if (view instanceof CheckBox) { // CheckBox
                         viewType = "CheckBox";
                         CheckBox checkBox = (CheckBox) view;
-                        viewText = checkBox.getText().toString();
+                        viewText = checkBox.getText();
 //                        if (checkBox.isChecked()) {
 //                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
 //                        } else {
@@ -145,7 +144,7 @@ public class ViewOnClickListenerAspectj {
                         viewType = "SwitchCompat";
                         SwitchCompat switchCompat = (SwitchCompat) view;
                         boolean isChecked = switchCompat.isChecked();
-                        viewText = switchCompat.getTextOn().toString();
+                        viewText = switchCompat.getTextOn();
 //                        if (isChecked) {
 //                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
 //                        } else {
@@ -154,7 +153,7 @@ public class ViewOnClickListenerAspectj {
                     } else if (view instanceof RadioButton) { // RadioButton
                         viewType = "RadioButton";
                         RadioButton radioButton = (RadioButton) view;
-                        viewText = radioButton.getText().toString();
+                        viewText = radioButton.getText();
 //                        if (radioButton.isChecked()) {
 //                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
 //                        } else {
@@ -165,20 +164,20 @@ public class ViewOnClickListenerAspectj {
                         ToggleButton toggleButton = (ToggleButton) view;
                         boolean isChecked = toggleButton.isChecked();
                         if (isChecked) {
-                            viewText = toggleButton.getTextOn().toString();
+                            viewText = toggleButton.getTextOn();
 //                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
                         } else {
-                            viewText = toggleButton.getTextOff().toString();
+                            viewText = toggleButton.getTextOff();
 //                            properties.put(AopConstants.ELEMENT_ACTION, "unchecked");
                         }
                     } else if (view instanceof Button) { // Button
                         viewType = "Button";
                         Button button = (Button) view;
-                        viewText = button.getText().toString();
+                        viewText = button.getText();
                     } else if (view instanceof CheckedTextView) { // CheckedTextView
                         viewType = "CheckedTextView";
                         CheckedTextView textView = (CheckedTextView) view;
-                        viewText = textView.getText().toString();
+                        viewText = textView.getText();
 //                        if (textView.isChecked()) {
 //                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
 //                        } else {
@@ -187,20 +186,33 @@ public class ViewOnClickListenerAspectj {
                     } else if (view instanceof TextView) { // TextView
                         viewType = "TextView";
                         TextView textView = (TextView) view;
-                        viewText = textView.getText().toString();
+                        viewText = textView.getText();
                     } else if (view instanceof ImageButton) { // ImageButton
                         viewType = "ImageButton";
                     } else if (view instanceof ImageView) { // ImageView
                         viewType = "ImageView";
+                    } else if (view instanceof ViewGroup) {
+                        try {
+                            StringBuilder stringBuilder = new StringBuilder();
+                            viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
+                            if (!TextUtils.isEmpty(viewText)) {
+                                viewText = viewText.toString().substring(0, viewText.length() - 1);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
 
                     //$element_content
                     if (!TextUtils.isEmpty(viewText)) {
-                        properties.put(AopConstants.ELEMENT_CONTENT, viewText);
+                        properties.put(AopConstants.ELEMENT_CONTENT, viewText.toString());
                     }
 
                     //$element_type
                     properties.put(AopConstants.ELEMENT_TYPE, viewType);
+
+                    //fragmentName
+                    AopUtil.getFragmentNameFromView(view, properties);
 
                     //获取 View 自定义属性
                     JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);

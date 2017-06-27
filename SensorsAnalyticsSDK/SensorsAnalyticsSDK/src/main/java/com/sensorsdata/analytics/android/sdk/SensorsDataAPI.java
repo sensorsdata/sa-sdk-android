@@ -5,6 +5,7 @@ import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -14,6 +15,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
@@ -34,6 +36,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Future;
@@ -119,6 +122,24 @@ public class SensorsDataAPI {
         APP_CLICK("$AppClick"),
         APP_VIEW_SCREEN("$AppViewScreen");
         private final String eventName;
+
+        public static AutoTrackEventType autoTrackEventTypeFromEventName(String eventName) {
+            if (TextUtils.isEmpty(eventName)) {
+                return null;
+            }
+
+            if ("$AppStart".equals(eventName)) {
+                return APP_START;
+            } else if ("$AppEnd".equals(eventName)) {
+                return APP_END;
+            } else if ("$AppClick".equals(eventName)) {
+                return APP_CLICK;
+            } else if ("$AppViewScreen".equals(eventName)) {
+                return APP_VIEW_SCREEN;
+            }
+
+            return null;
+        }
 
         AutoTrackEventType(String eventName) {
             this.eventName = eventName;
@@ -557,7 +578,7 @@ public class SensorsDataAPI {
 
     /**
      * 关闭 AutoTrack 中的部分事件
-     * @param eventTypeList List<AutoTrackEventType>
+     * @param eventTypeList AutoTrackEventType 类型 List
      */
     public void disableAutoTrack(List<AutoTrackEventType> eventTypeList) {
         if (eventTypeList == null || eventTypeList.size() == 0) {
@@ -583,7 +604,7 @@ public class SensorsDataAPI {
 
     /**
      * 关闭 AutoTrack 中的某个事件
-     * @param autoTrackEventType AutoTrackEventType
+     * @param autoTrackEventType AutoTrackEventType 类型
      */
     public void disableAutoTrack(AutoTrackEventType autoTrackEventType) {
         if (autoTrackEventType == null) {
@@ -613,6 +634,18 @@ public class SensorsDataAPI {
 
     public boolean isButterknifeOnClickEnabled() {
         return mEnableButterknifeOnClick;
+    }
+
+    /**
+     * 是否开启自动追踪 Fragment 的 $AppViewScreen 事件
+     * 默认不开启
+     */
+    public void trackFragmentAppViewScreen() {
+        this.mTrackFragmentAppViewScreen = true;
+    }
+
+    public boolean isTrackFragmentAppViewScreenEnabled() {
+        return this.mTrackFragmentAppViewScreen;
     }
 
     /**
@@ -795,6 +828,40 @@ public class SensorsDataAPI {
                     view.getWindow().getDecorView().setTag(R.id.sensors_analytics_tag_view_id, viewID);
                 }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 设置 View 所属 Activity
+     *
+     * @param view   要设置的View
+     * @param activity Activity View 所属 Activity
+     */
+    public void setViewActivity(View view, Activity activity) {
+        try {
+            if (view == null || activity == null) {
+                return;
+            }
+            view.setTag(R.id.sensors_analytics_tag_view_activity, activity);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 设置 View 所属 Fragment 名称
+     *
+     * @param view   要设置的View
+     * @param fragmentName String View 所属 Fragment 名称
+     */
+    public void setViewFragmentName(View view, String fragmentName) {
+        try {
+            if (view == null || TextUtils.isEmpty(fragmentName)) {
+                return;
+            }
+            view.setTag(R.id.sensors_analytics_tag_view_fragment_name2, fragmentName);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -1207,7 +1274,7 @@ public class SensorsDataAPI {
     }
 
     /**
-     * Track进入页面事件
+     * Track 进入页面事件 ($AppViewScreen)
      * @param url String
      * @param properties JSONObject
      */
@@ -1234,6 +1301,38 @@ public class SensorsDataAPI {
     }
 
     /**
+     * Track Activity 进入页面事件($AppViewScreen)
+     * @param activity activity Activity，当前 Activity
+     */
+    public void trackViewScreen(Activity activity) {
+        try {
+            if (activity == null) {
+                return;
+            }
+
+            JSONObject properties = new JSONObject();
+            properties.put("$screen_name", activity.getClass().getCanonicalName());
+            SensorsDataUtils.getScreenNameAndTitleFromActivity(properties, activity);
+
+            if (activity instanceof ScreenAutoTracker) {
+                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
+
+                String screenUrl = screenAutoTracker.getScreenUrl();
+                JSONObject otherProperties = screenAutoTracker.getTrackProperties();
+                if (otherProperties != null) {
+                    SensorsDataUtils.mergeJSONObject(otherProperties, properties);
+                }
+
+                trackViewScreen(screenUrl, properties);
+            } else {
+                track("$AppViewScreen", properties);
+            }
+        } catch (Exception e) {
+            SALog.i(TAG, "trackViewScreen:" + e);
+        }
+    }
+
+    /**
      * app进入后台
      * 遍历mTrackTimer
      * eventAccumulatedDuration = eventAccumulatedDuration + System.currentTimeMillis() - startTime
@@ -1250,9 +1349,9 @@ public class SensorsDataAPI {
                         }
                         EventTimer eventTimer = (EventTimer) entry.getValue();
                         if (eventTimer != null) {
-                            long eventAccumulatedDuration = eventTimer.getEventAccumulatedDuration() + System.currentTimeMillis() - eventTimer.getStartTime();
+                            long eventAccumulatedDuration = eventTimer.getEventAccumulatedDuration() + SystemClock.elapsedRealtime() - eventTimer.getStartTime();
                             eventTimer.setEventAccumulatedDuration(eventAccumulatedDuration);
-                            eventTimer.setStartTime(System.currentTimeMillis());
+                            eventTimer.setStartTime(SystemClock.elapsedRealtime());
                         }
                     }
                 }
@@ -1276,7 +1375,7 @@ public class SensorsDataAPI {
                     if (entry != null) {
                         EventTimer eventTimer = (EventTimer) entry.getValue();
                         if (eventTimer != null) {
-                            eventTimer.setStartTime(System.currentTimeMillis());
+                            eventTimer.setStartTime(SystemClock.elapsedRealtime());
                         }
                     }
                 }
@@ -1555,9 +1654,19 @@ public class SensorsDataAPI {
                 eventObject.put("distinct_id", getAnonymousId());
             }
 
+            try {
+                Random random = new Random();
+                eventObject.put("_track_id", random.nextInt());
+            } catch (Exception e) {
+                //ignore
+            }
+
+            String type = eventObject.getString("type");
+            EventType eventType = EventType.valueOf(type.toUpperCase());
+
             JSONObject propertiesObject = eventObject.optJSONObject("properties");
             if (propertiesObject == null) {
-                return;
+                propertiesObject = new JSONObject();
             }
 
             JSONObject libObject = eventObject.optJSONObject("lib");
@@ -1575,42 +1684,45 @@ public class SensorsDataAPI {
                 }
             }
 
-            if (mDeviceInfo != null) {
-                for (Map.Entry<String, Object> entry : mDeviceInfo.entrySet()) {
-                    String key = entry.getKey();
-                    if (!TextUtils.isEmpty(key)) {
-                        if ("$lib".equals(key) || "$lib_version".equals(key)) {
-                            continue;
+            if (eventType.isTrack()) {
+                if (mDeviceInfo != null) {
+                    for (Map.Entry<String, Object> entry : mDeviceInfo.entrySet()) {
+                        String key = entry.getKey();
+                        if (!TextUtils.isEmpty(key)) {
+                            if ("$lib".equals(key) || "$lib_version".equals(key)) {
+                                continue;
+                            }
+                            propertiesObject.put(entry.getKey(), entry.getValue());
                         }
-                        propertiesObject.put(entry.getKey(), entry.getValue());
                     }
                 }
-            }
 
-            // 当前网络状况
-            String networkType = SensorsDataUtils.networkType(mContext);
-            propertiesObject.put("$wifi", networkType.equals("WIFI"));
-            propertiesObject.put("$network_type", networkType);
+                // 当前网络状况
+                String networkType = SensorsDataUtils.networkType(mContext);
+                propertiesObject.put("$wifi", networkType.equals("WIFI"));
+                propertiesObject.put("$network_type", networkType);
 
-            // SuperProperties
-            synchronized (mSuperProperties) {
-                JSONObject superProperties = mSuperProperties.get();
-                SensorsDataUtils.mergeJSONObject(superProperties, propertiesObject);
-            }
+                // SuperProperties
+                synchronized (mSuperProperties) {
+                    JSONObject superProperties = mSuperProperties.get();
+                    SensorsDataUtils.mergeJSONObject(superProperties, propertiesObject);
+                }
 
-            String type = eventObject.getString("type");
-            if ("track".equals(type)) {
                 //是否首日访问
                 propertiesObject.put("$is_first_day", isFirstDay());
+
+                if (propertiesObject.has("$is_first_time")) {
+                    propertiesObject.remove("$is_first_time");
+                }
+
+                if (propertiesObject.has("_nocache")) {
+                    propertiesObject.remove("_nocache");
+                }
             }
 
             mMessages.enqueueEventMessage(type, eventObject);
         } catch (Exception e) {
-            try {
-                mMessages.enqueueEventMessage(EventType.TRACK.getEventType(), new JSONObject(eventInfo));
-            } catch (Exception ignored){
-                //ignore
-            }
+            //ignore
             e.printStackTrace();
         }
     }
@@ -1661,9 +1773,12 @@ public class SensorsDataAPI {
 
             if (null != eventTimer) {
                 try {
-                    sendProperties.put("event_duration", Double.valueOf(eventTimer.duration()));
+                    Double duration = Double.valueOf(eventTimer.duration());
+                    if (duration > 0) {
+                        sendProperties.put("event_duration", duration);
+                    }
                 } catch (Exception e) {
-                    sendProperties.put("event_duration", 0f);
+                    //ignore
                     e.printStackTrace();
                 }
             }
@@ -1686,6 +1801,12 @@ public class SensorsDataAPI {
 
             final JSONObject dataObj = new JSONObject();
 
+            try {
+                Random random = new Random();
+                dataObj.put("_track_id", random.nextInt());
+            } catch (Exception e) {
+                //ignore
+            }
             dataObj.put("time", now);
             dataObj.put("type", eventType.getEventType());
             dataObj.put("properties", sendProperties);
@@ -1728,28 +1849,22 @@ public class SensorsDataAPI {
 
                 String libDetail = null;
                 if (mAutoTrack && properties != null) {
-                    if (AutoTrackEventType.APP_VIEW_SCREEN.getEventName().equals(eventName)) {
-                        if (mAutoTrackEventTypeList.contains(AutoTrackEventType.APP_VIEW_SCREEN)) {
-                            if (properties.has("$screen_name")) {
-                                libDetail = String.format("%s##%s##%s##%s", properties.get("$screen_name").toString(), "", "", "");
-                            }
-                        }
-                    } else if (AutoTrackEventType.APP_CLICK.getEventName().equals(eventName)) {
-                        if (mAutoTrackEventTypeList.contains(AutoTrackEventType.APP_CLICK)) {
-                            if (properties.has("$screen_name")) {
-                                libDetail = String.format("%s##%s##%s##%s", properties.get("$screen_name").toString(), "", "", "");
-                            }
-                        }
-                    } else if (AutoTrackEventType.APP_START.getEventName().equals(eventName)) {
-                        if (mAutoTrackEventTypeList.contains(AutoTrackEventType.APP_START)) {
-                            if (properties.has("$screen_name")) {
-                                libDetail = String.format("%s##%s##%s##%s", properties.get("$screen_name").toString(), "", "", "");
-                            }
-                        }
-                    } else if (AutoTrackEventType.APP_END.getEventName().equals(eventName)) {
-                        if (mAutoTrackEventTypeList.contains(AutoTrackEventType.APP_END)) {
-                            if (properties.has("$screen_name")) {
-                                libDetail = String.format("%s##%s##%s##%s", properties.get("$screen_name").toString(), "", "", "");
+                    if (AutoTrackEventType.APP_VIEW_SCREEN.getEventName().equals(eventName) ||
+                            AutoTrackEventType.APP_CLICK.getEventName().equals(eventName) ||
+                            AutoTrackEventType.APP_START.getEventName().equals(eventName) ||
+                            AutoTrackEventType.APP_END.getEventName().equals(eventName)) {
+                        AutoTrackEventType trackEventType = AutoTrackEventType.autoTrackEventTypeFromEventName(eventName);
+                        if (trackEventType != null) {
+                            if (mAutoTrackEventTypeList.contains(trackEventType)) {
+                                if (properties.has("$screen_name")) {
+                                    String screenName = properties.getString("$screen_name");
+                                    if (!TextUtils.isEmpty(screenName)) {
+                                        String screenNameArray[] = screenName.split("\\|");
+                                        if (screenNameArray.length > 0) {
+                                            libDetail = String.format("%s##%s##%s##%s", screenNameArray[0], "", "", "");
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -1837,7 +1952,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.7.8";
+    static final String VERSION = "1.7.9";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -1871,6 +1986,8 @@ public class SensorsDataAPI {
     private String mLastScreenUrl;
     private JSONObject mLastScreenTrackProperties;
     private boolean mEnableButterknifeOnClick;
+    /* $AppViewScreen 事件是否支持 Fragment*/
+    private boolean mTrackFragmentAppViewScreen;
 
     private final Context mContext;
     private final AnalyticsMessages mMessages;

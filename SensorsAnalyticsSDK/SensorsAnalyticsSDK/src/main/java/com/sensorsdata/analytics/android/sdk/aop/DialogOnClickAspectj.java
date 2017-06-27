@@ -69,10 +69,7 @@ public class DialogOnClickAspectj {
                     Context context = dialog.getContext();
 
                     //将Context转成Activity
-                    Activity activity = null;
-                    if (context instanceof Activity) {
-                        activity = (Activity) context;
-                    }
+                    Activity activity = AopUtil.getActivityFromContext(context, null);
 
                     if (activity == null) {
                         activity = dialog.getOwnerActivity();

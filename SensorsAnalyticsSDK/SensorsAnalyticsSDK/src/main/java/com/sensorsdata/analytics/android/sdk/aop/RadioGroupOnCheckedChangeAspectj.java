@@ -59,10 +59,7 @@ public class RadioGroupOnCheckedChangeAspectj {
                     }
 
                     //将 Context 转成 Activity
-                    Activity activity = null;
-                    if (context instanceof Activity) {
-                        activity = (Activity) context;
-                    }
+                    Activity activity = AopUtil.getActivityFromContext(context, view);
 
                     //Activity 被忽略
                     if (activity != null) {
@@ -106,9 +103,11 @@ public class RadioGroupOnCheckedChangeAspectj {
                             try {
                                 RadioButton radioButton = (RadioButton) activity.findViewById(checkedRadioButtonId);
                                 if (radioButton != null) {
-                                    String viewText = radioButton.getText().toString();
-                                    if (!TextUtils.isEmpty(viewText)) {
-                                        properties.put(AopConstants.ELEMENT_CONTENT, viewText);
+                                    if (!TextUtils.isEmpty(radioButton.getText())) {
+                                        String viewText = radioButton.getText().toString();
+                                        if (!TextUtils.isEmpty(viewText)) {
+                                            properties.put(AopConstants.ELEMENT_CONTENT, viewText);
+                                        }
                                     }
                                 }
                             } catch (Exception e) {
@@ -118,6 +117,9 @@ public class RadioGroupOnCheckedChangeAspectj {
                     } else {
                         properties.put(AopConstants.ELEMENT_TYPE, view.getClass().getCanonicalName());
                     }
+
+                    //fragmentName
+                    AopUtil.getFragmentNameFromView(view, properties);
 
                     //获取 View 自定义属性
                     JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);

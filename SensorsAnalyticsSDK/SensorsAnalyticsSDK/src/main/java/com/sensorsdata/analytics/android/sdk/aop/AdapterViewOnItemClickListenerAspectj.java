@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.text.TextUtils;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.GridView;
@@ -71,10 +72,7 @@ public class AdapterViewOnItemClickListenerAspectj {
                     }
 
                     //将 Context 转成 Activity
-                    Activity activity = null;
-                    if (context instanceof Activity) {
-                        activity = (Activity) context;
-                    }
+                    Activity activity = AopUtil.getActivityFromContext(context, view);
 
                     //Activity 被忽略
                     if (activity != null) {
@@ -137,6 +135,26 @@ public class AdapterViewOnItemClickListenerAspectj {
                     //点击的 position
                     properties.put(AopConstants.ELEMENT_POSITION, String.valueOf(position));
 //                    properties.put(AopConstants.ELEMENT_ACTION, "onItemClick");
+
+                    String viewText = null;
+                    if (view instanceof ViewGroup) {
+                        try {
+                            StringBuilder stringBuilder = new StringBuilder();
+                            viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
+                            if (!TextUtils.isEmpty(viewText)) {
+                                viewText = viewText.substring(0, viewText.length() - 1);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    //$element_content
+                    if (!TextUtils.isEmpty(viewText)) {
+                        properties.put(AopConstants.ELEMENT_CONTENT, viewText);
+                    }
+
+                    //fragmentName
+                    AopUtil.getFragmentNameFromView(adapterView, properties);
 
                     //获取 View 自定义属性
                     JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);

@@ -4,4 +4,7 @@
     <item type="id" name="sensors_analytics_tag_view_ignored"/>
     <item type="id" name="sensors_analytics_tag_view_properties"/>
     <item type="id" name="sensors_analytics_tag_view_onclick_timestamp"/>
+    <item type="id" name="sensors_analytics_tag_view_fragment_name"/>
+    <item type="id" name="sensors_analytics_tag_view_fragment_name2"/>
+    <item type="id" name="sensors_analytics_tag_view_activity"/>
 </resources>

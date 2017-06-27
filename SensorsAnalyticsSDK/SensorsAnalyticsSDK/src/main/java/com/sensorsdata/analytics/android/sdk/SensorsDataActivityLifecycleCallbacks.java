@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.Application;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
@@ -92,6 +93,11 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
             if (mSensorsDataInstance.isActivityAutoTrackIgnored(activity.getClass())) {
                 mShowAutoTrack = false;
             }
+
+            if (activity.getClass().getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class) != null) {
+                mShowAutoTrack = false;
+            }
+
             if (mSensorsDataInstance.isAutoTrackEnabled() && mShowAutoTrack && !mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
                 try {
                     JSONObject properties = new JSONObject();

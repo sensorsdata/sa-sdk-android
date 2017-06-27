@@ -1,12 +1,22 @@
 package com.sensorsdata.analytics.android.sdk.aop;
 
-import android.app.ActionBar;
 import android.app.Activity;
+import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.support.v7.widget.SwitchCompat;
 import android.text.TextUtils;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CheckedTextView;
+import android.widget.ImageView;
+import android.widget.RadioButton;
+import android.widget.TextView;
+import android.widget.ToggleButton;
 
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
@@ -26,6 +36,124 @@ import java.util.Locale;
  */
 
 class AopUtil {
+    public static String traverseView(StringBuilder stringBuilder, ViewGroup root) {
+        try {
+            if (root == null) {
+                return stringBuilder.toString();
+            }
+
+            final int childCount = root.getChildCount();
+            for (int i = 0; i < childCount; ++i) {
+                final View child = root.getChildAt(i);
+
+                if (child.getVisibility() != View.VISIBLE) {
+                    continue;
+                }
+
+                if (child instanceof ViewGroup) {
+                    traverseView(stringBuilder, (ViewGroup) child);
+                } else {
+                    if (isViewIgnored(child)) {
+                        continue;
+                    }
+
+                    CharSequence viewText = null;
+                    if (child instanceof CheckBox) {
+                        CheckBox checkBox = (CheckBox) child;
+                        viewText = checkBox.getText();
+                    } else if (child instanceof SwitchCompat) {
+                        SwitchCompat switchCompat = (SwitchCompat) child;
+                        viewText = switchCompat.getTextOn();
+                    } else if (child instanceof RadioButton) {
+                        RadioButton radioButton = (RadioButton) child;
+                        viewText = radioButton.getText();
+                    } else if (child instanceof ToggleButton) {
+                        ToggleButton toggleButton = (ToggleButton) child;
+                        boolean isChecked = toggleButton.isChecked();
+                        if (isChecked) {
+                            viewText = toggleButton.getTextOn();
+                        } else {
+                            viewText = toggleButton.getTextOff();
+                        }
+                    } else if (child instanceof Button) {
+                        Button button = (Button) child;
+                        viewText = button.getText();
+                    } else if (child instanceof CheckedTextView) {
+                        CheckedTextView textView = (CheckedTextView) child;
+                        viewText = textView.getText();
+                    } else if (child instanceof TextView) {
+                        TextView textView = (TextView) child;
+                        viewText = textView.getText();
+                    } else if (child instanceof ImageView) {
+//                    ImageView imageView = (ImageView) child;
+//                    viewText =  AopUtil.getViewId(imageView);
+                    }
+
+                    if (!TextUtils.isEmpty(viewText)) {
+                        stringBuilder.append(viewText.toString());
+                        stringBuilder.append("-");
+                    }
+                }
+            }
+            return stringBuilder.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return stringBuilder.toString();
+        }
+    }
+
+    public static void getFragmentNameFromView(View view, JSONObject properties) {
+        try {
+            if (view != null) {
+                String fragmentName = (String) view.getTag(R.id.sensors_analytics_tag_view_fragment_name);
+                String fragmentName2 = (String) view.getTag(R.id.sensors_analytics_tag_view_fragment_name2);
+                if (!TextUtils.isEmpty(fragmentName2)) {
+                    fragmentName = fragmentName2;
+                }
+                if (!TextUtils.isEmpty(fragmentName)) {
+                    String screenName = properties.getString(AopConstants.SCREEN_NAME);
+                    if (!TextUtils.isEmpty(fragmentName)) {
+                        properties.put(AopConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", screenName, fragmentName));
+                    } else {
+                        properties.put(AopConstants.SCREEN_NAME, fragmentName);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static Activity getActivityFromContext(Context context, View view) {
+        Activity activity = null;
+        try {
+            if (context != null) {
+                if (context instanceof Activity) {
+                    activity = (Activity) context;
+                } else if (context instanceof ContextWrapper) {
+                    while (!(context instanceof Activity) && context instanceof ContextWrapper) {
+                        context = ((ContextWrapper) context).getBaseContext();
+                    }
+                    if (context instanceof Activity) {
+                        activity = (Activity) context;
+                    }
+                } else {
+                    if (view != null) {
+                        Object object = view.getTag(R.id.sensors_analytics_tag_view_activity);
+                        if (object != null) {
+                            if (object instanceof Activity) {
+                                activity = (Activity) object;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return activity;
+    }
+
     public static String getViewId(View view) {
         String idString = null;
         try {
@@ -47,20 +175,24 @@ class AopUtil {
      * @return 是否被忽略
      */
     public static boolean isViewIgnored(Class viewType) {
-        if (viewType == null) {
+        try {
+            if (viewType == null) {
+                return true;
+            }
+
+            List<Class> mIgnoredViewTypeList = SensorsDataAPI.sharedInstance().getIgnoredViewTypeList();
+            if (mIgnoredViewTypeList != null) {
+                for (Class clazz : mIgnoredViewTypeList) {
+                    if (clazz.isAssignableFrom(viewType)) {
+                        return true;
+                    }
+
+                }
+            }
+            return false;
+        } catch (Exception e) {
             return true;
         }
-
-        List<Class> mIgnoredViewTypeList = SensorsDataAPI.sharedInstance().getIgnoredViewTypeList();
-        if (mIgnoredViewTypeList != null) {
-            for (Class clazz : mIgnoredViewTypeList) {
-                if (clazz.isAssignableFrom(viewType)) {
-                    return true;
-                }
-
-            }
-        }
-        return false;
     }
 
     /**
@@ -108,7 +240,10 @@ class AopUtil {
         try {
             if (activity != null) {
                 try {
-                    String activityTitle = activity.getTitle().toString();
+                    String activityTitle = null;
+                    if (!TextUtils.isEmpty(activity.getTitle())) {
+                        activityTitle = activity.getTitle().toString();
+                    }
 
                     if (Build.VERSION.SDK_INT >= 11) {
                         String toolbarTitle = SensorsDataUtils.getToolbarTitle(activity);
@@ -122,7 +257,9 @@ class AopUtil {
                         if (packageManager != null) {
                             ActivityInfo activityInfo = packageManager.getActivityInfo(activity.getComponentName(), 0);
                             if (activityInfo != null) {
-                                activityTitle = activityInfo.loadLabel(packageManager).toString();
+                                if (!TextUtils.isEmpty(activityInfo.loadLabel(packageManager))) {
+                                    activityTitle = activityInfo.loadLabel(packageManager).toString();
+                                }
                             }
                         }
                     }
@@ -148,17 +285,21 @@ class AopUtil {
      */
     public static void mergeJSONObject(final JSONObject source, JSONObject dest)
             throws JSONException {
-        Iterator<String> superPropertiesIterator = source.keys();
-        while (superPropertiesIterator.hasNext()) {
-            String key = superPropertiesIterator.next();
-            Object value = source.get(key);
-            if (value instanceof Date) {
-                synchronized (mDateFormat) {
-                    dest.put(key, mDateFormat.format((Date) value));
+        try {
+            Iterator<String> superPropertiesIterator = source.keys();
+            while (superPropertiesIterator.hasNext()) {
+                String key = superPropertiesIterator.next();
+                Object value = source.get(key);
+                if (value instanceof Date) {
+                    synchronized (mDateFormat) {
+                        dest.put(key, mDateFormat.format((Date) value));
+                    }
+                } else {
+                    dest.put(key, value);
                 }
-            } else {
-                dest.put(key, value);
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

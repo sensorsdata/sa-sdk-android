@@ -83,10 +83,7 @@ public class MenuItemSelectedAspectj {
                     }
 
                     //将 Context 转成 Activity
-                    Activity activity = null;
-                    if (context instanceof Activity) {
-                        activity = (Activity) context;
-                    }
+                    Activity activity = AopUtil.getActivityFromContext(context, null);
 
                     //Activity 被忽略
                     if (activity != null) {

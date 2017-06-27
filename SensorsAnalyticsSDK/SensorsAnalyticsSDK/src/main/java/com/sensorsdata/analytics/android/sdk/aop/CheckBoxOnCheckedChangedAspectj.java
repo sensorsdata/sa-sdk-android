@@ -62,10 +62,7 @@ public class CheckBoxOnCheckedChangedAspectj {
                     }
 
                     //将 Context 转成 Activity
-                    Activity activity = null;
-                    if (context instanceof Activity) {
-                        activity = (Activity) context;
-                    }
+                    Activity activity = AopUtil.getActivityFromContext(context, view);
 
                     //Activity 被忽略
                     if (activity != null) {
@@ -90,11 +87,11 @@ public class CheckBoxOnCheckedChangedAspectj {
                         properties.put(AopConstants.ELEMENT_ID, idString);
                     }
 
-                    //Action
+                    //Element Content
 //                    if (isChecked) {
-//                        properties.put(AopConstants.ELEMENT_ACTION, "checked");
+//                        properties.put(AopConstants.ELEMENT_CONTENT, "checked");
 //                    } else {
-//                        properties.put(AopConstants.ELEMENT_ACTION, "unchecked");
+//                        properties.put(AopConstants.ELEMENT_CONTENT, "unchecked");
 //                    }
 
                     //$screen_name & $title
@@ -110,11 +107,15 @@ public class CheckBoxOnCheckedChangedAspectj {
                     if (view instanceof CheckBox) { // CheckBox
                         properties.put(AopConstants.ELEMENT_TYPE, "CheckBox");
                         CompoundButton compoundButton = (CompoundButton) view;
-                        viewText = compoundButton.getText().toString();
+                        if (!TextUtils.isEmpty(compoundButton.getText())) {
+                            viewText = compoundButton.getText().toString();
+                        }
                     } else if (view instanceof SwitchCompat) {
                         properties.put(AopConstants.ELEMENT_TYPE, "SwitchCompat");
                         SwitchCompat switchCompat = (SwitchCompat) view;
-                        viewText = switchCompat.getTextOn().toString();
+                        if (!TextUtils.isEmpty(switchCompat.getTextOn())) {
+                            viewText = switchCompat.getTextOn().toString();
+                        }
 //                        if (isChecked) {
 //                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
 //                        } else {
@@ -124,14 +125,20 @@ public class CheckBoxOnCheckedChangedAspectj {
                         properties.put(AopConstants.ELEMENT_TYPE, "ToggleButton");
                         ToggleButton toggleButton = (ToggleButton) view;
                         if (isChecked) {
-                            viewText = toggleButton.getTextOn().toString();
+                            if (!TextUtils.isEmpty(toggleButton.getTextOn())) {
+                                viewText = toggleButton.getTextOn().toString();
+                            }
                         } else {
-                            viewText = toggleButton.getTextOff().toString();
+                            if (!TextUtils.isEmpty(toggleButton.getTextOff())) {
+                                viewText = toggleButton.getTextOff().toString();
+                            }
                         }
                     } else if (view instanceof RadioButton) { // RadioButton
                         properties.put(AopConstants.ELEMENT_TYPE, "RadioButton");
                         RadioButton radioButton = (RadioButton) view;
-                        viewText = radioButton.getText().toString();
+                        if (!TextUtils.isEmpty(radioButton.getText())) {
+                            viewText = radioButton.getText().toString();
+                        }
                     } else {
                         properties.put(AopConstants.ELEMENT_TYPE, view.getClass().getCanonicalName());
                     }
@@ -140,6 +147,9 @@ public class CheckBoxOnCheckedChangedAspectj {
                     if (!TextUtils.isEmpty(viewText)) {
                         properties.put(AopConstants.ELEMENT_CONTENT, viewText);
                     }
+
+                    //fragmentName
+                    AopUtil.getFragmentNameFromView(view, properties);
 
                     //获取 View 自定义属性
                     JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);

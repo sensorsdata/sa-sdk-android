@@ -69,10 +69,7 @@ public class TrackViewOnClickAspectj {
                     }
 
                     //将 Context 转成 Activity
-                    Activity activity = null;
-                    if (context instanceof Activity) {
-                        activity = (Activity) context;
-                    }
+                    Activity activity = AopUtil.getActivityFromContext(context, view);
 
                     //Activity 被忽略
                     if (activity != null) {
@@ -107,11 +104,11 @@ public class TrackViewOnClickAspectj {
                     }
 
                     String viewType = view.getClass().getCanonicalName();
-                    String viewText = null;
+                    CharSequence viewText = null;
                     if (view instanceof CheckBox) { // CheckBox
                         viewType = "CheckBox";
                         CheckBox checkBox = (CheckBox) view;
-                        viewText = checkBox.getText().toString();
+                        viewText = checkBox.getText();
 //                        if (checkBox.isChecked()) {
 //                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
 //                        } else {
@@ -120,7 +117,7 @@ public class TrackViewOnClickAspectj {
                     } else if (view instanceof RadioButton) { // RadioButton
                         viewType = "RadioButton";
                         RadioButton radioButton = (RadioButton) view;
-                        viewText = radioButton.getText().toString();
+                        viewText = radioButton.getText();
 //                        if (radioButton.isChecked()) {
 //                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
 //                        } else {
@@ -131,20 +128,20 @@ public class TrackViewOnClickAspectj {
                         ToggleButton toggleButton = (ToggleButton) view;
                         boolean isChecked = toggleButton.isChecked();
                         if (isChecked) {
-                            viewText = toggleButton.getTextOn().toString();
+                            viewText = toggleButton.getTextOn();
 //                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
                         } else {
-                            viewText = toggleButton.getTextOff().toString();
+                            viewText = toggleButton.getTextOff();
 //                            properties.put(AopConstants.ELEMENT_ACTION, "unchecked");
                         }
                     } else if (view instanceof Button) { // Button
                         viewType = "Button";
                         Button button = (Button) view;
-                        viewText = button.getText().toString();
+                        viewText = button.getText();
                     } else if (view instanceof CheckedTextView) { // CheckedTextView
                         viewType = "CheckedTextView";
                         CheckedTextView textView = (CheckedTextView) view;
-                        viewText = textView.getText().toString();
+                        viewText = textView.getText();
 //                        if (textView.isChecked()) {
 //                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
 //                        } else {
@@ -153,7 +150,7 @@ public class TrackViewOnClickAspectj {
                     } else if (view instanceof TextView) { // TextView
                         viewType = "TextView";
                         TextView textView = (TextView) view;
-                        viewText = textView.getText().toString();
+                        viewText = textView.getText();
                     } else if (view instanceof ImageButton) { // ImageButton
                         viewType = "ImageButton";
                     } else if (view instanceof ImageView) { // ImageView
@@ -162,11 +159,14 @@ public class TrackViewOnClickAspectj {
 
                     //$element_content
                     if (!TextUtils.isEmpty(viewText)) {
-                        properties.put(AopConstants.ELEMENT_CONTENT, viewText);
+                        properties.put(AopConstants.ELEMENT_CONTENT, viewText.toString());
                     }
 
                     //$element_type
                     properties.put(AopConstants.ELEMENT_TYPE, viewType);
+
+                    //fragmentName
+                    AopUtil.getFragmentNameFromView(view, properties);
 
                     //获取 View 自定义属性
                     JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);

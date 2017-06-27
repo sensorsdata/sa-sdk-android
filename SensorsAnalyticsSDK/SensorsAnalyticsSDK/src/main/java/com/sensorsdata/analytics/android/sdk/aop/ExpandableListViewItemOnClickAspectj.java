@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.text.TextUtils;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
 
@@ -70,10 +71,7 @@ public class ExpandableListViewItemOnClickAspectj {
                     }
 
                    //将 Context 转成 Activity
-                    Activity activity = null;
-                    if (context instanceof Activity) {
-                        activity = (Activity) context;
-                    }
+                    Activity activity = AopUtil.getActivityFromContext(context, expandableListView);
 
                     //Activity 被忽略
                     if (activity != null) {
@@ -144,6 +142,32 @@ public class ExpandableListViewItemOnClickAspectj {
 
 //                    properties.put(AopConstants.ELEMENT_ACTION, "onChildClick");
                     properties.put(AopConstants.ELEMENT_TYPE, "ExpandableListView");
+
+                    String viewText = null;
+                    if (view instanceof ViewGroup) {
+                        try {
+                            StringBuilder stringBuilder = new StringBuilder();
+                            viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
+                            if (!TextUtils.isEmpty(viewText)) {
+                                viewText = viewText.substring(0, viewText.length() - 1);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    //$element_content
+                    if (!TextUtils.isEmpty(viewText)) {
+                        properties.put(AopConstants.ELEMENT_CONTENT, viewText);
+                    }
+
+                    //fragmentName
+                    AopUtil.getFragmentNameFromView(expandableListView, properties);
+
+                    //获取 View 自定义属性
+                    JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
+                    if (p != null) {
+                        AopUtil.mergeJSONObject(p, properties);
+                    }
 
                     SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
 
@@ -242,6 +266,9 @@ public class ExpandableListViewItemOnClickAspectj {
 
 //                    properties.put(AopConstants.ELEMENT_ACTION, "onGroupClick");
                     properties.put(AopConstants.ELEMENT_TYPE, "ExpandableListView");
+
+                    //fragmentName
+                    AopUtil.getFragmentNameFromView(expandableListView, properties);
 
                     // 获取 View 自定义属性
                     JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);

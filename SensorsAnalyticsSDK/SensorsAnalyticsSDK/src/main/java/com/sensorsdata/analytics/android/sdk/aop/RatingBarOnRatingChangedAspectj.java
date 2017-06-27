@@ -57,10 +57,7 @@ public class RatingBarOnRatingChangedAspectj {
                     }
 
                     //将 Context 转成 Activity
-                    Activity activity = null;
-                    if (context instanceof Activity) {
-                        activity = (Activity) context;
-                    }
+                    Activity activity = AopUtil.getActivityFromContext(context, view);
 
                     //Activity 被忽略
                     if (activity != null) {
@@ -101,6 +98,9 @@ public class RatingBarOnRatingChangedAspectj {
 
                     //Content
                     properties.put(AopConstants.ELEMENT_CONTENT, String.valueOf(rating));
+
+                    //fragmentName
+                    AopUtil.getFragmentNameFromView(view, properties);
 
                     //获取View自定义属性
                     JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);

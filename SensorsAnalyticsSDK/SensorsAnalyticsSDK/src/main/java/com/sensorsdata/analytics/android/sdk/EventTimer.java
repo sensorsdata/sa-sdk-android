@@ -1,5 +1,7 @@
 package com.sensorsdata.analytics.android.sdk;
 
+import android.os.SystemClock;
+
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
@@ -9,14 +11,17 @@ import java.util.concurrent.TimeUnit;
 
 class EventTimer {
     EventTimer(TimeUnit timeUnit) {
-        this.startTime = System.currentTimeMillis();
+        this.startTime = SystemClock.elapsedRealtime();
         this.timeUnit = timeUnit;
         this.eventAccumulatedDuration = 0;
     }
 
     String duration() {
-        long duration = System.currentTimeMillis() - startTime + eventAccumulatedDuration;
+        long duration = SystemClock.elapsedRealtime() - startTime + eventAccumulatedDuration;
         try {
+            if (duration < 0 || duration > 24 * 60 * 60 * 1000) {
+                return String.valueOf(0);
+            }
             float durationFloat;
             if (timeUnit == TimeUnit.MILLISECONDS) {
                 durationFloat = duration;
