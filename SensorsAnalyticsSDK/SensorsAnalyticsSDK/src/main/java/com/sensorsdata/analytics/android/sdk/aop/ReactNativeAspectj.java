@@ -32,6 +32,10 @@ public class ReactNativeAspectj {
             @Override
             public void run() {
                 try {
+                    if (!SensorsDataAPI.sharedInstance().isReactNativeAutoTrackEnabled()) {
+                        return;
+                    }
+
                     //关闭 AutoTrack
                     if (!SensorsDataAPI.sharedInstance().isAutoTrackEnabled()) {
                         return;
@@ -48,7 +52,7 @@ public class ReactNativeAspectj {
 
                     Object target = joinPoint.getTarget();
                     JSONObject properties = new JSONObject();
-                    properties.put(AopConstants.ELEMENT_TYPE, "RCView");
+                    properties.put(AopConstants.ELEMENT_TYPE, "RNView");
                     if (target != null) {
                         Class<?> clazz = Class.forName("com.facebook.react.uimanager.NativeViewHierarchyManager");
                         Method resolveViewMethod = clazz.getMethod("resolveView", int.class);

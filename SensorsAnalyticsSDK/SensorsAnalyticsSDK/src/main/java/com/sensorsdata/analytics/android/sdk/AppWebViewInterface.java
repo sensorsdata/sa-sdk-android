@@ -42,8 +42,8 @@ import org.json.JSONObject;
         return null;
     }
 
-//    @JavascriptInterface
-//    public void sensorsdata_track(String event) {
-//        SensorsDataAPI.sharedInstance(mContext).trackEventFromH5(event);
-//    }
+    @JavascriptInterface
+    public void sensorsdata_track(String event) {
+        SensorsDataAPI.sharedInstance(mContext).trackEventFromH5(event);
+    }
 }

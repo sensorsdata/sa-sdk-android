@@ -1,5 +1,7 @@
 package com.sensorsdata.analytics.android.sdk;
 
+import com.sensorsdata.analytics.android.sdk.aop.AopConstants;
+import com.sensorsdata.analytics.android.sdk.aop.AopUtil;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
@@ -649,6 +651,17 @@ public class SensorsDataAPI {
     }
 
     /**
+     * 开启 AutoTrack 支持 React Native
+     */
+    public void enableReactNativeAutoTrack() {
+        this.mEnableReactNativeAutoTrack = true;
+    }
+
+    public boolean isReactNativeAutoTrackEnabled() {
+        return this.mEnableReactNativeAutoTrack;
+    }
+
+    /**
      * 向WebView注入本地方法, 将distinctId传递给当前的WebView
      *
      * @param webView 当前WebView
@@ -724,15 +737,51 @@ public class SensorsDataAPI {
     }
 
     /**
-     * 判断 AutoTrack 时，某个 Activity 是否被过滤
-     * 如果过滤的话，会过滤掉 Activity 的 $AppViewScreen 事件及控件的 $AppClick 事件
+     * 判断 AutoTrack 时，某个 Activity 的 $AppViewScreen 是否被过滤
+     * 如果过滤的话，会过滤掉 Activity 的 $AppViewScreen 事件
      * @param activity Activity
      * @return Activity 是否被过滤
      */
-    public boolean isActivityAutoTrackIgnored(Class<?> activity) {
-        if (activity != null &&
-                mAutoTrackIgnoredActivities != null &&
+    public boolean isActivityAutoTrackAppViewScreenIgnored(Class<?> activity) {
+        if (activity == null) {
+            return false;
+        }
+        if (mAutoTrackIgnoredActivities != null &&
                 mAutoTrackIgnoredActivities.contains(activity.hashCode())) {
+            return true;
+        }
+
+        if (activity.getAnnotation(SensorsDataIgnoreTrackAppViewScreenAndAppClick.class) != null) {
+            return true;
+        }
+
+        if (activity.getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class) != null) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * 判断 AutoTrack 时，某个 Activity 的 $AppClick 是否被过滤
+     * 如果过滤的话，会过滤掉 Activity 的 $AppClick 事件
+     * @param activity Activity
+     * @return Activity 是否被过滤
+     */
+    public boolean isActivityAutoTrackAppClickIgnored(Class<?> activity) {
+        if (activity == null) {
+            return false;
+        }
+        if (mAutoTrackIgnoredActivities != null &&
+                mAutoTrackIgnoredActivities.contains(activity.hashCode())) {
+            return true;
+        }
+
+        if (activity.getAnnotation(SensorsDataIgnoreTrackAppViewScreenAndAppClick.class) != null) {
+            return true;
+        }
+
+        if (activity.getAnnotation(SensorsDataIgnoreTrackAppClick.class) != null) {
             return true;
         }
 
@@ -1327,6 +1376,60 @@ public class SensorsDataAPI {
             } else {
                 track("$AppViewScreen", properties);
             }
+        } catch (Exception e) {
+            SALog.i(TAG, "trackViewScreen:" + e);
+        }
+    }
+
+    public void trackViewScreen(android.app.Fragment fragment) {
+        try {
+            if (fragment == null) {
+                return;
+            }
+
+            JSONObject properties = new JSONObject();
+            String fragmentName = fragment.getClass().getCanonicalName();
+            String screenName = fragmentName;
+
+            if (Build.VERSION.SDK_INT >= 11) {
+                Activity activity = fragment.getActivity();
+                if (activity != null) {
+                    String activityTitle = AopUtil.getActivityTitle(activity);
+                    if (!TextUtils.isEmpty(activityTitle)) {
+                        properties.put(AopConstants.TITLE, activityTitle);
+                    }
+                    screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName);
+                }
+            }
+
+            properties.put(AopConstants.SCREEN_NAME, screenName);
+            track("$AppViewScreen", properties);
+        } catch (Exception e) {
+            SALog.i(TAG, "trackViewScreen:" + e);
+        }
+    }
+
+    public void trackViewScreen(android.support.v4.app.Fragment fragment) {
+        try {
+            if (fragment == null) {
+                return;
+            }
+
+            JSONObject properties = new JSONObject();
+            String fragmentName = fragment.getClass().getCanonicalName();
+            String screenName = fragmentName;
+
+            Activity activity = fragment.getActivity();
+            if (activity != null) {
+                String activityTitle = AopUtil.getActivityTitle(activity);
+                if (!TextUtils.isEmpty(activityTitle)) {
+                    properties.put(AopConstants.TITLE, activityTitle);
+                }
+                screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName);
+            }
+
+            properties.put(AopConstants.SCREEN_NAME, screenName);
+            track("$AppViewScreen", properties);
         } catch (Exception e) {
             SALog.i(TAG, "trackViewScreen:" + e);
         }
@@ -1952,7 +2055,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.7.9";
+    static final String VERSION = "1.7.10";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -1988,6 +2091,7 @@ public class SensorsDataAPI {
     private boolean mEnableButterknifeOnClick;
     /* $AppViewScreen 事件是否支持 Fragment*/
     private boolean mTrackFragmentAppViewScreen;
+    private boolean mEnableReactNativeAutoTrack;
 
     private final Context mContext;
     private final AnalyticsMessages mMessages;

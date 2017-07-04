@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.Application;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
@@ -90,11 +91,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     public void onActivityResumed(Activity activity) {
         try {
             boolean mShowAutoTrack = true;
-            if (mSensorsDataInstance.isActivityAutoTrackIgnored(activity.getClass())) {
-                mShowAutoTrack = false;
-            }
-
-            if (activity.getClass().getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class) != null) {
+            if (mSensorsDataInstance.isActivityAutoTrackAppViewScreenIgnored(activity.getClass())) {
                 mShowAutoTrack = false;
             }
 
@@ -115,7 +112,16 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
                         mSensorsDataInstance.trackViewScreen(screenUrl, properties);
                     } else {
-                        mSensorsDataInstance.track("$AppViewScreen", properties);
+                        SensorsDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = activity.getClass().getAnnotation(SensorsDataAutoTrackAppViewScreenUrl.class);
+                        if (autoTrackAppViewScreenUrl != null) {
+                            String screenUrl = autoTrackAppViewScreenUrl.url();
+                            if (TextUtils.isEmpty(screenUrl)) {
+                                screenUrl = activity.getClass().getCanonicalName();
+                            }
+                            mSensorsDataInstance.trackViewScreen(screenUrl, properties);
+                        } else {
+                            mSensorsDataInstance.track("$AppViewScreen", properties);
+                        }
                     }
                 } catch (Exception e) {
                     SALog.i(TAG, e);

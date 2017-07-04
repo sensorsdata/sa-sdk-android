@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
  * Created by 王灼洲 on 2017/1/5
  */
 
-@Target({ElementType.TYPE, ElementType.METHOD})
+@Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface SensorsDataIgnoreTrackAppViewScreen {
+public @interface SensorsDataIgnoreTrackAppViewScreenAndAppClick {
 }

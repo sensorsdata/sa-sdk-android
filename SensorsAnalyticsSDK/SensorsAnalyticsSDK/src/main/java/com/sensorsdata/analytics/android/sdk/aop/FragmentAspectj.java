@@ -10,9 +10,12 @@ import android.widget.RadioGroup;
 import android.widget.Spinner;
 
 import com.sensorsdata.analytics.android.sdk.R;
+import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackAppViewScreenUrl;
 import com.sensorsdata.analytics.android.sdk.SensorsDataIgnoreTrackAppViewScreen;
 import com.sensorsdata.analytics.android.sdk.SensorsDataIgnoreTrackOnClick;
+import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -97,7 +100,7 @@ public class FragmentAspectj {
         }
     }
 
-    //@After("execution(* android.support.v4.app.Fragment.onHiddenChanged(boolean))")
+    @After("execution(* android.support.v4.app.Fragment.onHiddenChanged(boolean))")
     public void onHiddenChangedMethod(JoinPoint joinPoint) throws Throwable {
         try {
             Signature signature = joinPoint.getSignature();
@@ -108,7 +111,7 @@ public class FragmentAspectj {
             String fragmentName = joinPoint.getTarget().getClass().getName();
 
             Method method = methodSignature.getMethod();
-            SensorsDataIgnoreTrackOnClick trackEvent = method.getAnnotation(SensorsDataIgnoreTrackOnClick.class);
+            SensorsDataIgnoreTrackAppViewScreen trackEvent = method.getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class);
             if (trackEvent != null) {
                 return;
             }
@@ -127,7 +130,7 @@ public class FragmentAspectj {
             if (!hidden) {
                 if (targetFragment.isResumed()) {
                     if (targetFragment.getUserVisibleHint()) {
-                        trackFragmentViewScreen(fragmentName, activity);
+                        trackFragmentViewScreen(targetFragment, fragmentName, activity);
                     }
                 }
             }
@@ -136,7 +139,7 @@ public class FragmentAspectj {
         }
     }
 
-    //@After("execution(* android.support.v4.app.Fragment.setUserVisibleHint(boolean))")
+    @After("execution(* android.support.v4.app.Fragment.setUserVisibleHint(boolean))")
     public void setUserVisibleHintMethod(JoinPoint joinPoint) throws Throwable {
         try {
             Signature signature = joinPoint.getSignature();
@@ -147,7 +150,7 @@ public class FragmentAspectj {
             String fragmentName = joinPoint.getTarget().getClass().getName();
 
             Method method = methodSignature.getMethod();
-            SensorsDataIgnoreTrackOnClick trackEvent = method.getAnnotation(SensorsDataIgnoreTrackOnClick.class);
+            SensorsDataIgnoreTrackAppViewScreen trackEvent = method.getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class);
             if (trackEvent != null) {
                 return;
             }
@@ -166,7 +169,7 @@ public class FragmentAspectj {
             if (isVisibleHint) {
                 if (targetFragment.isResumed()) {
                     if (!targetFragment.isHidden()) {
-                        trackFragmentViewScreen(fragmentName, activity);
+                        trackFragmentViewScreen(targetFragment, fragmentName, activity);
                     }
                 }
             }
@@ -175,7 +178,7 @@ public class FragmentAspectj {
         }
     }
 
-    //@After("execution(* android.support.v4.app.Fragment.onResume())")
+    @After("execution(* android.support.v4.app.Fragment.onResume())")
     public void onResumeMethod(JoinPoint joinPoint) throws Throwable {
         try {
             Signature signature = joinPoint.getSignature();
@@ -185,7 +188,7 @@ public class FragmentAspectj {
             String fragmentName = joinPoint.getTarget().getClass().getName();
 
             Method method = methodSignature.getMethod();
-            SensorsDataIgnoreTrackOnClick trackEvent = method.getAnnotation(SensorsDataIgnoreTrackOnClick.class);
+            SensorsDataIgnoreTrackAppViewScreen trackEvent = method.getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class);
             if (trackEvent != null) {
                 return;
             }
@@ -201,7 +204,7 @@ public class FragmentAspectj {
             String methodDeclaringClass = targetMethod.getDeclaringClass().getName();
             if ("android.support.v4.app.Fragment".equals(methodDeclaringClass)) {
                 if (!targetFragment.isHidden() && targetFragment.getUserVisibleHint()) {
-                    trackFragmentViewScreen(fragmentName, activity);
+                    trackFragmentViewScreen(targetFragment, fragmentName, activity);
                 }
             }
         } catch (Exception e) {
@@ -209,8 +212,12 @@ public class FragmentAspectj {
         }
     }
 
-    private void trackFragmentViewScreen(String fragmentName, Activity activity) {
+    private void trackFragmentViewScreen(android.support.v4.app.Fragment targetFragment, String fragmentName, Activity activity) {
         try {
+            if (targetFragment == null) {
+                return;
+            }
+
             if (!SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
                 return;
             }
@@ -230,7 +237,28 @@ public class FragmentAspectj {
                 properties.put(AopConstants.SCREEN_NAME, fragmentName);
             }
 
-            SensorsDataAPI.sharedInstance().track("$AppViewScreen", properties);
+            if (targetFragment instanceof ScreenAutoTracker) {
+                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) targetFragment;
+
+                String screenUrl = screenAutoTracker.getScreenUrl();
+                JSONObject otherProperties = screenAutoTracker.getTrackProperties();
+                if (otherProperties != null) {
+                    SensorsDataUtils.mergeJSONObject(otherProperties, properties);
+                }
+
+                SensorsDataAPI.sharedInstance().trackViewScreen(screenUrl, properties);
+            } else {
+                SensorsDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = targetFragment.getClass().getAnnotation(SensorsDataAutoTrackAppViewScreenUrl.class);
+                if (autoTrackAppViewScreenUrl != null) {
+                    String screenUrl = autoTrackAppViewScreenUrl.url();
+                    if (TextUtils.isEmpty(screenUrl)) {
+                        screenUrl = fragmentName;
+                    }
+                    SensorsDataAPI.sharedInstance().trackViewScreen(screenUrl, properties);
+                } else {
+                    SensorsDataAPI.sharedInstance().track("$AppViewScreen", properties);
+                }
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

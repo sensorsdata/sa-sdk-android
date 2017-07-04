@@ -63,7 +63,7 @@ public class RadioGroupOnCheckedChangeAspectj {
 
                     //Activity 被忽略
                     if (activity != null) {
-                        if (SensorsDataAPI.sharedInstance().isActivityAutoTrackIgnored(activity.getClass())) {
+                        if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(activity.getClass())) {
                             return;
                         }
                     }

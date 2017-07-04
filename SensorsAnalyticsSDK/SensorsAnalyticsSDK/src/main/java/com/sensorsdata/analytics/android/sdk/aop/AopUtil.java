@@ -35,7 +35,7 @@ import java.util.Locale;
  * Created by 王灼洲 on 2016/12/2
  */
 
-class AopUtil {
+public class AopUtil {
     public static String traverseView(StringBuilder stringBuilder, ViewGroup root) {
         try {
             if (root == null) {
