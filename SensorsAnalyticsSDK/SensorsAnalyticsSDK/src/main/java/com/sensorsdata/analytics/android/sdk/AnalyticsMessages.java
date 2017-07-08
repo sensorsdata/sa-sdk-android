@@ -211,6 +211,9 @@ class AnalyticsMessages {
                     Uri.Builder builder = new Uri.Builder();
                     builder.appendQueryParameter("data_list", data);
                     builder.appendQueryParameter("gzip", "1");
+                    if (!TextUtils.isEmpty(data)) {
+                        builder.appendQueryParameter("crc", String.valueOf(data.hashCode()));
+                    }
 
                     String query = builder.build().getEncodedQuery();
 

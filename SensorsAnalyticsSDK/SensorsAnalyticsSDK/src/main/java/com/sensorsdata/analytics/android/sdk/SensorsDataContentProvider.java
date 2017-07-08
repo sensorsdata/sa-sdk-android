@@ -41,12 +41,21 @@ public class SensorsDataContentProvider extends ContentProvider {
     @Override
     public int delete(@NonNull Uri uri, @Nullable String selection, @Nullable String[] selectionArgs) {
         int id = 0;
+        SQLiteDatabase database = null;
         try {
-            SQLiteDatabase database = dbHelper.getWritableDatabase();
+            database = dbHelper.getWritableDatabase();
             id = database.delete(DbAdapter.Table.EVENTS.getName(), selection, selectionArgs);
-            contentResolver.notifyChange(uri, null);
+            //contentResolver.notifyChange(uri, null);
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if (database != null) {
+                    database.close();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         return id;
     }
@@ -61,15 +70,24 @@ public class SensorsDataContentProvider extends ContentProvider {
     @Override
     public Uri insert(@NonNull Uri uri, @Nullable ContentValues values) {
         Uri u = null;
+        SQLiteDatabase database = null;
         try {
             if (uriMatcher.match(uri) == EVENTS) {
-                SQLiteDatabase database = dbHelper.getWritableDatabase();
+                database = dbHelper.getWritableDatabase();
                 long d = database.insert(DbAdapter.Table.EVENTS.getName(), "_id", values);
                 u = ContentUris.withAppendedId(uri, d);
-                contentResolver.notifyChange(u, null);
+                //contentResolver.notifyChange(u, null);
             }
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if (database != null) {
+                    database.close();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         return u;
     }
@@ -82,7 +100,7 @@ public class SensorsDataContentProvider extends ContentProvider {
             if (uriMatcher.match(uri) == EVENTS) {
                 SQLiteDatabase database = dbHelper.getReadableDatabase();
                 cursor = database.query(DbAdapter.Table.EVENTS.getName(), projection, selection, selectionArgs, null, null, sortOrder);
-                cursor.setNotificationUri(contentResolver, uri);
+                //cursor.setNotificationUri(contentResolver, uri);
             }
         } catch (Exception e) {
             e.printStackTrace();
