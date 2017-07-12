@@ -12,7 +12,7 @@
             android:name="com.sensorsdata.analytics.android.sdk.SensorsDataContentProvider"
             android:authorities="${applicationId}.SensorsDataContentProvider"
             android:enabled="true"
-            android:exported="true" />
+            android:exported="false" />
 
         <meta-data
             android:name="com.sensorsdata.analytics.android.MainProcessName"
