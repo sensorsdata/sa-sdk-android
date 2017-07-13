@@ -49,13 +49,13 @@ public class SensorsDataContentProvider extends ContentProvider {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            try {
-                if (database != null) {
-                    database.close();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+//            try {
+//                if (database != null) {
+//                    database.close();
+//                }
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
         }
         return id;
     }
@@ -81,13 +81,13 @@ public class SensorsDataContentProvider extends ContentProvider {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            try {
-                if (database != null) {
-                    database.close();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+//            try {
+//                if (database != null) {
+//                    database.close();
+//                }
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
         }
         return u;
     }
