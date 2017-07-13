@@ -16,7 +16,7 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:2.2.3'
         //添加 Sensors Analytics android-gradle-plugin 依赖
-        classpath 'com.sensorsdata.analytics.android:android-gradle-plugin:1.0.6'
+        classpath 'com.sensorsdata.analytics.android:android-gradle-plugin:1.0.9'
     }
 }
 
@@ -40,7 +40,7 @@ apply plugin: 'com.sensorsdata.analytics.android'
 dependencies {
    compile 'com.android.support:appcompat-v7:25.1.1'
    //添加 Sensors Analytics SDK 依赖
-   compile 'com.sensorsdata.analytics.android:SensorsAnalyticsSDK:1.7.1'
+   compile 'com.sensorsdata.analytics.android:SensorsAnalyticsSDK:1.7.12'
 }
 ```
 SensorsAnalyticsSDK 的最新版本号请参考 [github 更新日志](https://github.com/sensorsdata/sa-sdk-android/releases)。
@@ -99,16 +99,30 @@ Android SDK 要求最低系统版本为 API 11（Android 3.0），特别地，Au
 -keep class com.sensorsdata.analytics.android.sdk.** {
 *;
 }
-# 使用可视化埋点需添加
 -keep class **.R$* {
     <fields>;
 }
-
--keep class com.sensorsdata.analytics.android.sdk.** {
- *;
-}
--dontwarn com.sensorsdata.analytics.android.sdk.**
+-keep public class * extends android.content.ContentProvider 
 -keepnames class * extends android.view.View
+
+-keep class * extends android.app.Fragment {
+ public void setUserVisibleHint(boolean);
+ public void onHiddenChanged(boolean);
+ public void onResume();
+ public void onPause();
+}
+-keep class android.support.v4.app.Fragment {
+ public void setUserVisibleHint(boolean);
+ public void onHiddenChanged(boolean);
+ public void onResume();
+ public void onPause();
+}
+-keep class * extends android.support.v4.app.Fragment {
+ public void setUserVisibleHint(boolean);
+ public void onHiddenChanged(boolean);
+ public void onResume();
+ public void onPause();
+}
 
 ```
 
