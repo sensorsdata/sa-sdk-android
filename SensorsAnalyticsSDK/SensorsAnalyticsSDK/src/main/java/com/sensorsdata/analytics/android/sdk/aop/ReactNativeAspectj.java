@@ -26,7 +26,7 @@ import java.lang.reflect.Method;
 public class ReactNativeAspectj {
     private final static String TAG = ReactNativeAspectj.class.getCanonicalName();
 
-    //@After("execution(* com.facebook.react.uimanager.NativeViewHierarchyManager.setJSResponder(int,int,boolean))")
+    @After("execution(* com.facebook.react.uimanager.NativeViewHierarchyManager.setJSResponder(int,int,boolean))")
     public void onNativeViewHierarchyManagerSetJSResponderAOP(final JoinPoint joinPoint) throws Throwable {
         AopThreadPool.getInstance().execute(new Runnable() {
             @Override

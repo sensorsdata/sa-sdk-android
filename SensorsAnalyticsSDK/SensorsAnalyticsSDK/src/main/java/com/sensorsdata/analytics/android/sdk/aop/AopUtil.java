@@ -164,7 +164,7 @@ public class AopUtil {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            //ignore
         }
         return idString;
     }

@@ -13,6 +13,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
 import android.provider.Settings;
+import android.support.v4.content.ContextCompat;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.webkit.WebSettings;
@@ -253,16 +254,7 @@ public final class SensorsDataUtils {
      */
     public static boolean checkHasPermission(Context context, String permission) {
         try {
-            final PackageManager packageManager = context.getPackageManager();
-            final String packageName = context.getPackageName();
-
-            if (packageManager == null || packageName == null) {
-                SALog.i(TAG, "Can't check configuration when using a Context with null packageManager or packageName");
-                return false;
-            }
-
-            if (PackageManager.PERMISSION_GRANTED != packageManager
-                    .checkPermission(permission, packageName)) {
+            if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
                 SALog.i(TAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n"
                         + "<uses-permission android:name=\"" + permission+ "\" />");
                 return false;
@@ -347,7 +339,7 @@ public final class SensorsDataUtils {
     public static String getIMEI(Context mContext) {
         String imei = "";
         try {
-            if (mContext.checkCallingOrSelfPermission("android.permission.READ_PHONE_STATE") != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(mContext, "android.permission.READ_PHONE_STATE") != PackageManager.PERMISSION_GRANTED) {
                 return imei;
             }
             TelephonyManager tm = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);

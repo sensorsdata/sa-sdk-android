@@ -1,6 +1,7 @@
 package com.sensorsdata.analytics.android.sdk;
 
 import com.sensorsdata.analytics.android.sdk.aop.AopConstants;
+import com.sensorsdata.analytics.android.sdk.aop.AopThreadPool;
 import com.sensorsdata.analytics.android.sdk.aop.AopUtil;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
@@ -1830,169 +1831,178 @@ public class SensorsDataAPI {
         }
     }
 
-    private void trackEvent(EventType eventType, String eventName, JSONObject properties, String
+    private void trackEvent(final EventType eventType, final String eventName, final JSONObject properties, final String
             originalDistinctId) throws InvalidDataException {
-        if (eventType.isTrack()) {
-            assertKey(eventName);
-        }
-        assertPropertyTypes(eventType, properties);
-
-        final long now = System.currentTimeMillis();
-
-        final EventTimer eventTimer;
-        if (eventName != null) {
-            synchronized (mTrackTimer) {
-                eventTimer = mTrackTimer.get(eventName);
-                mTrackTimer.remove(eventName);
-            }
-        } else {
-            eventTimer = null;
-        }
-
-        try {
-            JSONObject sendProperties = null;
-
-            if (eventType.isTrack()) {
-                sendProperties = new JSONObject(mDeviceInfo);
-
-                synchronized (mSuperProperties) {
-                    JSONObject superProperties = mSuperProperties.get();
-                    SensorsDataUtils.mergeJSONObject(superProperties, sendProperties);
-                }
-
-                // 当前网络状况
-                String networkType = SensorsDataUtils.networkType(mContext);
-                sendProperties.put("$wifi", networkType.equals("WIFI"));
-                sendProperties.put("$network_type", networkType);
-            } else if (eventType.isProfile()) {
-                sendProperties = new JSONObject();
-            } else {
-                return;
-            }
-
-            if (null != properties) {
-                SensorsDataUtils.mergeJSONObject(properties, sendProperties);
-            }
-
-            if (null != eventTimer) {
+        AopThreadPool.getInstance().execute(new Runnable() {
+            @Override
+            public void run() {
                 try {
-                    Double duration = Double.valueOf(eventTimer.duration());
-                    if (duration > 0) {
-                        sendProperties.put("event_duration", duration);
+                    if (eventType.isTrack()) {
+                        assertKey(eventName);
                     }
-                } catch (Exception e) {
-                    //ignore
-                    e.printStackTrace();
-                }
-            }
+                    assertPropertyTypes(eventType, properties);
 
-            JSONObject libProperties = new JSONObject();
-            libProperties.put("$lib", "Android");
-            libProperties.put("$lib_version", VERSION);
+                    final long now = System.currentTimeMillis();
 
-            if (mDeviceInfo.containsKey("$app_version")) {
-                libProperties.put("$app_version", mDeviceInfo.get("$app_version"));
-            }
+                    final EventTimer eventTimer;
+                    if (eventName != null) {
+                        synchronized (mTrackTimer) {
+                            eventTimer = mTrackTimer.get(eventName);
+                            mTrackTimer.remove(eventName);
+                        }
+                    } else {
+                        eventTimer = null;
+                    }
 
-            //update lib $app_version from super properties
-            JSONObject superProperties = mSuperProperties.get();
-            if (superProperties != null) {
-                if (superProperties.has("$app_version")) {
-                    libProperties.put("$app_version", superProperties.get("$app_version"));
-                }
-            }
+                    try {
+                        JSONObject sendProperties = null;
 
-            final JSONObject dataObj = new JSONObject();
+                        if (eventType.isTrack()) {
+                            sendProperties = new JSONObject(mDeviceInfo);
 
-            try {
-                Random random = new Random();
-                dataObj.put("_track_id", random.nextInt());
-            } catch (Exception e) {
-                //ignore
-            }
-            dataObj.put("time", now);
-            dataObj.put("type", eventType.getEventType());
-            dataObj.put("properties", sendProperties);
-            if (!TextUtils.isEmpty(getLoginId())) {
-                dataObj.put("distinct_id", getLoginId());
-            } else {
-                dataObj.put("distinct_id", getAnonymousId());
-            }
-            dataObj.put("lib", libProperties);
+                            synchronized (mSuperProperties) {
+                                JSONObject superProperties = mSuperProperties.get();
+                                SensorsDataUtils.mergeJSONObject(superProperties, sendProperties);
+                            }
 
-            if (eventType == EventType.TRACK) {
-                dataObj.put("event", eventName);
-                //是否首日访问
-                sendProperties.put("$is_first_day", isFirstDay());
-            } else if (eventType == EventType.TRACK_SIGNUP) {
-                dataObj.put("event", eventName);
-                dataObj.put("original_id", originalDistinctId);
-            }
+                            // 当前网络状况
+                            String networkType = SensorsDataUtils.networkType(mContext);
+                            sendProperties.put("$wifi", networkType.equals("WIFI"));
+                            sendProperties.put("$network_type", networkType);
+                        } else if (eventType.isProfile()) {
+                            sendProperties = new JSONObject();
+                        } else {
+                            return;
+                        }
 
-            // $binding_depolyed为true或者无该属性时，isDepolyed为true
-            final boolean isDepolyed = sendProperties.optBoolean("$binding_depolyed", true);
+                        if (null != properties) {
+                            SensorsDataUtils.mergeJSONObject(properties, sendProperties);
+                        }
 
-            // 若$binding_depolyed为true，则删除这些属性
-            if (sendProperties.has("$binding_depolyed")) {
-                libProperties.put("$lib_method", "vtrack");
-                libProperties.put("$lib_detail", sendProperties.get("$binding_trigger_id").toString());
+                        if (null != eventTimer) {
+                            try {
+                                Double duration = Double.valueOf(eventTimer.duration());
+                                if (duration > 0) {
+                                    sendProperties.put("event_duration", duration);
+                                }
+                            } catch (Exception e) {
+                                //ignore
+                                e.printStackTrace();
+                            }
+                        }
 
-                // 可视化埋点的事件
-                if (mVTrack instanceof DebugTracking) {
-                    // Deep clone the event
-                    JSONObject debugDataObj = new JSONObject(dataObj.toString());
-                    ((DebugTracking) mVTrack).reportTrack(debugDataObj);
-                }
+                        JSONObject libProperties = new JSONObject();
+                        libProperties.put("$lib", "Android");
+                        libProperties.put("$lib_version", VERSION);
 
-                sendProperties.remove("$binding_path");
-                sendProperties.remove("$binding_depolyed");
-                sendProperties.remove("$binding_trigger_id");
-            } else {
-                libProperties.put("$lib_method", "code");
+                        if (mDeviceInfo.containsKey("$app_version")) {
+                            libProperties.put("$app_version", mDeviceInfo.get("$app_version"));
+                        }
 
-                String libDetail = null;
-                if (mAutoTrack && properties != null) {
-                    if (AutoTrackEventType.APP_VIEW_SCREEN.getEventName().equals(eventName) ||
-                            AutoTrackEventType.APP_CLICK.getEventName().equals(eventName) ||
-                            AutoTrackEventType.APP_START.getEventName().equals(eventName) ||
-                            AutoTrackEventType.APP_END.getEventName().equals(eventName)) {
-                        AutoTrackEventType trackEventType = AutoTrackEventType.autoTrackEventTypeFromEventName(eventName);
-                        if (trackEventType != null) {
-                            if (mAutoTrackEventTypeList.contains(trackEventType)) {
-                                if (properties.has("$screen_name")) {
-                                    String screenName = properties.getString("$screen_name");
-                                    if (!TextUtils.isEmpty(screenName)) {
-                                        String screenNameArray[] = screenName.split("\\|");
-                                        if (screenNameArray.length > 0) {
-                                            libDetail = String.format("%s##%s##%s##%s", screenNameArray[0], "", "", "");
+                        //update lib $app_version from super properties
+                        JSONObject superProperties = mSuperProperties.get();
+                        if (superProperties != null) {
+                            if (superProperties.has("$app_version")) {
+                                libProperties.put("$app_version", superProperties.get("$app_version"));
+                            }
+                        }
+
+                        final JSONObject dataObj = new JSONObject();
+
+                        try {
+                            Random random = new Random();
+                            dataObj.put("_track_id", random.nextInt());
+                        } catch (Exception e) {
+                            //ignore
+                        }
+                        dataObj.put("time", now);
+                        dataObj.put("type", eventType.getEventType());
+                        dataObj.put("properties", sendProperties);
+                        if (!TextUtils.isEmpty(getLoginId())) {
+                            dataObj.put("distinct_id", getLoginId());
+                        } else {
+                            dataObj.put("distinct_id", getAnonymousId());
+                        }
+                        dataObj.put("lib", libProperties);
+
+                        if (eventType == EventType.TRACK) {
+                            dataObj.put("event", eventName);
+                            //是否首日访问
+                            sendProperties.put("$is_first_day", isFirstDay());
+                        } else if (eventType == EventType.TRACK_SIGNUP) {
+                            dataObj.put("event", eventName);
+                            dataObj.put("original_id", originalDistinctId);
+                        }
+
+                        // $binding_depolyed为true或者无该属性时，isDepolyed为true
+                        final boolean isDepolyed = sendProperties.optBoolean("$binding_depolyed", true);
+
+                        // 若$binding_depolyed为true，则删除这些属性
+                        if (sendProperties.has("$binding_depolyed")) {
+                            libProperties.put("$lib_method", "vtrack");
+                            libProperties.put("$lib_detail", sendProperties.get("$binding_trigger_id").toString());
+
+                            // 可视化埋点的事件
+                            if (mVTrack instanceof DebugTracking) {
+                                // Deep clone the event
+                                JSONObject debugDataObj = new JSONObject(dataObj.toString());
+                                ((DebugTracking) mVTrack).reportTrack(debugDataObj);
+                            }
+
+                            sendProperties.remove("$binding_path");
+                            sendProperties.remove("$binding_depolyed");
+                            sendProperties.remove("$binding_trigger_id");
+                        } else {
+                            libProperties.put("$lib_method", "code");
+
+                            String libDetail = null;
+                            if (mAutoTrack && properties != null) {
+                                if (AutoTrackEventType.APP_VIEW_SCREEN.getEventName().equals(eventName) ||
+                                        AutoTrackEventType.APP_CLICK.getEventName().equals(eventName) ||
+                                        AutoTrackEventType.APP_START.getEventName().equals(eventName) ||
+                                        AutoTrackEventType.APP_END.getEventName().equals(eventName)) {
+                                    AutoTrackEventType trackEventType = AutoTrackEventType.autoTrackEventTypeFromEventName(eventName);
+                                    if (trackEventType != null) {
+                                        if (mAutoTrackEventTypeList.contains(trackEventType)) {
+                                            if (properties.has("$screen_name")) {
+                                                String screenName = properties.getString("$screen_name");
+                                                if (!TextUtils.isEmpty(screenName)) {
+                                                    String screenNameArray[] = screenName.split("\\|");
+                                                    if (screenNameArray.length > 0) {
+                                                        libDetail = String.format("%s##%s##%s##%s", screenNameArray[0], "", "", "");
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
+
+                            if (TextUtils.isEmpty(libDetail)) {
+                                StackTraceElement[] trace = (new Exception()).getStackTrace();
+                                if (trace.length > 2) {
+                                    StackTraceElement traceElement = trace[2];
+                                    libDetail = String.format("%s##%s##%s##%s", traceElement
+                                                    .getClassName(), traceElement.getMethodName(), traceElement.getFileName(),
+                                            traceElement.getLineNumber());
+                                }
+                            }
+
+                            libProperties.put("$lib_detail", libDetail);
                         }
+
+                        if (isDepolyed) {
+                            mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
+                            SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(dataObj.toString()));
+                        }
+                    } catch (JSONException e) {
+                        throw new InvalidDataException("Unexpected property");
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-
-                if (TextUtils.isEmpty(libDetail)) {
-                    StackTraceElement[] trace = (new Exception()).getStackTrace();
-                    if (trace.length > 2) {
-                        StackTraceElement traceElement = trace[2];
-                        libDetail = String.format("%s##%s##%s##%s", traceElement
-                                        .getClassName(), traceElement.getMethodName(), traceElement.getFileName(),
-                                traceElement.getLineNumber());
-                    }
-                }
-
-                libProperties.put("$lib_detail", libDetail);
             }
-
-            if (isDepolyed) {
-                mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
-                SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(dataObj.toString()));
-            }
-        } catch (JSONException e) {
-            throw new InvalidDataException("Unexpected property");
-        }
+        });
     }
 
     private boolean isFirstDay() {
@@ -2055,7 +2065,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.7.13";
+    static final String VERSION = "1.7.14";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
