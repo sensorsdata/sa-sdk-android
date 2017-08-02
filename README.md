@@ -135,6 +135,9 @@ See our [full manual](http://www.sensorsdata.cn/manual/android_sdk.html)
 We also maintains a SDK for Java at 
 
     https://github.com/sensorsdata/sa-sdk-java
+   
+## 感谢
+[mixpanel-android](https://github.com/mixpanel/mixpanel-android) 
 
 ## License
 
