@@ -669,7 +669,6 @@ public class SensorsDataAPI {
      * @param isSupportJellyBean 是否支持API level 16及以下的版本。
      * 因为API level 16及以下的版本, addJavascriptInterface有安全漏洞,请谨慎使用
      */
-    @Deprecated
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     public void showUpWebView(WebView webView, boolean isSupportJellyBean) {
         showUpWebView(webView, isSupportJellyBean, null);
@@ -1163,7 +1162,7 @@ public class SensorsDataAPI {
                         String installSource = String.format("android_id=%s##imei=%s##mac=%s",
                                 SensorsDataUtils.getAndroidID(mContext),
                                 SensorsDataUtils.getIMEI(mContext),
-                                SensorsDataUtils.getMacAddress());
+                                SensorsDataUtils.getMacAddress(mContext));
                         properties.put("$ios_install_source", installSource);
                     }
                 } catch (Exception e) {
@@ -1752,10 +1751,17 @@ public class SensorsDataAPI {
             }
 
             JSONObject eventObject = new JSONObject(eventInfo);
+            String type = eventObject.getString("type");
+            EventType eventType = EventType.valueOf(type.toUpperCase());
+
+            String distinctIdKey = "distinct_id";
+            if (eventType == EventType.TRACK_SIGNUP) {
+                distinctIdKey = "original_id";
+            }
             if (!TextUtils.isEmpty(getLoginId())) {
-                eventObject.put("distinct_id", getLoginId());
+                eventObject.put(distinctIdKey, getLoginId());
             } else {
-                eventObject.put("distinct_id", getAnonymousId());
+                eventObject.put(distinctIdKey, getAnonymousId());
             }
 
             try {
@@ -1764,9 +1770,6 @@ public class SensorsDataAPI {
             } catch (Exception e) {
                 //ignore
             }
-
-            String type = eventObject.getString("type");
-            EventType eventType = EventType.valueOf(type.toUpperCase());
 
             JSONObject propertiesObject = eventObject.optJSONObject("properties");
             if (propertiesObject == null) {
@@ -1813,7 +1816,9 @@ public class SensorsDataAPI {
                 }
 
                 //是否首日访问
-                propertiesObject.put("$is_first_day", isFirstDay());
+                if (eventType.isTrack()) {
+                    propertiesObject.put("$is_first_day", isFirstDay());
+                }
 
                 if (propertiesObject.has("$is_first_time")) {
                     propertiesObject.remove("$is_first_time");
@@ -1824,7 +1829,19 @@ public class SensorsDataAPI {
                 }
             }
 
-            mMessages.enqueueEventMessage(type, eventObject);
+            if (eventType == EventType.TRACK_SIGNUP) {
+                String loginId = eventObject.getString("distinct_id");
+                synchronized (mLoginId) {
+                    if (!loginId.equals(mLoginId.get())) {
+                        mLoginId.commit(loginId);
+                        if (!loginId.equals(getAnonymousId())) {
+                            mMessages.enqueueEventMessage(type, eventObject);
+                        }
+                    }
+                }
+            } else {
+                mMessages.enqueueEventMessage(type, eventObject);
+            }
         } catch (Exception e) {
             //ignore
             e.printStackTrace();
@@ -2065,7 +2082,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.7.14";
+    static final String VERSION = "1.7.15";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;

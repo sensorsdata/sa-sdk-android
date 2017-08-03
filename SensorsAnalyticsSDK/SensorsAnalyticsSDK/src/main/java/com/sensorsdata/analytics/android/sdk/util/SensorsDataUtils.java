@@ -11,6 +11,8 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
 import android.support.v4.content.ContextCompat;
@@ -23,14 +25,12 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.FileReader;
-import java.io.InputStreamReader;
-import java.io.LineNumberReader;
-import java.io.Reader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.net.NetworkInterface;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -118,8 +118,9 @@ public final class SensorsDataUtils {
 
     /**
      * 尝试读取页面 title
+     *
      * @param properties JSONObject
-     * @param activity Activity
+     * @param activity   Activity
      */
     public static void getScreenNameAndTitleFromActivity(JSONObject properties, Activity activity) {
         if (activity == null || properties == null) {
@@ -184,6 +185,7 @@ public final class SensorsDataUtils {
 
     /**
      * 获取 UA 值
+     *
      * @param context Context
      * @return 当前 UA 值
      */
@@ -248,7 +250,8 @@ public final class SensorsDataUtils {
 
     /**
      * 检测权限
-     * @param context Context
+     *
+     * @param context    Context
      * @param permission 权限名称
      * @return true:已允许该权限; false:没有允许该权限
      */
@@ -256,7 +259,7 @@ public final class SensorsDataUtils {
         try {
             if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
                 SALog.i(TAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n"
-                        + "<uses-permission android:name=\"" + permission+ "\" />");
+                        + "<uses-permission android:name=\"" + permission + "\" />");
                 return false;
             }
 
@@ -333,6 +336,7 @@ public final class SensorsDataUtils {
 
     /**
      * 获取IMEI
+     *
      * @param mContext Context
      * @return IMEI
      */
@@ -354,6 +358,7 @@ public final class SensorsDataUtils {
 
     /**
      * 获取 Android ID
+     *
      * @param mContext Context
      * @return androidID
      */
@@ -378,68 +383,72 @@ public final class SensorsDataUtils {
         }
     }
 
-    /**
-     * 获取手机的MAC地址
-     * @return mac address
-     */
-    public static String getMacAddress() {
-        String str = "";
-        String macSerial = "";
+    private static String getMacAddressByInterface() {
         try {
-            Process pp = Runtime.getRuntime().exec(
-                    "cat /sys/class/net/wlan0/address ");
-            InputStreamReader ir = new InputStreamReader(pp.getInputStream());
-            LineNumberReader input = new LineNumberReader(ir);
+            List<NetworkInterface> all = Collections.list(NetworkInterface.getNetworkInterfaces());
+            for (NetworkInterface nif : all) {
+                if (nif.getName().equalsIgnoreCase("wlan0")) {
+                    byte[] macBytes = nif.getHardwareAddress();
+                    if (macBytes == null) {
+                        return "";
+                    }
 
-            for (; null != str; ) {
-                str = input.readLine();
-                if (str != null) {
-                    macSerial = str.trim();// 去空格
-                    break;
+                    StringBuilder res1 = new StringBuilder();
+                    for (byte b : macBytes) {
+                        res1.append(String.format("%02X:", b));
+                    }
+
+                    if (res1.length() > 0) {
+                        res1.deleteCharAt(res1.length() - 1);
+                    }
+                    return res1.toString();
                 }
             }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        if ("".equals(macSerial)) {
-            try {
-                return loadFileAsString("/sys/class/net/eth0/address")
-                        .toUpperCase().substring(0, 17);
-            } catch (Exception e) {
-                e.printStackTrace();
 
-            }
-
+        } catch (Exception e) {
+            //ignore
         }
-        return macSerial;
+        return null;
     }
 
-    private static String loadFileAsString(String fileName) throws Exception {
-        try {
-            FileReader reader = new FileReader(fileName);
-            String text = loadReaderAsString(reader);
-            reader.close();
-            return text;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "";
-        }
-    }
+    /**
+     * 获取手机的MAC地址
+     *
+     * @return mac address
+     */
+    private static final String marshmallowMacAddress = "02:00:00:00:00:00";
+    private static final String fileAddressMac = "/sys/class/net/wlan0/address";
 
-    private static String loadReaderAsString(Reader reader) throws Exception {
+    public static String getMacAddress(Context context) {
         try {
-            StringBuilder builder = new StringBuilder();
-            char[] buffer = new char[4096];
-            int readLength = reader.read(buffer);
-            while (readLength >= 0) {
-                builder.append(buffer, 0, readLength);
-                readLength = reader.read(buffer);
+            if (!checkHasPermission(context, "android.permission.ACCESS_WIFI_STATE")) {
+                return "";
             }
-            return builder.toString();
+            WifiManager wifiMan = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            WifiInfo wifiInfo = wifiMan.getConnectionInfo();
+
+            if (wifiInfo != null && marshmallowMacAddress.equals(wifiInfo.getMacAddress())) {
+                String result = null;
+                try {
+                    result = getMacAddressByInterface();
+                    if (result != null) {
+                        return result;
+                    }
+                } catch (Exception e) {
+                    //ignore
+                }
+            } else {
+                if (wifiInfo != null && wifiInfo.getMacAddress() != null) {
+                    return wifiInfo.getMacAddress();
+                } else {
+                    return "";
+                }
+            }
+            return marshmallowMacAddress;
         } catch (Exception e) {
-            e.printStackTrace();
-            return "";
+            //ignore
         }
+        return "";
     }
 
     public static boolean isValidAndroidId(String androidId) {
