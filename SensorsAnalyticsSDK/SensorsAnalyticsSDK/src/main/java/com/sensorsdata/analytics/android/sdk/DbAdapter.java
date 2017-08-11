@@ -96,6 +96,12 @@ import java.io.File;
                 }
             }
 
+            try {
+                j.put("__crc__", j.toString().hashCode());
+            } catch (Exception e) {
+                //ignore
+            }
+
             final ContentValues cv = new ContentValues();
             cv.put(KEY_DATA, j.toString());
             cv.put(KEY_CREATED_AT, System.currentTimeMillis());
@@ -167,6 +173,15 @@ import java.io.File;
                         final JSONObject j = new JSONObject(c.getString(c.getColumnIndex(KEY_DATA)));
 
                         try {
+                            if (j.has("__crc__")) {
+                                Object abbObject = j.remove("__crc__");
+                                if (abbObject != null) {
+                                    int crc = (int)abbObject;
+                                    if (crc != j.toString().hashCode()) {
+                                        continue;
+                                    }
+                                }
+                            }
                             j.put("_flush_time", System.currentTimeMillis());
                         } catch (Exception e) {
                             //ignore
