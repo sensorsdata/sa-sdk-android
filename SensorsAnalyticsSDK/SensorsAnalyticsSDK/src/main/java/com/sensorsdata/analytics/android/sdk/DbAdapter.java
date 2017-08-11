@@ -6,6 +6,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
 import android.net.Uri;
+import android.text.TextUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -96,14 +97,8 @@ import java.io.File;
                 }
             }
 
-            try {
-                j.put("__crc__", j.toString().hashCode());
-            } catch (Exception e) {
-                //ignore
-            }
-
             final ContentValues cv = new ContentValues();
-            cv.put(KEY_DATA, j.toString());
+            cv.put(KEY_DATA, j.toString() + "\t" + j.toString().hashCode());
             cv.put(KEY_CREATED_AT, System.currentTimeMillis());
             contentResolver.insert(mUri, cv);
             c = contentResolver.query(mUri, null, null, null, null);
@@ -170,24 +165,26 @@ import java.io.File;
                         last_id = c.getString(c.getColumnIndex("_id"));
                     }
                     try {
-                        final JSONObject j = new JSONObject(c.getString(c.getColumnIndex(KEY_DATA)));
-
-                        try {
-                            if (j.has("__crc__")) {
-                                Object abbObject = j.remove("__crc__");
-                                if (abbObject != null) {
-                                    int crc = (int)abbObject;
-                                    if (crc != j.toString().hashCode()) {
-                                        continue;
+                        String keyData = c.getString(c.getColumnIndex(KEY_DATA));
+                        if (!TextUtils.isEmpty(keyData)) {
+                            JSONObject j = null;
+                            int index = keyData.lastIndexOf("\t");
+                            if (index > -1) {
+                                String crc = keyData.substring(index).replaceFirst("\t", "");
+                                String content = keyData.substring(0, index);
+                                if (!TextUtils.isEmpty(content) && !TextUtils.isEmpty(crc)) {
+                                    if (crc.equals(String.valueOf(content.hashCode()))) {
+                                        j = new JSONObject(content);
                                     }
                                 }
+                            } else {
+                                j = new JSONObject(keyData);
                             }
-                            j.put("_flush_time", System.currentTimeMillis());
-                        } catch (Exception e) {
-                            //ignore
+                            if (j != null) {
+                                j.put("_flush_time", System.currentTimeMillis());
+                                arr.put(j);
+                            }
                         }
-
-                        arr.put(j);
                     } catch (final JSONException e) {
                         // Ignore this object
                     }
