@@ -34,7 +34,7 @@ dependencies {
 def siteUrl = 'https://github.com/sensorsdata/sa-sdk-android'
 def gitUrl = 'https://github.com/sensorsdata/sa-sdk-android.git'
 group = "com.sensorsdata.analytics.android"
-project.archivesBaseName="SensorsAnalyticsSDK2"
+project.archivesBaseName="SensorsAnalyticsSDK"
 
 install {
     repositories.mavenInstaller {
