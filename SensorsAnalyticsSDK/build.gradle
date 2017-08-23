@@ -31,8 +31,8 @@ dependencies {
     compile 'org.aspectj:aspectjrt:1.8.10'
 }
 
-def siteUrl = 'https://github.com/sensorsdata/sa-sdk-android2'
-def gitUrl = 'https://github.com/sensorsdata/sa-sdk-android2.git'
+def siteUrl = 'https://github.com/sensorsdata/sa-sdk-android'
+def gitUrl = 'https://github.com/sensorsdata/sa-sdk-android.git'
 group = "com.sensorsdata.analytics.android"
 project.archivesBaseName="SensorsAnalyticsSDK2"
 
@@ -114,7 +114,7 @@ bintray {
     configurations = ['archives']
     pkg {
         repo = "maven"
-        name = "SensorsAnalyticsSDK2"
+        name = "SensorsAnalyticsSDK"
         desc = 'The official Android SDK for Sensors Analytics.'
         websiteUrl = siteUrl
         vcsUrl = gitUrl
