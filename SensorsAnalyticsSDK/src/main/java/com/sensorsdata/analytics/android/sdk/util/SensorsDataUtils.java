@@ -140,11 +140,13 @@ public final class SensorsDataUtils {
             return other;
         }
 
-        if (sCarrierMap.containsKey(operator)) {
-            return sCarrierMap.get(operator);
-        } else {
-            return other;
+        for (Map.Entry<String, String> entry : sCarrierMap.entrySet()) {
+            if (operator.startsWith(entry.getKey())) {
+                return entry.getValue();
+            }
         }
+
+        return other;
     }
 
     private static SharedPreferences getSharedPreferences(Context context) {

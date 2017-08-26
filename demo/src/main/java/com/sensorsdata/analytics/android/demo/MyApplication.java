@@ -1,9 +1,11 @@
 package com.sensorsdata.analytics.android.demo;
 
 import android.app.Application;
-import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by 王灼洲 on 2016/11/12
@@ -44,8 +46,16 @@ public class MyApplication extends Application {
                 SA_SERVER_URL,                      // 数据接收的 URL
                 SA_CONFIGURE_URL,                   // 配置分发的 URL
                 SA_DEBUG_MODE);                     // Debug 模式选项
-        SensorsDataAPI.sharedInstance(this).enableAutoTrack();
-        //16MB
-        SensorsDataAPI.sharedInstance(this).setMaxCacheSize(16 * 1024 * 1024);
+        // 打开自动采集, 并指定追踪哪些 AutoTrack 事件
+        List<SensorsDataAPI.AutoTrackEventType> eventTypeList = new ArrayList<>();
+        // $AppStart
+        eventTypeList.add(SensorsDataAPI.AutoTrackEventType.APP_START);
+        // $AppEnd
+        eventTypeList.add(SensorsDataAPI.AutoTrackEventType.APP_END);
+        // $AppViewScreen
+        eventTypeList.add(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN);
+        // $AppClick
+        eventTypeList.add(SensorsDataAPI.AutoTrackEventType.APP_CLICK);
+        SensorsDataAPI.sharedInstance(this).enableAutoTrack(eventTypeList);
     }
 }

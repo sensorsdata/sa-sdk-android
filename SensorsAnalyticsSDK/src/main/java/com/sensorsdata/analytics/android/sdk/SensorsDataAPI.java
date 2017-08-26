@@ -27,6 +27,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -319,7 +320,7 @@ public class SensorsDataAPI {
                 try {
                     TelephonyManager telephonyManager = (TelephonyManager) mContext.getSystemService(Context
                             .TELEPHONY_SERVICE);
-                    String operatorString = telephonyManager.getSimOperator();
+                    String operatorString = telephonyManager.getSubscriberId();
 
                     if (!TextUtils.isEmpty(operatorString)) {
                         deviceInfo.put("$carrier", SensorsDataUtils.operatorToCarrier(operatorString));
@@ -695,6 +696,24 @@ public class SensorsDataAPI {
         if (webView != null) {
             webView.getSettings().setJavaScriptEnabled(true);
             webView.addJavascriptInterface(new AppWebViewInterface(mContext, properties), "SensorsData_APP_JS_Bridge");
+        }
+    }
+
+    public void showUpX5WebView(Object x5WebView) {
+        try {
+            if (x5WebView == null) {
+                return;
+            }
+
+            Class clazz = x5WebView.getClass();
+            Method addJavascriptInterface = clazz.getDeclaredMethod("addJavascriptInterface", Object.class, String.class);
+            if (addJavascriptInterface == null) {
+                return;
+            }
+
+            addJavascriptInterface.invoke(x5WebView, new AppWebViewInterface(mContext, null), "SensorsData_APP_JS_Bridge");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -2085,7 +2104,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.8.5";
+    static final String VERSION = "1.8.6";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
