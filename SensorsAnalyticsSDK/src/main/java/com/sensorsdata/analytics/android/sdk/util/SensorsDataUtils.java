@@ -426,8 +426,12 @@ public final class SensorsDataUtils {
                     .getApplicationInfo(mContext.getApplicationContext().getPackageName(),
                             PackageManager.GET_META_DATA);
             String value = appInfo.metaData.getString(metaKey);
+            int iValue = -1;
             if (value == null) {
-                value = String.valueOf(appInfo.metaData.getInt(metaKey));
+                iValue = appInfo.metaData.getInt(metaKey, -1);
+            }
+            if (iValue != -1) {
+                value = String.valueOf(iValue);
             }
             return value;
         } catch (Exception e) {
