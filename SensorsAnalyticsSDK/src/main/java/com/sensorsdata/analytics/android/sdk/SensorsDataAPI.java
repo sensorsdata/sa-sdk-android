@@ -1786,6 +1786,8 @@ public class SensorsDataAPI {
                 eventObject.put(distinctIdKey, getAnonymousId());
             }
 
+            eventObject.put("time", System.currentTimeMillis());
+
             try {
                 Random random = new Random();
                 eventObject.put("_track_id", random.nextInt());
@@ -2104,7 +2106,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.8.6";
+    static final String VERSION = "1.8.7";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
