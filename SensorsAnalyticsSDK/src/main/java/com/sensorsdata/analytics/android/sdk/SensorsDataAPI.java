@@ -278,6 +278,7 @@ public class SensorsDataAPI {
         mSuperProperties = new PersistentSuperProperties(storedPreferences);
         mFirstStart = new PersistentFirstStart(storedPreferences);
         mFirstTrackInstallation = new PersistentFirstTrackInstallation(storedPreferences);
+        mFirstTrackInstallationWithCallback = new PersistentFirstTrackInstallationWithCallback(storedPreferences);
         mFirstDay = new PersistentFirstDay(storedPreferences);
         if (mFirstDay.get() == null) {
             mFirstDay.commit(mIsFirstDayDateFormat.format(System.currentTimeMillis()));
@@ -1152,10 +1153,16 @@ public class SensorsDataAPI {
      *
      * @param eventName  渠道追踪事件的名称
      * @param properties 渠道追踪事件的属性
+     * @param disableCallback 是否关闭这次渠道匹配的回调请求
      */
-    public void trackInstallation(String eventName, JSONObject properties) {
+    public void trackInstallation(String eventName, JSONObject properties, boolean disableCallback) {
         try {
-            boolean firstTrackInstallation = mFirstTrackInstallation.get();
+            boolean firstTrackInstallation;
+            if (disableCallback) {
+                firstTrackInstallation = mFirstTrackInstallationWithCallback.get();
+            } else {
+                firstTrackInstallation = mFirstTrackInstallation.get();
+            }
             if (firstTrackInstallation) {
                 try {
                     if (properties == null) {
@@ -1187,6 +1194,10 @@ public class SensorsDataAPI {
                                 SensorsDataUtils.getMacAddress(mContext));
                         properties.put("$ios_install_source", installSource);
                     }
+
+                    if (disableCallback) {
+                        properties.put("$ios_install_disable_callback", disableCallback);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -1197,11 +1208,38 @@ public class SensorsDataAPI {
                 // 再发送 profile_set_once
                 trackEvent(EventType.PROFILE_SET_ONCE, null, properties, null);
 
-                mFirstTrackInstallation.commit(false);
+                if (disableCallback) {
+                    mFirstTrackInstallationWithCallback.commit(false);
+                } else {
+                    mFirstTrackInstallation.commit(false);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
+     *
+     * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
+     *
+     * @param eventName  渠道追踪事件的名称
+     * @param properties 渠道追踪事件的属性
+     */
+    public void trackInstallation(String eventName, JSONObject properties) {
+        trackInstallation(eventName, properties, false);
+    }
+
+    /**
+     * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
+     *
+     * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
+     *
+     * @param eventName  渠道追踪事件的名称
+     */
+    public void trackInstallation(String eventName) {
+        trackInstallation(eventName, null, false);
     }
 
     /**
@@ -2106,7 +2144,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.8.8";
+    static final String VERSION = "1.8.9";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -2152,6 +2190,7 @@ public class SensorsDataAPI {
     private final PersistentFirstStart mFirstStart;
     private final PersistentFirstDay mFirstDay;
     private final PersistentFirstTrackInstallation mFirstTrackInstallation;
+    private final PersistentFirstTrackInstallationWithCallback mFirstTrackInstallationWithCallback;
     private final Map<String, Object> mDeviceInfo;
     private final Map<String, EventTimer> mTrackTimer;
     private List<Integer> mAutoTrackIgnoredActivities;
