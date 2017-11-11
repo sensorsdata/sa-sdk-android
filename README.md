@@ -12,6 +12,10 @@ This is the official Android SDK for Sensors Analytics.
 buildscript {
     repositories {
         jcenter()
+	//添加 Sensors Analytics maven 库地址
+        maven {
+            url 'https://dl.bintray.com/zouyuhan/maven'
+        }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:2.2.3'
@@ -23,6 +27,10 @@ buildscript {
 allprojects {
     repositories {
         jcenter()
+	//添加 Sensors Analytics maven 库地址
+        maven {
+            url 'https://dl.bintray.com/zouyuhan/maven'
+        }
     }
 }
 ```
