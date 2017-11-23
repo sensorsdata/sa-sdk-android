@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.text.TextUtils;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CheckedTextView;
@@ -72,6 +73,21 @@ public class TrackViewOnAppClick {
             if (AopUtil.isViewIgnored(view)) {
                 return;
             }
+
+            long currentOnClickTimestamp = System.currentTimeMillis();
+            String tag = (String) view.getTag(R.id.sensors_analytics_tag_view_onclick_timestamp);
+            if (!TextUtils.isEmpty(tag)) {
+                try {
+                    long lastOnClickTimestamp = Long.parseLong(tag);
+                    if ((currentOnClickTimestamp - lastOnClickTimestamp) < 500) {
+                        SALog.i(TAG, "This onClick maybe extends from super, IGNORE");
+                        return;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            view.setTag(R.id.sensors_analytics_tag_view_onclick_timestamp, String.valueOf(currentOnClickTimestamp));
 
             JSONObject properties = new JSONObject();
 
@@ -145,6 +161,16 @@ public class TrackViewOnAppClick {
                 viewType = "ImageButton";
             } else if (view instanceof ImageView) { // ImageView
                 viewType = "ImageView";
+            } else if (view instanceof ViewGroup) {
+                try {
+                    StringBuilder stringBuilder = new StringBuilder();
+                    viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
+                    if (!TextUtils.isEmpty(viewText)) {
+                        viewText = viewText.toString().substring(0, viewText.length() - 1);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
 
             //$element_content
