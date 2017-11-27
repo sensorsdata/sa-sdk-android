@@ -1370,6 +1370,19 @@ public class SensorsDataAPI {
         return mLastScreenUrl;
     }
 
+    /**
+     * App 退出或进到后台时清空 referrer，默认情况下不清空
+     */
+    public void clearReferrerWhenAppEnd() {
+        mClearReferrerWhenAppEnd = true;
+    }
+
+    protected void clearLastScreenUrl() {
+        if (mClearReferrerWhenAppEnd) {
+            mLastScreenUrl = null;
+        }
+    }
+
     protected String getMainProcessName() {
         return mMainProcessName;
     }
@@ -1804,7 +1817,7 @@ public class SensorsDataAPI {
         }
     }
 
-    protected void trackEventFromH5(String eventInfo) {
+    public void trackEventFromH5(String eventInfo) {
         try {
             if (TextUtils.isEmpty(eventInfo)) {
                 return;
@@ -2144,7 +2157,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.8.10";
+    static final String VERSION = "1.8.11";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -2181,6 +2194,7 @@ public class SensorsDataAPI {
     /* $AppViewScreen 事件是否支持 Fragment*/
     private boolean mTrackFragmentAppViewScreen;
     private boolean mEnableReactNativeAutoTrack;
+    private boolean mClearReferrerWhenAppEnd = false;
 
     private final Context mContext;
     private final AnalyticsMessages mMessages;
