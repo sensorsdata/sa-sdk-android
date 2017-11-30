@@ -633,6 +633,27 @@ public class SensorsDataAPI {
     }
 
     /**
+     * 自动收集 App Crash 日志，该功能默认是关闭的
+     */
+    public void trackAppCrash() {
+        SensorsDataExceptionHandler.init();
+    }
+
+    // Package-level access. Used (at least) by GCMReceiver
+    // when OS-level events occur.
+    /* package */ interface InstanceProcessor {
+        public void process(SensorsDataAPI m);
+    }
+
+    /* package */ static void allInstances(InstanceProcessor processor) {
+        synchronized (sInstanceMap) {
+            for (final SensorsDataAPI instance : sInstanceMap.values()) {
+                processor.process(instance);
+            }
+        }
+    }
+
+    /**
      * 是否开启 AutoTrack
      * @return true: 开启 AutoTrack; false：没有开启 AutoTrack
      */
@@ -1925,9 +1946,9 @@ public class SensorsDataAPI {
 
     private void trackEvent(final EventType eventType, final String eventName, final JSONObject properties, final String
             originalDistinctId) throws InvalidDataException {
-        SensorsDataThreadPool.getInstance().execute(new Runnable() {
-            @Override
-            public void run() {
+//        SensorsDataThreadPool.getInstance().execute(new Runnable() {
+//            @Override
+//            public void run() {
                 try {
                     if (eventType.isTrack()) {
                         assertKey(eventName);
@@ -2093,8 +2114,8 @@ public class SensorsDataAPI {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-            }
-        });
+//            }
+//        });
     }
 
     private boolean isFirstDay() {
@@ -2157,7 +2178,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.8.11";
+    static final String VERSION = "1.8.12";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;

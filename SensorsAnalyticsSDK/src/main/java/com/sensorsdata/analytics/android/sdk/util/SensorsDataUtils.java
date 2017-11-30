@@ -105,12 +105,14 @@ public final class SensorsDataUtils {
                 return null;
             }
 
-            for (ActivityManager.RunningAppProcessInfo appProcess : activityManager
-                    .getRunningAppProcesses()) {
+            List<ActivityManager.RunningAppProcessInfo> runningAppProcessInfoList = activityManager.getRunningAppProcesses();
+            if (runningAppProcessInfoList != null) {
+                for (ActivityManager.RunningAppProcessInfo appProcess : runningAppProcessInfoList) {
 
-                if (appProcess != null) {
-                    if (appProcess.pid == pid) {
-                        return appProcess.processName;
+                    if (appProcess != null) {
+                        if (appProcess.pid == pid) {
+                            return appProcess.processName;
+                        }
                     }
                 }
             }
@@ -127,7 +129,7 @@ public final class SensorsDataUtils {
         }
 
         String currentProcess = getCurrentProcessName(context.getApplicationContext());
-        if (mainProcessName.equals(currentProcess)) {
+        if (!TextUtils.isEmpty(currentProcess) || mainProcessName.equals(currentProcess)) {
             return true;
         }
 
