@@ -44,9 +44,6 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                 if (startedActivityCount == 0) {
                     // XXX: 注意内部执行顺序
                     boolean firstStart = mFirstStart.get();
-                    if (firstStart) {
-                        mFirstStart.commit(false);
-                    }
 
                     try {
                         mSensorsDataInstance.appBecomeActive();
@@ -58,6 +55,9 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                         if (mSensorsDataInstance.isAutoTrackEnabled()) {
                             try {
                                 if (!mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_START)) {
+                                    if (firstStart) {
+                                        mFirstStart.commit(false);
+                                    }
                                     JSONObject properties = new JSONObject();
                                     properties.put("$resume_from_background", resumeFromBackground);
                                     properties.put("$is_first_time", firstStart);

@@ -129,7 +129,7 @@ public final class SensorsDataUtils {
         }
 
         String currentProcess = getCurrentProcessName(context.getApplicationContext());
-        if (!TextUtils.isEmpty(currentProcess) || mainProcessName.equals(currentProcess)) {
+        if (TextUtils.isEmpty(currentProcess) || mainProcessName.equals(currentProcess)) {
             return true;
         }
 
