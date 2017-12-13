@@ -17,7 +17,6 @@ import android.util.Base64;
 import android.util.Base64OutputStream;
 import android.util.DisplayMetrics;
 import android.util.JsonWriter;
-import android.util.Log;
 import android.util.LruCache;
 import android.view.View;
 import android.view.ViewGroup;
@@ -519,7 +518,6 @@ public class ViewSnapshot {
     private final Handler mMainThreadHandler;
     private final ResourceIds mResourceIds;
     private String[] mLastImageHashArray = null;
-    ;
     private static final int MAX_CLASS_NAME_CACHE_SIZE = 255;
 
     private static final String TAG = "SA.Snapshot";

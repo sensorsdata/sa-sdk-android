@@ -127,7 +127,6 @@ public class ExpandableListViewItemChildAppClick {
                 properties.put(AopConstants.ELEMENT_ID, idString);
             }
 
-//                    properties.put(AopConstants.ELEMENT_ACTION, "onChildClick");
             properties.put(AopConstants.ELEMENT_TYPE, "ExpandableListView");
 
             String viewText = null;

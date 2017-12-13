@@ -11,9 +11,9 @@ import org.json.JSONObject;
 public interface SensorsAdapterViewItemTrackProperties {
     /**
      * 点击 position 处 item 的扩展属性
-     * @param position
-     * @return
-     * @throws JSONException
+     * @param position 当前 item 所在位置
+     * @return JSONObject
+     * @throws JSONException JSON 异常
      */
     JSONObject getSensorsItemTrackProperties(int position) throws JSONException;
 }

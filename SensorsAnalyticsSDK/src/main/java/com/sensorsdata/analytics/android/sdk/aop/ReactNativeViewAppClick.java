@@ -42,8 +42,6 @@ public class ReactNativeViewAppClick {
             }
 
             int reactTag = (int) joinPoint.getArgs()[0];
-            int initialReactTag = (int) joinPoint.getArgs()[1];
-            int blockNativeResponder = (int) joinPoint.getArgs()[1];
 
             Object target = joinPoint.getTarget();
             JSONObject properties = new JSONObject();

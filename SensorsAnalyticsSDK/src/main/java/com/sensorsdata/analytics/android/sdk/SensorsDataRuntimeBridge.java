@@ -101,11 +101,11 @@ public class SensorsDataRuntimeBridge {
                 return;
             }
 
-            Activity activity = targetFragment.getActivity();
-
             if (targetMethod.getDeclaringClass().getAnnotation(SensorsDataTrackFragmentAppViewScreen.class) == null) {
                 return;
             }
+
+            Activity activity = targetFragment.getActivity();
 
             //获取所在的Context
             boolean isVisibleHint = (boolean) joinPoint.getArgs()[0];
@@ -144,11 +144,11 @@ public class SensorsDataRuntimeBridge {
                 return;
             }
 
-            Activity activity = targetFragment.getActivity();
-
             if (targetMethod.getDeclaringClass().getAnnotation(SensorsDataTrackFragmentAppViewScreen.class) == null) {
                 return;
             }
+
+            Activity activity = targetFragment.getActivity();
 
             //获取所在的Context
             boolean hidden = (boolean) joinPoint.getArgs()[0];
@@ -171,6 +171,10 @@ public class SensorsDataRuntimeBridge {
             Signature signature = joinPoint.getSignature();
             MethodSignature methodSignature = (MethodSignature) signature;
             Method targetMethod = methodSignature.getMethod();
+
+            if (targetMethod == null) {
+                return;
+            }
 
             //Fragment名称
             String fragmentName = joinPoint.getTarget().getClass().getName();

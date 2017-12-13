@@ -12,14 +12,18 @@ import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Point;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.os.SystemClock;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.view.View;
+import android.view.WindowManager;
 import android.webkit.WebView;
 import android.widget.Toast;
 
@@ -27,7 +31,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.InputStream;
 import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -154,6 +161,7 @@ public class SensorsDataAPI {
     SensorsDataAPI(Context context, String serverURL, String configureURL,
                    String vtrackServerURL, DebugMode debugMode) {
         mContext = context;
+        mDebugMode = debugMode;
 
         final String packageName = context.getApplicationContext().getPackageName();
 
@@ -174,26 +182,20 @@ public class SensorsDataAPI {
                 configBundle = new Bundle();
             }
 
-            if (debugMode.isDebugMode()) {
-                Uri serverURI = Uri.parse(serverURL);
-
-                int pathPrefix = serverURI.getPath().lastIndexOf('/');
-                String newPath = serverURI.getPath().substring(0, pathPrefix) + "/debug";
-
-                // 将 URI Path 中末尾的部分替换成 '/debug'
-                mServerUrl = serverURI.buildUpon().path(newPath).build().toString();
-            } else {
-                mServerUrl = serverURL;
-            }
+            setServerUrl(serverURL);
 
             // 若 Configure Url 为 '/api/vtrack/config' 或 '/config'，则补齐 SDK 类型
-            Uri configureURI = Uri.parse(configureURL);
-            if (configureURI.getPath().equals("/api/vtrack/config") || configureURI.getPath().equals
-                    ("/api/vtrack/config/") || configureURI.getPath().equals("/config") || configureURI
-                    .getPath().equals("/config/")) {
-                mConfigureUrl = configureURI.buildUpon().appendPath("Android.conf").build().toString();
+            if (!TextUtils.isEmpty(configureURL)) {
+                Uri configureURI = Uri.parse(configureURL);
+                if (configureURI.getPath().equals("/api/vtrack/config") || configureURI.getPath().equals
+                        ("/api/vtrack/config/") || configureURI.getPath().equals("/config") || configureURI
+                        .getPath().equals("/config/")) {
+                    mConfigureUrl = configureURI.buildUpon().appendPath("Android.conf").build().toString();
+                } else {
+                    mConfigureUrl = configureURL;
+                }
             } else {
-                mConfigureUrl = configureURL;
+                mConfigureUrl = null;
             }
 
             if (debugMode == DebugMode.DEBUG_OFF) {
@@ -214,16 +216,20 @@ public class SensorsDataAPI {
                     false);
             mEnableVTrack = configBundle.getBoolean("com.sensorsdata.analytics.android.VTrack",
                     true);
+            if (TextUtils.isEmpty(configureURL)) {
+                mEnableVTrack = false;
+            }
             mEnableAndroidId = configBundle.getBoolean("com.sensorsdata.analytics.android.AndroidId",
                     false);
             mEnableButterknifeOnClick = configBundle.getBoolean("com.sensorsdata.analytics.android.ButterknifeOnClick",
                     false);
             mMainProcessName = configBundle.getString("com.sensorsdata.analytics.android.MainProcessName");
 
-            mDebugMode = debugMode;
             //打开debug模式，弹出提示
             if (mDebugMode != DebugMode.DEBUG_OFF && SensorsDataUtils.isMainProcess(mContext.getApplicationContext(), mMainProcessName)) {
-                showDebugModeWarning();
+                if (SHOW_DEBUG_INFO_VIEW) {
+                    checkDebugMode(mServerUrl);
+                }
             } else {
                 SHOW_DEBUG_INFO_VIEW = false;
             }
@@ -317,14 +323,29 @@ public class SensorsDataAPI {
             deviceInfo.put("$screen_height", displayMetrics.heightPixels);
             deviceInfo.put("$screen_width", displayMetrics.widthPixels);
 
+            try {
+                WindowManager windowManager = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
+                if (Build.VERSION.SDK_INT >= 17) {
+                    Point point = new Point();
+                    if (windowManager != null) {
+                        windowManager.getDefaultDisplay().getRealSize(point);
+                        deviceInfo.put("$screen_height", point.y);
+                    }
+                }
+            } catch (Exception e) {
+                deviceInfo.put("$screen_height", displayMetrics.heightPixels);
+            }
+
             if (SensorsDataUtils.checkHasPermission(context, "android.permission.READ_PHONE_STATE")) {
                 try {
                     TelephonyManager telephonyManager = (TelephonyManager) mContext.getSystemService(Context
                             .TELEPHONY_SERVICE);
-                    String operatorString = telephonyManager.getSubscriberId();
+                    if (telephonyManager != null) {
+                        String operatorString = telephonyManager.getSubscriberId();
 
-                    if (!TextUtils.isEmpty(operatorString)) {
-                        deviceInfo.put("$carrier", SensorsDataUtils.operatorToCarrier(operatorString));
+                        if (!TextUtils.isEmpty(operatorString)) {
+                            deviceInfo.put("$carrier", SensorsDataUtils.operatorToCarrier(operatorString));
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -366,6 +387,19 @@ public class SensorsDataAPI {
             }
             return instance;
         }
+    }
+
+    /**
+     * 初始化并获取SensorsDataAPI单例
+     *
+     * @param context      App 的 Context
+     * @param serverURL    用于收集事件的服务地址
+     * @param debugMode    Debug模式,
+     *                     {@link com.sensorsdata.analytics.android.sdk.SensorsDataAPI.DebugMode}
+     * @return SensorsDataAPI单例
+     */
+    public static SensorsDataAPI sharedInstance(Context context, String serverURL, DebugMode debugMode) {
+        return sharedInstance(context, serverURL, null, null, debugMode);
     }
 
     /**
@@ -438,6 +472,74 @@ public class SensorsDataAPI {
             }
             return null;
         }
+    }
+
+    /**
+     * 设置当前 serverUrl
+     * @param serverUrl 当前 serverUrl
+     */
+    public void setServerUrl(String serverUrl) {
+        try {
+            if (TextUtils.isEmpty(serverUrl) || mDebugMode == DebugMode.DEBUG_OFF) {
+                mServerUrl = serverUrl;
+                disableDebugMode();
+            } else {
+                Uri serverURI = Uri.parse(serverUrl);
+
+                int pathPrefix = serverURI.getPath().lastIndexOf('/');
+                if (pathPrefix != -1) {
+                    String newPath = serverURI.getPath().substring(0, pathPrefix) + "/debug";
+
+                    // 将 URI Path 中末尾的部分替换成 '/debug'
+                    mServerUrl = serverURI.buildUpon().path(newPath).build().toString();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void checkDebugMode(final String serverUrl) {
+        if (TextUtils.isEmpty(serverUrl)) {
+            disableDebugMode();
+            return;
+        }
+        new Thread(new Runnable(){
+            @Override
+            public void run() {
+                boolean disableDebugMode = true;
+                try {
+                    if (TextUtils.isEmpty(serverUrl)) {
+                        return;
+                    }
+
+                    URL url = new URL(serverUrl);
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    int responseCode = connection.getResponseCode();
+                    if (responseCode == 200) {
+                        InputStream in = connection.getInputStream();
+                        byte[] responseBody = AnalyticsMessages.slurp(in);
+                        in.close();
+
+                        String response = new String(responseBody, "UTF-8");
+                        if (!TextUtils.isEmpty(response)) {
+                            if (response.contains("Sensors Analytics is ready to receive your data!")) {
+                                disableDebugMode = false;
+                                Message msg = new Message();
+                                msg.what = MESSAGE_SHOW_DEBUG_WARNING;
+                                mHandler.sendMessage(msg);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    if (disableDebugMode) {
+                        disableDebugMode();
+                    }
+                }
+            }
+        }).start();
     }
 
     /**
@@ -573,6 +675,8 @@ public class SensorsDataAPI {
      * https://sensorsdata.cn/manual/android_sdk.html
      *
      * 该功能仅在 API 14 及以上版本中生效，默认关闭
+     *
+     * @param eventTypeList 开启 AutoTrack 的事件列表
      */
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
         mAutoTrack = true;
@@ -1227,7 +1331,9 @@ public class SensorsDataAPI {
                 trackEvent(EventType.TRACK, eventName, properties, null);
 
                 // 再发送 profile_set_once
-                trackEvent(EventType.PROFILE_SET_ONCE, null, properties, null);
+                JSONObject profileProperties = properties;
+                profileProperties.put("$first_visit_time", new java.util.Date());
+                trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null);
 
                 if (disableCallback) {
                     mFirstTrackInstallationWithCallback.commit(false);
@@ -1235,6 +1341,7 @@ public class SensorsDataAPI {
                     mFirstTrackInstallation.commit(false);
                 }
             }
+            flush();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -1812,6 +1919,10 @@ public class SensorsDataAPI {
         return mDebugMode.isDebugWriteData();
     }
 
+    private void disableDebugMode() {
+        mDebugMode = DebugMode.DEBUG_OFF;
+    }
+
     String getServerUrl() {
         return mServerUrl;
     }
@@ -1827,9 +1938,9 @@ public class SensorsDataAPI {
             }
             String info = null;
             if (mDebugMode == DebugMode.DEBUG_ONLY) {
-                info = "现在您打开了神策SDK的'DEBUG_ONLY'模式，此模式下只校验数据但不导入数据，数据出错时会以 Toast 的方式提示开发者，请上线前一定使用 DEBUG_OFF 模式。";
+                info = "现在您打开了 SensorsData SDK 的 'DEBUG_ONLY' 模式，此模式下只校验数据但不导入数据，数据出错时会以 Toast 的方式提示开发者，请上线前一定使用 DEBUG_OFF 模式。";
             } else if (mDebugMode == DebugMode.DEBUG_AND_TRACK) {
-                info = "现在您打开了神策SDK的'DEBUG_AND_TRACK'模式，此模式下校验数据并且导入数据，数据出错时会以 Toast 的方式提示开发者，请上线前一定使用 DEBUG_OFF 模式。";
+                info = "现在您打开了神策 SensorsData SDK 的 'DEBUG_AND_TRACK' 模式，此模式下校验数据并且导入数据，数据出错时会以 Toast 的方式提示开发者，请上线前一定使用 DEBUG_OFF 模式。";
             }
 
             Toast.makeText(mContext, info, Toast.LENGTH_LONG).show();
@@ -1968,7 +2079,7 @@ public class SensorsDataAPI {
                     }
 
                     try {
-                        JSONObject sendProperties = null;
+                        JSONObject sendProperties;
 
                         if (eventType.isTrack()) {
                             sendProperties = new JSONObject(mDeviceInfo);
@@ -1988,7 +2099,16 @@ public class SensorsDataAPI {
                             return;
                         }
 
+                        String libDetail = null;
                         if (null != properties) {
+                            try {
+                                if (properties.has("$lib_detail")) {
+                                    libDetail = properties.getString("$lib_detail");
+                                    properties.remove("$lib_detail");
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
                             SensorsDataUtils.mergeJSONObject(properties, sendProperties);
                         }
 
@@ -2068,7 +2188,6 @@ public class SensorsDataAPI {
                         } else {
                             libProperties.put("$lib_method", "code");
 
-                            String libDetail = null;
                             if (mAutoTrack && properties != null) {
                                 if (AutoTrackEventType.APP_VIEW_SCREEN.getEventName().equals(eventName) ||
                                         AutoTrackEventType.APP_CLICK.getEventName().equals(eventName) ||
@@ -2178,7 +2297,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.8.13";
+    static final String VERSION = "1.8.14";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -2193,11 +2312,11 @@ public class SensorsDataAPI {
 
     // Configures
   /* SensorsAnalytics 地址 */
-    private final String mServerUrl;
+    private String mServerUrl;
     /* 可视化埋点配置地址 */
     private final String mConfigureUrl;
     /* Debug模式选项 */
-    private final DebugMode mDebugMode;
+    private DebugMode mDebugMode;
     /* Flush时间间隔 */
     private int mFlushInterval;
     /* Flush数据量阈值 */
@@ -2234,6 +2353,19 @@ public class SensorsDataAPI {
     private long mMaxCacheSize = 32 * 1024 * 1024; //default 32MB
 
     private final VTrack mVTrack;
+    private final static int MESSAGE_SHOW_DEBUG_WARNING = 1;
+    private Handler mHandler = new Handler(new Handler.Callback() {
+
+        @Override
+        public boolean handleMessage(Message msg) {
+            switch (msg.what) {
+                case MESSAGE_SHOW_DEBUG_WARNING:
+                    showDebugModeWarning();
+                    break;
+            }
+            return false;
+        }
+    });
 
     private static final SimpleDateFormat mIsFirstDayDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 

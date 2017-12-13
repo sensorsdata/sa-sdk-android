@@ -75,9 +75,6 @@ public class RadioGroupOnCheckedAppClick {
                 properties.put(AopConstants.ELEMENT_ID, idString);
             }
 
-            //Action
-//                    properties.put(AopConstants.ELEMENT_ACTION, "onCheckedChanged");
-
             //$screen_name & $title
             if (activity != null) {
                 properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());

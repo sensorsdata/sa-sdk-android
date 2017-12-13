@@ -104,7 +104,6 @@ public class DialogOnClickAppClick {
             }
 
             properties.put(AopConstants.ELEMENT_TYPE, "Dialog");
-//                    properties.put(AopConstants.ELEMENT_ACTION, "onClick");
 
             if (dialog instanceof android.app.AlertDialog) {
                 android.app.AlertDialog alertDialog = (android.app.AlertDialog) dialog;
@@ -234,11 +233,6 @@ public class DialogOnClickAppClick {
             }
 
             properties.put(AopConstants.ELEMENT_TYPE, "Dialog");
-//                    if (isChecked) {
-//                        properties.put(AopConstants.ELEMENT_ACTION, "checked");
-//                    } else {
-//                        properties.put(AopConstants.ELEMENT_ACTION, "unchecked");
-//                    }
 
             if (dialog instanceof android.app.AlertDialog) {
                 android.app.AlertDialog alertDialog = (android.app.AlertDialog) dialog;

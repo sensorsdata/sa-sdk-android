@@ -81,13 +81,6 @@ public class CheckBoxOnCheckedChangedAppClick {
                 properties.put(AopConstants.ELEMENT_ID, idString);
             }
 
-            //Element Content
-//                    if (isChecked) {
-//                        properties.put(AopConstants.ELEMENT_CONTENT, "checked");
-//                    } else {
-//                        properties.put(AopConstants.ELEMENT_CONTENT, "unchecked");
-//                    }
-
             //$screen_name & $title
             if (activity != null) {
                 properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
@@ -110,11 +103,6 @@ public class CheckBoxOnCheckedChangedAppClick {
                 if (!TextUtils.isEmpty(switchCompat.getTextOn())) {
                     viewText = switchCompat.getTextOn().toString();
                 }
-//                        if (isChecked) {
-//                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
-//                        } else {
-//                            properties.put(AopConstants.ELEMENT_ACTION, "unchecked");
-//                        }
             } else if (view instanceof ToggleButton) { // ToggleButton
                 properties.put(AopConstants.ELEMENT_TYPE, "ToggleButton");
                 ToggleButton toggleButton = (ToggleButton) view;

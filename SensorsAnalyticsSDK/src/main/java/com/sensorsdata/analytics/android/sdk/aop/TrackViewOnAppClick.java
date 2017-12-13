@@ -97,9 +97,6 @@ public class TrackViewOnAppClick {
                 properties.put(AopConstants.ELEMENT_ID, idString);
             }
 
-            //Action
-//                    properties.put(AopConstants.ELEMENT_ACTION, "onClick");
-
             //$screen_name & $title
             if (activity != null) {
                 properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
@@ -115,30 +112,18 @@ public class TrackViewOnAppClick {
                 viewType = "CheckBox";
                 CheckBox checkBox = (CheckBox) view;
                 viewText = checkBox.getText();
-//                        if (checkBox.isChecked()) {
-//                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
-//                        } else {
-//                            properties.put(AopConstants.ELEMENT_ACTION, "unchecked");
-//                        }
             } else if (view instanceof RadioButton) { // RadioButton
                 viewType = "RadioButton";
                 RadioButton radioButton = (RadioButton) view;
                 viewText = radioButton.getText();
-//                        if (radioButton.isChecked()) {
-//                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
-//                        } else {
-//                            properties.put(AopConstants.ELEMENT_ACTION, "unchecked");
-//                        }
             } else if (view instanceof ToggleButton) { // ToggleButton
                 viewType = "ToggleButton";
                 ToggleButton toggleButton = (ToggleButton) view;
                 boolean isChecked = toggleButton.isChecked();
                 if (isChecked) {
                     viewText = toggleButton.getTextOn();
-//                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
                 } else {
                     viewText = toggleButton.getTextOff();
-//                            properties.put(AopConstants.ELEMENT_ACTION, "unchecked");
                 }
             } else if (view instanceof Button) { // Button
                 viewType = "Button";
@@ -148,11 +133,6 @@ public class TrackViewOnAppClick {
                 viewType = "CheckedTextView";
                 CheckedTextView textView = (CheckedTextView) view;
                 viewText = textView.getText();
-//                        if (textView.isChecked()) {
-//                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
-//                        } else {
-//                            properties.put(AopConstants.ELEMENT_ACTION, "unchecked");
-//                        }
             } else if (view instanceof TextView) { // TextView
                 viewType = "TextView";
                 TextView textView = (TextView) view;

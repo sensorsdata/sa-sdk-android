@@ -548,7 +548,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
         }
 
         /**
-         * Report the eventbinding response to the connected web UI.
+         * Report the eventBinding response to the connected web UI.
          */
         private void sendEventBindingResponse(boolean result) {
             if (mEditorConnection == null || !mEditorConnection.isValid()) {

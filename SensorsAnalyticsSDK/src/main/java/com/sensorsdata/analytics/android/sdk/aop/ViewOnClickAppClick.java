@@ -48,9 +48,16 @@ public class ViewOnClickAppClick {
             }
 
             MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
+            if (methodSignature == null) {
+                return;
+            }
 
             //忽略 onClick
             Method method = methodSignature.getMethod();
+            if (method == null) {
+                return;
+            }
+
             SensorsDataIgnoreTrackOnClick trackEvent = method.getAnnotation(SensorsDataIgnoreTrackOnClick.class);
             if (trackEvent != null) {
                 return;
@@ -111,9 +118,6 @@ public class ViewOnClickAppClick {
                 properties.put(AopConstants.ELEMENT_ID, idString);
             }
 
-            //Action
-//                    properties.put(AopConstants.ELEMENT_ACTION, "onClick");
-
             //$screen_name & $title
             if (activity != null) {
                 properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
@@ -129,40 +133,22 @@ public class ViewOnClickAppClick {
                 viewType = "CheckBox";
                 CheckBox checkBox = (CheckBox) view;
                 viewText = checkBox.getText();
-//                        if (checkBox.isChecked()) {
-//                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
-//                        } else {
-//                            properties.put(AopConstants.ELEMENT_ACTION, "unchecked");
-//                        }
             } else if (view instanceof SwitchCompat) {
                 viewType = "SwitchCompat";
                 SwitchCompat switchCompat = (SwitchCompat) view;
-                boolean isChecked = switchCompat.isChecked();
                 viewText = switchCompat.getTextOn();
-//                        if (isChecked) {
-//                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
-//                        } else {
-//                            properties.put(AopConstants.ELEMENT_ACTION, "unchecked");
-//                        }
             } else if (view instanceof RadioButton) { // RadioButton
                 viewType = "RadioButton";
                 RadioButton radioButton = (RadioButton) view;
                 viewText = radioButton.getText();
-//                        if (radioButton.isChecked()) {
-//                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
-//                        } else {
-//                            properties.put(AopConstants.ELEMENT_ACTION, "unchecked");
-//                        }
             } else if (view instanceof ToggleButton) { // ToggleButton
                 viewType = "ToggleButton";
                 ToggleButton toggleButton = (ToggleButton) view;
                 boolean isChecked = toggleButton.isChecked();
                 if (isChecked) {
                     viewText = toggleButton.getTextOn();
-//                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
                 } else {
                     viewText = toggleButton.getTextOff();
-//                            properties.put(AopConstants.ELEMENT_ACTION, "unchecked");
                 }
             } else if (view instanceof Button) { // Button
                 viewType = "Button";
@@ -172,11 +158,6 @@ public class ViewOnClickAppClick {
                 viewType = "CheckedTextView";
                 CheckedTextView textView = (CheckedTextView) view;
                 viewText = textView.getText();
-//                        if (textView.isChecked()) {
-//                            properties.put(AopConstants.ELEMENT_ACTION, "checked");
-//                        } else {
-//                            properties.put(AopConstants.ELEMENT_ACTION, "unchecked");
-//                        }
             } else if (view instanceof TextView) { // TextView
                 viewType = "TextView";
                 TextView textView = (TextView) view;

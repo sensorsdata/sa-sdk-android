@@ -96,11 +96,6 @@ public class MenuItemAppClick {
                 properties.put(AopConstants.ELEMENT_ID, idString);
             }
 
-            //Action
-//                    if (!TextUtils.isEmpty(action)) {
-//                        properties.put(AopConstants.ELEMENT_ACTION, action);
-//                    }
-
             //Content
             if (!TextUtils.isEmpty(menuItem.getTitle())) {
                 properties.put(AopConstants.ELEMENT_CONTENT, menuItem.getTitle());

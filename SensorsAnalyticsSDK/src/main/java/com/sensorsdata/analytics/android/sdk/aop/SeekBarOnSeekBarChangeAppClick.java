@@ -76,9 +76,6 @@ public class SeekBarOnSeekBarChangeAppClick {
                 properties.put(AopConstants.ELEMENT_ID, idString);
             }
 
-            //Action
-//                    properties.put(AopConstants.ELEMENT_ACTION, action);
-
             //$screen_name & $title
             if (activity != null) {
                 properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());

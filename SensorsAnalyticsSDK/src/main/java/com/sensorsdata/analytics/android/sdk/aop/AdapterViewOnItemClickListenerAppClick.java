@@ -128,7 +128,6 @@ public class AdapterViewOnItemClickListenerAppClick {
 
             //点击的 position
             properties.put(AopConstants.ELEMENT_POSITION, String.valueOf(position));
-//                    properties.put(AopConstants.ELEMENT_ACTION, "onItemClick");
 
             String viewText = null;
             if (view instanceof ViewGroup) {

@@ -99,9 +99,9 @@ public class EditorConnection {
         }
 
         @Override
-        public void onOpen(ServerHandshake handshakedata) {
+        public void onOpen(ServerHandshake handShakeData) {
             if (SensorsDataAPI.ENABLE_LOG) {
-                SALog.i(TAG, "Websocket connected: " + handshakedata.getHttpStatus() + " " + handshakedata
+                SALog.i(TAG, "WebSocket connected: " + handShakeData.getHttpStatus() + " " + handShakeData
                         .getHttpStatusMessage());
             }
 

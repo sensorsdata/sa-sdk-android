@@ -65,9 +65,6 @@ public class TabHostOnTabChangedAppClick {
                 e.printStackTrace();
             }
 
-            //Action
-//                    properties.put(AopConstants.ELEMENT_ACTION, "onTabChanged");
-
             properties.put(AopConstants.ELEMENT_TYPE, "TabHost");
 
             SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);

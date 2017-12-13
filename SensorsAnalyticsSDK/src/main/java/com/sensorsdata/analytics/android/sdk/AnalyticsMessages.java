@@ -123,7 +123,7 @@ class AnalyticsMessages {
         mWorker.runMessage(m);
     }
 
-    private byte[] slurp(final InputStream inputStream)
+    public static byte[] slurp(final InputStream inputStream)
             throws IOException {
         final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
@@ -140,6 +140,9 @@ class AnalyticsMessages {
 
     public void sendData() {
         try {
+            if (TextUtils.isEmpty(SensorsDataAPI.sharedInstance(mContext).getServerUrl())) {
+                return;
+            }
             //不是主进程
             if (!SensorsDataUtils.isMainProcess(mContext, SensorsDataAPI.sharedInstance(mContext).getMainProcessName())) {
                 return;
