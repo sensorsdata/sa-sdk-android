@@ -56,20 +56,7 @@ SensorsAnalyticsSDK 的最新版本号请参考 [github 更新日志](https://gi
 如下示例图：
 ![](https://github.com/sensorsdata/sa-sdk-android/blob/master/screenshots/android_sdk_autotrack_2.png)
 
-第三步：添加 Sensors Analytics SDK 需要的权限
-
-修改 `app/src/main/AndroidManifest.xml`，添加 Sensors Analytics SDK 需要的权限:
-
-```xml
-	<!-- 同步数据需要网络权限 -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <!-- 获取网络状态 -->
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- 获取运营商信息 -->
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-```
-
-第四步：由于 SDK 会依赖 appcompat-v7 处理下面几个控件：
+第三步：由于 SDK 会依赖 appcompat-v7 处理下面几个控件：
 
 * android.support.v7.widget.SwitchCompat
 * android.support.v7.app.AlertDialog
