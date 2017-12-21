@@ -16,12 +16,12 @@ import android.graphics.Point;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.WebView;
@@ -95,7 +95,7 @@ public class SensorsDataAPI {
      */
     public final class NetworkType {
         public static final int TYPE_NONE = 0;//NULL
-        public static final int TYPE_2G = 1 << 0;//2G
+        public static final int TYPE_2G = 1;//2G
         public static final int TYPE_3G = 1 << 1;//3G
         public static final int TYPE_4G = 1 << 2;//4G
         public static final int TYPE_WIFI = 1 << 3;//WIFI
@@ -244,7 +244,9 @@ public class SensorsDataAPI {
 
                 mVTrack = new ViewCrawler(mContext, resourcePackageName);
             } else {
-                SALog.d(TAG, "VTrack is not supported on this Android OS Version");
+                if (debugMode != DebugMode.DEBUG_OFF) {
+                    Log.i(TAG, "VTrack is not supported on this Android OS Version");
+                }
                 mVTrack = new VTrackUnsupported();
             }
 
@@ -295,9 +297,11 @@ public class SensorsDataAPI {
             app.registerActivityLifecycleCallbacks(new SensorsDataActivityLifecycleCallbacks(this, mFirstStart, mMainProcessName));
         }
 
-        SALog.d(TAG, String.format(Locale.CHINA, "Initialized the instance of Sensors Analytics SDK with server"
-                        + " url '%s', configure url '%s' flush interval %d ms, debugMode: %s", mServerUrl,
-                mConfigureUrl, mFlushInterval, debugMode));
+        if (debugMode != DebugMode.DEBUG_OFF) {
+            Log.i(TAG, String.format(Locale.CHINA, "Initialized the instance of Sensors Analytics SDK with server"
+                            + " url '%s', configure url '%s' flush interval %d ms, debugMode: %s", mServerUrl,
+                    mConfigureUrl, mFlushInterval, debugMode));
+        }
 
         mAutoTrackEventTypeList = new ArrayList<>();
 
@@ -317,7 +321,9 @@ public class SensorsDataAPI {
                 final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
                 deviceInfo.put("$app_version", info.versionName);
             } catch (final Exception e) {
-                SALog.d(TAG, "Exception getting app version name", e);
+                if (debugMode != DebugMode.DEBUG_OFF) {
+                    Log.i(TAG, "Exception getting app version name", e);
+                }
             }
             final DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
             deviceInfo.put("$screen_height", displayMetrics.heightPixels);
@@ -382,7 +388,7 @@ public class SensorsDataAPI {
             SensorsDataAPI instance = sInstanceMap.get(appContext);
 
             if (null == instance) {
-                SALog.d(TAG, "The static method sharedInstance(context, serverURL, configureURL, "
+                Log.i(TAG, "The static method sharedInstance(context, serverURL, configureURL, "
                         + "vtrackServerURL, debugMode) should be called before calling sharedInstance()");
             }
             return instance;
@@ -525,9 +531,12 @@ public class SensorsDataAPI {
                         if (!TextUtils.isEmpty(response)) {
                             if (response.contains("Sensors Analytics is ready to receive your data!")) {
                                 disableDebugMode = false;
-                                Message msg = new Message();
-                                msg.what = MESSAGE_SHOW_DEBUG_WARNING;
-                                mHandler.sendMessage(msg);
+                                new Thread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        showDebugModeWarning();
+                                    }
+                                }).start();
                             }
                         }
                     }
@@ -832,7 +841,7 @@ public class SensorsDataAPI {
             }
 
             Class clazz = x5WebView.getClass();
-            Method addJavascriptInterface = clazz.getDeclaredMethod("addJavascriptInterface", Object.class, String.class);
+            Method addJavascriptInterface = clazz.getMethod("addJavascriptInterface", Object.class, String.class);
             if (addJavascriptInterface == null) {
                 return;
             }
@@ -1933,6 +1942,7 @@ public class SensorsDataAPI {
 
     private void showDebugModeWarning() {
         try {
+            Looper.prepare();
             if (mDebugMode == DebugMode.DEBUG_OFF) {
                 return;
             }
@@ -1944,6 +1954,7 @@ public class SensorsDataAPI {
             }
 
             Toast.makeText(mContext, info, Toast.LENGTH_LONG).show();
+            Looper.loop();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -2297,7 +2308,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.8.14";
+    static final String VERSION = "1.8.15";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -2353,19 +2364,6 @@ public class SensorsDataAPI {
     private long mMaxCacheSize = 32 * 1024 * 1024; //default 32MB
 
     private final VTrack mVTrack;
-    private final static int MESSAGE_SHOW_DEBUG_WARNING = 1;
-    private Handler mHandler = new Handler(new Handler.Callback() {
-
-        @Override
-        public boolean handleMessage(Message msg) {
-            switch (msg.what) {
-                case MESSAGE_SHOW_DEBUG_WARNING:
-                    showDebugModeWarning();
-                    break;
-            }
-            return false;
-        }
-    });
 
     private static final SimpleDateFormat mIsFirstDayDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 

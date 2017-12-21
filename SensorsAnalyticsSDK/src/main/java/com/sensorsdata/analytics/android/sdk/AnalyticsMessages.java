@@ -438,7 +438,7 @@ class AnalyticsMessages {
                                 SALog.i(TAG, "Failed to load SDK configure with" + configureResult);
                             }
                         } catch (ConnectErrorException e) {
-                            SALog.i(TAG, "Failed to get vtrack configure from SensorsAnalaytics.", e);
+                            SALog.i(TAG, "Failed to get vtrack configure from SensorsAnalytics.", e);
                         }
                     } else {
                         SALog.i(TAG, "Unexpected message received by SensorsData worker: " + msg);

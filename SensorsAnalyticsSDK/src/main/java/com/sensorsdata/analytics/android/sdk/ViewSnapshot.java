@@ -271,8 +271,7 @@ public class ViewSnapshot {
         if (-1 == viewId) {
             return null;
         } else {
-            String name = mResourceIds.nameForId(viewId);
-            return name;
+            return mResourceIds.nameForId(viewId);
         }
     }
 

@@ -3,7 +3,6 @@ package com.sensorsdata.analytics.android.sdk;
 import android.annotation.TargetApi;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
@@ -280,7 +279,7 @@ public abstract class ViewVisitor implements Pathfinder.Accumulator {
 
         @Override
         public void cleanup() {
-            ; // Do nothing, we don't have anything to leak :)
+            // Do nothing, we don't have anything to leak :)
         }
 
         @Override

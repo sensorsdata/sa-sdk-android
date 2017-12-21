@@ -349,7 +349,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
                 try {
                     mEditorConnection = new EditorConnection(new URI(mVTrackServer), new Editor());
                 } catch (final URISyntaxException e) {
-                    SALog.i(TAG, "Error parsing URI " + mVTrackServer + " for VTrack websocket", e);
+                    SALog.i(TAG, "Error parsing URI " + mVTrackServer + " for VTrack webSocket", e);
                 } catch (final EditorConnection.EditorConnectionException e) {
                     SALog.i(TAG, "Error connecting to URI " + mVTrackServer, e);
                 }
@@ -572,7 +572,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
                 try {
                     j.close();
                 } catch (final IOException e) {
-                    SALog.i(TAG, "Can't close websocket writer", e);
+                    SALog.i(TAG, "Can't close webSocket writer", e);
                 }
             }
 
@@ -624,7 +624,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
                 writer.write(result.toString());
                 writer.flush();
             } catch (JSONException e) {
-                SALog.i(TAG, "Invalied proprties", e);
+                SALog.i(TAG, "Invalid properties", e);
             } catch (final IOException e) {
                 SALog.i(TAG, "Can't write track_message to server", e);
             } finally {
@@ -696,7 +696,7 @@ public class ViewCrawler implements VTrack, DebugTracking {
         }
 
         /**
-         * disconnect websocket server;.
+         * disconnect webSocket server;.
          */
         private void handleDisconnect() {
             if (mEditorConnection == null) {
