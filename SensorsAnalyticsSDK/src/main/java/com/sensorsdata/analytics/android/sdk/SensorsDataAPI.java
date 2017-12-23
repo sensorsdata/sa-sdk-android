@@ -315,7 +315,11 @@ public class SensorsDataAPI {
                     Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE);
             deviceInfo
                     .put("$manufacturer", Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER);
-            deviceInfo.put("$model", Build.MODEL == null ? "UNKNOWN" : Build.MODEL);
+            if (TextUtils.isEmpty(Build.MODEL)) {
+                deviceInfo.put("$model", "UNKNOWN");
+            } else {
+                deviceInfo.put("$model", Build.MODEL.trim());
+            }
             try {
                 final PackageManager manager = mContext.getPackageManager();
                 final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
@@ -478,6 +482,41 @@ public class SensorsDataAPI {
             }
             return null;
         }
+    }
+
+    /**
+     * 返回预置属性
+     * @return JSONObject 预置属性
+     */
+    public JSONObject getPresetProperties() {
+        JSONObject properties = new JSONObject();
+        try {
+            if (!TextUtils.isEmpty(getLoginId())) {
+                properties.put("distinct_id", getLoginId());
+            } else {
+                properties.put("distinct_id", getAnonymousId());
+            }
+
+            properties.put("time", System.currentTimeMillis());
+            properties.put("$app_version", mDeviceInfo.get("$app_version"));
+            properties.put("$lib", "Android");
+            properties.put("$lib_version", VERSION);
+            properties.put("$manufacturer", mDeviceInfo.get("$manufacturer"));
+            properties.put("$model", mDeviceInfo.get("$model"));
+            properties.put("$os", "Android");
+            properties.put("$os_version", mDeviceInfo.get("$os_version"));
+            properties.put("$screen_height", mDeviceInfo.get("$screen_height"));
+            properties.put("$screen_width", mDeviceInfo.get("$screen_width"));
+            String networkType = SensorsDataUtils.networkType(mContext);
+            properties.put("$wifi", networkType.equals("WIFI"));
+            properties.put("$network_type", networkType);
+            properties.put("$carrier", mDeviceInfo.get("$carrier"));
+            properties.put("$is_first_day", isFirstDay());
+            properties.put("$device_id", mDeviceInfo.get("$device_id"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return properties;
     }
 
     /**
@@ -2308,7 +2347,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.8.15";
+    static final String VERSION = "1.8.16";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
