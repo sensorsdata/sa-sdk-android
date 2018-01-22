@@ -14,10 +14,12 @@ import org.json.JSONObject;
     private static final String TAG = "SA.AppWebViewInterface";
     private Context mContext;
     private JSONObject properties;
+    private boolean enableVerify;
 
-    AppWebViewInterface(Context c, JSONObject p) {
+    AppWebViewInterface(Context c, JSONObject p, boolean b) {
         this.mContext = c;
         this.properties = p;
+        this.enableVerify = b;
     }
 
     @JavascriptInterface
@@ -44,6 +46,6 @@ import org.json.JSONObject;
 
     @JavascriptInterface
     public void sensorsdata_track(String event) {
-        SensorsDataAPI.sharedInstance(mContext).trackEventFromH5(event);
+        SensorsDataAPI.sharedInstance(mContext).trackEventFromH5(event, enableVerify);
     }
 }

@@ -59,7 +59,9 @@ public class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHand
                     }
                     sensorsData.track("AppCrashed", messageProp);
                     sensorsData.clearLastScreenUrl();
-                    sensorsData.track("$AppEnd");
+                    if (!sensorsData.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_END)) {
+                        sensorsData.track("$AppEnd");
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

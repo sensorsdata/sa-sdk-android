@@ -496,8 +496,6 @@ public class SensorsDataAPI {
             } else {
                 properties.put("distinct_id", getAnonymousId());
             }
-
-            properties.put("time", System.currentTimeMillis());
             properties.put("$app_version", mDeviceInfo.get("$app_version"));
             properties.put("$lib", "Android");
             properties.put("$lib_version", VERSION);
@@ -525,6 +523,7 @@ public class SensorsDataAPI {
      */
     public void setServerUrl(String serverUrl) {
         try {
+            mOriginServerUrl = serverUrl;
             if (TextUtils.isEmpty(serverUrl) || mDebugMode == DebugMode.DEBUG_OFF) {
                 mServerUrl = serverUrl;
                 disableDebugMode();
@@ -852,6 +851,24 @@ public class SensorsDataAPI {
         showUpWebView(webView, isSupportJellyBean, null);
     }
 
+    @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
+    public void showUpWebView(WebView webView, boolean isSupportJellyBean, boolean enableVerify) {
+        showUpWebView(webView, null, isSupportJellyBean, enableVerify);
+    }
+
+    @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
+    public void showUpWebView(WebView webView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify) {
+        if (Build.VERSION.SDK_INT < 17 && !isSupportJellyBean) {
+            SALog.d(TAG, "For applications targeted to API level JELLY_BEAN or below, this feature NOT SUPPORTED");
+            return;
+        }
+
+        if (webView != null) {
+            webView.getSettings().setJavaScriptEnabled(true);
+            webView.addJavascriptInterface(new AppWebViewInterface(mContext, properties, enableVerify), "SensorsData_APP_JS_Bridge");
+        }
+    }
+
     /**
      * 向WebView注入本地方法, 将distinctId传递给当前的WebView
      *
@@ -862,18 +879,10 @@ public class SensorsDataAPI {
      */
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     public void showUpWebView(WebView webView, boolean isSupportJellyBean, JSONObject properties) {
-        if (Build.VERSION.SDK_INT < 17 && !isSupportJellyBean) {
-            SALog.d(TAG, "For applications targeted to API level JELLY_BEAN or below, this feature NOT SUPPORTED");
-            return;
-        }
-
-        if (webView != null) {
-            webView.getSettings().setJavaScriptEnabled(true);
-            webView.addJavascriptInterface(new AppWebViewInterface(mContext, properties), "SensorsData_APP_JS_Bridge");
-        }
+        showUpWebView(webView, properties, isSupportJellyBean, false);
     }
 
-    public void showUpX5WebView(Object x5WebView) {
+    public void showUpX5WebView(Object x5WebView, boolean enableVerify) {
         try {
             if (x5WebView == null) {
                 return;
@@ -885,10 +894,14 @@ public class SensorsDataAPI {
                 return;
             }
 
-            addJavascriptInterface.invoke(x5WebView, new AppWebViewInterface(mContext, null), "SensorsData_APP_JS_Bridge");
+            addJavascriptInterface.invoke(x5WebView, new AppWebViewInterface(mContext, null, enableVerify), "SensorsData_APP_JS_Bridge");
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void showUpX5WebView(Object x5WebView) {
+        showUpX5WebView(x5WebView, false);
     }
 
     /**
@@ -1969,6 +1982,8 @@ public class SensorsDataAPI {
 
     private void disableDebugMode() {
         mDebugMode = DebugMode.DEBUG_OFF;
+        enableLog(false);
+        mServerUrl = mOriginServerUrl;
     }
 
     String getServerUrl() {
@@ -1994,6 +2009,27 @@ public class SensorsDataAPI {
 
             Toast.makeText(mContext, info, Toast.LENGTH_LONG).show();
             Looper.loop();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void trackEventFromH5(String eventInfo, boolean enableVerify) {
+        try {
+            if (TextUtils.isEmpty(eventInfo)) {
+                return;
+            }
+
+            JSONObject eventObject = new JSONObject(eventInfo);
+            if (enableVerify) {
+                String serverUrl = eventObject.optString("server_url");
+                if (!TextUtils.isEmpty(serverUrl)) {
+                    if (!(new ServerUrl(serverUrl).check(new ServerUrl(mServerUrl)))) {
+                        return;
+                    }
+                }
+            }
+            trackEventFromH5(eventInfo);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -2080,10 +2116,13 @@ public class SensorsDataAPI {
                 if (propertiesObject.has("$is_first_time")) {
                     propertiesObject.remove("$is_first_time");
                 }
+            }
 
-                if (propertiesObject.has("_nocache")) {
-                    propertiesObject.remove("_nocache");
-                }
+            if (eventObject.has("_nocache")) {
+                eventObject.remove("_nocache");
+            }
+            if (eventObject.has("server_url")) {
+                eventObject.remove("server_url");
             }
 
             if (eventType == EventType.TRACK_SIGNUP) {
@@ -2347,7 +2386,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.8.16";
+    static final String VERSION = "1.8.17";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -2363,6 +2402,7 @@ public class SensorsDataAPI {
     // Configures
   /* SensorsAnalytics 地址 */
     private String mServerUrl;
+    private String mOriginServerUrl;
     /* 可视化埋点配置地址 */
     private final String mConfigureUrl;
     /* Debug模式选项 */
