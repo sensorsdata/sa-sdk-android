@@ -103,6 +103,14 @@ Android SDK 要求最低系统版本为 API 11（Android 3.0），特别地，Au
  public void onPause();
 }
 
+# 如果使用了 DataBinding 
+-dontwarn android.databinding.**
+-keep class android.databinding.** { *; }
+-keep class 您项目的包名.databinding.** {
+    <fields>;
+    <methods>;
+}
+
 ```
 
 ## To Learn More
