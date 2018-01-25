@@ -491,11 +491,6 @@ public class SensorsDataAPI {
     public JSONObject getPresetProperties() {
         JSONObject properties = new JSONObject();
         try {
-            if (!TextUtils.isEmpty(getLoginId())) {
-                properties.put("distinct_id", getLoginId());
-            } else {
-                properties.put("distinct_id", getAnonymousId());
-            }
             properties.put("$app_version", mDeviceInfo.get("$app_version"));
             properties.put("$lib", "Android");
             properties.put("$lib_version", VERSION);
@@ -2386,7 +2381,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.8.17";
+    static final String VERSION = "1.8.18";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
