@@ -3,7 +3,6 @@ package com.sensorsdata.analytics.android.sdk;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
@@ -26,6 +25,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.webkit.WebView;
 import android.widget.Toast;
+
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -166,6 +166,7 @@ public class SensorsDataAPI {
         final String packageName = context.getApplicationContext().getPackageName();
 
         mAutoTrackIgnoredActivities = new ArrayList<>();
+        mHeatMapActivities = new ArrayList<>();
 
         try {
             SensorsDataUtils.cleanUserAgent(mContext);
@@ -213,6 +214,8 @@ public class SensorsDataAPI {
             mFlushBulkSize = configBundle.getInt("com.sensorsdata.analytics.android.FlushBulkSize",
                     100);
             mAutoTrack = configBundle.getBoolean("com.sensorsdata.analytics.android.AutoTrack",
+                    false);
+            mHeatMapEnabled = configBundle.getBoolean("com.sensorsdata.analytics.android.HeatMap",
                     false);
             mEnableVTrack = configBundle.getBoolean("com.sensorsdata.analytics.android.VTrack",
                     true);
@@ -1172,6 +1175,62 @@ public class SensorsDataAPI {
         if (!mIgnoredViewTypeList.contains(viewType)) {
             mIgnoredViewTypeList.add(viewType);
         }
+    }
+
+    public boolean isHeatMapActivity(Class<?> activity) {
+        try {
+            if (mHeatMapActivities.size() == 0) {
+                return true;
+            }
+
+            if (mHeatMapActivities.contains(activity.hashCode())) {
+                return true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public void addHeatMapActivity(Class<?> activity) {
+        try {
+            if (activity == null) {
+                return;
+            }
+
+            mHeatMapActivities.add(activity.hashCode());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void addHeatMapActivities(List<Class<?>> activitiesList) {
+        try {
+            if (activitiesList == null || activitiesList.size() == 0) {
+                return;
+            }
+
+            for (Class<?> activity: activitiesList) {
+                if (activity != null) {
+                    if (!mHeatMapActivities.contains(activity.hashCode())) {
+                        mHeatMapActivities.add(activity.hashCode());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public boolean isHeatMapEnabled() {
+        return mHeatMapEnabled;
+    }
+
+    /**
+     * 开启 HeatMap，$AppClick 事件将会采集控件的 viewPath
+     */
+    public void enableHeatMap() {
+        mHeatMapEnabled = true;
     }
 
     /**
@@ -2381,7 +2440,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.8.18";
+    static final String VERSION = "1.9.0";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -2412,6 +2471,7 @@ public class SensorsDataAPI {
     private boolean mEnableVTrack;
     /* AndroidId 作为默认匿名Id */
     private boolean mEnableAndroidId;
+    private boolean mHeatMapEnabled;
     /* 上个页面的Url*/
     private String mLastScreenUrl;
     private JSONObject mLastScreenTrackProperties;
@@ -2433,6 +2493,7 @@ public class SensorsDataAPI {
     private final Map<String, Object> mDeviceInfo;
     private final Map<String, EventTimer> mTrackTimer;
     private List<Integer> mAutoTrackIgnoredActivities;
+    private List<Integer> mHeatMapActivities;
     private int mFlushNetworkPolicy = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
     private final String mMainProcessName;
     private long mMaxCacheSize = 32 * 1024 * 1024; //default 32MB

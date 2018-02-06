@@ -13,6 +13,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Base64OutputStream;
 import android.util.DisplayMetrics;
@@ -53,7 +54,7 @@ public class ViewSnapshot {
         mClassnameCache = new ClassNameCache(MAX_CLASS_NAME_CACHE_SIZE);
     }
 
-    public void snapshots(UIThreadSet<Activity> liveActivities, OutputStream out) throws IOException {
+    public String snapshots(UIThreadSet<Activity> liveActivities, OutputStream out) throws IOException {
         mRootViewFinder.findInActivities(liveActivities);
         final FutureTask<List<RootViewInfo>> infoFuture =
                 new FutureTask<List<RootViewInfo>>(mRootViewFinder);
@@ -75,6 +76,7 @@ public class ViewSnapshot {
             SALog.i(TAG, "Exception thrown during screenshot attempt", e);
         }
 
+        String activityName = null;
         final int infoCount = infoList.size();
         for (int i = 0; i < infoCount; i++) {
             final RootViewInfo info = infoList.get(i);
@@ -84,6 +86,7 @@ public class ViewSnapshot {
             if (isSnapShotUpdated(info.screenshot.getImageHash())) {
                 writer.write("{");
                 writer.write("\"activity\":");
+                activityName = info.activityName;
                 writer.write(JSONObject.quote(info.activityName));
                 writer.write(",");
                 writer.write("\"scale\":");
@@ -113,6 +116,7 @@ public class ViewSnapshot {
         }
         writer.write("]");
         writer.flush();
+        return activityName;
     }
 
     private void snapshotViewHierarchy(JsonWriter j, View rootView)
@@ -129,6 +133,15 @@ public class ViewSnapshot {
         j.name("id").value(view.getId());
         j.name("index").value(getChildIndex(view.getParent(), view));
         j.name("sa_id_name").value(getResName(view));
+
+        try {
+            String saId = (String) view.getTag(R.id.sensors_analytics_tag_view_id);
+            if (!TextUtils.isEmpty(saId)) {
+                j.name("sa_id_name").value(saId);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         j.name("top").value(view.getTop());
         j.name("left").value(view.getLeft());
@@ -296,6 +309,7 @@ public class ViewSnapshot {
             String brotherIdName = getResName(brother);
 
             if (null != childIdName && !childIdName.equals(brotherIdName)) {
+                index++;
                 continue;
             }
 

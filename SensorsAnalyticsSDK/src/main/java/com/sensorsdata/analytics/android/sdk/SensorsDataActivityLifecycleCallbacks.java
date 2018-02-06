@@ -2,10 +2,14 @@ package com.sensorsdata.analytics.android.sdk;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Application;
+import android.content.DialogInterface;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
@@ -35,6 +39,19 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
     @Override
     public void onActivityCreated(Activity activity, Bundle bundle) {
+        try {
+            Uri uri = activity.getIntent().getData();
+            if (uri != null) {
+                String host = uri.getHost();
+                if ("heatmap".equals(host)) {
+                    String featureCode = uri.getQueryParameter("feature_code");
+                    String postUrl = uri.getQueryParameter("url");
+                    showOpenHeatMapDialog(activity, featureCode, postUrl);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -71,6 +88,14 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                                 }
                             } catch (Exception e) {
                                 SALog.i(TAG, e);
+                            }
+                        }
+
+                        if (resumeFromBackground) {
+                            try {
+                                HeatMapService.getInstance().resume();
+                            } catch (Exception e) {
+                                e.printStackTrace();
                             }
                         }
 
@@ -143,6 +168,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
                 if (startedActivityCount == 0) {
                     try {
+                        HeatMapService.getInstance().stop();
                         mSensorsDataInstance.appEnterBackground();
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -180,5 +206,44 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
     @Override
     public void onActivityDestroyed(Activity activity) {
+    }
+
+    private void showOpenHeatMapDialog(final Activity context, final String featureCode, final String postUrl) {
+        try {
+            boolean isWifi = false;
+            try {
+                String networkType = SensorsDataUtils.networkType(context);
+                if (networkType.equals("WIFI")) {
+                    isWifi = true;
+                }
+            } catch (Exception e) {
+
+            }
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(context);
+            builder.setTitle("提示");
+            if (isWifi) {
+                builder.setMessage("正在连接 APP 点击分析");
+            } else {
+                builder.setMessage("正在连接 APP 点击分析，建议在 WiFi 环境下使用");
+            }
+            builder.setCancelable(false);
+            builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+
+                }
+            });
+            builder.setPositiveButton("继续", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    HeatMapService.getInstance().start(context, featureCode, postUrl);
+                }
+            });
+            AlertDialog dialog = builder.create();
+            dialog.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -117,6 +117,8 @@ public class AdapterViewOnItemClickListenerAppClick {
                 }
             }
 
+            AopUtil.addViewPathProperties(activity, view, properties);
+
             //Activity 名称和页面标题
             if (activity != null) {
                 properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());

@@ -112,6 +112,8 @@ public class ExpandableListViewItemChildAppClick {
                 }
             }
 
+            AopUtil.addViewPathProperties(activity, view, properties);
+
             //$screen_name & $title
             if (activity != null) {
                 properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
@@ -222,6 +224,8 @@ public class ExpandableListViewItemChildAppClick {
             int groupPosition = (int) joinPoint.getArgs()[2];
 
             JSONObject properties = new JSONObject();
+
+			AopUtil.addViewPathProperties(activity, view, properties);
 
             // $screen_name & $title
             if (activity != null) {

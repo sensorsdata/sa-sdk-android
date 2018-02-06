@@ -3,6 +3,7 @@ package com.sensorsdata.analytics.android.sdk.aop;
 import android.app.Activity;
 import android.content.Context;
 import android.text.TextUtils;
+import android.view.View;
 import android.widget.Spinner;
 
 import com.sensorsdata.analytics.android.sdk.AopConstants;
@@ -65,10 +66,14 @@ public class SpinnerOnItemSelectedAppClick {
                 return;
             }
 
+            View view = (View) joinPoint.getArgs()[1];
+
             //position
             int position = (int) joinPoint.getArgs()[2];
 
             JSONObject properties = new JSONObject();
+
+            AopUtil.addViewPathProperties(activity, view, properties);
 
             //ViewId
             String idString = AopUtil.getViewId(adapterView);

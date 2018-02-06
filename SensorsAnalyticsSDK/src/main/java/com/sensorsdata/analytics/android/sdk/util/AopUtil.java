@@ -10,6 +10,7 @@ import android.support.v7.widget.SwitchCompat;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CheckedTextView;
@@ -19,15 +20,16 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.sensorsdata.analytics.android.sdk.AopConstants;
+import com.sensorsdata.analytics.android.sdk.Pathfinder;
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
-import org.aspectj.lang.JoinPoint;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -38,6 +40,97 @@ import java.util.Locale;
  */
 
 public class AopUtil {
+
+    private static int getChildIndex(ViewParent parent, View child) {
+        try {
+            if (parent == null || !(parent instanceof ViewGroup)) {
+                return -1;
+            }
+
+            ViewGroup _parent = (ViewGroup) parent;
+            final String childIdName = AopUtil.getViewId(child);
+
+            String childClassName = child.getClass().getCanonicalName();
+            int index = 0;
+            for (int i = 0; i < _parent.getChildCount(); i++) {
+                View brother = _parent.getChildAt(i);
+
+                if (!Pathfinder.hasClassName(brother, childClassName)) {
+                    continue;
+                }
+
+                String brotherIdName = AopUtil.getViewId(brother);
+
+                if (null != childIdName && !childIdName.equals(brotherIdName)) {
+                    index++;
+                    continue;
+                }
+
+                if (brother == child) {
+                    return index;
+                }
+
+                index++;
+            }
+
+            return -1;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
+    public static void addViewPathProperties(Activity activity, View view, JSONObject properties) {
+        try {
+            if (!SensorsDataAPI.sharedInstance().isHeatMapEnabled()) {
+                return;
+            }
+
+            if (activity != null) {
+                if (!SensorsDataAPI.sharedInstance().isHeatMapActivity(activity.getClass())) {
+                    return;
+                }
+            }
+            if (view == null) {
+                return;
+            }
+
+            if (properties == null) {
+                properties = new JSONObject();
+            }
+
+            ViewParent viewParent;
+            List<String> viewPath = new ArrayList<>();
+            do {
+                viewParent = view.getParent();
+                int index = getChildIndex(viewParent, view);
+//                String idString2 = AopUtil.getViewId(view);
+//                if (TextUtils.isEmpty(idString2)) {
+//                    viewPath.add(view.getClass().getCanonicalName() + "[" + index + "]");
+//                } else {
+//                    viewPath.add(view.getClass().getCanonicalName() + "[" + idString2 + "]");
+//                }
+                viewPath.add(view.getClass().getCanonicalName() + "[" + index + "]");
+                if (viewParent instanceof ViewGroup) {
+                    view = (ViewGroup) viewParent;
+                }
+
+            } while (viewParent instanceof ViewGroup);
+
+            Collections.reverse(viewPath);
+            StringBuilder stringBuffer = new StringBuilder();
+            for (int i = 1; i < viewPath.size(); i++) {
+                stringBuffer.append(viewPath.get(i));
+                if (i != (viewPath.size() - 1)) {
+                    stringBuffer.append("/");
+                }
+            }
+            properties.put("$element_selector", stringBuffer.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public static String traverseView(StringBuilder stringBuilder, ViewGroup root) {
         try {
             if (root == null) {

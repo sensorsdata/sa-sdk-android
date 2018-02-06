@@ -70,6 +70,8 @@ public class SeekBarOnSeekBarChangeAppClick {
 
             JSONObject properties = new JSONObject();
 
+            AopUtil.addViewPathProperties(activity, view, properties);
+
             //ViewId
             String idString = AopUtil.getViewId(view);
             if (!TextUtils.isEmpty(idString)) {
