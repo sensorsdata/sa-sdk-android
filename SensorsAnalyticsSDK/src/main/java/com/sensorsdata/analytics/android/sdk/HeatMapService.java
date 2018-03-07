@@ -36,7 +36,9 @@ public class HeatMapService {
 
     public void resume() {
         try {
-            mVTrack.startUpdates();
+            if (mVTrack != null) {
+                mVTrack.startUpdates();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

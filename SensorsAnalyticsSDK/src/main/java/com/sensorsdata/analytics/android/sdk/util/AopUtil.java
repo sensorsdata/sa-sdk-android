@@ -206,7 +206,7 @@ public class AopUtil {
                     fragmentName = fragmentName2;
                 }
                 if (!TextUtils.isEmpty(fragmentName)) {
-                    String screenName = properties.getString(AopConstants.SCREEN_NAME);
+                    String screenName = properties.optString(AopConstants.SCREEN_NAME);
                     if (!TextUtils.isEmpty(fragmentName)) {
                         properties.put(AopConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", screenName, fragmentName));
                     } else {

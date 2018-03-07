@@ -15,3 +15,35 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
+
+-dontwarn com.sensorsdata.analytics.android.**
+-keep class com.sensorsdata.analytics.android.** {
+*;
+}
+-keep class **.R$* {
+    <fields>;
+}
+-keep public class * extends android.content.ContentProvider
+-keepnames class * extends android.view.View
+
+-keep class * extends android.app.Fragment {
+ public void setUserVisibleHint(boolean);
+ public void onHiddenChanged(boolean);
+ public void onResume();
+ public void onPause();
+}
+-keep class android.support.v4.app.Fragment {
+ public void setUserVisibleHint(boolean);
+ public void onHiddenChanged(boolean);
+ public void onResume();
+ public void onPause();
+}
+-keep class * extends android.support.v4.app.Fragment {
+ public void setUserVisibleHint(boolean);
+ public void onHiddenChanged(boolean);
+ public void onResume();
+ public void onPause();
+}
+
+-dontwarn org.json.**
+-keep class org.json.**{*;}

@@ -54,13 +54,11 @@ public class ViewOnClickAppClick {
 
             //忽略 onClick
             Method method = methodSignature.getMethod();
-            if (method == null) {
-                return;
-            }
-
-            SensorsDataIgnoreTrackOnClick trackEvent = method.getAnnotation(SensorsDataIgnoreTrackOnClick.class);
-            if (trackEvent != null) {
-                return;
+            if (method != null) {
+                SensorsDataIgnoreTrackOnClick trackEvent = method.getAnnotation(SensorsDataIgnoreTrackOnClick.class);
+                if (trackEvent != null) {
+                    return;
+                }
             }
 
             //$AppClick 被过滤
