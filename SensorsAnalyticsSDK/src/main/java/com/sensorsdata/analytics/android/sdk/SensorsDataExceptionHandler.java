@@ -76,6 +76,11 @@ public class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHand
         });
 
         if (mDefaultExceptionHandler != null) {
+            try {
+                Thread.sleep(SLEEP_TIMEOUT_MS);
+            } catch (InterruptedException e1) {
+                e1.printStackTrace();
+            }
             mDefaultExceptionHandler.uncaughtException(t, e);
         } else {
             killProcessAndExit();

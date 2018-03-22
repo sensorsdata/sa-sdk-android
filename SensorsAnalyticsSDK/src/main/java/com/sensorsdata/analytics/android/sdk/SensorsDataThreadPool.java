@@ -16,7 +16,7 @@ public class SensorsDataThreadPool {
             synchronized (SensorsDataThreadPool.class) {
                 if (singleton == null) {
                     singleton = new SensorsDataThreadPool();
-                    mExecutor = Executors.newFixedThreadPool(5);
+                    mExecutor = Executors.newFixedThreadPool(1);
                 }
             }
         }

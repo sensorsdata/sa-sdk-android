@@ -2200,16 +2200,14 @@ public class SensorsDataAPI {
 
     private void trackEvent(final EventType eventType, final String eventName, final JSONObject properties, final String
             originalDistinctId) throws InvalidDataException {
-//        SensorsDataThreadPool.getInstance().execute(new Runnable() {
-//            @Override
-//            public void run() {
+        SensorsDataThreadPool.getInstance().execute(new Runnable() {
+            @Override
+            public void run() {
                 try {
                     if (eventType.isTrack()) {
                         assertKey(eventName);
                     }
                     assertPropertyTypes(eventType, properties);
-
-                    final long now = System.currentTimeMillis();
 
                     final EventTimer eventTimer;
                     if (eventName != null) {
@@ -2291,6 +2289,8 @@ public class SensorsDataAPI {
                         } catch (Exception e) {
                             //ignore
                         }
+
+                        final long now = System.currentTimeMillis();
                         dataObj.put("time", now);
                         dataObj.put("type", eventType.getEventType());
                         dataObj.put("properties", sendProperties);
@@ -2376,8 +2376,8 @@ public class SensorsDataAPI {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-//            }
-//        });
+            }
+        });
     }
 
     private boolean isFirstDay() {
@@ -2440,7 +2440,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.9.1";
+    static final String VERSION = "1.9.2";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
