@@ -46,6 +46,24 @@ import org.json.JSONObject;
 
     @JavascriptInterface
     public void sensorsdata_track(String event) {
-        SensorsDataAPI.sharedInstance(mContext).trackEventFromH5(event, enableVerify);
+        try {
+            SensorsDataAPI.sharedInstance(mContext).trackEventFromH5(event, enableVerify);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @JavascriptInterface
+    public boolean sensorsdata_verify(String event){
+        try {
+            if(!enableVerify) {
+                sensorsdata_track(event);
+                return true;
+            }
+            return SensorsDataAPI.sharedInstance(mContext)._trackEventFromH5(event);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }

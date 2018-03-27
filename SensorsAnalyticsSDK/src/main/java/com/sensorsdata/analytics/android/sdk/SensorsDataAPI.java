@@ -1,8 +1,5 @@
 package com.sensorsdata.analytics.android.sdk;
 
-import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
-import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
@@ -26,6 +23,9 @@ import android.view.WindowManager;
 import android.webkit.WebView;
 import android.widget.Toast;
 
+import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
+import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -2089,6 +2089,28 @@ public class SensorsDataAPI {
         }
     }
 
+    protected boolean _trackEventFromH5(String eventInfo) {
+        try {
+            if (TextUtils.isEmpty(eventInfo)) {
+                return false;
+            }
+            JSONObject eventObject = new JSONObject(eventInfo);
+
+            String serverUrl = eventObject.optString("server_url");
+            if (!TextUtils.isEmpty(serverUrl)) {
+                if (!(new ServerUrl(serverUrl).check(new ServerUrl(mServerUrl)))) {
+                    return false;
+                }
+                trackEventFromH5(eventInfo);
+                return true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+
+    }
+
     public void trackEventFromH5(String eventInfo) {
         try {
             if (TextUtils.isEmpty(eventInfo)) {
@@ -2440,7 +2462,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.9.2";
+    static final String VERSION = "1.9.3";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
