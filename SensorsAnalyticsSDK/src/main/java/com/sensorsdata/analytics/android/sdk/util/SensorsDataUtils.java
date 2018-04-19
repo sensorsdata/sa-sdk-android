@@ -40,6 +40,29 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class SensorsDataUtils {
+    public static String getCarrier(Context context) {
+        try {
+            if (SensorsDataUtils.checkHasPermission(context, "android.permission.READ_PHONE_STATE")) {
+                try {
+                    TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context
+                            .TELEPHONY_SERVICE);
+                    if (telephonyManager != null) {
+                        String operatorString = telephonyManager.getSubscriberId();
+
+                        if (!TextUtils.isEmpty(operatorString)) {
+                            return SensorsDataUtils.operatorToCarrier(operatorString);
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
     /**
      * 获取 Activity 的 title
      *

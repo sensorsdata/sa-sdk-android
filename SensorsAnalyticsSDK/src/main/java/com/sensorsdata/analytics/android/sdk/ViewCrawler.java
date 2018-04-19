@@ -156,8 +156,14 @@ public class ViewCrawler implements VTrack, DebugTracking {
         }
 
         public void stop() {
-            mStopped = true;
-            mMessageThreadHandler.removeCallbacks(this);
+            try {
+                mStopped = true;
+                if (mMessageThreadHandler != null) {
+                    mMessageThreadHandler.removeCallbacks(this);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         private volatile boolean mStopped;

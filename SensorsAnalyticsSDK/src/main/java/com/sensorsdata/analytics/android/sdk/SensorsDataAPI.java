@@ -349,20 +349,9 @@ public class SensorsDataAPI {
                 deviceInfo.put("$screen_height", displayMetrics.heightPixels);
             }
 
-            if (SensorsDataUtils.checkHasPermission(context, "android.permission.READ_PHONE_STATE")) {
-                try {
-                    TelephonyManager telephonyManager = (TelephonyManager) mContext.getSystemService(Context
-                            .TELEPHONY_SERVICE);
-                    if (telephonyManager != null) {
-                        String operatorString = telephonyManager.getSubscriberId();
-
-                        if (!TextUtils.isEmpty(operatorString)) {
-                            deviceInfo.put("$carrier", SensorsDataUtils.operatorToCarrier(operatorString));
-                        }
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+            String $carrier = SensorsDataUtils.getCarrier(mContext);
+            if (!TextUtils.isEmpty($carrier)) {
+                deviceInfo.put("$carrier", $carrier);
             }
 
             String androidID = SensorsDataUtils.getAndroidID(mContext);
@@ -1446,7 +1435,10 @@ public class SensorsDataAPI {
                 trackEvent(EventType.TRACK, eventName, properties, null);
 
                 // 再发送 profile_set_once
-                JSONObject profileProperties = properties;
+                JSONObject profileProperties = new JSONObject();
+                if (properties != null) {
+                    profileProperties = new JSONObject(properties.toString());
+                }
                 profileProperties.put("$first_visit_time", new java.util.Date());
                 trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null);
 
@@ -2247,6 +2239,18 @@ public class SensorsDataAPI {
                         if (eventType.isTrack()) {
                             sendProperties = new JSONObject(mDeviceInfo);
 
+                            //之前可能会因为没有权限无法获取运营商信息，检测再次获取
+                            try {
+                                if (TextUtils.isEmpty(sendProperties.optString("$carrier"))) {
+                                    String carrier = SensorsDataUtils.getCarrier(mContext);
+                                    if (!TextUtils.isEmpty(carrier)) {
+                                        sendProperties.put("$carrier", carrier);
+                                    }
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+
                             synchronized (mSuperProperties) {
                                 JSONObject superProperties = mSuperProperties.get();
                                 SensorsDataUtils.mergeJSONObject(superProperties, sendProperties);
@@ -2462,7 +2466,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.9.3";
+    static final String VERSION = "1.9.4";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;

@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Application;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -40,7 +41,13 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     @Override
     public void onActivityCreated(Activity activity, Bundle bundle) {
         try {
-            Uri uri = activity.getIntent().getData();
+            Uri uri = null;
+            if (activity != null) {
+                Intent intent = activity.getIntent();
+                    if (intent != null) {
+                        uri = intent.getData();
+                    }
+            }
             if (uri != null) {
                 String host = uri.getHost();
                 if ("heatmap".equals(host)) {
