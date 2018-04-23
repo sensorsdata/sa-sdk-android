@@ -227,6 +227,8 @@ public class SensorsDataAPI {
             mEnableButterknifeOnClick = configBundle.getBoolean("com.sensorsdata.analytics.android.ButterknifeOnClick",
                     false);
             mMainProcessName = configBundle.getString("com.sensorsdata.analytics.android.MainProcessName");
+            mEnableAppHeatMapConfirmDialog = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableHeatMapConfirmDialog",
+                    true);
 
             //打开debug模式，弹出提示
             if (mDebugMode != DebugMode.DEBUG_OFF && SensorsDataUtils.isMainProcess(mContext.getApplicationContext(), mMainProcessName)) {
@@ -1213,6 +1215,14 @@ public class SensorsDataAPI {
 
     public boolean isHeatMapEnabled() {
         return mHeatMapEnabled;
+    }
+
+    protected boolean isAppHeatMapConfirmDialogEnabled() {
+        return mEnableAppHeatMapConfirmDialog;
+    }
+
+    public void enableAppHeatMapConfirmDialog(boolean enable) {
+        this.mEnableAppHeatMapConfirmDialog = enable;
     }
 
     /**
@@ -2466,7 +2476,7 @@ public class SensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.9.5";
+    static final String VERSION = "1.9.6";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -2506,6 +2516,7 @@ public class SensorsDataAPI {
     private boolean mTrackFragmentAppViewScreen;
     private boolean mEnableReactNativeAutoTrack;
     private boolean mClearReferrerWhenAppEnd = false;
+    private boolean mEnableAppHeatMapConfirmDialog = true;
 
     private final Context mContext;
     private final AnalyticsMessages mMessages;

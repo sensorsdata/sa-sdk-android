@@ -11,7 +11,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Log;
 
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
@@ -218,6 +217,11 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
     private void showOpenHeatMapDialog(final Activity context, final String featureCode, final String postUrl) {
         try {
+            if (!SensorsDataAPI.sharedInstance().isAppHeatMapConfirmDialogEnabled()) {
+                HeatMapService.getInstance().start(context, featureCode, postUrl);
+                return;
+            }
+
             boolean isWifi = false;
             try {
                 String networkType = SensorsDataUtils.networkType(context);
