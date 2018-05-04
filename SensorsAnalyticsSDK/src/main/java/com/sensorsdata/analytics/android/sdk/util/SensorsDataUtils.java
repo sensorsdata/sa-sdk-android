@@ -21,6 +21,7 @@ import android.text.TextUtils;
 import android.webkit.WebSettings;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.SDKConfiguration;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -40,6 +41,39 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class SensorsDataUtils {
+    /**
+     * 将 json 格式的字符串转成 SDKConfiguration 对象，并处理默认值
+     * @param config
+     * @return
+     */
+    public static SDKConfiguration toSDKConfiguration(String config) {
+        SDKConfiguration sdkConfiguration = new SDKConfiguration();
+        try {
+            if (!TextUtils.isEmpty(config)) {
+                JSONObject jsonObject = new JSONObject(config);
+                sdkConfiguration.setV(jsonObject.optString("v"));
+
+                if (!TextUtils.isEmpty(jsonObject.optString("configs"))) {
+                    JSONObject configObject = new JSONObject(jsonObject.optString("configs"));
+                    sdkConfiguration.setDisableDebugMode(configObject.optBoolean("disableDebugMode", false));
+                    sdkConfiguration.setDisableSDK(configObject.optBoolean("disableSDK", false));
+                } else {
+                    //默认配置
+                    sdkConfiguration.setDisableDebugMode(false);
+                    sdkConfiguration.setDisableSDK(false);
+                }
+                return sdkConfiguration;
+            } else {
+                //默认配置
+                sdkConfiguration.setDisableDebugMode(false);
+                sdkConfiguration.setDisableSDK(false);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return sdkConfiguration;
+    }
+
     public static String getCarrier(Context context) {
         try {
             if (SensorsDataUtils.checkHasPermission(context, "android.permission.READ_PHONE_STATE")) {

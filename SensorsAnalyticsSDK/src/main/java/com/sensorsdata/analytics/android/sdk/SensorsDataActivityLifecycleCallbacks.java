@@ -76,6 +76,14 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                     }
 
                     if (SensorsDataUtils.isMainProcess(activity, mMainProcessName)) {
+                        //从后台恢复，从缓存中读取 SDK 控制配置信息
+                        if (resumeFromBackground) {
+                            //先从缓存中读取 SDKConfig
+                            mSensorsDataInstance.applySDKConfigurationFromCache();
+                        }
+                        //每次启动 App，重新拉取最新的配置信息
+                        mSensorsDataInstance.pullSDKConfigurationFromServer();
+
                         if (mSensorsDataInstance.isAutoTrackEnabled()) {
                             try {
                                 if (!mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_START)) {
@@ -87,11 +95,11 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                                     properties.put("$is_first_time", firstStart);
                                     SensorsDataUtils.getScreenNameAndTitleFromActivity(properties, activity);
 
-                                    mSensorsDataInstance.track("$AppStart", properties);
+                                    SensorsDataAPI.sharedInstance(activity).track("$AppStart", properties);
                                 }
 
                                 if (!mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_END)) {
-                                    mSensorsDataInstance.trackTimer("$AppEnd", TimeUnit.SECONDS);
+                                    SensorsDataAPI.sharedInstance(activity).trackTimer("$AppEnd", TimeUnit.SECONDS);
                                 }
                             } catch (Exception e) {
                                 SALog.i(TAG, e);
@@ -141,7 +149,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                             SensorsDataUtils.mergeJSONObject(otherProperties, properties);
                         }
 
-                        mSensorsDataInstance.trackViewScreen(screenUrl, properties);
+                        SensorsDataAPI.sharedInstance(activity).trackViewScreen(screenUrl, properties);
                     } else {
                         SensorsDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = activity.getClass().getAnnotation(SensorsDataAutoTrackAppViewScreenUrl.class);
                         if (autoTrackAppViewScreenUrl != null) {
@@ -149,9 +157,9 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                             if (TextUtils.isEmpty(screenUrl)) {
                                 screenUrl = activity.getClass().getCanonicalName();
                             }
-                            mSensorsDataInstance.trackViewScreen(screenUrl, properties);
+                            SensorsDataAPI.sharedInstance(activity).trackViewScreen(screenUrl, properties);
                         } else {
-                            mSensorsDataInstance.track("$AppViewScreen", properties);
+                            SensorsDataAPI.sharedInstance(activity).track("$AppViewScreen", properties);
                         }
                     }
                 } catch (Exception e) {
@@ -188,7 +196,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                                     JSONObject properties = new JSONObject();
                                     SensorsDataUtils.getScreenNameAndTitleFromActivity(properties, activity);
                                     mSensorsDataInstance.clearLastScreenUrl();
-                                    mSensorsDataInstance.track("$AppEnd", properties);
+                                    SensorsDataAPI.sharedInstance(activity).track("$AppEnd", properties);
                                 }
                             } catch (Exception e) {
                                 SALog.i(TAG, e);

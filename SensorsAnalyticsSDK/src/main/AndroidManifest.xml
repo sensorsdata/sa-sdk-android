@@ -14,6 +14,8 @@
     <!-- 获取运营商信息 -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
     <application>
         <provider
             android:name="com.sensorsdata.analytics.android.sdk.SensorsDataContentProvider"
