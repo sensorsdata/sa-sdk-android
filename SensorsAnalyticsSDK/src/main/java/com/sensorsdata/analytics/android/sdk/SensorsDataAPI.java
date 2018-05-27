@@ -9,9 +9,11 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
+import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.text.TextUtils;
@@ -46,8 +48,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -127,11 +127,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * AutoTrack 默认采集的事件类型
      */
     public enum AutoTrackEventType {
-        APP_START("$AppStart"),
-        APP_END("$AppEnd"),
-        APP_CLICK("$AppClick"),
-        APP_VIEW_SCREEN("$AppViewScreen");
+        APP_START("$AppStart", 1 << 0),
+        APP_END("$AppEnd", 1 << 1),
+        APP_CLICK("$AppClick", 1 << 2),
+        APP_VIEW_SCREEN("$AppViewScreen", 1 << 3);
         private final String eventName;
+        private final int eventValue;
 
         public static AutoTrackEventType autoTrackEventTypeFromEventName(String eventName) {
             if (TextUtils.isEmpty(eventName)) {
@@ -151,18 +152,36 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             return null;
         }
 
-        AutoTrackEventType(String eventName) {
+        AutoTrackEventType(String eventName, int eventValue) {
             this.eventName = eventName;
+            this.eventValue = eventValue;
         }
 
         String getEventName() {
             return eventName;
         }
+
+        int getEventValue() {
+            return eventValue;
+        }
     }
 
     //private
     SensorsDataAPI() {
-
+        mContext = null;
+        mMessages = null;
+        mDistinctId = null;
+        mLoginId = null;
+        mSuperProperties = null;
+        mFirstStart = null;
+        mFirstDay = null;
+        mFirstTrackInstallation = null;
+        mFirstTrackInstallationWithCallback = null;
+        mPersistentRemoteSDKConfig = null;
+        mDeviceInfo = null;
+        mTrackTimer = null;
+        mMainProcessName = null;
+        mVTrack = null;
     }
 
     SensorsDataAPI(Context context, String serverURL, String configureURL,
@@ -174,6 +193,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
         mAutoTrackIgnoredActivities = new ArrayList<>();
         mHeatMapActivities = new ArrayList<>();
+        mAutoTrackEventTypeList = new ArrayList<>();
 
         try {
             SensorsDataUtils.cleanUserAgent(mContext);
@@ -226,6 +246,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     false);
             mEnableVTrack = configBundle.getBoolean("com.sensorsdata.analytics.android.VTrack",
                     true);
+            mDisableDefaultRemoteConfig = configBundle.getBoolean("com.sensorsdata.analytics.android.DisableDefaultRemoteConfig",
+                    false);
             if (TextUtils.isEmpty(configureURL)) {
                 mEnableVTrack = false;
             }
@@ -290,10 +312,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mFirstStart = new PersistentFirstStart(storedPreferences);
         mFirstTrackInstallation = new PersistentFirstTrackInstallation(storedPreferences);
         mFirstTrackInstallationWithCallback = new PersistentFirstTrackInstallationWithCallback(storedPreferences);
-        mPersistentSDKConfiguration = new PersistentSDKConfiguration(storedPreferences);
+        mPersistentRemoteSDKConfig = new PersistentRemoteSDKConfig(storedPreferences);
 
         //先从缓存中读取 SDKConfig
-        applySDKConfigurationFromCache();
+        applySDKConfigFromCache();
 
         //打开debug模式，弹出提示
         if (mDebugMode != DebugMode.DEBUG_OFF && SensorsDataUtils.isMainProcess(mContext.getApplicationContext(), mMainProcessName)) {
@@ -310,13 +332,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
 
         mFirstDay = new PersistentFirstDay(storedPreferences);
-        if (mFirstDay.get() == null) {
-            mFirstDay.commit(mIsFirstDayDateFormat.format(System.currentTimeMillis()));
-        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
             final Application app = (Application) context.getApplicationContext();
-            app.registerActivityLifecycleCallbacks(new SensorsDataActivityLifecycleCallbacks(this, mFirstStart, mMainProcessName));
+            app.registerActivityLifecycleCallbacks(new SensorsDataActivityLifecycleCallbacks(this, mFirstStart, mFirstDay, mMainProcessName));
         }
 
         if (debugMode != DebugMode.DEBUG_OFF) {
@@ -324,8 +343,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             + " url '%s', configure url '%s' flush interval %d ms, debugMode: %s", mServerUrl,
                     mConfigureUrl, mFlushInterval, debugMode));
         }
-
-        mAutoTrackEventTypeList = new ArrayList<>();
 
         final Map<String, Object> deviceInfo = new HashMap<>();
 
@@ -396,11 +413,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     public static SensorsDataAPI sharedInstance(Context context) {
         if (isSDKDisabled()) {
-            return mSensorsDataAPIEmptyImplementation;
+            return new SensorsDataAPIEmptyImplementation();
         }
 
         if (null == context) {
-            return mSensorsDataAPIEmptyImplementation;
+            return new SensorsDataAPIEmptyImplementation();
         }
 
         synchronized (sInstanceMap) {
@@ -410,7 +427,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             if (null == instance) {
                 Log.i(TAG, "The static method sharedInstance(context, serverURL, configureURL, "
                         + "vtrackServerURL, debugMode) should be called before calling sharedInstance()");
-                return mSensorsDataAPIEmptyImplementation;
+                return new SensorsDataAPIEmptyImplementation();
             }
             return instance;
         }
@@ -442,7 +459,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     public static SensorsDataAPI sharedInstance(Context context, String serverURL, String
             configureUrl, DebugMode debugMode) {
         if (null == context) {
-            return mSensorsDataAPIEmptyImplementation;
+            return new SensorsDataAPIEmptyImplementation();
         }
 
         synchronized (sInstanceMap) {
@@ -457,7 +474,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             if (instance != null) {
                 return instance;
             } else {
-                return mSensorsDataAPIEmptyImplementation;
+                return new SensorsDataAPIEmptyImplementation();
             }
         }
     }
@@ -476,7 +493,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     public static SensorsDataAPI sharedInstance(Context context, String serverURL,
         String configureURL, String vtrackServerURL, DebugMode debugMode) {
         if (null == context) {
-            return mSensorsDataAPIEmptyImplementation;
+            return new SensorsDataAPIEmptyImplementation();
         }
 
         synchronized (sInstanceMap) {
@@ -492,14 +509,14 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             if (instance != null) {
                 return instance;
             } else {
-                return mSensorsDataAPIEmptyImplementation;
+                return new SensorsDataAPIEmptyImplementation();
             }
         }
     }
 
     public static SensorsDataAPI sharedInstance() {
         if (isSDKDisabled()) {
-            return mSensorsDataAPIEmptyImplementation;
+            return new SensorsDataAPIEmptyImplementation();
         }
 
         synchronized (sInstanceMap) {
@@ -509,7 +526,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     return iterator.next();
                 }
             }
-            return mSensorsDataAPIEmptyImplementation;
+            return new SensorsDataAPIEmptyImplementation();
         }
     }
 
@@ -518,130 +535,167 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @return true：关闭；false：没有关闭
      */
     public static boolean isSDKDisabled() {
-        if (mSDKConfiguration == null) {
+        if (mSDKRemoteConfig == null) {
             return false;
         }
 
-        return mSDKConfiguration.isDisableSDK();
+        return mSDKRemoteConfig.isDisableSDK();
     }
 
-    protected void pullSDKConfigurationFromServer() {
-        if (mPullSDKConfigurationTimer == null) {
-            mPullSDKConfigurationTimer = new Timer("SensorsData.PullSDKConfigurationTimer");
-        }
-
-        TimerTask timerTask = new TimerTask() {
-            @Override
-            public void run() {
-                try {
-                    if (mPullSDKConfigurationRetryMaxCount <= 0) {
-                        resetPullSDKConfigurationTimer();
-                        return;
-                    }
-                    mPullSDKConfigurationRetryMaxCount--;
-
-                    if (TextUtils.isEmpty(mServerUrl)) {
-                        return;
-                    }
-
-                    URL url = null;
-                    String configUrl = null;
-                    int pathPrefix = mServerUrl.lastIndexOf("/");
-                    if (pathPrefix != -1) {
-                        configUrl = mServerUrl.substring(0, pathPrefix);
-                        String configVersion = null;
-                        if (mSDKConfiguration != null) {
-                            configVersion = mSDKConfiguration.getV();
-                        }
-
-                        configUrl = configUrl + "/config/Android";
-
-                        if (configVersion != null) {
-                            configUrl = configUrl + "?v=" + configVersion;
-                        }
-                    }
-
-                    url = new URL(configUrl);
-                    HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-                    if (urlConnection == null) {
-                        return;
-                    }
-                    int responseCode = urlConnection.getResponseCode();
-
-                    //配置没有更新
-                    if (responseCode == 304) {
-                        resetPullSDKConfigurationTimer();
-                        return;
-                    }
-
-                    if (responseCode == 200) {
-                        resetPullSDKConfigurationTimer();
-
-                        InputStreamReader in = new InputStreamReader(urlConnection.getInputStream());
-                        BufferedReader bufferedReader = new BufferedReader(in);
-                        StringBuilder result = new StringBuilder();
-                        String data;
-                        while ((data = bufferedReader.readLine()) != null) {
-                            result.append(data);
-                        }
-                        in.close();
-                        urlConnection.disconnect();
-
-                        SDKConfiguration sdkConfiguration = SensorsDataUtils.toSDKConfiguration(result.toString());
-                        if (sdkConfiguration.isDisableSDK()) {
-                            SDKConfiguration cachedConfiguration = SensorsDataUtils.toSDKConfiguration(mPersistentSDKConfiguration.get());
-                            if (!cachedConfiguration.isDisableSDK()) {
-                                track("DisableSensorsDataSDK");
-                            }
-                        }
-                        mPersistentSDKConfiguration.commit(result.toString());
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
+    /**
+     * 更新 SensorsDataSDKRemoteConfig
+     * @param sdkRemoteConfig SensorsDataSDKRemoteConfig 在线控制 SDK 的配置
+     * @param effectImmediately 是否立即生效
+     */
+    private void setSDKRemoteConfig(SensorsDataSDKRemoteConfig sdkRemoteConfig, boolean effectImmediately) {
+        try {
+            if (sdkRemoteConfig.isDisableSDK()) {
+                SensorsDataSDKRemoteConfig cachedConfig = SensorsDataUtils.toSDKRemoteConfig(mPersistentRemoteSDKConfig.get());
+                if (!cachedConfig.isDisableSDK()) {
+                    track("DisableSensorsDataSDK");
                 }
             }
+            mPersistentRemoteSDKConfig.commit(sdkRemoteConfig.toJson().toString());
+            if (effectImmediately) {
+                mSDKRemoteConfig = sdkRemoteConfig;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    protected void pullSDKConfigFromServer() {
+        if (mDisableDefaultRemoteConfig) {
+            return;
+        }
+
+        if (mPullSDKConfigCountDownTimer != null) {
+            mPullSDKConfigCountDownTimer.cancel();
+            mPullSDKConfigCountDownTimer = null;
+        }
+
+        mPullSDKConfigCountDownTimer = new CountDownTimer(120 * 1000, 30 * 1000) {
+            @Override
+            public void onTick(long l) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        InputStreamReader in = null;
+                        HttpURLConnection urlConnection = null;
+                        try {
+                            if (TextUtils.isEmpty(mServerUrl)) {
+                                return;
+                            }
+
+                            URL url = null;
+                            String configUrl = null;
+                            int pathPrefix = mServerUrl.lastIndexOf("/");
+                            if (pathPrefix != -1) {
+                                configUrl = mServerUrl.substring(0, pathPrefix);
+                                String configVersion = null;
+                                if (mSDKRemoteConfig != null) {
+                                    configVersion = mSDKRemoteConfig.getV();
+                                }
+
+                                configUrl = configUrl + "/config/Android";
+
+                                if (configVersion != null) {
+                                    configUrl = configUrl + "?v=" + configVersion;
+                                }
+                            }
+
+                            url = new URL(configUrl);
+                            urlConnection = (HttpURLConnection) url.openConnection();
+                            if (urlConnection == null) {
+                                return;
+                            }
+                            int responseCode = urlConnection.getResponseCode();
+
+                            //配置没有更新
+                            if (responseCode == 304) {
+                                resetPullSDKConfigTimer();
+                                return;
+                            }
+
+                            if (responseCode == 200) {
+                                resetPullSDKConfigTimer();
+
+                                in = new InputStreamReader(urlConnection.getInputStream());
+                                BufferedReader bufferedReader = new BufferedReader(in);
+                                StringBuilder result = new StringBuilder();
+                                String data;
+                                while ((data = bufferedReader.readLine()) != null) {
+                                    result.append(data);
+                                }
+                                SensorsDataSDKRemoteConfig sdkRemoteConfig = SensorsDataUtils.toSDKRemoteConfig(result.toString());
+                                setSDKRemoteConfig(sdkRemoteConfig, false);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        } finally {
+                            try {
+                                if (in != null) {
+                                    in.close();
+                                }
+
+                                if (urlConnection != null) {
+                                    urlConnection.disconnect();
+                                }
+                            } catch (Exception e) {
+                                //ignored
+                            }
+                        }
+                    }
+                }).start();
+            }
+
+            @Override
+            public void onFinish() {
+            }
         };
-
-
-        mPullSDKConfigurationTimer.schedule(timerTask, 0, 10 * 1000);
+        mPullSDKConfigCountDownTimer.start();
     }
 
     /**
      * 每次启动 App 时，最多尝试三次
      */
-    private int mPullSDKConfigurationRetryMaxCount = 3;
-    private Timer mPullSDKConfigurationTimer;
+    private CountDownTimer mPullSDKConfigCountDownTimer;
 
-    protected void resetPullSDKConfigurationTimer() {
+    protected void resetPullSDKConfigTimer() {
         try {
-            if (mPullSDKConfigurationTimer != null) {
-                mPullSDKConfigurationTimer.cancel();
-                mPullSDKConfigurationTimer = null;
+            if (mPullSDKConfigCountDownTimer != null) {
+                mPullSDKConfigCountDownTimer.cancel();
             }
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            mPullSDKConfigurationRetryMaxCount = 3;
+            mPullSDKConfigCountDownTimer = null;
         }
     }
 
     /**
      * 从本地缓存中读取最新的 SDK 配置信息
      */
-    protected void applySDKConfigurationFromCache() {
+    protected void applySDKConfigFromCache() {
         try {
-            SDKConfiguration sdkConfiguration = SensorsDataUtils.toSDKConfiguration(mPersistentSDKConfiguration.get());
+            SensorsDataSDKRemoteConfig sdkRemoteConfig = SensorsDataUtils.toSDKRemoteConfig(mPersistentRemoteSDKConfig.get());
 
-            if (sdkConfiguration == null) {
-                sdkConfiguration = new SDKConfiguration();
+            if (sdkRemoteConfig == null) {
+                sdkRemoteConfig = new SensorsDataSDKRemoteConfig();
             }
 
             //关闭 debug 模式
-            if (sdkConfiguration.isDisableDebugMode()) {
+            if (sdkRemoteConfig.isDisableDebugMode()) {
                 disableDebugMode();
             }
 
-            if (sdkConfiguration.isDisableSDK()) {
+            //开启关闭 AutoTrack
+            List<SensorsDataAPI.AutoTrackEventType> autoTrackEventTypeList = sdkRemoteConfig.getAutoTrackEventTypeList();
+            if (autoTrackEventTypeList != null) {
+                enableAutoTrack(autoTrackEventTypeList);
+            }
+
+            if (sdkRemoteConfig.isDisableSDK()) {
                 try {
                     flush();
                 } catch (Exception e) {
@@ -649,7 +703,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 }
             }
 
-            mSDKConfiguration = sdkConfiguration;
+            mSDKRemoteConfig = sdkRemoteConfig;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -808,6 +862,86 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     /**
+     * 更新 GPS 位置信息
+     * @param latitude 纬度
+     * @param longitude 经度
+     */
+    @Override
+    public void setGPSLocation(double latitude, double longitude) {
+        try {
+            if (mGPSLocation == null) {
+                mGPSLocation = new SensorsDataGPSLocation();
+            }
+
+            mGPSLocation.setLatitude((long)(latitude * Math.pow(10, 6)));
+            mGPSLocation.setLongitude((long)(longitude * Math.pow(10, 6)));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 清楚 GPS 位置信息
+     */
+    @Override
+    public void clearGPSLocation() {
+        mGPSLocation = null;
+    }
+
+    @Override
+    public void enableTrackScreenOrientation(boolean enable) {
+        try {
+            if (enable) {
+                if (mOrientationDetector == null) {
+                    mOrientationDetector = new SensorsDataScreenOrientationDetector(mContext, SensorManager.SENSOR_DELAY_NORMAL);
+                }
+                mOrientationDetector.enable();
+            } else {
+                if (mOrientationDetector != null) {
+                    mOrientationDetector.disable();
+                    mOrientationDetector = null;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void resumeTrackScreenOrientation() {
+        try {
+            if (mOrientationDetector != null) {
+                mOrientationDetector.enable();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void stopTrackScreenOrientation() {
+        try {
+            if (mOrientationDetector != null) {
+                mOrientationDetector.disable();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public String getScreenOrientation() {
+        try {
+            if (mOrientationDetector != null) {
+                return mOrientationDetector.getOrientation();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
      * 允许 App 连接可视化埋点管理界面
      *
      * 调用这个方法，允许 App 连接可视化埋点管理界面并设置可视化埋点。建议用户只在 DEBUG 编译模式下，打开该选项。
@@ -861,8 +995,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
         mAutoTrack = true;
-        if (eventTypeList == null || eventTypeList.size() == 0) {
-            return;
+        if (eventTypeList == null) {
+            eventTypeList = new ArrayList<>();
         }
 
         mAutoTrackEventTypeList.clear();
@@ -950,6 +1084,15 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         if (isSDKDisabled()) {
             return false;
         }
+
+        if (mSDKRemoteConfig != null) {
+            if (mSDKRemoteConfig.getAutoTrackMode() == 0) {
+                return false;
+            } else if (mSDKRemoteConfig.getAutoTrackMode() > 0) {
+                return true;
+            }
+        }
+
         return mAutoTrack;
     }
 
@@ -1196,6 +1339,14 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public boolean isAutoTrackEventTypeIgnored(AutoTrackEventType eventType) {
+        if (mSDKRemoteConfig != null) {
+            if (mSDKRemoteConfig.getAutoTrackMode() != -1) {
+                if (mSDKRemoteConfig.getAutoTrackMode() == 0) {
+                    return true;
+                }
+                return mSDKRemoteConfig.isAutoTrackEventTypeIgnored(eventType);
+            }
+        }
         if (eventType != null  && !mAutoTrackEventTypeList.contains(eventType)) {
             return true;
         }
@@ -1590,6 +1741,15 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void trackInstallation(String eventName, JSONObject properties, boolean disableCallback) {
+        //只在主进程触发 trackInstallation
+        try {
+            if (!SensorsDataUtils.isMainProcess(mContext, mMainProcessName)) {
+                return;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         try {
             boolean firstTrackInstallation;
             if (disableCallback) {
@@ -2509,6 +2669,27 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             String networkType = SensorsDataUtils.networkType(mContext);
                             sendProperties.put("$wifi", networkType.equals("WIFI"));
                             sendProperties.put("$network_type", networkType);
+
+
+                            // GPS
+                            try {
+                                if (mGPSLocation != null) {
+                                    sendProperties.put("$latitude", mGPSLocation.getLatitude());
+                                    sendProperties.put("$longitude", mGPSLocation.getLongitude());
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+
+                            // 屏幕方向
+                            try {
+                                String screenOrientation = getScreenOrientation();
+                                if (!TextUtils.isEmpty(screenOrientation)) {
+                                    sendProperties.put("$screen_orientation", screenOrientation);
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
                         } else if (eventType.isProfile()) {
                             sendProperties = new JSONObject();
                         } else {
@@ -2657,6 +2838,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     private boolean isFirstDay() {
         String firstDay = mFirstDay.get();
+        if (firstDay == null) {
+            return true;
+        }
         String current = mIsFirstDayDateFormat.format(System.currentTimeMillis());
         return firstDay.equals(current);
     }
@@ -2683,9 +2867,16 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             + "']");
                 }
 
-                if (value instanceof String && !key.startsWith("$") && ((String) value).length() > 8191) {
-                    SALog.d(TAG, "The property value is too long. [key='" + key
-                            + "', value='" + value.toString() + "']");
+                if ("app_crashed_reason".equals(key)) {
+                    if (value instanceof String && !key.startsWith("$") && ((String) value).length() > 8191 * 2) {
+                        SALog.d(TAG, "The property value is too long. [key='" + key
+                                + "', value='" + value.toString() + "']");
+                    }
+                } else {
+                    if (value instanceof String && !key.startsWith("$") && ((String) value).length() > 8191) {
+                        SALog.d(TAG, "The property value is too long. [key='" + key
+                                + "', value='" + value.toString() + "']");
+                    }
                 }
             } catch (JSONException e) {
                 throw new InvalidDataException("Unexpected property key. [key='" + key + "']");
@@ -2715,7 +2906,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.10.0";
+    static final String VERSION = "1.10.1";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -2727,8 +2918,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     // Maps each token to a singleton SensorsDataAPI instance
     private static final Map<Context, SensorsDataAPI> sInstanceMap = new HashMap<>();
     private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
-    private static SensorsDataAPIEmptyImplementation mSensorsDataAPIEmptyImplementation = new SensorsDataAPIEmptyImplementation();
-    private static SDKConfiguration mSDKConfiguration;
+    private static SensorsDataSDKRemoteConfig mSDKRemoteConfig;
+    private static SensorsDataGPSLocation mGPSLocation;
 
     // Configures
   /* SensorsAnalytics 地址 */
@@ -2758,26 +2949,28 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private boolean mEnableReactNativeAutoTrack;
     private boolean mClearReferrerWhenAppEnd = false;
     private boolean mEnableAppHeatMapConfirmDialog = true;
+    private boolean mDisableDefaultRemoteConfig = false;
 
-    private Context mContext;
-    private AnalyticsMessages mMessages;
-    private PersistentDistinctId mDistinctId;
-    private PersistentLoginId mLoginId;
-    private PersistentSuperProperties mSuperProperties;
-    private PersistentFirstStart mFirstStart;
-    private PersistentFirstDay mFirstDay;
-    private PersistentFirstTrackInstallation mFirstTrackInstallation;
-    private PersistentFirstTrackInstallationWithCallback mFirstTrackInstallationWithCallback;
-    private PersistentSDKConfiguration mPersistentSDKConfiguration;
-    private Map<String, Object> mDeviceInfo;
-    private Map<String, EventTimer> mTrackTimer;
+    private final Context mContext;
+    private final AnalyticsMessages mMessages;
+    private final PersistentDistinctId mDistinctId;
+    private final PersistentLoginId mLoginId;
+    private final PersistentSuperProperties mSuperProperties;
+    private final PersistentFirstStart mFirstStart;
+    private final PersistentFirstDay mFirstDay;
+    private final PersistentFirstTrackInstallation mFirstTrackInstallation;
+    private final PersistentFirstTrackInstallationWithCallback mFirstTrackInstallationWithCallback;
+    private final PersistentRemoteSDKConfig mPersistentRemoteSDKConfig;
+    private final Map<String, Object> mDeviceInfo;
+    private final Map<String, EventTimer> mTrackTimer;
     private List<Integer> mAutoTrackIgnoredActivities;
     private List<Integer> mHeatMapActivities;
     private int mFlushNetworkPolicy = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
-    private String mMainProcessName;
+    private final String mMainProcessName;
     private long mMaxCacheSize = 32 * 1024 * 1024; //default 32MB
 
-    private VTrack mVTrack;
+    private final VTrack mVTrack;
+    private SensorsDataScreenOrientationDetector mOrientationDetector;
 
     private static final SimpleDateFormat mIsFirstDayDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 

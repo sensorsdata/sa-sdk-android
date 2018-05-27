@@ -8,8 +8,8 @@ import java.util.concurrent.Future;
  * Created by 王灼洲 on 2017/4/10
  */
 
-class PersistentSDKConfiguration extends PersistentIdentity<String> {
-    PersistentSDKConfiguration(Future<SharedPreferences> loadStoredPreferences) {
+class PersistentRemoteSDKConfig extends PersistentIdentity<String> {
+    PersistentRemoteSDKConfig(Future<SharedPreferences> loadStoredPreferences) {
         super(loadStoredPreferences, "sensorsdata_sdk_configuration", new PersistentSerializer<String>() {
             @Override
             public String load(String value) {

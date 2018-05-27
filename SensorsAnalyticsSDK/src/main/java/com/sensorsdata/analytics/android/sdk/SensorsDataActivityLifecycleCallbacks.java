@@ -16,6 +16,8 @@ import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONObject;
 
+import java.text.SimpleDateFormat;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -25,16 +27,19 @@ import java.util.concurrent.TimeUnit;
 @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
     private static final String TAG = "SA.LifecycleCallbacks";
+    private static final SimpleDateFormat mIsFirstDayDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
     private boolean resumeFromBackground = false;
     private Integer startedActivityCount = 0;
     private final Object mActivityLifecycleCallbacksLock = new Object();
     private final SensorsDataAPI mSensorsDataInstance;
     private final PersistentFirstStart mFirstStart;
+    private final PersistentFirstDay mFirstDay;
     private final String mMainProcessName;
 
-    public SensorsDataActivityLifecycleCallbacks(SensorsDataAPI instance, PersistentFirstStart firstStart, String mainProcessName) {
+    public SensorsDataActivityLifecycleCallbacks(SensorsDataAPI instance, PersistentFirstStart firstStart, PersistentFirstDay firstDay, String mainProcessName) {
         this.mSensorsDataInstance = instance;
         this.mFirstStart = firstStart;
+        this.mFirstDay = firstDay;
         this.mMainProcessName = mainProcessName;
     }
 
@@ -66,6 +71,10 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         try {
             synchronized (mActivityLifecycleCallbacksLock) {
                 if (startedActivityCount == 0) {
+                    if (mFirstDay.get() == null) {
+                        mFirstDay.commit(mIsFirstDayDateFormat.format(System.currentTimeMillis()));
+                    }
+
                     // XXX: 注意内部执行顺序
                     boolean firstStart = mFirstStart.get();
 
@@ -75,15 +84,16 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                         e.printStackTrace();
                     }
 
-                    if (SensorsDataUtils.isMainProcess(activity, mMainProcessName)) {
-                        //从后台恢复，从缓存中读取 SDK 控制配置信息
-                        if (resumeFromBackground) {
-                            //先从缓存中读取 SDKConfig
-                            mSensorsDataInstance.applySDKConfigurationFromCache();
-                        }
-                        //每次启动 App，重新拉取最新的配置信息
-                        mSensorsDataInstance.pullSDKConfigurationFromServer();
+                    //从后台恢复，从缓存中读取 SDK 控制配置信息
+                    if (resumeFromBackground) {
+                        //先从缓存中读取 SDKConfig
+                        mSensorsDataInstance.applySDKConfigFromCache();
+                        mSensorsDataInstance.resumeTrackScreenOrientation();
+                    }
+                    //每次启动 App，重新拉取最新的配置信息
+                    mSensorsDataInstance.pullSDKConfigFromServer();
 
+                    if (SensorsDataUtils.isMainProcess(activity, mMainProcessName)) {
                         if (mSensorsDataInstance.isAutoTrackEnabled()) {
                             try {
                                 if (!mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_START)) {
@@ -183,6 +193,8 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
                 if (startedActivityCount == 0) {
                     try {
+                        mSensorsDataInstance.stopTrackScreenOrientation();
+                        mSensorsDataInstance.resetPullSDKConfigTimer();
                         HeatMapService.getInstance().stop();
                         mSensorsDataInstance.appEnterBackground();
                     } catch (Exception e) {

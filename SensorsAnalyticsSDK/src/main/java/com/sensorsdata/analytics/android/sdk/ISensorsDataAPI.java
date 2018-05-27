@@ -691,5 +691,37 @@ public interface ISensorsDataAPI {
 
     public void trackEventFromH5(String eventInfo);
 
+    /**
+     * 更新 GPS 位置信息
+     * @param latitude 纬度
+     * @param longitude 经度
+     */
+    public void setGPSLocation(double latitude, double longitude);
 
+    /**
+     * 清楚 GPS 位置信息
+     */
+    public void clearGPSLocation();
+
+    /**
+     * 开启/关闭采集屏幕方向
+     * @param enable true：开启 false：关闭
+     */
+    public void enableTrackScreenOrientation(boolean enable);
+
+    /**
+     * 恢复采集屏幕方向
+     */
+    public void resumeTrackScreenOrientation();
+
+    /**
+     * 暂停采集屏幕方向
+     */
+    public void stopTrackScreenOrientation();
+
+    /**
+     * 获取当前屏幕方向
+     * @return portrait:竖屏 landscape:横屏
+     */
+    public String getScreenOrientation();
 }

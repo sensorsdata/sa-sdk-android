@@ -10,6 +10,7 @@ import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import android.content.Context;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -281,11 +282,17 @@ class AnalyticsMessages {
                         SALog.i(TAG, errorMessage);
                         if (isDebugMode && SensorsDataAPI.SHOW_DEBUG_INFO_VIEW) {
                             try {
-                                if (toast != null) {
-                                    toast.cancel();
+                                /**
+                                 * 问题：https://www.jianshu.com/p/1445e330114b
+                                 * 目前没有比较好的解决方案，暂时规避，只对开启 debug 模式下有影响
+                                 */
+                                if (Build.VERSION.SDK_INT != 25) {
+                                    if (toast != null) {
+                                        toast.cancel();
+                                    }
+                                    toast = Toast.makeText(mContext, errorMessage, Toast.LENGTH_SHORT);
+                                    toast.show();
                                 }
-                                toast = Toast.makeText(mContext, errorMessage, Toast.LENGTH_SHORT);
-                                toast.show();
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }

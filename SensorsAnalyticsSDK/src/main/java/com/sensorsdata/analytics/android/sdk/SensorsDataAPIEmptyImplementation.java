@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     public SensorsDataAPIEmptyImplementation() {
-        super();
+
     }
 
     /**
@@ -983,6 +983,31 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public void trackEventFromH5(String eventInfo) {
+
+    }
+
+    @Override
+    public void setGPSLocation(double latitude, double longitude) {
+
+    }
+
+    @Override
+    public void clearGPSLocation() {
+
+    }
+
+    @Override
+    public void enableTrackScreenOrientation(boolean enable) {
+
+    }
+
+    @Override
+    public void resumeTrackScreenOrientation() {
+
+    }
+
+    @Override
+    public void stopTrackScreenOrientation() {
 
     }
 }
