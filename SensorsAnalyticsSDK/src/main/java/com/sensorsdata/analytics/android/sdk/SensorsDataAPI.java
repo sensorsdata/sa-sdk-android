@@ -597,7 +597,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                                     configVersion = mSDKRemoteConfig.getV();
                                 }
 
-                                configUrl = configUrl + "/config/Android";
+                                configUrl = configUrl + "/config/Android.conf";
 
                                 if (configVersion != null) {
                                     configUrl = configUrl + "?v=" + configVersion;
@@ -2906,7 +2906,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.10.1";
+    static final String VERSION = "1.10.2";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
