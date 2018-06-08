@@ -786,6 +786,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public void setMaxCacheSize(long maxCacheSize) {
         if (maxCacheSize > 0) {
+            //防止设置的值太小导致事件丢失
+            if (maxCacheSize < 16 * 1024 * 1024) {
+                maxCacheSize = 16 * 1024 * 1024;
+            }
             this.mMaxCacheSize = maxCacheSize;
         }
     }
@@ -827,6 +831,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void setFlushInterval(int flushInterval) {
+        if (flushInterval < 5 * 1000) {
+            flushInterval = 5 * 1000;
+        }
         mFlushInterval = flushInterval;
     }
 
@@ -2481,6 +2488,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     if (!(new ServerUrl(serverUrl).check(new ServerUrl(mServerUrl)))) {
                         return;
                     }
+                } else {
+                    //防止 H5 集成的 JS SDK 版本太老，没有发 server_url
+                    return;
                 }
             }
             trackEventFromH5(eventInfo);
@@ -2749,6 +2759,21 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         final long now = System.currentTimeMillis();
                         dataObj.put("time", now);
                         dataObj.put("type", eventType.getEventType());
+
+                        try {
+                            if (sendProperties.has("$project")) {
+                                dataObj.put("project", sendProperties.optString("$project"));
+                                sendProperties.remove("$project");
+                            }
+
+                            if (sendProperties.has("$token")) {
+                                dataObj.put("token", sendProperties.optString("$token"));
+                                sendProperties.remove("$token");
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+
                         dataObj.put("properties", sendProperties);
                         if (!TextUtils.isEmpty(getLoginId())) {
                             dataObj.put("distinct_id", getLoginId());
@@ -2906,7 +2931,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.10.2";
+    static final String VERSION = "1.10.3";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
