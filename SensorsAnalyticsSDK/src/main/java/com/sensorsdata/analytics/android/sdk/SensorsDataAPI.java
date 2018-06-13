@@ -252,7 +252,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 mEnableVTrack = false;
             }
             mEnableAndroidId = configBundle.getBoolean("com.sensorsdata.analytics.android.AndroidId",
-                    false);
+                    true);
             mEnableButterknifeOnClick = configBundle.getBoolean("com.sensorsdata.analytics.android.ButterknifeOnClick",
                     false);
             mMainProcessName = configBundle.getString("com.sensorsdata.analytics.android.MainProcessName");
@@ -299,9 +299,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mDistinctId = new PersistentDistinctId(storedPreferences);
         if (mEnableAndroidId) {
             try {
-                String androidId = SensorsDataUtils.getAndroidID(mContext);
-                if (SensorsDataUtils.isValidAndroidId(androidId)) {
-                    identify(androidId);
+                if (TextUtils.isEmpty(mDistinctId.get())) {
+                    String androidId = SensorsDataUtils.getAndroidID(mContext);
+                    if (SensorsDataUtils.isValidAndroidId(androidId)) {
+                        identify(androidId);
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -2612,6 +2614,16 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 eventObject.remove("server_url");
             }
 
+            if (propertiesObject.has("$project")) {
+                eventObject.put("project", propertiesObject.optString("$project"));
+                propertiesObject.remove("$project");
+            }
+
+            if (propertiesObject.has("$token")) {
+                eventObject.put("token", propertiesObject.optString("$token"));
+                propertiesObject.remove("$token");
+            }
+
             if (eventType == EventType.TRACK_SIGNUP) {
                 String loginId = eventObject.getString("distinct_id");
                 synchronized (mLoginId) {
@@ -2633,6 +2645,16 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     private void trackEvent(final EventType eventType, final String eventName, final JSONObject properties, final String
             originalDistinctId) throws InvalidDataException {
+        final EventTimer eventTimer;
+        if (eventName != null) {
+            synchronized (mTrackTimer) {
+                eventTimer = mTrackTimer.get(eventName);
+                mTrackTimer.remove(eventName);
+            }
+        } else {
+            eventTimer = null;
+        }
+
         SensorsDataThreadPool.getInstance().execute(new Runnable() {
             @Override
             public void run() {
@@ -2641,16 +2663,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         assertKey(eventName);
                     }
                     assertPropertyTypes(eventType, properties);
-
-                    final EventTimer eventTimer;
-                    if (eventName != null) {
-                        synchronized (mTrackTimer) {
-                            eventTimer = mTrackTimer.get(eventName);
-                            mTrackTimer.remove(eventName);
-                        }
-                    } else {
-                        eventTimer = null;
-                    }
 
                     try {
                         JSONObject sendProperties;
@@ -2931,7 +2943,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.10.3";
+    static final String VERSION = "1.10.4";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
