@@ -251,8 +251,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             if (TextUtils.isEmpty(configureURL)) {
                 mEnableVTrack = false;
             }
-            mEnableAndroidId = configBundle.getBoolean("com.sensorsdata.analytics.android.AndroidId",
-                    true);
             mEnableButterknifeOnClick = configBundle.getBoolean("com.sensorsdata.analytics.android.ButterknifeOnClick",
                     false);
             mMainProcessName = configBundle.getString("com.sensorsdata.analytics.android.MainProcessName");
@@ -296,19 +294,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         final Future<SharedPreferences> storedPreferences =
                 sPrefsLoader.loadPreferences(context, prefsName, listener);
 
-        mDistinctId = new PersistentDistinctId(storedPreferences);
-        if (mEnableAndroidId) {
-            try {
-                if (TextUtils.isEmpty(mDistinctId.get())) {
-                    String androidId = SensorsDataUtils.getAndroidID(mContext);
-                    if (SensorsDataUtils.isValidAndroidId(androidId)) {
-                        identify(androidId);
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+        mDistinctId = new PersistentDistinctId(storedPreferences, mContext);
         mLoginId = new PersistentLoginId(storedPreferences);
         mSuperProperties = new PersistentSuperProperties(storedPreferences);
         mFirstStart = new PersistentFirstStart(storedPreferences);
@@ -1616,12 +1602,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public void resetAnonymousId() {
         synchronized (mDistinctId) {
-            if (mEnableAndroidId) {
-                String androidId = SensorsDataUtils.getAndroidID(mContext);
-                if (SensorsDataUtils.isValidAndroidId(androidId)) {
-                    mDistinctId.commit(androidId);
-                    return;
-                }
+            String androidId = SensorsDataUtils.getAndroidID(mContext);
+            if (SensorsDataUtils.isValidAndroidId(androidId)) {
+                mDistinctId.commit(androidId);
+                return;
             }
             mDistinctId.commit(UUID.randomUUID().toString());
         }
@@ -2943,7 +2927,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.10.4";
+    static final String VERSION = "1.10.5";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -2974,8 +2958,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private boolean mAutoTrack;
     /* SDK 开启可视化埋点功能 */
     private boolean mEnableVTrack;
-    /* AndroidId 作为默认匿名Id */
-    private boolean mEnableAndroidId;
     private boolean mHeatMapEnabled;
     /* 上个页面的Url*/
     private String mLastScreenUrl;

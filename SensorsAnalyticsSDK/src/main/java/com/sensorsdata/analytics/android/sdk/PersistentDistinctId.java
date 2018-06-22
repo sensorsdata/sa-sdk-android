@@ -1,6 +1,9 @@
 package com.sensorsdata.analytics.android.sdk;
 
+import android.content.Context;
 import android.content.SharedPreferences;
+
+import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import java.util.UUID;
 import java.util.concurrent.Future;
@@ -10,7 +13,7 @@ import java.util.concurrent.Future;
  */
 
 class PersistentDistinctId extends PersistentIdentity<String> {
-    PersistentDistinctId(Future<SharedPreferences> loadStoredPreferences) {
+    PersistentDistinctId(Future<SharedPreferences> loadStoredPreferences, final Context context) {
         super(loadStoredPreferences, "events_distinct_id", new PersistentSerializer<String>() {
             @Override
             public String load(String value) {
@@ -24,6 +27,14 @@ class PersistentDistinctId extends PersistentIdentity<String> {
 
             @Override
             public String create() {
+                try {
+                    String androidId = SensorsDataUtils.getAndroidID(context);
+                    if (SensorsDataUtils.isValidAndroidId(androidId)) {
+                        return androidId;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 return UUID.randomUUID().toString();
             }
         });
