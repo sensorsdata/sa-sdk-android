@@ -181,11 +181,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mDeviceInfo = null;
         mTrackTimer = null;
         mMainProcessName = null;
-        mVTrack = null;
     }
 
-    SensorsDataAPI(Context context, String serverURL, String configureURL,
-                   String vtrackServerURL, DebugMode debugMode) {
+    SensorsDataAPI(Context context, String serverURL, DebugMode debugMode) {
         mContext = context;
         mDebugMode = debugMode;
 
@@ -212,20 +210,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
             setServerUrl(serverURL);
 
-            // 若 Configure Url 为 '/api/vtrack/config' 或 '/config'，则补齐 SDK 类型
-            if (!TextUtils.isEmpty(configureURL)) {
-                Uri configureURI = Uri.parse(configureURL);
-                if (configureURI.getPath().equals("/api/vtrack/config") || configureURI.getPath().equals
-                        ("/api/vtrack/config/") || configureURI.getPath().equals("/config") || configureURI
-                        .getPath().equals("/config/")) {
-                    mConfigureUrl = configureURI.buildUpon().appendPath("Android.conf").build().toString();
-                } else {
-                    mConfigureUrl = configureURL;
-                }
-            } else {
-                mConfigureUrl = null;
-            }
-
             if (debugMode == DebugMode.DEBUG_OFF) {
                 ENABLE_LOG = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
                         false);
@@ -244,38 +228,13 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     false);
             mHeatMapEnabled = configBundle.getBoolean("com.sensorsdata.analytics.android.HeatMap",
                     false);
-            mEnableVTrack = configBundle.getBoolean("com.sensorsdata.analytics.android.VTrack",
-                    true);
             mDisableDefaultRemoteConfig = configBundle.getBoolean("com.sensorsdata.analytics.android.DisableDefaultRemoteConfig",
                     false);
-            if (TextUtils.isEmpty(configureURL)) {
-                mEnableVTrack = false;
-            }
             mEnableButterknifeOnClick = configBundle.getBoolean("com.sensorsdata.analytics.android.ButterknifeOnClick",
                     false);
             mMainProcessName = configBundle.getString("com.sensorsdata.analytics.android.MainProcessName");
             mEnableAppHeatMapConfirmDialog = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableHeatMapConfirmDialog",
                     true);
-
-            if (Build.VERSION.SDK_INT >= VTRACK_SUPPORTED_MIN_API
-                    && mEnableVTrack) {
-                String resourcePackageName =
-                        configBundle.getString("com.sensorsdata.analytics.android.ResourcePackageName");
-                if (null == resourcePackageName) {
-                    resourcePackageName = context.getPackageName();
-                }
-
-                mVTrack = new ViewCrawler(mContext, resourcePackageName);
-            } else {
-                if (debugMode != DebugMode.DEBUG_OFF) {
-                    Log.i(TAG, "VTrack is not supported on this Android OS Version");
-                }
-                mVTrack = new VTrackUnsupported();
-            }
-
-            if (vtrackServerURL != null) {
-                mVTrack.setVTrackServer(vtrackServerURL);
-            }
         } catch (final PackageManager.NameNotFoundException e) {
             throw new RuntimeException("Can't configure SensorsDataAPI with package name " + packageName,
                     e);
@@ -328,8 +287,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
         if (debugMode != DebugMode.DEBUG_OFF) {
             Log.i(TAG, String.format(Locale.CHINA, "Initialized the instance of Sensors Analytics SDK with server"
-                            + " url '%s', configure url '%s' flush interval %d ms, debugMode: %s", mServerUrl,
-                    mConfigureUrl, mFlushInterval, debugMode));
+                            + " url '%s', flush interval %d ms, debugMode: %s", mServerUrl, mFlushInterval, debugMode));
         }
 
         final Map<String, Object> deviceInfo = new HashMap<>();
@@ -386,11 +344,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
         mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
         mTrackTimer = new HashMap<>();
-
-        mVTrack.startUpdates();
-        if (mEnableVTrack) {
-            mMessages.checkConfigure(new DecideMessages(mVTrack));
-        }
     }
 
     /**
@@ -413,13 +366,13 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             SensorsDataAPI instance = sInstanceMap.get(appContext);
 
             if (null == instance) {
-                Log.i(TAG, "The static method sharedInstance(context, serverURL, configureURL, "
-                        + "vtrackServerURL, debugMode) should be called before calling sharedInstance()");
+                Log.i(TAG, "The static method sharedInstance(context, serverURL, debugMode) should be called before calling sharedInstance()");
                 return new SensorsDataAPIEmptyImplementation();
             }
             return instance;
         }
     }
+
 
     /**
      * 初始化并获取SensorsDataAPI单例
@@ -431,21 +384,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @return SensorsDataAPI单例
      */
     public static SensorsDataAPI sharedInstance(Context context, String serverURL, DebugMode debugMode) {
-        return sharedInstance(context, serverURL, null, null, debugMode);
-    }
-
-    /**
-     * 初始化并获取SensorsDataAPI单例
-     *
-     * @param context      App 的 Context
-     * @param serverURL    用于收集事件的服务地址
-     * @param configureUrl 用于获取SDK配置的服务地址
-     * @param debugMode    Debug模式,
-     *                     {@link com.sensorsdata.analytics.android.sdk.SensorsDataAPI.DebugMode}
-     * @return SensorsDataAPI单例
-     */
-    public static SensorsDataAPI sharedInstance(Context context, String serverURL, String
-            configureUrl, DebugMode debugMode) {
         if (null == context) {
             return new SensorsDataAPIEmptyImplementation();
         }
@@ -455,42 +393,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
             SensorsDataAPI instance = sInstanceMap.get(appContext);
             if (null == instance && ConfigurationChecker.checkBasicConfiguration(appContext)) {
-                instance = new SensorsDataAPI(appContext, serverURL, configureUrl, null, debugMode);
-                sInstanceMap.put(appContext, instance);
-            }
-
-            if (instance != null) {
-                return instance;
-            } else {
-                return new SensorsDataAPIEmptyImplementation();
-            }
-        }
-    }
-
-    /**
-     * 初始化并获取SensorsDataAPI单例（打开可视化埋点功能）
-     *
-     * @param context         App的Context
-     * @param serverURL       用于收集事件的服务地址
-     * @param configureURL    用于获取SDK配置的服务地址
-     * @param vtrackServerURL 可视化埋点的WebServer地址
-     * @param debugMode       Debug模式,
-     *                        {@link com.sensorsdata.analytics.android.sdk.SensorsDataAPI.DebugMode}
-     * @return SensorsDataAPI单例
-     */
-    public static SensorsDataAPI sharedInstance(Context context, String serverURL,
-        String configureURL, String vtrackServerURL, DebugMode debugMode) {
-        if (null == context) {
-            return new SensorsDataAPIEmptyImplementation();
-        }
-
-        synchronized (sInstanceMap) {
-            final Context appContext = context.getApplicationContext();
-
-            SensorsDataAPI instance = sInstanceMap.get(appContext);
-            if (null == instance && ConfigurationChecker.checkBasicConfiguration(appContext)) {
-                instance = new SensorsDataAPI(appContext, serverURL, configureURL, vtrackServerURL,
-                        debugMode);
+                instance = new SensorsDataAPI(appContext, serverURL, debugMode);
                 sInstanceMap.put(appContext, instance);
             }
 
@@ -934,28 +837,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             e.printStackTrace();
         }
         return null;
-    }
-
-    /**
-     * 允许 App 连接可视化埋点管理界面
-     *
-     * 调用这个方法，允许 App 连接可视化埋点管理界面并设置可视化埋点。建议用户只在 DEBUG 编译模式下，打开该选项。
-     */
-    @Override
-    public void enableEditingVTrack() {
-        mVTrack.enableEditingVTrack();
-    }
-
-    /**
-     * 屏蔽某个 Activity 的可视化埋点功能
-     *
-     * @param canonicalName Activity 的 Canonical Name
-     */
-    @Override
-    public void disableActivityForVTrack(String canonicalName) {
-        if (canonicalName != null) {
-            mVTrack.disableActivity(canonicalName);
-        }
     }
 
     /**
@@ -1909,6 +1790,16 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     /**
+     * 初始化事件的计时器，计时单位为秒。
+     *
+     * @param eventName 事件的名称
+     */
+    @Override
+    public void trackTimerStart(String eventName) {
+        trackTimerBegin(eventName, TimeUnit.SECONDS);
+    }
+
+    /**
      * 初始化事件的计时器，默认计时单位为毫秒。
      *
      * 详细用法请参考 trackTimerBegin(String, TimeUnit)
@@ -1916,6 +1807,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param eventName 事件的名称
      */
     @Override
+    @Deprecated
     public void trackTimerBegin(final String eventName) {
         trackTimer(eventName);
     }
@@ -1933,6 +1825,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param timeUnit  计时结果的时间单位
      */
     @Override
+    @Deprecated
     public void trackTimerBegin(final String eventName, final TimeUnit timeUnit) {
         trackTimer(eventName, timeUnit);
     }
@@ -2431,10 +2324,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return mServerUrl;
     }
 
-    String getConfigureUrl() {
-        return mConfigureUrl;
-    }
-
     private void showDebugModeWarning() {
         try {
             Looper.prepare();
@@ -2628,7 +2517,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     private void trackEvent(final EventType eventType, final String eventName, final JSONObject properties, final String
-            originalDistinctId) throws InvalidDataException {
+            originalDistinctId) {
         final EventTimer eventTimer;
         if (eventName != null) {
             synchronized (mTrackTimer) {
@@ -2787,26 +2676,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             dataObj.put("original_id", originalDistinctId);
                         }
 
-                        // $binding_depolyed为true或者无该属性时，isDepolyed为true
-                        final boolean isDepolyed = sendProperties.optBoolean("$binding_depolyed", true);
-
-                        // 若$binding_depolyed为true，则删除这些属性
-                        if (sendProperties.has("$binding_depolyed")) {
-                            libProperties.put("$lib_method", "vtrack");
-                            libProperties.put("$lib_detail", sendProperties.get("$binding_trigger_id").toString());
-
-                            // 可视化埋点的事件
-                            if (mVTrack instanceof DebugTracking) {
-                                // Deep clone the event
-                                JSONObject debugDataObj = new JSONObject(dataObj.toString());
-                                ((DebugTracking) mVTrack).reportTrack(debugDataObj);
-                            }
-
-                            sendProperties.remove("$binding_path");
-                            sendProperties.remove("$binding_depolyed");
-                            sendProperties.remove("$binding_trigger_id");
-                        } else {
-                            libProperties.put("$lib_method", "code");
+                        libProperties.put("$lib_method", "code");
 
                             if (mAutoTrack && properties != null) {
                                 if (AutoTrackEventType.APP_VIEW_SCREEN.getEventName().equals(eventName) ||
@@ -2841,12 +2711,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             }
 
                             libProperties.put("$lib_detail", libDetail);
-                        }
-
-                        if (isDepolyed) {
                             mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
                             SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(dataObj.toString()));
-                        }
                     } catch (JSONException e) {
                         throw new InvalidDataException("Unexpected property");
                     }
@@ -2927,7 +2793,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.10.5";
+    static final String VERSION = "1.10.6";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -2946,8 +2812,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
   /* SensorsAnalytics 地址 */
     private String mServerUrl;
     private String mOriginServerUrl;
-    /* 可视化埋点配置地址 */
-    private String mConfigureUrl;
     /* Debug模式选项 */
     private DebugMode mDebugMode;
     /* Flush时间间隔 */
@@ -2956,8 +2820,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private int mFlushBulkSize;
     /* SDK 自动采集事件 */
     private boolean mAutoTrack;
-    /* SDK 开启可视化埋点功能 */
-    private boolean mEnableVTrack;
     private boolean mHeatMapEnabled;
     /* 上个页面的Url*/
     private String mLastScreenUrl;
@@ -2988,7 +2850,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private final String mMainProcessName;
     private long mMaxCacheSize = 32 * 1024 * 1024; //default 32MB
 
-    private final VTrack mVTrack;
     private SensorsDataScreenOrientationDetector mOrientationDetector;
 
     private static final SimpleDateFormat mIsFirstDayDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());

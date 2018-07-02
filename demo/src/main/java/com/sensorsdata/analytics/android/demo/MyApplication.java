@@ -44,7 +44,6 @@ public class MyApplication extends Application {
         SensorsDataAPI.sharedInstance(
                 this,                               // 传入 Context
                 SA_SERVER_URL,                      // 数据接收的 URL
-                SA_CONFIGURE_URL,                   // 配置分发的 URL
                 SA_DEBUG_MODE);                     // Debug 模式选项
         // 打开自动采集, 并指定追踪哪些 AutoTrack 事件
         List<SensorsDataAPI.AutoTrackEventType> eventTypeList = new ArrayList<>();

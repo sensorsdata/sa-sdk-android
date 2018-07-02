@@ -11,15 +11,6 @@ package com.sensorsdata.analytics.android.sdk;
         mMutatorName = mutatorName;
     }
 
-    public Caller makeMutator(Object[] methodArgs)
-            throws NoSuchMethodException {
-        if (null == mMutatorName) {
-            return null;
-        }
-
-        return new Caller(this.targetClass, mMutatorName, methodArgs, Void.TYPE);
-    }
-
     @Override
     public String toString() {
         return "[PropertyDescription " + name + "," + targetClass + ", " + accessor + "/" + mMutatorName

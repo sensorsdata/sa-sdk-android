@@ -94,20 +94,6 @@ public interface ISensorsDataAPI {
     public void setFlushBulkSize(int flushBulkSize);
 
     /**
-     * 允许 App 连接可视化埋点管理界面
-     *
-     * 调用这个方法，允许 App 连接可视化埋点管理界面并设置可视化埋点。建议用户只在 DEBUG 编译模式下，打开该选项。
-     */
-    public void enableEditingVTrack();
-
-    /**
-     * 屏蔽某个 Activity 的可视化埋点功能
-     *
-     * @param canonicalName Activity 的 Canonical Name
-     */
-    public void disableActivityForVTrack(String canonicalName);
-
-    /**
      * 打开 SDK 自动追踪
      *
      * 该功能自动追踪 App 的一些行为，例如 SDK 初始化、App 启动（$AppStart） / 关闭（$AppEnd）、
@@ -724,4 +710,11 @@ public interface ISensorsDataAPI {
      * @return portrait:竖屏 landscape:横屏
      */
     public String getScreenOrientation();
+
+    /**
+     * 初始化事件的计时器，计时单位为秒。
+     *
+     * @param eventName 事件的名称
+     */
+    public void trackTimerStart(final String eventName);
 }

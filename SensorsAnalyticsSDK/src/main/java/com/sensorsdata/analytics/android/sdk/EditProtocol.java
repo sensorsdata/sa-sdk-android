@@ -1,15 +1,10 @@
 package com.sensorsdata.analytics.android.sdk;
 
-import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
-
-import android.view.accessibility.AccessibilityEvent;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class EditProtocol {
@@ -26,63 +21,8 @@ public class EditProtocol {
         }
     }
 
-    public static class InapplicableInstructionsException extends BadInstructionsException {
-        private static final long serialVersionUID = 3977056710817909104L;
-
-        public InapplicableInstructionsException(String message) {
-            super(message);
-        }
-    }
-
     public EditProtocol(ResourceIds resourceIds) {
         mResourceIds = resourceIds;
-    }
-
-    public ViewVisitor readEventBinding(JSONObject source, ViewVisitor.OnEventListener listener)
-            throws BadInstructionsException {
-        try {
-            final String eventName = source.getString("event_name");
-            final String eventType = source.getString("event_type");
-            final int triggerId = source.optInt("trigger_id", -1);
-            final boolean isDeployed = source.optBoolean("deployed", false);
-            final JSONArray pathDesc = source.getJSONArray("path");
-
-            final EventInfo eventInfo = new EventInfo(eventName, eventType, pathDesc.toString(),
-                    triggerId,
-                    isDeployed);
-
-            final List<Pathfinder.PathElement> path = readPath(pathDesc, mResourceIds);
-
-            if (path.size() == 0) {
-                throw new InapplicableInstructionsException(
-                        "event '" + eventInfo + "' will not be bound to any element in the UI.");
-            }
-
-            if ("click".equals(eventType)) {
-                return new ViewVisitor.AddAccessibilityEventVisitor(
-                        path,
-                        AccessibilityEvent.TYPE_VIEW_CLICKED,
-                        eventInfo,
-                        listener
-                );
-            } else if ("selected".equals(eventType)) {
-                return new ViewVisitor.AddAccessibilityEventVisitor(
-                        path,
-                        AccessibilityEvent.TYPE_VIEW_SELECTED,
-                        eventInfo,
-                        listener
-                );
-            } else if ("text_changed".equals(eventType)) {
-                return new ViewVisitor.AddTextChangeListener(path, eventInfo, listener);
-            } else if ("detected".equals(eventType)) {
-                return new ViewVisitor.ViewDetectorVisitor(path, eventInfo, listener);
-            } else {
-                throw new BadInstructionsException(
-                        "SensorsData can't track event type \"" + eventType + "\"");
-            }
-        } catch (final JSONException e) {
-            throw new BadInstructionsException("Can't interpret instructions due to JSONException", e);
-        }
     }
 
     public ViewSnapshot readSnapshotConfig(JSONObject source) throws BadInstructionsException {
@@ -109,75 +49,6 @@ public class EditProtocol {
         } catch (final ClassNotFoundException e) {
             throw new BadInstructionsException("Can't resolve types for snapshot configuration", e);
         }
-    }
-
-    private List<Pathfinder.PathElement> readPath(JSONArray pathDesc, ResourceIds idNameToId)
-            throws JSONException {
-        final List<Pathfinder.PathElement> path = new ArrayList<Pathfinder.PathElement>();
-
-        for (int i = 0; i < pathDesc.length(); i++) {
-            final JSONObject targetView = pathDesc.getJSONObject(i);
-
-            final String prefixCode = JSONUtils.optionalStringKey(targetView, "prefix");
-            final String targetViewClass = JSONUtils.optionalStringKey(targetView, "view_class");
-            final int targetIndex = targetView.optInt("index", -1);
-            final int targetExplicitId = targetView.optInt("id", -1);
-            final String targetIdName = JSONUtils.optionalStringKey(targetView, "sa_id_name");
-
-            final int prefix;
-            if ("shortest".equals(prefixCode)) {
-                prefix = Pathfinder.PathElement.SHORTEST_PREFIX;
-            } else if (null == prefixCode) {
-                prefix = Pathfinder.PathElement.ZERO_LENGTH_PREFIX;
-            } else {
-                SALog.i(TAG, "Unrecognized prefix type \"" + prefixCode + "\". No views will be matched");
-                return NEVER_MATCH_PATH;
-            }
-
-            final int targetId;
-
-            final Integer targetIdOrNull = reconcileIds(targetExplicitId, targetIdName, idNameToId);
-            if (null == targetIdOrNull) {
-                return NEVER_MATCH_PATH;
-            } else {
-                targetId = targetIdOrNull.intValue();
-            }
-
-            path.add(new Pathfinder.PathElement(prefix, targetViewClass, targetIndex, targetId));
-        }
-
-        return path;
-    }
-
-    // May return null (and log a warning) if arguments cannot be reconciled
-    private Integer reconcileIds(int explicitId, String idName, ResourceIds idNameToId) {
-        final int idFromName;
-        if (null != idName && idName.length() > 0) {
-            if (idNameToId.knownIdName(idName)) {
-                idFromName = idNameToId.idFromName(idName);
-            } else {
-                SALog.i(TAG,
-                        "Path element contains an id name not known to the system. No views will be matched.\n"
-                                + "Make sure that you're not stripping your packages R class out with proguard.\n"
-                                + "id name was \"" + idName + "\""
-                );
-                return null;
-            }
-        } else {
-            idFromName = -1;
-        }
-
-        if (-1 != idFromName && -1 != explicitId && idFromName != explicitId) {
-            SALog.i(TAG,
-                    "Path contains both a named and an explicit id, and they don't match. No views will be matched.");
-            return null;
-        }
-
-        if (-1 != idFromName) {
-            return idFromName;
-        }
-
-        return explicitId;
     }
 
     private PropertyDescription readPropertyDescription(Class<?> targetClass, JSONObject propertyDesc)
@@ -217,8 +88,6 @@ public class EditProtocol {
     private final ResourceIds mResourceIds;
 
     private static final Class<?>[] NO_PARAMS = new Class[0];
-    private static final List<Pathfinder.PathElement> NEVER_MATCH_PATH =
-            Collections.<Pathfinder.PathElement>emptyList();
 
     private static final String TAG = "SA.EProtocol";
 } // EditProtocol

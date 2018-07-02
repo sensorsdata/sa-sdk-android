@@ -121,26 +121,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     /**
-     * 允许 App 连接可视化埋点管理界面
-     *
-     * 调用这个方法，允许 App 连接可视化埋点管理界面并设置可视化埋点。建议用户只在 DEBUG 编译模式下，打开该选项。
-     */
-    @Override
-    public void enableEditingVTrack() {
-
-    }
-
-    /**
-     * 屏蔽某个 Activity 的可视化埋点功能
-     *
-     * @param canonicalName Activity 的 Canonical Name
-     */
-    @Override
-    public void disableActivityForVTrack(String canonicalName) {
-
-    }
-
-    /**
      * 打开 SDK 自动追踪
      *
      * 该功能自动追踪 App 的一些行为，例如 SDK 初始化、App 启动（$AppStart） / 关闭（$AppEnd）、
@@ -688,6 +668,16 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     @Deprecated
     @Override
     public void trackTimer(final String eventName, final TimeUnit timeUnit) {
+
+    }
+
+    /**
+     * 初始化事件的计时器，计时单位为秒。
+     *
+     * @param eventName 事件的名称
+     */
+    @Override
+    public void trackTimerStart(String eventName) {
 
     }
 

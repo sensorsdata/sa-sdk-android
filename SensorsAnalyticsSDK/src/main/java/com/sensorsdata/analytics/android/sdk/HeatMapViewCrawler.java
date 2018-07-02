@@ -16,7 +16,6 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -33,7 +32,7 @@ import java.net.URLDecoder;
 import java.util.zip.GZIPOutputStream;
 
 @TargetApi(16)
-public class HeatMapViewCrawler implements VTrack, DebugTracking {
+public class HeatMapViewCrawler implements VTrack {
 
     public HeatMapViewCrawler(Activity activity, String resourcePackageName, String featureCode, String postUrl) {
         mActivity = activity;
@@ -94,31 +93,6 @@ public class HeatMapViewCrawler implements VTrack, DebugTracking {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    public void enableEditingVTrack() {
-
-    }
-
-    @Override
-    public void disableActivity(String canonicalName) {
-
-    }
-
-    @Override
-    public void setEventBindings(JSONArray bindings) {
-
-    }
-
-    @Override
-    public void setVTrackServer(String serverUrl) {
-
-    }
-
-    @Override
-    public void reportTrack(JSONObject eventJson) {
-
     }
 
     private class LifecycleCallbacks

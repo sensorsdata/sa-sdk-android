@@ -18,8 +18,6 @@ import android.os.Message;
 import android.text.TextUtils;
 import android.widget.Toast;
 
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedOutputStream;
@@ -107,14 +105,6 @@ class AnalyticsMessages {
         } catch (Exception e) {
             SALog.i(TAG, "enqueueEventMessage error:" + e);
         }
-    }
-
-    public void checkConfigure(final DecideMessages check) {
-        final Message m = Message.obtain();
-        m.what = CHECK_CONFIGURE;
-        m.obj = check;
-
-        mWorker.runMessage(m);
     }
 
     public void flush() {
@@ -340,41 +330,6 @@ class AnalyticsMessages {
         return new String(Base64Coder.encode(compressed));
     }
 
-    private String getCheckConfigure() throws ConnectErrorException {
-        SALog.i(TAG, "getCheckConfigure");
-        HttpURLConnection connection = null;
-        InputStream in = null;
-        try {
-            final URL url = new URL(SensorsDataAPI.sharedInstance(mContext).getConfigureUrl());
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-
-            int responseCode = connection.getResponseCode();
-            in = connection.getInputStream();
-            byte[] responseBody = slurp(in);
-            in.close();
-            in = null;
-
-            String response = new String(responseBody, "UTF-8");
-            if (responseCode != 200) {
-                throw new ConnectErrorException("Response error.");
-            }
-
-            return response;
-        } catch (IOException e) {
-            throw new ConnectErrorException(e);
-        } finally {
-            if (null != in)
-                try {
-                    in.close();
-                } catch (final IOException e) {
-                    SALog.i(TAG, "getCheckConfigure close inputStream error:" + e.getMessage());
-                }
-            if (null != connection)
-                connection.disconnect();
-        }
-    }
-
     // Worker will manage the (at most single) IO thread associated with
     // this AnalyticsMessages instance.
     // XXX: Worker class is unnecessary, should be just a subclass of HandlerThread
@@ -423,30 +378,6 @@ class AnalyticsMessages {
                 try {
                     if (msg.what == FLUSH_QUEUE) {
                         sendData();
-                    } else if (msg.what == CHECK_CONFIGURE) {
-                        DecideMessages decideMessages = (DecideMessages) msg.obj;
-                        try {
-                            final String configureResult = getCheckConfigure();
-                            try {
-                                final JSONObject configureJson = new JSONObject(configureResult);
-
-                                // 可视化埋点配置
-                                final JSONObject eventBindings = configureJson.optJSONObject("event_bindings");
-                                if (eventBindings != null && eventBindings.has("events") && eventBindings.get
-                                        ("events") instanceof JSONArray) {
-                                    decideMessages.setEventBindings(eventBindings.getJSONArray("events"));
-                                }
-
-                                // 可视化埋点管理界面地址
-                                final String vtrackServer = configureJson.optString("vtrack_server_url");
-                                // XXX: 为兼容老版本，这里无论是否为 null，都需要调用 setVTrackServer
-                                decideMessages.setVTrackServer(vtrackServer);
-                            } catch (JSONException e1) {
-                                SALog.i(TAG, "Failed to load SDK configure with" + configureResult);
-                            }
-                        } catch (ConnectErrorException e) {
-                            SALog.i(TAG, "Failed to get vtrack configure from SensorsAnalytics.", e);
-                        }
                     } else {
                         SALog.i(TAG, "Unexpected message received by SensorsData worker: " + msg);
                     }
@@ -467,7 +398,6 @@ class AnalyticsMessages {
 
     // Messages for our thread
     private static final int FLUSH_QUEUE = 3;
-    private static final int CHECK_CONFIGURE = 4; // 从SA获取配置信息
 
     private static final String TAG = "SA.AnalyticsMessages";
 
