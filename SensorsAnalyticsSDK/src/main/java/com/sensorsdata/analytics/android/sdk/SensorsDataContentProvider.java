@@ -44,7 +44,7 @@ public class SensorsDataContentProvider extends ContentProvider {
         SQLiteDatabase database = null;
         try {
             database = dbHelper.getWritableDatabase();
-            id = database.delete(DbAdapter.Table.EVENTS.getName(), selection, selectionArgs);
+            id = database.delete(DbAdapter.Table.EVENTS.getName(), "_id <= ?", selectionArgs);
             //contentResolver.notifyChange(uri, null);
         } catch (Exception e) {
             e.printStackTrace();
