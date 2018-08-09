@@ -89,6 +89,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                         //先从缓存中读取 SDKConfig
                         mSensorsDataInstance.applySDKConfigFromCache();
                         mSensorsDataInstance.resumeTrackScreenOrientation();
+                        mSensorsDataInstance.resumeTrackTaskThread();
                     }
                     //每次启动 App，重新拉取最新的配置信息
                     mSensorsDataInstance.pullSDKConfigFromServer();
@@ -217,6 +218,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                     }
                     try {
                         mSensorsDataInstance.flush();
+                        mSensorsDataInstance.stopTrackTaskThread();
                     } catch (Exception e) {
                         e.printStackTrace();
                     }

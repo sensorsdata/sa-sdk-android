@@ -69,8 +69,6 @@ public class RadioGroupOnCheckedAppClick {
 
             JSONObject properties = new JSONObject();
 
-            AopUtil.addViewPathProperties(activity, view, properties);
-
             //ViewId
             String idString = AopUtil.getViewId(view);
             if (!TextUtils.isEmpty(idString)) {
@@ -87,7 +85,7 @@ public class RadioGroupOnCheckedAppClick {
             }
 
             if (view instanceof RadioGroup) { // RadioGroup
-                properties.put(AopConstants.ELEMENT_TYPE, "RadioGroup");
+                properties.put(AopConstants.ELEMENT_TYPE, "RadioButton");
                 RadioGroup radioGroup = (RadioGroup) view;
 
                 //获取变更后的选中项的ID
@@ -102,6 +100,8 @@ public class RadioGroupOnCheckedAppClick {
                                     properties.put(AopConstants.ELEMENT_CONTENT, viewText);
                                 }
                             }
+
+                            AopUtil.addViewPathProperties(activity, radioButton, properties);
                         }
                     } catch (Exception e) {
                         e.printStackTrace();

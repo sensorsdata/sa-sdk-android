@@ -12,6 +12,11 @@ import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.File;
+
 /**
  * Created by 王灼洲 on 2017/5/5
  */
@@ -31,9 +36,35 @@ public class SensorsDataContentProvider extends ContentProvider {
     public boolean onCreate() {
         Context context = getContext();
         if (context != null) {
+            String packageName = context.getApplicationContext().getPackageName();
             contentResolver = context.getContentResolver();
-            uriMatcher.addURI(context.getApplicationContext().getPackageName() + ".SensorsDataContentProvider", "events", EVENTS);
-            dbHelper = new SensorsDataDBHelper(context, context.getApplicationContext().getPackageName());
+            uriMatcher.addURI(packageName + ".SensorsDataContentProvider", "events", EVENTS);
+            dbHelper = new SensorsDataDBHelper(context);
+
+            /**
+             * 迁移数据，并删除老的数据库
+             */
+            try {
+                File oldDatabase = context.getDatabasePath(packageName);
+                if (oldDatabase.exists()) {
+                    OldBDatabaseHelper oldBDatabaseHelper = new OldBDatabaseHelper(context, packageName);
+
+                    JSONArray oldEvents = oldBDatabaseHelper.getAllEvents();
+                    for (int i = 0; i< oldEvents.length(); i++) {
+                        JSONObject jsonObject = oldEvents.getJSONObject(i);
+                        final ContentValues cv = new ContentValues();
+                        cv.put(DbAdapter.KEY_DATA, jsonObject.getString(DbAdapter.KEY_DATA));
+                        cv.put(DbAdapter.KEY_CREATED_AT, jsonObject.getString(DbAdapter.KEY_CREATED_AT));
+
+                        SQLiteDatabase database = dbHelper.getWritableDatabase();
+                        database.insert(DbAdapter.Table.EVENTS.getName(), "_id", cv);
+                    }
+                }
+
+                context.deleteDatabase(packageName);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         return true;
     }
@@ -44,7 +75,7 @@ public class SensorsDataContentProvider extends ContentProvider {
         SQLiteDatabase database = null;
         try {
             database = dbHelper.getWritableDatabase();
-            id = database.delete(DbAdapter.Table.EVENTS.getName(), "_id <= ?", selectionArgs);
+            database.delete(DbAdapter.Table.EVENTS.getName(), "_id <= ?", selectionArgs);
             //contentResolver.notifyChange(uri, null);
         } catch (Exception e) {
             e.printStackTrace();

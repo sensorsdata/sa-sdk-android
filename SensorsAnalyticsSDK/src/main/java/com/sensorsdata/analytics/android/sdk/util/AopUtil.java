@@ -180,8 +180,10 @@ public class AopUtil {
                         TextView textView = (TextView) child;
                         viewText = textView.getText();
                     } else if (child instanceof ImageView) {
-//                    ImageView imageView = (ImageView) child;
-//                    viewText =  AopUtil.getViewId(imageView);
+                        ImageView imageView = (ImageView) child;
+                        if (!TextUtils.isEmpty(imageView.getContentDescription())) {
+                            viewText = imageView.getContentDescription().toString();
+                        }
                     }
 
                     if (!TextUtils.isEmpty(viewText)) {

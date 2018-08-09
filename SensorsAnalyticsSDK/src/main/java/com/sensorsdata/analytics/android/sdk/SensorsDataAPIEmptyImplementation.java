@@ -819,6 +819,14 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     /**
+     * 删除本地缓存的全部事件
+     */
+    @Override
+    public void deleteAll() {
+
+    }
+
+    /**
      * 获取事件公共属性
      *
      * @return 当前所有Super属性
@@ -999,5 +1007,15 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     @Override
     public void stopTrackScreenOrientation() {
 
+    }
+
+    @Override
+    public void setCookie(String cookie, boolean encode) {
+
+    }
+
+    @Override
+    public String getCookie(boolean decode) {
+        return null;
     }
 }

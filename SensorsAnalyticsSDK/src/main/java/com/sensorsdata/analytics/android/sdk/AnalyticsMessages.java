@@ -46,7 +46,7 @@ class AnalyticsMessages {
      */
     /* package */ AnalyticsMessages(final Context context, final String packageName) {
         mContext = context;
-        mDbAdapter = new DbAdapter(mContext, packageName/*dbName*/);
+        mDbAdapter = new DbAdapter(mContext, packageName);
         mWorker = new Worker();
     }
 
@@ -110,6 +110,13 @@ class AnalyticsMessages {
     public void flush() {
         final Message m = Message.obtain();
         m.what = FLUSH_QUEUE;
+
+        mWorker.runMessage(m);
+    }
+
+    public void deleteAll() {
+        final Message m = Message.obtain();
+        m.what = DELETE_ALL;
 
         mWorker.runMessage(m);
     }
@@ -202,12 +209,17 @@ class AnalyticsMessages {
                             (mContext).isDebugWriteData()) {
                         connection.addRequestProperty("Dry-Run", "true");
                     }
+
+                    connection.setRequestProperty("Cookie", SensorsDataAPI.sharedInstance(mContext).getCookie(false));
+
                     Uri.Builder builder = new Uri.Builder();
-                    builder.appendQueryParameter("data_list", data);
-                    builder.appendQueryParameter("gzip", "1");
+                    //先校验crc
                     if (!TextUtils.isEmpty(data)) {
                         builder.appendQueryParameter("crc", String.valueOf(data.hashCode()));
                     }
+
+                    builder.appendQueryParameter("gzip", "1");
+                    builder.appendQueryParameter("data_list", data);
 
                     String query = builder.build().getEncodedQuery();
 
@@ -378,6 +390,12 @@ class AnalyticsMessages {
                 try {
                     if (msg.what == FLUSH_QUEUE) {
                         sendData();
+                    } else if (msg.what == DELETE_ALL) {
+                        try {
+                            mDbAdapter.deleteAllEvents();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     } else {
                         SALog.i(TAG, "Unexpected message received by SensorsData worker: " + msg);
                     }
@@ -398,6 +416,7 @@ class AnalyticsMessages {
 
     // Messages for our thread
     private static final int FLUSH_QUEUE = 3;
+    private static final int DELETE_ALL = 4;
 
     private static final String TAG = "SA.AnalyticsMessages";
 

@@ -16,6 +16,7 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.support.v4.view.ViewPager;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -37,6 +38,8 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -261,6 +264,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mFirstTrackInstallationWithCallback = new PersistentFirstTrackInstallationWithCallback(storedPreferences);
         mPersistentRemoteSDKConfig = new PersistentRemoteSDKConfig(storedPreferences);
 
+        mTrackTaskManager = TrackTaskManager.getInstance();
+        mTrackTaskManagerThread = new TrackTaskManagerThread();
+        new Thread(mTrackTaskManagerThread).start();
+
         //先从缓存中读取 SDKConfig
         applySDKConfigFromCache();
 
@@ -331,9 +338,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 deviceInfo.put("$screen_height", displayMetrics.heightPixels);
             }
 
-            String $carrier = SensorsDataUtils.getCarrier(mContext);
-            if (!TextUtils.isEmpty($carrier)) {
-                deviceInfo.put("$carrier", $carrier);
+            String carrier = SensorsDataUtils.getCarrier(mContext);
+            if (!TextUtils.isEmpty(carrier)) {
+                deviceInfo.put("$carrier", carrier);
             }
 
             String androidID = SensorsDataUtils.getAndroidID(mContext);
@@ -839,6 +846,34 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return null;
     }
 
+    @Override
+    public void setCookie(String cookie, boolean encode) {
+        try {
+            if (encode) {
+                this.mCookie = URLEncoder.encode(cookie, "UTF-8");
+            } else {
+                this.mCookie = cookie;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public String getCookie(boolean decode) {
+        try {
+            if (decode) {
+                return URLDecoder.decode(this.mCookie, "UTF-8");
+            } else {
+                return this.mCookie;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+
+    }
+
     /**
      * 打开 SDK 自动追踪
      *
@@ -934,7 +969,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void trackAppCrash() {
-        SensorsDataExceptionHandler.init();
+        SensorsDataExceptionHandler.init(mContext);
     }
 
     // Package-level access. Used (at least) by GCMReceiver
@@ -1514,15 +1549,20 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param distinctId 当前用户的distinctId，仅接受数字、下划线和大小写字母
      */
     @Override
-    public void identify(String distinctId) {
-        try {
-            assertDistinctId(distinctId);
-            synchronized (mDistinctId) {
-                mDistinctId.commit(distinctId);
+    public void identify(final String distinctId) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    assertDistinctId(distinctId);
+                    synchronized (mDistinctId) {
+                        mDistinctId.commit(distinctId);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        });
     }
 
     /**
@@ -1531,20 +1571,25 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param loginId 当前用户的 loginId，不能为空，且长度不能大于255
      */
     @Override
-    public void login(String loginId) {
-        try {
-            assertDistinctId(loginId);
-            synchronized (mLoginId) {
-                if (!loginId.equals(mLoginId.get())) {
-                    mLoginId.commit(loginId);
-                    if (!loginId.equals(getAnonymousId())) {
-                        trackEvent(EventType.TRACK_SIGNUP, "$SignUp", null, getAnonymousId());
+    public void login(final String loginId) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    assertDistinctId(loginId);
+                    synchronized (mLoginId) {
+                        if (!loginId.equals(mLoginId.get())) {
+                            mLoginId.commit(loginId);
+                            if (!loginId.equals(getAnonymousId())) {
+                                trackEvent(EventType.TRACK_SIGNUP, "$SignUp", null, getAnonymousId());
+                            }
+                        }
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        });
     }
 
     /**
@@ -1552,9 +1597,18 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void logout() {
-        synchronized (mLoginId) {
-            mLoginId.commit(null);
-        }
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    synchronized (mLoginId) {
+                        mLoginId.commit(null);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
@@ -1570,15 +1624,23 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Deprecated
     @Override
-    public void trackSignUp(String newDistinctId, JSONObject properties) {
-        try {
-            String originalDistinctId = getDistinctId();
-            identify(newDistinctId);
+    public void trackSignUp(final String newDistinctId, final JSONObject properties) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    String originalDistinctId = getDistinctId();
 
-            trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, originalDistinctId);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+                    synchronized (mDistinctId) {
+                        mDistinctId.commit(newDistinctId);
+                    }
+
+                    trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, originalDistinctId);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
@@ -1593,15 +1655,22 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Deprecated
     @Override
-    public void trackSignUp(String newDistinctId) {
-        try {
-            String originalDistinctId = getDistinctId();
-            identify(newDistinctId);
+    public void trackSignUp(final String newDistinctId) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    String originalDistinctId = getDistinctId();
+                    synchronized (mDistinctId) {
+                        mDistinctId.commit(newDistinctId);
+                    }
 
-            trackEvent(EventType.TRACK_SIGNUP, "$SignUp", null, originalDistinctId);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+                    trackEvent(EventType.TRACK_SIGNUP, "$SignUp", null, originalDistinctId);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
@@ -1614,83 +1683,91 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param disableCallback 是否关闭这次渠道匹配的回调请求
      */
     @Override
-    public void trackInstallation(String eventName, JSONObject properties, boolean disableCallback) {
+    public void trackInstallation(final String eventName, final JSONObject properties, final boolean disableCallback) {
         //只在主进程触发 trackInstallation
-        try {
-            if (!SensorsDataUtils.isMainProcess(mContext, mMainProcessName)) {
-                return;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        final JSONObject _properties;
+        if (properties != null) {
+            _properties = properties;
+        } else {
+            _properties = new JSONObject();
         }
 
-        try {
-            boolean firstTrackInstallation;
-            if (disableCallback) {
-                firstTrackInstallation = mFirstTrackInstallationWithCallback.get();
-            } else {
-                firstTrackInstallation = mFirstTrackInstallation.get();
-            }
-            if (firstTrackInstallation) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
                 try {
-                    if (properties == null) {
-                        properties = new JSONObject();
-                    }
-
-                    if (!SensorsDataUtils.hasUtmProperties(properties)) {
-                        Map<String, String> utmMap = new HashMap<>();
-                        utmMap.put("SENSORS_ANALYTICS_UTM_SOURCE", "$utm_source");
-                        utmMap.put("SENSORS_ANALYTICS_UTM_MEDIUM", "$utm_medium");
-                        utmMap.put("SENSORS_ANALYTICS_UTM_TERM", "$utm_term");
-                        utmMap.put("SENSORS_ANALYTICS_UTM_CONTENT", "$utm_content");
-                        utmMap.put("SENSORS_ANALYTICS_UTM_CAMPAIGN", "$utm_campaign");
-
-                        for (Map.Entry<String, String> entry : utmMap.entrySet()) {
-                            if (entry != null) {
-                                String utmValue = SensorsDataUtils.getApplicationMetaData(mContext, entry.getKey());
-                                if (!TextUtils.isEmpty(utmValue)) {
-                                    properties.put(entry.getValue(), utmValue);
-                                }
-                            }
-                        }
-                    }
-
-                    if (!SensorsDataUtils.hasUtmProperties(properties)) {
-                        String installSource = String.format("android_id=%s##imei=%s##mac=%s",
-                                SensorsDataUtils.getAndroidID(mContext),
-                                SensorsDataUtils.getIMEI(mContext),
-                                SensorsDataUtils.getMacAddress(mContext));
-                        properties.put("$ios_install_source", installSource);
-                    }
-
-                    if (disableCallback) {
-                        properties.put("$ios_install_disable_callback", disableCallback);
+                    if (!SensorsDataUtils.isMainProcess(mContext, mMainProcessName)) {
+                        return;
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
 
-                // 先发送 track
-                trackEvent(EventType.TRACK, eventName, properties, null);
+                try {
+                    boolean firstTrackInstallation;
+                    if (disableCallback) {
+                        firstTrackInstallation = mFirstTrackInstallationWithCallback.get();
+                    } else {
+                        firstTrackInstallation = mFirstTrackInstallation.get();
+                    }
+                    if (firstTrackInstallation) {
+                        try {
+                            if (!SensorsDataUtils.hasUtmProperties(_properties)) {
+                                Map<String, String> utmMap = new HashMap<>();
+                                utmMap.put("SENSORS_ANALYTICS_UTM_SOURCE", "$utm_source");
+                                utmMap.put("SENSORS_ANALYTICS_UTM_MEDIUM", "$utm_medium");
+                                utmMap.put("SENSORS_ANALYTICS_UTM_TERM", "$utm_term");
+                                utmMap.put("SENSORS_ANALYTICS_UTM_CONTENT", "$utm_content");
+                                utmMap.put("SENSORS_ANALYTICS_UTM_CAMPAIGN", "$utm_campaign");
 
-                // 再发送 profile_set_once
-                JSONObject profileProperties = new JSONObject();
-                if (properties != null) {
-                    profileProperties = new JSONObject(properties.toString());
-                }
-                profileProperties.put("$first_visit_time", new java.util.Date());
-                trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null);
+                                for (Map.Entry<String, String> entry : utmMap.entrySet()) {
+                                    if (entry != null) {
+                                        String utmValue = SensorsDataUtils.getApplicationMetaData(mContext, entry.getKey());
+                                        if (!TextUtils.isEmpty(utmValue)) {
+                                            _properties.put(entry.getValue(), utmValue);
+                                        }
+                                    }
+                                }
+                            }
 
-                if (disableCallback) {
-                    mFirstTrackInstallationWithCallback.commit(false);
-                } else {
-                    mFirstTrackInstallation.commit(false);
+                            if (!SensorsDataUtils.hasUtmProperties(_properties)) {
+                                String installSource = String.format("android_id=%s##imei=%s##mac=%s",
+                                        SensorsDataUtils.getAndroidID(mContext),
+                                        SensorsDataUtils.getIMEI(mContext),
+                                        SensorsDataUtils.getMacAddress(mContext));
+                                _properties.put("$ios_install_source", installSource);
+                            }
+
+                            if (disableCallback) {
+                                _properties.put("$ios_install_disable_callback", disableCallback);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+
+                        // 先发送 track
+                        trackEvent(EventType.TRACK, eventName, _properties, null);
+
+                        // 再发送 profile_set_once
+                        JSONObject profileProperties = new JSONObject();
+                        if (_properties != null) {
+                            profileProperties = new JSONObject(_properties.toString());
+                        }
+                        profileProperties.put("$first_visit_time", new java.util.Date());
+                        trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null);
+
+                        if (disableCallback) {
+                            mFirstTrackInstallationWithCallback.commit(false);
+                        } else {
+                            mFirstTrackInstallation.commit(false);
+                        }
+                    }
+                    flush();
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
-            flush();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        });
     }
 
     /**
@@ -1725,12 +1802,17 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param properties 事件的属性
      */
     @Override
-    public void track(String eventName, JSONObject properties) {
-        try {
-            trackEvent(EventType.TRACK, eventName, properties, null);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public void track(final String eventName, final JSONObject properties) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    trackEvent(EventType.TRACK, eventName, properties, null);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
@@ -1739,12 +1821,17 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param eventName 事件的名称
      */
     @Override
-    public void track(String eventName) {
-        try {
-            trackEvent(EventType.TRACK, eventName, null, null);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public void track(final String eventName) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    trackEvent(EventType.TRACK, eventName, null, null);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
@@ -1757,11 +1844,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Deprecated
     @Override
     public void trackTimer(final String eventName) {
-        try {
-            trackTimer(eventName, TimeUnit.MILLISECONDS);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        trackTimer(eventName, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -1779,14 +1862,19 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Deprecated
     @Override
     public void trackTimer(final String eventName, final TimeUnit timeUnit) {
-        try {
-            assertKey(eventName);
-            synchronized (mTrackTimer) {
-                mTrackTimer.put(eventName, new EventTimer(timeUnit));
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    assertKey(eventName);
+                    synchronized (mTrackTimer) {
+                        mTrackTimer.put(eventName, new EventTimer(timeUnit));
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        });
     }
 
     /**
@@ -1836,8 +1924,17 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param properties 事件的属性
      */
     @Override
-    public void trackTimerEnd(final String eventName, JSONObject properties) {
-        track(eventName, properties);
+    public void trackTimerEnd(final String eventName, final JSONObject properties) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    track(eventName, properties);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
@@ -1846,7 +1943,16 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void trackTimerEnd(final String eventName) {
-        track(eventName);
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    track(eventName);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
@@ -1854,9 +1960,18 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void clearTrackTimer() {
-        synchronized (mTrackTimer) {
-            mTrackTimer.clear();
-        }
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    synchronized (mTrackTimer) {
+                        mTrackTimer.clear();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
@@ -1903,26 +2018,31 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param properties JSONObject
      */
     @Override
-    public void trackViewScreen(String url, JSONObject properties) {
-        try {
-            if (!TextUtils.isEmpty(url) || properties != null) {
-                JSONObject trackProperties = new JSONObject();
-                mLastScreenTrackProperties = properties;
+    public void trackViewScreen(final String url, final JSONObject properties) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (!TextUtils.isEmpty(url) || properties != null) {
+                        JSONObject trackProperties = new JSONObject();
+                        mLastScreenTrackProperties = properties;
 
-                if (!TextUtils.isEmpty(mLastScreenUrl)) {
-                    trackProperties.put("$referrer", mLastScreenUrl);
-                }
+                        if (!TextUtils.isEmpty(mLastScreenUrl)) {
+                            trackProperties.put("$referrer", mLastScreenUrl);
+                        }
 
-                trackProperties.put("$url", url);
-                mLastScreenUrl = url;
-                if (properties != null) {
-                    SensorsDataUtils.mergeJSONObject(properties, trackProperties);
+                        trackProperties.put("$url", url);
+                        mLastScreenUrl = url;
+                        if (properties != null) {
+                            SensorsDataUtils.mergeJSONObject(properties, trackProperties);
+                        }
+                        track("$AppViewScreen", trackProperties);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                track("$AppViewScreen", trackProperties);
             }
-        } catch (JSONException e) {
-            SALog.i(TAG, "trackViewScreen:" + e);
-        }
+        });
     }
 
     /**
@@ -1930,88 +2050,125 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param activity activity Activity，当前 Activity
      */
     @Override
-    public void trackViewScreen(Activity activity) {
-        try {
-            if (activity == null) {
-                return;
-            }
-
-            JSONObject properties = new JSONObject();
-            properties.put("$screen_name", activity.getClass().getCanonicalName());
-            SensorsDataUtils.getScreenNameAndTitleFromActivity(properties, activity);
-
-            if (activity instanceof ScreenAutoTracker) {
-                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
-
-                String screenUrl = screenAutoTracker.getScreenUrl();
-                JSONObject otherProperties = screenAutoTracker.getTrackProperties();
-                if (otherProperties != null) {
-                    SensorsDataUtils.mergeJSONObject(otherProperties, properties);
-                }
-
-                trackViewScreen(screenUrl, properties);
-            } else {
-                track("$AppViewScreen", properties);
-            }
-        } catch (Exception e) {
-            SALog.i(TAG, "trackViewScreen:" + e);
-        }
-    }
-
-    @Override
-    public void trackViewScreen(android.app.Fragment fragment) {
-        try {
-            if (fragment == null) {
-                return;
-            }
-
-            JSONObject properties = new JSONObject();
-            String fragmentName = fragment.getClass().getCanonicalName();
-            String screenName = fragmentName;
-
-            if (Build.VERSION.SDK_INT >= 11) {
-                Activity activity = fragment.getActivity();
-                if (activity != null) {
-                    String activityTitle = SensorsDataUtils.getActivityTitle(activity);
-                    if (!TextUtils.isEmpty(activityTitle)) {
-                        properties.put("$title", activityTitle);
+    public void trackViewScreen(final Activity activity) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (activity == null) {
+                        return;
                     }
-                    screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName);
+
+                    JSONObject properties = new JSONObject();
+                    properties.put("$screen_name", activity.getClass().getCanonicalName());
+                    SensorsDataUtils.getScreenNameAndTitleFromActivity(properties, activity);
+
+                    if (activity instanceof ScreenAutoTracker) {
+                        ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
+
+                        String screenUrl = screenAutoTracker.getScreenUrl();
+                        JSONObject otherProperties = screenAutoTracker.getTrackProperties();
+                        if (otherProperties != null) {
+                            SensorsDataUtils.mergeJSONObject(otherProperties, properties);
+                        }
+
+                        trackViewScreen(screenUrl, properties);
+                    } else {
+                        track("$AppViewScreen", properties);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
-
-            properties.put("$screen_name", screenName);
-            track("$AppViewScreen", properties);
-        } catch (Exception e) {
-            SALog.i(TAG, "trackViewScreen:" + e);
-        }
+        });
     }
 
     @Override
-    public void trackViewScreen(android.support.v4.app.Fragment fragment) {
-        try {
-            if (fragment == null) {
-                return;
-            }
+    public void trackViewScreen(final android.app.Fragment fragment) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (fragment == null) {
+                        return;
+                    }
 
-            JSONObject properties = new JSONObject();
-            String fragmentName = fragment.getClass().getCanonicalName();
-            String screenName = fragmentName;
+                    JSONObject properties = new JSONObject();
+                    String fragmentName = fragment.getClass().getCanonicalName();
+                    String screenName = fragmentName;
 
-            Activity activity = fragment.getActivity();
-            if (activity != null) {
-                String activityTitle = SensorsDataUtils.getActivityTitle(activity);
-                if (!TextUtils.isEmpty(activityTitle)) {
-                    properties.put("$title", activityTitle);
+                    if (Build.VERSION.SDK_INT >= 11) {
+                        Activity activity = fragment.getActivity();
+                        if (activity != null) {
+                            String activityTitle = SensorsDataUtils.getActivityTitle(activity);
+                            if (!TextUtils.isEmpty(activityTitle)) {
+                                properties.put("$title", activityTitle);
+                            }
+                            screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName);
+                        }
+                    }
+
+                    properties.put("$screen_name", screenName);
+                    track("$AppViewScreen", properties);
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName);
+            }
+        });
+    }
+
+    @Override
+    public void trackViewScreen(final android.support.v4.app.Fragment fragment) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (fragment == null) {
+                        return;
+                    }
+
+                    JSONObject properties = new JSONObject();
+                    String fragmentName = fragment.getClass().getCanonicalName();
+                    String screenName = fragmentName;
+
+                    Activity activity = fragment.getActivity();
+                    if (activity != null) {
+                        String activityTitle = SensorsDataUtils.getActivityTitle(activity);
+                        if (!TextUtils.isEmpty(activityTitle)) {
+                            properties.put("$title", activityTitle);
+                        }
+                        screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName);
+                    }
+
+                    properties.put("$screen_name", screenName);
+                    track("$AppViewScreen", properties);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    public void trackViewPager(final ViewPager viewPager) {
+        if (viewPager == null) {
+            return;
+        }
+        viewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+
             }
 
-            properties.put("$screen_name", screenName);
-            track("$AppViewScreen", properties);
-        } catch (Exception e) {
-            SALog.i(TAG, "trackViewScreen:" + e);
-        }
+            @Override
+            public void onPageSelected(int position) {
+                SensorsDataAutoTrackHelper.trackViewOnClick(viewPager);
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+
+            }
+        });
     }
 
     /**
@@ -2084,6 +2241,14 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     /**
+     * 删除本地缓存的全部事件
+     */
+    @Override
+    public void deleteAll() {
+        mMessages.deleteAll();
+    }
+
+    /**
      * 获取事件公共属性
      *
      * @return 当前所有Super属性
@@ -2152,12 +2317,17 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param properties 属性列表
      */
     @Override
-    public void profileSet(JSONObject properties) {
-        try {
-            trackEvent(EventType.PROFILE_SET, null, properties, null);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public void profileSet(final JSONObject properties) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    trackEvent(EventType.PROFILE_SET, null, properties, null);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
@@ -2168,12 +2338,17 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      *                 {@link java.lang.String}, {@link java.lang.Number}, {@link java.util.Date}, {@link java.util.List}
      */
     @Override
-    public void profileSet(String property, Object value) {
-        try {
-            trackEvent(EventType.PROFILE_SET, null, new JSONObject().put(property, value), null);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public void profileSet(final String property, final Object value) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    trackEvent(EventType.PROFILE_SET, null, new JSONObject().put(property, value), null);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
@@ -2183,12 +2358,17 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param properties 属性列表
      */
     @Override
-    public void profileSetOnce(JSONObject properties)  {
-        try {
-            trackEvent(EventType.PROFILE_SET_ONCE, null, properties, null);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public void profileSetOnce(final JSONObject properties)  {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    trackEvent(EventType.PROFILE_SET_ONCE, null, properties, null);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
@@ -2200,12 +2380,17 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      *                 {@link java.lang.String}, {@link java.lang.Number}, {@link java.util.Date}, {@link java.util.List}
      */
     @Override
-    public void profileSetOnce(String property, Object value) {
-        try {
-            trackEvent(EventType.PROFILE_SET_ONCE, null, new JSONObject().put(property, value), null);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public void profileSetOnce(final String property, final Object value) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    trackEvent(EventType.PROFILE_SET_ONCE, null, new JSONObject().put(property, value), null);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
@@ -2215,12 +2400,17 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param properties 一个或多个属性集合
      */
     @Override
-    public void profileIncrement(Map<String, ? extends Number> properties) {
-        try {
-            trackEvent(EventType.PROFILE_INCREMENT, null, new JSONObject(properties), null);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public void profileIncrement(final Map<String, ? extends Number> properties) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    trackEvent(EventType.PROFILE_INCREMENT, null, new JSONObject(properties), null);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
@@ -2231,12 +2421,17 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param value    属性的值，值的类型只允许为 {@link java.lang.Number}
      */
     @Override
-    public void profileIncrement(String property, Number value) {
-        try {
-            trackEvent(EventType.PROFILE_INCREMENT, null, new JSONObject().put(property, value), null);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public void profileIncrement(final String property, final Number value) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    trackEvent(EventType.PROFILE_INCREMENT, null, new JSONObject().put(property, value), null);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
@@ -2246,16 +2441,21 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param value    新增的元素
      */
     @Override
-    public void profileAppend(String property, String value) {
-        try {
-            final JSONArray append_values = new JSONArray();
-            append_values.put(value);
-            final JSONObject properties = new JSONObject();
-            properties.put(property, append_values);
-            trackEvent(EventType.PROFILE_APPEND, null, properties, null);
-        } catch (final Exception e) {
-            e.printStackTrace();
-        }
+    public void profileAppend(final String property, final String value) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    final JSONArray append_values = new JSONArray();
+                    append_values.put(value);
+                    final JSONObject properties = new JSONObject();
+                    properties.put(property, append_values);
+                    trackEvent(EventType.PROFILE_APPEND, null, properties, null);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
@@ -2265,18 +2465,23 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param values   新增的元素集合
      */
     @Override
-    public void profileAppend(String property, Set<String> values) {
-        try {
-            final JSONArray append_values = new JSONArray();
-            for (String value : values) {
-                append_values.put(value);
+    public void profileAppend(final String property, final Set<String> values) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    final JSONArray append_values = new JSONArray();
+                    for (String value : values) {
+                        append_values.put(value);
+                    }
+                    final JSONObject properties = new JSONObject();
+                    properties.put(property, append_values);
+                    trackEvent(EventType.PROFILE_APPEND, null, properties, null);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
-            final JSONObject properties = new JSONObject();
-            properties.put(property, append_values);
-            trackEvent(EventType.PROFILE_APPEND, null, properties, null);
-        } catch (final Exception e) {
-            e.printStackTrace();
-        }
+        });
     }
 
     /**
@@ -2285,12 +2490,17 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param property 属性名称
      */
     @Override
-    public void profileUnset(String property) {
-        try {
-            trackEvent(EventType.PROFILE_UNSET, null, new JSONObject().put(property, true), null);
-        } catch (final Exception e) {
-            e.printStackTrace();
-        }
+    public void profileUnset(final String property) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    trackEvent(EventType.PROFILE_UNSET, null, new JSONObject().put(property, true), null);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**
@@ -2298,11 +2508,16 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void profileDelete() {
-        try {
-            trackEvent(EventType.PROFILE_DELETE, null, null, null);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    trackEvent(EventType.PROFILE_DELETE, null, null, null);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     @Override
@@ -2528,199 +2743,209 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             eventTimer = null;
         }
 
-        SensorsDataThreadPool.getInstance().execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (eventType.isTrack()) {
-                        assertKey(eventName);
-                    }
-                    assertPropertyTypes(eventType, properties);
+        try {
+            if (eventType.isTrack()) {
+                assertKey(eventName);
+            }
+            assertPropertyTypes(eventType, properties);
 
+            try {
+                JSONObject sendProperties;
+
+                if (eventType.isTrack()) {
+                    sendProperties = new JSONObject(mDeviceInfo);
+
+                    //之前可能会因为没有权限无法获取运营商信息，检测再次获取
                     try {
-                        JSONObject sendProperties;
-
-                        if (eventType.isTrack()) {
-                            sendProperties = new JSONObject(mDeviceInfo);
-
-                            //之前可能会因为没有权限无法获取运营商信息，检测再次获取
-                            try {
-                                if (TextUtils.isEmpty(sendProperties.optString("$carrier"))) {
-                                    String carrier = SensorsDataUtils.getCarrier(mContext);
-                                    if (!TextUtils.isEmpty(carrier)) {
-                                        sendProperties.put("$carrier", carrier);
-                                    }
-                                }
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-
-                            synchronized (mSuperProperties) {
-                                JSONObject superProperties = mSuperProperties.get();
-                                SensorsDataUtils.mergeJSONObject(superProperties, sendProperties);
-                            }
-
-                            // 当前网络状况
-                            String networkType = SensorsDataUtils.networkType(mContext);
-                            sendProperties.put("$wifi", networkType.equals("WIFI"));
-                            sendProperties.put("$network_type", networkType);
-
-
-                            // GPS
-                            try {
-                                if (mGPSLocation != null) {
-                                    sendProperties.put("$latitude", mGPSLocation.getLatitude());
-                                    sendProperties.put("$longitude", mGPSLocation.getLongitude());
-                                }
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-
-                            // 屏幕方向
-                            try {
-                                String screenOrientation = getScreenOrientation();
-                                if (!TextUtils.isEmpty(screenOrientation)) {
-                                    sendProperties.put("$screen_orientation", screenOrientation);
-                                }
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        } else if (eventType.isProfile()) {
-                            sendProperties = new JSONObject();
-                        } else {
-                            return;
-                        }
-
-                        String libDetail = null;
-                        if (null != properties) {
-                            try {
-                                if (properties.has("$lib_detail")) {
-                                    libDetail = properties.getString("$lib_detail");
-                                    properties.remove("$lib_detail");
-                                }
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                            SensorsDataUtils.mergeJSONObject(properties, sendProperties);
-                        }
-
-                        if (null != eventTimer) {
-                            try {
-                                Double duration = Double.valueOf(eventTimer.duration());
-                                if (duration > 0) {
-                                    sendProperties.put("event_duration", duration);
-                                }
-                            } catch (Exception e) {
-                                //ignore
-                                e.printStackTrace();
+                        if (TextUtils.isEmpty(sendProperties.optString("$carrier"))) {
+                            String carrier = SensorsDataUtils.getCarrier(mContext);
+                            if (!TextUtils.isEmpty(carrier)) {
+                                sendProperties.put("$carrier", carrier);
                             }
                         }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
 
-                        JSONObject libProperties = new JSONObject();
-                        libProperties.put("$lib", "Android");
-                        libProperties.put("$lib_version", VERSION);
-
-                        if (mDeviceInfo.containsKey("$app_version")) {
-                            libProperties.put("$app_version", mDeviceInfo.get("$app_version"));
-                        }
-
-                        //update lib $app_version from super properties
+                    synchronized (mSuperProperties) {
                         JSONObject superProperties = mSuperProperties.get();
-                        if (superProperties != null) {
-                            if (superProperties.has("$app_version")) {
-                                libProperties.put("$app_version", superProperties.get("$app_version"));
-                            }
+                        SensorsDataUtils.mergeJSONObject(superProperties, sendProperties);
+                    }
+
+                    // 当前网络状况
+                    String networkType = SensorsDataUtils.networkType(mContext);
+                    sendProperties.put("$wifi", networkType.equals("WIFI"));
+                    sendProperties.put("$network_type", networkType);
+
+
+                    // GPS
+                    try {
+                        if (mGPSLocation != null) {
+                            sendProperties.put("$latitude", mGPSLocation.getLatitude());
+                            sendProperties.put("$longitude", mGPSLocation.getLongitude());
                         }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
 
-                        final JSONObject dataObj = new JSONObject();
-
-                        try {
-                            Random random = new Random();
-                            dataObj.put("_track_id", random.nextInt());
-                        } catch (Exception e) {
-                            //ignore
+                    // 屏幕方向
+                    try {
+                        String screenOrientation = getScreenOrientation();
+                        if (!TextUtils.isEmpty(screenOrientation)) {
+                            sendProperties.put("$screen_orientation", screenOrientation);
                         }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else if (eventType.isProfile()) {
+                    sendProperties = new JSONObject();
+                } else {
+                    return;
+                }
 
-                        final long now = System.currentTimeMillis();
-                        dataObj.put("time", now);
-                        dataObj.put("type", eventType.getEventType());
-
-                        try {
-                            if (sendProperties.has("$project")) {
-                                dataObj.put("project", sendProperties.optString("$project"));
-                                sendProperties.remove("$project");
-                            }
-
-                            if (sendProperties.has("$token")) {
-                                dataObj.put("token", sendProperties.optString("$token"));
-                                sendProperties.remove("$token");
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                String libDetail = null;
+                if (null != properties) {
+                    try {
+                        if (properties.has("$lib_detail")) {
+                            libDetail = properties.getString("$lib_detail");
+                            properties.remove("$lib_detail");
                         }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    SensorsDataUtils.mergeJSONObject(properties, sendProperties);
+                }
 
-                        dataObj.put("properties", sendProperties);
-                        if (!TextUtils.isEmpty(getLoginId())) {
-                            dataObj.put("distinct_id", getLoginId());
-                        } else {
-                            dataObj.put("distinct_id", getAnonymousId());
+                if (null != eventTimer) {
+                    try {
+                        Double duration = Double.valueOf(eventTimer.duration());
+                        if (duration > 0) {
+                            sendProperties.put("event_duration", duration);
                         }
-                        dataObj.put("lib", libProperties);
+                    } catch (Exception e) {
+                        //ignore
+                        e.printStackTrace();
+                    }
+                }
 
-                        if (eventType == EventType.TRACK) {
-                            dataObj.put("event", eventName);
-                            //是否首日访问
-                            sendProperties.put("$is_first_day", isFirstDay());
-                        } else if (eventType == EventType.TRACK_SIGNUP) {
-                            dataObj.put("event", eventName);
-                            dataObj.put("original_id", originalDistinctId);
-                        }
+                JSONObject libProperties = new JSONObject();
+                libProperties.put("$lib", "Android");
+                libProperties.put("$lib_version", VERSION);
 
-                        libProperties.put("$lib_method", "code");
+                if (mDeviceInfo.containsKey("$app_version")) {
+                    libProperties.put("$app_version", mDeviceInfo.get("$app_version"));
+                }
 
-                            if (mAutoTrack && properties != null) {
-                                if (AutoTrackEventType.APP_VIEW_SCREEN.getEventName().equals(eventName) ||
-                                        AutoTrackEventType.APP_CLICK.getEventName().equals(eventName) ||
-                                        AutoTrackEventType.APP_START.getEventName().equals(eventName) ||
-                                        AutoTrackEventType.APP_END.getEventName().equals(eventName)) {
-                                    AutoTrackEventType trackEventType = AutoTrackEventType.autoTrackEventTypeFromEventName(eventName);
-                                    if (trackEventType != null) {
-                                        if (mAutoTrackEventTypeList.contains(trackEventType)) {
-                                            if (properties.has("$screen_name")) {
-                                                String screenName = properties.getString("$screen_name");
-                                                if (!TextUtils.isEmpty(screenName)) {
-                                                    String screenNameArray[] = screenName.split("\\|");
-                                                    if (screenNameArray.length > 0) {
-                                                        libDetail = String.format("%s##%s##%s##%s", screenNameArray[0], "", "", "");
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                //update lib $app_version from super properties
+                JSONObject superProperties = mSuperProperties.get();
+                if (superProperties != null) {
+                    if (superProperties.has("$app_version")) {
+                        libProperties.put("$app_version", superProperties.get("$app_version"));
+                    }
+                }
 
-                            if (TextUtils.isEmpty(libDetail)) {
-                                StackTraceElement[] trace = (new Exception()).getStackTrace();
-                                if (trace.length > 2) {
-                                    StackTraceElement traceElement = trace[2];
-                                    libDetail = String.format("%s##%s##%s##%s", traceElement
-                                                    .getClassName(), traceElement.getMethodName(), traceElement.getFileName(),
-                                            traceElement.getLineNumber());
-                                }
-                            }
+                final JSONObject dataObj = new JSONObject();
 
-                            libProperties.put("$lib_detail", libDetail);
-                            mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
-                            SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(dataObj.toString()));
-                    } catch (JSONException e) {
-                        throw new InvalidDataException("Unexpected property");
+                try {
+                    Random random = new Random();
+                    dataObj.put("_track_id", random.nextInt());
+                } catch (Exception e) {
+                    //ignore
+                }
+
+                final long now = System.currentTimeMillis();
+                dataObj.put("time", now);
+                dataObj.put("type", eventType.getEventType());
+
+                try {
+                    if (sendProperties.has("$project")) {
+                        dataObj.put("project", sendProperties.optString("$project"));
+                        sendProperties.remove("$project");
+                    }
+
+                    if (sendProperties.has("$token")) {
+                        dataObj.put("token", sendProperties.optString("$token"));
+                        sendProperties.remove("$token");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+
+                dataObj.put("properties", sendProperties);
+                if (!TextUtils.isEmpty(getLoginId())) {
+                    dataObj.put("distinct_id", getLoginId());
+                } else {
+                    dataObj.put("distinct_id", getAnonymousId());
+                }
+                dataObj.put("lib", libProperties);
+
+                if (eventType == EventType.TRACK) {
+                    dataObj.put("event", eventName);
+                    //是否首日访问
+                    sendProperties.put("$is_first_day", isFirstDay());
+                } else if (eventType == EventType.TRACK_SIGNUP) {
+                    dataObj.put("event", eventName);
+                    dataObj.put("original_id", originalDistinctId);
+                }
+
+                libProperties.put("$lib_method", "code");
+
+                if (mAutoTrack && properties != null) {
+                    if (AutoTrackEventType.APP_VIEW_SCREEN.getEventName().equals(eventName) ||
+                            AutoTrackEventType.APP_CLICK.getEventName().equals(eventName) ||
+                            AutoTrackEventType.APP_START.getEventName().equals(eventName) ||
+                            AutoTrackEventType.APP_END.getEventName().equals(eventName)) {
+                        AutoTrackEventType trackEventType = AutoTrackEventType.autoTrackEventTypeFromEventName(eventName);
+                        if (trackEventType != null) {
+                            if (mAutoTrackEventTypeList.contains(trackEventType)) {
+                                if (properties.has("$screen_name")) {
+                                    String screenName = properties.getString("$screen_name");
+                                    if (!TextUtils.isEmpty(screenName)) {
+                                        String screenNameArray[] = screenName.split("\\|");
+                                        if (screenNameArray.length > 0) {
+                                            libDetail = String.format("%s##%s##%s##%s", screenNameArray[0], "", "", "");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (TextUtils.isEmpty(libDetail)) {
+                    StackTraceElement[] trace = (new Exception()).getStackTrace();
+                    if (trace.length > 2) {
+                        StackTraceElement traceElement = trace[2];
+                        libDetail = String.format("%s##%s##%s##%s", traceElement
+                                        .getClassName(), traceElement.getMethodName(), traceElement.getFileName(),
+                                traceElement.getLineNumber());
+                    }
+                }
+
+                libProperties.put("$lib_detail", libDetail);
+
+                //防止用户自定义事件以及公共属性可能会加$device_id属性，导致覆盖sdk原始的$device_id属性值
+                if (sendProperties.has("$device_id")){//由于profileSet等类型事件没有$device_id属性，故加此判断
+                    sendProperties.put("$device_id",mDeviceInfo.get("$device_id"));
+                }
+
+                mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
+                SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(dataObj.toString()));
+            } catch (JSONException e) {
+                throw new InvalidDataException("Unexpected property");
             }
-        });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void stopTrackTaskThread() {
+        mTrackTaskManagerThread.setStop(true);
+    }
+
+    public void resumeTrackTaskThread() {
+        mTrackTaskManagerThread = new TrackTaskManagerThread();
+        new Thread(mTrackTaskManagerThread).start();
     }
 
     private boolean isFirstDay() {
@@ -2755,12 +2980,14 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 }
 
                 if ("app_crashed_reason".equals(key)) {
-                    if (value instanceof String && !key.startsWith("$") && ((String) value).length() > 8191 * 2) {
+                    if (value instanceof String && ((String) value).length() > 8191 * 2) {
+                        properties.put(key, ((String) value).substring(0, 8191 * 2) + "$");
                         SALog.d(TAG, "The property value is too long. [key='" + key
                                 + "', value='" + value.toString() + "']");
                     }
                 } else {
-                    if (value instanceof String && !key.startsWith("$") && ((String) value).length() > 8191) {
+                    if (value instanceof String && ((String) value).length() > 8191) {
+                        properties.put(key, ((String) value).substring(0, 8191) + "$");
                         SALog.d(TAG, "The property value is too long. [key='" + key
                                 + "', value='" + value.toString() + "']");
                     }
@@ -2793,7 +3020,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "1.10.7";
+    static final String VERSION = "2.0.0";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -2849,6 +3076,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private int mFlushNetworkPolicy = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
     private final String mMainProcessName;
     private long mMaxCacheSize = 32 * 1024 * 1024; //default 32MB
+    private String mCookie;
+    private TrackTaskManager mTrackTaskManager;
+    private TrackTaskManagerThread mTrackTaskManagerThread;
 
     private SensorsDataScreenOrientationDetector mOrientationDetector;
 

@@ -1,6 +1,10 @@
 package com.sensorsdata.analytics.android.sdk;
 
 
+import android.content.Context;
+
+import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -16,16 +20,18 @@ public class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHand
 
     private static SensorsDataExceptionHandler sInstance;
     private final Thread.UncaughtExceptionHandler mDefaultExceptionHandler;
+    private static Context mContext;
 
     SensorsDataExceptionHandler() {
         mDefaultExceptionHandler = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler(this);
     }
 
-    public static void init() {
+    public static void init(Context context) {
         if (sInstance == null) {
             synchronized (SensorsDataExceptionHandler.class) {
                 if (sInstance == null) {
+                    mContext = context;
                     sInstance = new SensorsDataExceptionHandler();
                 }
             }
@@ -60,7 +66,9 @@ public class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHand
                     sensorsData.track("AppCrashed", messageProp);
                     sensorsData.clearLastScreenUrl();
                     if (!sensorsData.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_END)) {
-                        sensorsData.track("$AppEnd");
+                        if (SensorsDataUtils.isMainProcess(mContext, SensorsDataAPI.sharedInstance(mContext).getMainProcessName())) {
+                            sensorsData.track("$AppEnd");
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();

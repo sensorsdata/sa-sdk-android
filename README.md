@@ -1,7 +1,3 @@
-# 免责声明
-
-请勿将此 SDK 用于非法行为，否则后果自负，与神策以及源码开发者均无关！
-
 # Sensors Analytics
 
 This is the official Android SDK for Sensors Analytics.

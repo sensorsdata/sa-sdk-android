@@ -36,6 +36,7 @@ import java.io.File;
 
     public static final String KEY_DATA = "data";
     public static final String KEY_CREATED_AT = "created_at";
+    public static final String DATABASE_NAME = "sensorsdata";
 
     public static final int DB_UPDATE_ERROR = -1;
     public static final int DB_OUT_OF_MEMORY_ERROR = -2;
@@ -63,11 +64,11 @@ import java.io.File;
 
     private ContentResolver contentResolver;
 
-    public DbAdapter(Context context, String dbName) {
+    public DbAdapter(Context context, String packageName) {
         mContext = context;
         contentResolver = mContext.getContentResolver();
-        mDatabaseFile = context.getDatabasePath(dbName);
-        mUri = Uri.parse("content://" + dbName + ".SensorsDataContentProvider/" + Table.EVENTS.getName());
+        mDatabaseFile = context.getDatabasePath(DbAdapter.DATABASE_NAME);
+        mUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + Table.EVENTS.getName());
     }
 
     /**
@@ -117,6 +118,18 @@ import java.io.File;
             }
         }
         return count;
+    }
+
+    /**
+     * Removes all events from table
+     *
+     */
+    public void deleteAllEvents() {
+        try {
+            contentResolver.delete(mUri, null, new String[]{});
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**

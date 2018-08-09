@@ -21,8 +21,8 @@ class SensorsDataDBHelper extends SQLiteOpenHelper {
             "CREATE INDEX IF NOT EXISTS time_idx ON " + DbAdapter.Table.EVENTS.getName() +
                     " (" + KEY_CREATED_AT + ");";
 
-    SensorsDataDBHelper(Context context, String dbName) {
-        super(context, dbName, null, DATABASE_VERSION);
+    SensorsDataDBHelper(Context context) {
+        super(context, DbAdapter.DATABASE_NAME, null, DATABASE_VERSION);
     }
 
     @Override

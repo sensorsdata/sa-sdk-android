@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
@@ -16,6 +17,7 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.webkit.WebSettings;
@@ -26,6 +28,9 @@ import com.sensorsdata.analytics.android.sdk.SensorsDataSDKRemoteConfig;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.NetworkInterface;
@@ -43,6 +48,7 @@ import java.util.UUID;
 public final class SensorsDataUtils {
     /**
      * 将 json 格式的字符串转成 SensorsDataSDKRemoteConfig 对象，并处理默认值
+     *
      * @param config
      * @return
      */
@@ -77,6 +83,34 @@ public final class SensorsDataUtils {
         return sdkRemoteConfig;
     }
 
+    private static String getJsonFromAssets(String fileName, Context context) {
+        //将json数据变成字符串
+        StringBuilder stringBuilder = new StringBuilder();
+        BufferedReader bf = null;
+        try {
+            //获取assets资源管理器
+            AssetManager assetManager = context.getAssets();
+            //通过管理器打开文件并读取
+            bf = new BufferedReader(new InputStreamReader(
+                    assetManager.open(fileName)));
+            String line;
+            while ((line = bf.readLine()) != null) {
+                stringBuilder.append(line);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (bf != null) {
+                try {
+                    bf.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return stringBuilder.toString();
+    }
+
     public static String getCarrier(Context context) {
         try {
             if (SensorsDataUtils.checkHasPermission(context, "android.permission.READ_PHONE_STATE")) {
@@ -85,9 +119,8 @@ public final class SensorsDataUtils {
                             .TELEPHONY_SERVICE);
                     if (telephonyManager != null) {
                         String operatorString = telephonyManager.getSubscriberId();
-
                         if (!TextUtils.isEmpty(operatorString)) {
-                            return SensorsDataUtils.operatorToCarrier(operatorString);
+                            return SensorsDataUtils.operatorToCarrier(context, operatorString);
                         }
                     }
                 } catch (Exception e) {
@@ -100,6 +133,7 @@ public final class SensorsDataUtils {
 
         return null;
     }
+
     /**
      * 获取 Activity 的 title
      *
@@ -196,19 +230,55 @@ public final class SensorsDataUtils {
         return false;
     }
 
-    public static String operatorToCarrier(String operator) {
-        String other = "其他";
-        if (TextUtils.isEmpty(operator)) {
-            return other;
-        }
+    public static String operatorToCarrier(Context context, String operator) {
+        final String other = "其他";
 
-        for (Map.Entry<String, String> entry : sCarrierMap.entrySet()) {
-            if (operator.startsWith(entry.getKey())) {
-                return entry.getValue();
+        try {
+            if (TextUtils.isEmpty(operator)) {
+                return other;
             }
-        }
 
+            for (Map.Entry<String, String> entry : sCarrierMap.entrySet()) {
+                if (operator.startsWith(entry.getKey())) {
+                    return entry.getValue();
+                }
+            }
+
+            String carrierJson = getJsonFromAssets("sa_mcc_mnc_mini.json", context);
+            if (TextUtils.isEmpty(carrierJson)) {
+                return other;
+            }
+
+            JSONObject jsonObject = new JSONObject(carrierJson);
+            int operatorLength = operator.length();
+            String carrier = null;
+
+            //mcc与mnc之和为5位数或6位数,6位数比较少，先截取6位数进行判断
+            if (operatorLength >= 6) {
+                String mccMnc = operator.substring(0, 6);
+                carrier = getCarrierFromJsonObject(jsonObject, mccMnc);
+            }
+
+            if (TextUtils.isEmpty(carrier) && operatorLength >= 5) {
+                String mccMnc = operator.substring(0, 5);
+                carrier = getCarrierFromJsonObject(jsonObject, mccMnc);
+            }
+
+            if (!TextUtils.isEmpty(carrier)) {
+                return carrier;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return other;
+    }
+
+    private static String getCarrierFromJsonObject(JSONObject jsonObject, String mccMnc) {
+        if (jsonObject == null || TextUtils.isEmpty(mccMnc)) {
+            return null;
+        }
+        return jsonObject.optString(mccMnc);
+
     }
 
     private static SharedPreferences getSharedPreferences(Context context) {
@@ -217,11 +287,25 @@ public final class SensorsDataUtils {
 
     @TargetApi(11)
     public static String getToolbarTitle(Activity activity) {
-        ActionBar actionBar = activity.getActionBar();
-        if (actionBar != null) {
-            if (!TextUtils.isEmpty(actionBar.getTitle())) {
-                return actionBar.getTitle().toString();
+        try {
+            ActionBar actionBar = activity.getActionBar();
+            if (actionBar != null) {
+                if (!TextUtils.isEmpty(actionBar.getTitle())) {
+                    return actionBar.getTitle().toString();
+                }
+            } else {
+                if (activity instanceof AppCompatActivity) {
+                    AppCompatActivity appCompatActivity = (AppCompatActivity) activity;
+                    android.support.v7.app.ActionBar supportActionBar = appCompatActivity.getSupportActionBar();
+                    if (supportActionBar != null) {
+                        if (!TextUtils.isEmpty(supportActionBar.getTitle())) {
+                            return supportActionBar.getTitle().toString();
+                        }
+                    }
+                }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return null;
     }
@@ -616,6 +700,13 @@ public final class SensorsDataUtils {
             put("46003", "中国电信");
             put("46005", "中国电信");
             put("46011", "中国电信");
+
+            //中国卫通
+            put("46004", "中国卫通");
+
+            //中国铁通
+            put("46020", "中国铁通");
+
         }
     };
     private static final List<String> mInvalidAndroidId = new ArrayList<String>() {

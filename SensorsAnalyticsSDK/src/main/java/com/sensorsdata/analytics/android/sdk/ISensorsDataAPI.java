@@ -717,4 +717,25 @@ public interface ISensorsDataAPI {
      * @param eventName 事件的名称
      */
     public void trackTimerStart(final String eventName);
+
+    /**
+     * 设置 Cookie，flush 的时候会设置 HTTP 的 cookie
+     * 内部会 URLEncoder.encode(cookie, "UTF-8")
+     * @param cookie String cookie
+     * @param encode boolean 是否 encode
+     */
+    public void setCookie(final String cookie, boolean encode);
+
+    /**
+     * 获取已设置的 Cookie
+     * URLDecoder.decode(Cookie, "UTF-8")
+     * @param decode String
+     * @return String cookie
+     */
+    public String getCookie(boolean decode);
+
+    /**
+     * 删除本地缓存的全部事件
+     */
+    public void deleteAll();
 }
