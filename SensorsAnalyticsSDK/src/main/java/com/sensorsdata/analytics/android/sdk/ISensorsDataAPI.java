@@ -292,6 +292,13 @@ public interface ISensorsDataAPI {
     public void ignoreView(View view);
 
     /**
+     * 忽略View
+     * @param view View
+     * @param ignore 是否忽略
+     */
+    public void ignoreView(View view, boolean ignore);
+
+    /**
      * 设置View属性
      *
      * @param view       要设置的View
@@ -375,6 +382,14 @@ public interface ISensorsDataAPI {
      * @param loginId 当前用户的 loginId，不能为空，且长度不能大于255
      */
     public void login(String loginId);
+
+    /**
+     * 登录，设置当前用户的 loginId
+     *
+     * @param loginId 当前用户的 loginId，不能为空，且长度不能大于255
+     * @param properties 用户登录属性
+     */
+    public void login(final String loginId , final JSONObject properties);
 
     /**
      * 注销，清空当前用户的 loginId
@@ -566,6 +581,13 @@ public interface ISensorsDataAPI {
      * 以阻塞形式将所有本地缓存的日志发送到 Sensors Analytics，该方法不能在 UI 线程调用。
      */
     public void flushSync();
+
+    /**
+     * 注册事件动态公共属性
+     *
+     * @param dynamicSuperProperties 事件动态公共属性回调接口
+     */
+    public void registerDynamicSuperProperties(SensorsDataDynamicSuperProperties dynamicSuperProperties);
 
     /**
      * 获取事件公共属性

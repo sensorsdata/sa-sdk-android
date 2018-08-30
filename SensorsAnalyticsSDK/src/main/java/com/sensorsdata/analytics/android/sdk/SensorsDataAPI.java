@@ -1363,6 +1363,13 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
+    @Override
+    public void ignoreView(View view, boolean ignore) {
+        if (view != null) {
+            view.setTag(R.id.sensors_analytics_tag_view_ignored, ignore ? "1": "0");
+        }
+    }
+
     /**
      * 设置View属性
      *
@@ -1550,11 +1557,16 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void identify(final String distinctId) {
+        try {
+            assertDistinctId(distinctId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
                 try {
-                    assertDistinctId(distinctId);
                     synchronized (mDistinctId) {
                         mDistinctId.commit(distinctId);
                     }
@@ -1572,16 +1584,32 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void login(final String loginId) {
+        login(loginId, null);
+    }
+
+    /**
+     * 登录，设置当前用户的 loginId
+     *
+     * @param loginId 当前用户的 loginId，不能为空，且长度不能大于255
+     * @param properties 用户登录属性
+     */
+    @Override
+    public void login(final String loginId , final JSONObject properties) {
+        try {
+            assertDistinctId(loginId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
                 try {
-                    assertDistinctId(loginId);
                     synchronized (mLoginId) {
                         if (!loginId.equals(mLoginId.get())) {
                             mLoginId.commit(loginId);
                             if (!loginId.equals(getAnonymousId())) {
-                                trackEvent(EventType.TRACK_SIGNUP, "$SignUp", null, getAnonymousId());
+                                trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, getAnonymousId());
                             }
                         }
                     }
@@ -2241,6 +2269,16 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     /**
+     * 注册事件动态公共属性
+     *
+     * @param dynamicSuperProperties 事件动态公共属性回调接口
+     */
+    @Override
+    public void registerDynamicSuperProperties(SensorsDataDynamicSuperProperties dynamicSuperProperties) {
+        mDynamicSuperProperties = dynamicSuperProperties;
+    }
+
+    /**
      * 删除本地缓存的全部事件
      */
     @Override
@@ -2685,6 +2723,17 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     SensorsDataUtils.mergeJSONObject(superProperties, propertiesObject);
                 }
 
+                try {
+                    if (mDynamicSuperProperties != null) {
+                        JSONObject dynamicSuperProperties = mDynamicSuperProperties.getDynamicSuperProperties();
+                        if (dynamicSuperProperties != null) {
+                            SensorsDataUtils.mergeJSONObject(dynamicSuperProperties, propertiesObject);
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
                 //是否首日访问
                 if (eventType.isTrack()) {
                     propertiesObject.put("$is_first_day", isFirstDay());
@@ -2770,6 +2819,17 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     synchronized (mSuperProperties) {
                         JSONObject superProperties = mSuperProperties.get();
                         SensorsDataUtils.mergeJSONObject(superProperties, sendProperties);
+                    }
+
+                    try {
+                        if (mDynamicSuperProperties != null) {
+                            JSONObject dynamicSuperProperties = mDynamicSuperProperties.getDynamicSuperProperties();
+                            if (dynamicSuperProperties != null) {
+                                SensorsDataUtils.mergeJSONObject(dynamicSuperProperties, sendProperties);
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
 
                     // 当前网络状况
@@ -3020,7 +3080,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "2.0.0";
+    static final String VERSION = "2.0.1";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -3081,6 +3141,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private TrackTaskManagerThread mTrackTaskManagerThread;
 
     private SensorsDataScreenOrientationDetector mOrientationDetector;
+
+    private SensorsDataDynamicSuperProperties mDynamicSuperProperties;
 
     private static final SimpleDateFormat mIsFirstDayDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 

@@ -405,6 +405,16 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     /**
+     * 忽略View
+     * @param view View
+     * @param ignore 是否忽略
+     */
+    @Override
+    public void ignoreView(View view, boolean ignore) {
+
+    }
+
+    /**
      * 设置View属性
      *
      * @param view       要设置的View
@@ -536,6 +546,17 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
      */
     @Override
     public void login(String loginId) {
+
+    }
+
+    /**
+     * 登录，设置当前用户的 loginId
+     *
+     * @param loginId 当前用户的 loginId，不能为空，且长度不能大于255
+     * @param properties 用户登录属性
+     */
+    @Override
+    public void login(String loginId, JSONObject properties) {
 
     }
 
@@ -815,6 +836,16 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
      */
     @Override
     public void flushSync() {
+
+    }
+
+    /**
+     * 注册事件动态公共属性
+     *
+     * @param dynamicSuperProperties 事件动态公共属性回调接口
+     */
+    @Override
+    public void registerDynamicSuperProperties(SensorsDataDynamicSuperProperties dynamicSuperProperties) {
 
     }
 

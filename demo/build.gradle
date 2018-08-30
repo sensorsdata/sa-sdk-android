@@ -1,4 +1,6 @@
 apply plugin: 'com.android.application'
+//添加 com.sensorsdata.analytics.android 插件
+apply plugin: 'com.sensorsdata.analytics.android'
 
 android {
     compileSdkVersion 25
@@ -24,4 +26,6 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:25.3.1'
     compile project(':SensorsAnalyticsSDK')
+    //添加 Sensors Analytics SDK 依赖
+    //implementation 'com.sensorsdata.analytics.android:SensorsAnalyticsSDK:2.0.0'
 }

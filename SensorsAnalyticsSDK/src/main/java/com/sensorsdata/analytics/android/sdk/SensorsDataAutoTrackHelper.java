@@ -1080,6 +1080,13 @@ public class SensorsDataAutoTrackHelper {
     }
 
     @Keep
+    public static void trackViewOnClick(Object anything) {
+        if (anything != null) {
+            SALog.i("SensorsDataAutoTrackHelper", anything.getClass().getCanonicalName());
+        }
+    }
+
+    @Keep
     public static void trackViewOnClick(View view) {
         try {
             //关闭 AutoTrack
