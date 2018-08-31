@@ -88,6 +88,12 @@ public class AdapterViewOnItemClickListenerAppClick {
             //View 被忽略
             AdapterView adapterView = (AdapterView) object;
 
+            //ViewId
+            String idString = AopUtil.getViewId(adapterView);
+            if (!TextUtils.isEmpty(idString)) {
+                properties.put(AopConstants.ELEMENT_ID, idString);
+            }
+
             List<Class> mIgnoredViewTypeList = SensorsDataAPI.sharedInstance().getIgnoredViewTypeList();
             if (mIgnoredViewTypeList != null) {
                 if (adapterView instanceof ListView) {

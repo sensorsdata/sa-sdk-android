@@ -989,6 +989,12 @@ public class SensorsDataAutoTrackHelper {
                 }
             }
 
+            //ViewId
+            String idString = AopUtil.getViewId(adapterView);
+            if (!TextUtils.isEmpty(idString)) {
+                properties.put(AopConstants.ELEMENT_ID, idString);
+            }
+
             //扩展属性
             Adapter adapter = adapterView.getAdapter();
             if (adapter != null && adapter instanceof SensorsAdapterViewItemTrackProperties) {
