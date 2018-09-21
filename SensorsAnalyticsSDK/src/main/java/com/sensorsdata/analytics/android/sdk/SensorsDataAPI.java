@@ -184,6 +184,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mDeviceInfo = null;
         mTrackTimer = null;
         mMainProcessName = null;
+        mDbAdapter = null;
     }
 
     SensorsDataAPI(Context context, String serverURL, DebugMode debugMode) {
@@ -191,7 +192,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mDebugMode = debugMode;
 
         final String packageName = context.getApplicationContext().getPackageName();
-
         mAutoTrackIgnoredActivities = new ArrayList<>();
         mHeatMapActivities = new ArrayList<>();
         mAutoTrackEventTypeList = new ArrayList<>();
@@ -202,46 +202,57 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             e.printStackTrace();
         }
 
+        Bundle configBundle = null;
+
         try {
             SALog.init(this);
             final ApplicationInfo appInfo = context.getApplicationContext().getPackageManager()
                     .getApplicationInfo(packageName, PackageManager.GET_META_DATA);
-            Bundle configBundle = appInfo.metaData;
-            if (null == configBundle) {
-                configBundle = new Bundle();
-            }
-
-            setServerUrl(serverURL);
-
-            if (debugMode == DebugMode.DEBUG_OFF) {
-                ENABLE_LOG = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
-                        false);
-            } else {
-                ENABLE_LOG = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
-                        true);
-            }
-            SHOW_DEBUG_INFO_VIEW = configBundle.getBoolean("com.sensorsdata.analytics.android.ShowDebugInfoView",
-                    true);
-
-            mFlushInterval = configBundle.getInt("com.sensorsdata.analytics.android.FlushInterval",
-                    15000);
-            mFlushBulkSize = configBundle.getInt("com.sensorsdata.analytics.android.FlushBulkSize",
-                    100);
-            mAutoTrack = configBundle.getBoolean("com.sensorsdata.analytics.android.AutoTrack",
-                    false);
-            mHeatMapEnabled = configBundle.getBoolean("com.sensorsdata.analytics.android.HeatMap",
-                    false);
-            mDisableDefaultRemoteConfig = configBundle.getBoolean("com.sensorsdata.analytics.android.DisableDefaultRemoteConfig",
-                    false);
-            mEnableButterknifeOnClick = configBundle.getBoolean("com.sensorsdata.analytics.android.ButterknifeOnClick",
-                    false);
-            mMainProcessName = configBundle.getString("com.sensorsdata.analytics.android.MainProcessName");
-            mEnableAppHeatMapConfirmDialog = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableHeatMapConfirmDialog",
-                    true);
+            configBundle = appInfo.metaData;
         } catch (final PackageManager.NameNotFoundException e) {
-            throw new RuntimeException("Can't configure SensorsDataAPI with package name " + packageName,
-                    e);
+            e.printStackTrace();
         }
+
+        if (null == configBundle) {
+            configBundle = new Bundle();
+        }
+
+        setServerUrl(serverURL);
+
+        if (debugMode == DebugMode.DEBUG_OFF) {
+            ENABLE_LOG = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
+                    false);
+        } else {
+            ENABLE_LOG = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
+                    true);
+        }
+        SHOW_DEBUG_INFO_VIEW = configBundle.getBoolean("com.sensorsdata.analytics.android.ShowDebugInfoView",
+                true);
+
+        mFlushInterval = configBundle.getInt("com.sensorsdata.analytics.android.FlushInterval",
+                15000);
+        mFlushBulkSize = configBundle.getInt("com.sensorsdata.analytics.android.FlushBulkSize",
+                100);
+        mAutoTrack = configBundle.getBoolean("com.sensorsdata.analytics.android.AutoTrack",
+                false);
+        mHeatMapEnabled = configBundle.getBoolean("com.sensorsdata.analytics.android.HeatMap",
+                false);
+        mDisableDefaultRemoteConfig = configBundle.getBoolean("com.sensorsdata.analytics.android.DisableDefaultRemoteConfig",
+                false);
+        mEnableButterknifeOnClick = configBundle.getBoolean("com.sensorsdata.analytics.android.ButterknifeOnClick",
+                false);
+        String mainProcessName = SensorsDataUtils.getMainProcessName(context);
+        if (TextUtils.isEmpty(mainProcessName)) {
+            mMainProcessName = configBundle.getString("com.sensorsdata.analytics.android.MainProcessName");
+        } else {
+            mMainProcessName = mainProcessName;
+        }
+
+        mEnableAppHeatMapConfirmDialog = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableHeatMapConfirmDialog",
+                true);
+
+        mDisableTrackDeviceId = configBundle.getBoolean("com.sensorsdata.analytics.android.DisableTrackDeviceId",
+                false);
 
         mMessages = AnalyticsMessages.getInstance(mContext, packageName);
 
@@ -289,7 +300,16 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
             final Application app = (Application) context.getApplicationContext();
-            app.registerActivityLifecycleCallbacks(new SensorsDataActivityLifecycleCallbacks(this, mFirstStart, mFirstDay, mMainProcessName));
+
+            SensorsDataActivityLifecycleCallbacks lifecycleCallbacks =
+                    new SensorsDataActivityLifecycleCallbacks(this, mFirstStart, mFirstDay, context, packageName);
+            app.registerActivityLifecycleCallbacks(lifecycleCallbacks);
+            context.getContentResolver().registerContentObserver(Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + DbAdapter.Table.APPSTARTED.getName()),
+                    false, lifecycleCallbacks);
+            context.getContentResolver().registerContentObserver(Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + DbAdapter.Table.SESSIONINTERVALTIME.getName()),
+                    false, lifecycleCallbacks);
+            context.getContentResolver().registerContentObserver(Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + DbAdapter.Table.APPENDSTATE.getName()),
+                    false, lifecycleCallbacks);
         }
 
         if (debugMode != DebugMode.DEBUG_OFF) {
@@ -306,7 +326,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             deviceInfo.put("$os_version",
                     Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE);
             deviceInfo
-                    .put("$manufacturer", Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER);
+                    .put("$manufacturer", Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER.trim());
             if (TextUtils.isEmpty(Build.MODEL)) {
                 deviceInfo.put("$model", "UNKNOWN");
             } else {
@@ -343,14 +363,22 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 deviceInfo.put("$carrier", carrier);
             }
 
-            String androidID = SensorsDataUtils.getAndroidID(mContext);
-            if (!TextUtils.isEmpty(androidID)) {
-                deviceInfo.put("$device_id", androidID);
+            if (!mDisableTrackDeviceId) {
+                String androidID = SensorsDataUtils.getAndroidID(mContext);
+                if (!TextUtils.isEmpty(androidID)) {
+                    deviceInfo.put("$device_id", androidID);
+                }
+            }
+
+            Integer zone_offset = SensorsDataUtils.getZoneOffset();
+            if (zone_offset != null){
+                //deviceInfo.put("$timezone_offset", zone_offset);
             }
         }
 
         mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
         mTrackTimer = new HashMap<>();
+        mDbAdapter = new DbAdapter(context, packageName);
     }
 
     /**
@@ -629,7 +657,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             properties.put("$network_type", networkType);
             properties.put("$carrier", mDeviceInfo.get("$carrier"));
             properties.put("$is_first_day", isFirstDay());
-            properties.put("$device_id", mDeviceInfo.get("$device_id"));
+            if (mDeviceInfo.containsKey("$device_id")) {
+                properties.put("$device_id", mDeviceInfo.get("$device_id"));
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -651,6 +681,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 Uri serverURI = Uri.parse(serverUrl);
 
                 int pathPrefix = serverURI.getPath().lastIndexOf('/');
+                String hostServer = serverURI.getHost();
+                if (!TextUtils.isEmpty(hostServer) && hostServer.contains("_")) {
+                    Log.i(TAG, "Server url " + serverUrl + " contains '_' is not recommend，" +
+                            "see details: https://en.wikipedia.org/wiki/Hostname");
+                }
                 if (pathPrefix != -1) {
                     String newPath = serverURI.getPath().substring(0, pathPrefix) + "/debug";
 
@@ -764,6 +799,48 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public void setFlushBulkSize(int flushBulkSize) {
         mFlushBulkSize = flushBulkSize;
+    }
+
+    /**
+     * 设置 App 切换到后台与下次事件的事件间隔
+     *
+     * 默认值为 30*1000 毫秒
+     *
+     * 若 App 在后台超过设定事件，则认为当前 Session 结束，发送 $AppEnd 事件
+     *
+     */
+    @Override
+    public void setSessionIntervalTime(int sessionIntervalTime) {
+        if(mDbAdapter == null){
+            SALog.i(TAG, "The static method sharedInstance(context, serverURL, debugMode) should be called before calling sharedInstance()");
+            return;
+        }
+
+        if (sessionIntervalTime < 10 * 1000 || sessionIntervalTime > 5 * 60 * 1000) {
+            Log.i(TAG, "SessionIntervalTime:" + sessionIntervalTime + " is invalid, session interval time is between 10s and 300s.");
+            return;
+        }
+
+        mDbAdapter.commitSessionIntervalTime(sessionIntervalTime);
+    }
+
+    /**
+     * 设置 App 切换到后台与下次事件的事件间隔
+     *
+     * 默认值为 30*1000 毫秒
+     *
+     * 若 App 在后台超过设定事件，则认为当前 Session 结束，发送 $AppEnd 事件
+     *
+     * @return 返回设置的 SessionIntervalTime ，默认是 30 * 1000 毫秒
+     */
+    @Override
+    public int getSessionIntervalTime() {
+        if(mDbAdapter == null){
+            SALog.i(TAG, "The static method sharedInstance(context, serverURL, debugMode) should be called before calling sharedInstance()");
+            return 30 * 1000;
+        }
+
+        return mDbAdapter.getSessionIntervalTime();
     }
 
     /**
@@ -969,7 +1046,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void trackAppCrash() {
-        SensorsDataExceptionHandler.init(mContext);
+        SensorsDataExceptionHandler.init();
     }
 
     // Package-level access. Used (at least) by GCMReceiver
@@ -1905,6 +1982,60 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
+
+    /**
+     * 初始化事件的计时器。
+     *
+     * 若需要统计某个事件的持续时间，先在事件开始时调用 trackTimer("Event") 记录事件开始时间，该方法并不会真正发
+     * 送事件；随后在事件结束时，调用 track("Event", properties)，SDK 会追踪 "Event" 事件，并自动将事件持续时
+     * 间记录在事件属性 "event_duration" 中。
+     *
+     * 多次调用 trackTimer("Event") 时，事件 "Event" 的开始时间以最后一次调用时为准。
+     *
+     * @param eventName 事件的名称
+     * @param eventTimer 自定义事件计时器
+     */
+    @Deprecated
+    @Override
+    public void trackTimer(final String eventName, final EventTimer eventTimer) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    assertKey(eventName);
+                    synchronized (mTrackTimer) {
+                        mTrackTimer.put(eventName, eventTimer);
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+    }
+
+    /**
+     * 删除指定时间的计时器
+     *
+     * @param eventName 事件名称
+     */
+    @Override
+    public void removeTimer(final String eventName) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    assertKey(eventName);
+                    synchronized (mTrackTimer) {
+                        mTrackTimer.remove(eventName);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+
     /**
      * 初始化事件的计时器，计时单位为秒。
      *
@@ -1957,7 +2088,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             @Override
             public void run() {
                 try {
-                    track(eventName, properties);
+                    trackEvent(EventType.TRACK, eventName, properties, null);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -1975,7 +2106,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             @Override
             public void run() {
                 try {
-                    track(eventName);
+                    trackEvent(EventType.TRACK, eventName, null, null);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -2261,6 +2392,14 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     /**
+     * 延迟指定毫秒数将所有本地缓存的日志发送到 Sensors Analytics.
+     * @param timeDelayMills 延迟毫秒数
+     */
+    public void flush(long timeDelayMills) {
+        mMessages.flush(timeDelayMills);
+    }
+
+    /**
      * 以阻塞形式将所有本地缓存的日志发送到 Sensors Analytics，该方法不能在 UI 线程调用。
      */
     @Override
@@ -2312,7 +2451,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             assertPropertyTypes(EventType.REGISTER_SUPER_PROPERTIES, superProperties);
             synchronized (mSuperProperties) {
                 JSONObject properties = mSuperProperties.get();
-                SensorsDataUtils.mergeJSONObject(superProperties, properties);
+                SensorsDataUtils.mergeSuperJSONObject(superProperties, properties);
                 mSuperProperties.commit(properties);
             }
         } catch (Exception e) {
@@ -2774,6 +2913,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             } else {
                 mMessages.enqueueEventMessage(type, eventObject);
             }
+            SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(eventObject.toString()));
         } catch (Exception e) {
             //ignore
             e.printStackTrace();
@@ -2864,11 +3004,21 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 }
 
                 String libDetail = null;
+                long eventTime = System.currentTimeMillis();
                 if (null != properties) {
                     try {
                         if (properties.has("$lib_detail")) {
                             libDetail = properties.getString("$lib_detail");
                             properties.remove("$lib_detail");
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    try {
+                        if ("$AppEnd".equals(eventName)) {
+                            eventTime = properties.getLong("event_time");
+                            properties.remove("event_time");
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -2913,8 +3063,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     //ignore
                 }
 
-                final long now = System.currentTimeMillis();
-                dataObj.put("time", now);
+                dataObj.put("time", eventTime);
                 dataObj.put("type", eventType.getEventType());
 
                 try {
@@ -2986,7 +3135,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
                 //防止用户自定义事件以及公共属性可能会加$device_id属性，导致覆盖sdk原始的$device_id属性值
                 if (sendProperties.has("$device_id")){//由于profileSet等类型事件没有$device_id属性，故加此判断
-                    sendProperties.put("$device_id",mDeviceInfo.get("$device_id"));
+                    if (mDeviceInfo.containsKey("$device_id")) {
+                        sendProperties.put("$device_id", mDeviceInfo.get("$device_id"));
+                    }
                 }
 
                 mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
@@ -3080,7 +3231,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "2.0.2";
+    static final String VERSION = "2.0.3";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -3118,6 +3269,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private boolean mClearReferrerWhenAppEnd = false;
     private boolean mEnableAppHeatMapConfirmDialog = true;
     private boolean mDisableDefaultRemoteConfig = false;
+    private boolean mDisableTrackDeviceId = false;
 
     private final Context mContext;
     private final AnalyticsMessages mMessages;
@@ -3143,7 +3295,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private SensorsDataScreenOrientationDetector mOrientationDetector;
 
     private SensorsDataDynamicSuperProperties mDynamicSuperProperties;
-
+    private static DbAdapter mDbAdapter;
     private static final SimpleDateFormat mIsFirstDayDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
     private static final String TAG = "SA.SensorsDataAPI";

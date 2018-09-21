@@ -17,7 +17,6 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.webkit.WebSettings;
@@ -36,6 +35,7 @@ import java.lang.reflect.Method;
 import java.net.NetworkInterface;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -181,10 +181,29 @@ public final class SensorsDataUtils {
     }
 
     /**
+     * 获取主进程的名称
+     * @param context Context
+     * @return 主进程名称
+     */
+    public static String getMainProcessName(Context context) {
+        if (context == null) {
+            return "";
+        }
+        String mainProcessName = "";
+        try {
+            mainProcessName = context.getApplicationContext().getApplicationInfo().processName;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return mainProcessName;
+    }
+
+
+    /**
      * 获得当前进程的名字
      *
      * @param context Context
-     * @return 进程号
+     * @return 进程名称
      */
     public static String getCurrentProcessName(Context context) {
 
@@ -294,14 +313,25 @@ public final class SensorsDataUtils {
                     return actionBar.getTitle().toString();
                 }
             } else {
-                if (activity instanceof AppCompatActivity) {
-                    AppCompatActivity appCompatActivity = (AppCompatActivity) activity;
-                    android.support.v7.app.ActionBar supportActionBar = appCompatActivity.getSupportActionBar();
-                    if (supportActionBar != null) {
-                        if (!TextUtils.isEmpty(supportActionBar.getTitle())) {
-                            return supportActionBar.getTitle().toString();
+                try {
+                    Class<?> appCompatActivityClass = Class.forName("android.support.v7.app.AppCompatActivity");
+                    if (appCompatActivityClass != null && appCompatActivityClass.isInstance(activity)) {
+                        Method method = activity.getClass().getMethod("getSupportActionBar");
+                        if (method != null) {
+                            Object supportActionBar = method.invoke(activity);
+                            if (supportActionBar != null) {
+                                method = supportActionBar.getClass().getMethod("getTitle");
+                                if (method != null) {
+                                    CharSequence charSequence = (CharSequence)method.invoke(supportActionBar);
+                                    if (charSequence != null) {
+                                        return charSequence.toString();
+                                    }
+                                }
+                            }
                         }
                     }
+                } catch (Exception e) {
+                    //ignored
                 }
             }
         } catch (Exception e) {
@@ -366,6 +396,38 @@ public final class SensorsDataUtils {
         Iterator<String> superPropertiesIterator = source.keys();
         while (superPropertiesIterator.hasNext()) {
             String key = superPropertiesIterator.next();
+            Object value = source.get(key);
+            if (value instanceof Date) {
+                synchronized (mDateFormat) {
+                    dest.put(key, mDateFormat.format((Date) value));
+                }
+            } else {
+                dest.put(key, value);
+            }
+        }
+    }
+
+    /**
+     * 融合静态公共属性
+     * @param source 源属性
+     * @param dest  目标属性
+     * @throws JSONException
+     */
+    public static void mergeSuperJSONObject(final JSONObject source, JSONObject dest)
+            throws JSONException {
+        Iterator<String> superPropertiesIterator = source.keys();
+        while (superPropertiesIterator.hasNext()) {
+            String key = superPropertiesIterator.next();
+
+            Iterator<String> destPropertiesIterator = dest.keys();
+            while (destPropertiesIterator.hasNext()) {
+                String destKey = destPropertiesIterator.next();
+                if (!TextUtils.isEmpty(key) && key.toLowerCase().equals(destKey.toLowerCase())) {
+                    dest.remove(destKey);
+                    break;
+                }
+            }
+
             Object value = source.get(key);
             if (value instanceof Date) {
                 synchronized (mDateFormat) {
@@ -564,6 +626,21 @@ public final class SensorsDataUtils {
             e.printStackTrace();
         }
         return androidID;
+    }
+
+    /**
+     * 获取时区偏移值
+     * @return 时区偏移值，单位：秒
+     */
+    public static Integer getZoneOffset(){
+        try {
+            Calendar cal = Calendar.getInstance(Locale.getDefault());
+            int zoneOffset = cal.get(java.util.Calendar.ZONE_OFFSET);
+            return zoneOffset / 1000;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return null;
     }
 
     public static String getApplicationMetaData(Context mContext, String metaKey) {

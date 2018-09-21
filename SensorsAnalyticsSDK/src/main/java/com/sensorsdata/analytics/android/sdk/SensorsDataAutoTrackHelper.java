@@ -5,9 +5,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
-import android.support.annotation.Keep;
 import android.support.v4.view.ViewPager;
-import android.support.v7.widget.SwitchCompat;
 import android.text.TextUtils;
 import android.view.MenuItem;
 import android.view.View;
@@ -44,7 +42,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
-@Keep
 @SuppressWarnings("unused")
 public class SensorsDataAutoTrackHelper {
     private static HashMap<Integer, Long> eventTimestamp = new HashMap<>();
@@ -93,7 +90,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    @Keep
     public static void onFragmentViewCreated(Object object, View rootView, Bundle bundle) {
         try {
             if (!(object instanceof android.support.v4.app.Fragment)) {
@@ -114,7 +110,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    @Keep
     public static void trackRN(Object target, int reactTag, int s, boolean b) {
         try {
             if (!SensorsDataAPI.sharedInstance().isReactNativeAutoTrackEnabled()) {
@@ -178,7 +173,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    @Keep
     private static void trackFragmentAppViewScreen(android.support.v4.app.Fragment fragment) {
         try {
             if (!SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
@@ -239,7 +233,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    @Keep
     public static void trackFragmentResume(Object object) {
         if (!SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
             return;
@@ -262,7 +255,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    @Keep
     public static void trackFragmentSetUserVisibleHint(Object object, boolean isVisibleToUser) {
         if (!SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
             return;
@@ -294,7 +286,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    @Keep
     public static void trackOnHiddenChanged(Object object, boolean hidden) {
         if (!SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
             return;
@@ -325,7 +316,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    @Keep
     public static void trackExpandableListViewOnGroupClick(ExpandableListView expandableListView, View view,
                                                            int groupPosition) {
         try {
@@ -438,7 +428,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    @Keep
     public static void trackExpandableListViewOnChildClick(ExpandableListView expandableListView, View view,
                                                            int groupPosition, int childPosition) {
         try {
@@ -556,7 +545,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    @Keep
     public static void trackTabHost(String tabName) {
         try {
             //关闭 AutoTrack
@@ -585,7 +573,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    @Keep
     public static void trackTabLayoutSelected(Object object, Object tab) {
         try {
             //关闭 AutoTrack
@@ -655,7 +642,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    @Keep
     public static void trackMenuItem(Object object, MenuItem menuItem) {
         try {
             //关闭 AutoTrack
@@ -732,7 +718,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    @Keep
     public static void trackRadioGroup(RadioGroup view, int checkedId) {
         try {
             //关闭 AutoTrack
@@ -819,7 +804,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    @Keep
     public static void trackDialog(DialogInterface dialogInterface, int whichButton) {
         try {
             //关闭 AutoTrack
@@ -938,7 +922,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    @Keep
     public static void trackListView(AdapterView<?> adapterView, View view, int position) {
         try {
             //闭 AutoTrack
@@ -1057,7 +1040,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    @Keep
     public static void trackDrawerOpened(View view) {
         try {
             JSONObject jsonObject = new JSONObject();
@@ -1071,7 +1053,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    @Keep
     public static void trackDrawerClosed(View view) {
         try {
             JSONObject jsonObject = new JSONObject();
@@ -1085,14 +1066,12 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    @Keep
     public static void trackViewOnClick(Object anything) {
         if (anything != null) {
             SALog.i("SensorsDataAutoTrackHelper", anything.getClass().getCanonicalName());
         }
     }
 
-    @Keep
     public static void trackViewOnClick(View view) {
         try {
             //关闭 AutoTrack
@@ -1156,6 +1135,14 @@ public class SensorsDataAutoTrackHelper {
             }
 
             String viewType = view.getClass().getCanonicalName();
+
+            Class<?> switchCompatClass = null;
+            try {
+                switchCompatClass = Class.forName("android.support.v7.widget.SwitchCompat");
+            } catch (Exception e) {
+                //ignored
+            }
+
             CharSequence viewText = null;
             if (view instanceof CheckBox) { // CheckBox
                 viewType = "CheckBox";
@@ -1169,10 +1156,16 @@ public class SensorsDataAutoTrackHelper {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-            } else if (view instanceof SwitchCompat) {
+            } else if (switchCompatClass != null && switchCompatClass.isInstance(view)) {
                 viewType = "SwitchCompat";
-                SwitchCompat switchCompat = (SwitchCompat) view;
-                viewText = switchCompat.getTextOn();
+                CompoundButton switchCompat = (CompoundButton) view;
+                Method method;
+                if (switchCompat.isChecked()) {
+                    method = view.getClass().getMethod("getTextOn");
+                } else {
+                    method = view.getClass().getMethod("getTextOff");
+                }
+                viewText = (String)method.invoke(view);
             } else if (view instanceof RadioButton) { // RadioButton
                 viewType = "RadioButton";
                 RadioButton radioButton = (RadioButton) view;

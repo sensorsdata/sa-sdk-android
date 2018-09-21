@@ -75,7 +75,6 @@ public interface ISensorsDataAPI {
 
     /**
      * 设置两次数据发送的最小时间间隔
-     *
      * @param flushInterval 时间间隔，单位毫秒
      */
     public void setFlushInterval(int flushInterval);
@@ -92,6 +91,27 @@ public interface ISensorsDataAPI {
      * @param flushBulkSize 缓存数目
      */
     public void setFlushBulkSize(int flushBulkSize);
+
+    /**
+     * 设置 App 切换到后台与下次事件的事件间隔
+     *
+     * 默认值为 30*1000 毫秒
+     *
+     * 若 App 在后台超过设定事件，则认为当前 Session 结束，发送 $AppEnd 事件
+     *
+     */
+    public void setSessionIntervalTime(int sessionIntervalTime);
+
+    /**
+     * 设置 App 切换到后台与下次事件的事件间隔
+     *
+     * 默认值为 30*1000 毫秒
+     *
+     * 若 App 在后台超过设定事件，则认为当前 Session 结束，发送 $AppEnd 事件
+     *
+     * @return 返回设置的 SessionIntervalTime ，默认是 30s
+     */
+    public int getSessionIntervalTime();
 
     /**
      * 打开 SDK 自动追踪
@@ -492,6 +512,28 @@ public interface ISensorsDataAPI {
      */
     @Deprecated
     public void trackTimer(final String eventName, final TimeUnit timeUnit);
+
+    /**
+     * 初始化事件的计时器。
+     *
+     * 若需要统计某个事件的持续时间，先在事件开始时调用 trackTimer("Event") 记录事件开始时间，该方法并不会真正发
+     * 送事件；随后在事件结束时，调用 track("Event", properties)，SDK 会追踪 "Event" 事件，并自动将事件持续时
+     * 间记录在事件属性 "event_duration" 中。
+     *
+     * 多次调用 trackTimer("Event") 时，事件 "Event" 的开始时间以最后一次调用时为准。
+     *
+     * @param eventName 事件的名称
+     * @param eventTimer 事件的自定义 EventTimer
+     */
+    @Deprecated
+    void trackTimer(final String eventName, final EventTimer eventTimer);
+
+    /**
+     * 删除事件的计时器
+     *
+     * @param eventName 事件名称
+     */
+    void removeTimer(final String eventName);
 
     /**
      * 初始化事件的计时器，默认计时单位为毫秒。

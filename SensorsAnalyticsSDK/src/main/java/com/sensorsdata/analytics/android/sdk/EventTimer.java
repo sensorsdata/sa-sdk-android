@@ -14,10 +14,19 @@ class EventTimer {
         this.startTime = SystemClock.elapsedRealtime();
         this.timeUnit = timeUnit;
         this.eventAccumulatedDuration = 0;
+        this.endTime = -1;
+    }
+
+    public EventTimer(TimeUnit timeUnit, long startTime, long endTime) {
+        this.timeUnit = timeUnit;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.eventAccumulatedDuration = 0;
     }
 
     String duration() {
-        long duration = SystemClock.elapsedRealtime() - startTime + eventAccumulatedDuration;
+        endTime = endTime < 0 ? SystemClock.elapsedRealtime() : endTime;
+        long duration = endTime - startTime + eventAccumulatedDuration;
         try {
             if (duration < 0 || duration > 24 * 60 * 60 * 1000) {
                 return String.valueOf(0);
@@ -59,5 +68,6 @@ class EventTimer {
 
     private final TimeUnit timeUnit;
     private long startTime;
+    private long endTime;
     private long eventAccumulatedDuration;
 }

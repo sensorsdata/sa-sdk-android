@@ -114,6 +114,13 @@ class AnalyticsMessages {
         mWorker.runMessage(m);
     }
 
+    public void flush(long timeDelayMills) {
+        final Message m = Message.obtain();
+        m.what = FLUSH_QUEUE;
+
+        mWorker.runMessageOnce(m, timeDelayMills);
+    }
+
     public void deleteAll() {
         final Message m = Message.obtain();
         m.what = DELETE_ALL;

@@ -18,9 +18,9 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.0.0'
+        classpath 'com.android.tools.build:gradle:2.2.3'
         //添加 Sensors Analytics android-gradle-plugin 依赖
-        classpath 'com.sensorsdata.analytics.android:android-gradle-plugin2:2.0.2'
+        classpath 'com.sensorsdata.analytics.android:android-gradle-plugin2:1.0.2'
     }
 }
 
@@ -48,7 +48,7 @@ apply plugin: 'com.sensorsdata.analytics.android'
 dependencies {
    compile 'com.android.support:appcompat-v7:25.1.1'
    //添加 Sensors Analytics SDK 依赖
-   compile 'com.sensorsdata.analytics.android:SensorsAnalyticsSDK:2.0.2'
+   compile 'com.sensorsdata.analytics.android:SensorsAnalyticsSDK:1.8.6'
 }
 ```
 SensorsAnalyticsSDK 的最新版本号请参考 [github 更新日志](https://github.com/sensorsdata/sa-sdk-android/releases)。
@@ -128,7 +128,7 @@ We also maintains a SDK for Java at
 
 ## License
 
-Copyright 2015－2018 Sensors Data Inc.
+Copyright 2015－2017 Sensors Data Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

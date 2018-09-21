@@ -2,13 +2,13 @@ package com.sensorsdata.analytics.android.sdk.aop;
 
 import android.app.Activity;
 import android.content.Context;
-import android.support.v7.widget.SwitchCompat;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CheckedTextView;
+import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RadioButton;
@@ -128,15 +128,27 @@ public class ViewOnClickAppClick {
             }
 
             String viewType = view.getClass().getCanonicalName();
+            Class<?> switchCompatClass = null;
+            try {
+                switchCompatClass = Class.forName("android.support.v7.widget.SwitchCompat");
+            } catch (Exception e) {
+                //ignored
+            }
             CharSequence viewText = null;
             if (view instanceof CheckBox) { // CheckBox
                 viewType = "CheckBox";
                 CheckBox checkBox = (CheckBox) view;
                 viewText = checkBox.getText();
-            } else if (view instanceof SwitchCompat) {
+            } else if (switchCompatClass != null && switchCompatClass.isInstance(view)) {
                 viewType = "SwitchCompat";
-                SwitchCompat switchCompat = (SwitchCompat) view;
-                viewText = switchCompat.getTextOn();
+                CompoundButton switchCompat = (CompoundButton) view;
+                Method m;
+                if (switchCompat.isChecked()) {
+                    m = view.getClass().getMethod("getTextOn");
+                } else {
+                    m = view.getClass().getMethod("getTextOff");
+                }
+                viewText = (String)m.invoke(view);
             } else if (view instanceof RadioButton) { // RadioButton
                 viewType = "RadioButton";
                 RadioButton radioButton = (RadioButton) view;

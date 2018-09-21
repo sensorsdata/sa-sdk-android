@@ -2,7 +2,6 @@ package com.sensorsdata.analytics.android.sdk.aop;
 
 import android.app.Activity;
 import android.content.Context;
-import android.support.v7.widget.SwitchCompat;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.CheckBox;
@@ -18,6 +17,8 @@ import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 
 import org.aspectj.lang.JoinPoint;
 import org.json.JSONObject;
+
+import java.lang.reflect.Method;
 
 /**
  * Created by 王灼洲 on 2017/8/26
@@ -93,18 +94,28 @@ public class CheckBoxOnCheckedChangedAppClick {
             }
 
             String viewText = null;
+            Class<?> switchCompatClass = null;
+            try {
+                switchCompatClass = Class.forName("android.support.v7.widget.SwitchCompat");
+            } catch (Exception e) {
+                //ignored
+            }
             if (view instanceof CheckBox) { // CheckBox
                 properties.put(AopConstants.ELEMENT_TYPE, "CheckBox");
                 CompoundButton compoundButton = (CompoundButton) view;
                 if (!TextUtils.isEmpty(compoundButton.getText())) {
                     viewText = compoundButton.getText().toString();
                 }
-            } else if (view instanceof SwitchCompat) {
+            } else if (switchCompatClass != null && switchCompatClass.isInstance(view)) {
                 properties.put(AopConstants.ELEMENT_TYPE, "SwitchCompat");
-                SwitchCompat switchCompat = (SwitchCompat) view;
-                if (!TextUtils.isEmpty(switchCompat.getTextOn())) {
-                    viewText = switchCompat.getTextOn().toString();
+                CompoundButton switchCompat = (CompoundButton) view;
+                Method method;
+                if (switchCompat.isChecked()) {
+                    method = view.getClass().getMethod("getTextOn");
+                } else {
+                    method = view.getClass().getMethod("getTextOff");
                 }
+                viewText = (String)method.invoke(view);
             } else if (view instanceof ToggleButton) { // ToggleButton
                 properties.put(AopConstants.ELEMENT_TYPE, "ToggleButton");
                 ToggleButton toggleButton = (ToggleButton) view;

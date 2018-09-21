@@ -18,10 +18,16 @@ import java.io.File;
 
     private static final String TAG = "SA.DbAdapter";
     private final File mDatabaseFile;
-    private Uri mUri;
+    private Uri mUri, mAppStart, mAppStartTime, mAppPaused, mAppEndState, mAppEndData, mSessionIntervalTime;
 
     public enum Table {
-        EVENTS("events");
+        EVENTS("events"),
+        APPSTARTED("app_started"),
+        APPSTARTTIME("app_start_time"),
+        APPPAUSED("app_paused_time"),
+        APPENDSTATE("app_end_state"),
+        APPENDDATA("app_end_data"),
+        SESSIONINTERVALTIME("session_interval_time");
 
         Table(String name) {
             mTableName = name;
@@ -37,7 +43,12 @@ import java.io.File;
     public static final String KEY_DATA = "data";
     public static final String KEY_CREATED_AT = "created_at";
     public static final String DATABASE_NAME = "sensorsdata";
-
+    public static final String APP_STARTED = "$app_started";
+    public static final String APP_START_TIME = "$app_start_time";
+    public static final String APP_END_STATE = "$app_end_state";
+    public static final String APP_END_DATA = "$app_end_data";
+    public static final String APP_PAUSED_TIME = "$app_paused_time";
+    public static final String SESSION_INTERVAL_TIME = "$session_interval_time";
     public static final int DB_UPDATE_ERROR = -1;
     public static final int DB_OUT_OF_MEMORY_ERROR = -2;
 
@@ -69,6 +80,12 @@ import java.io.File;
         contentResolver = mContext.getContentResolver();
         mDatabaseFile = context.getDatabasePath(DbAdapter.DATABASE_NAME);
         mUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + Table.EVENTS.getName());
+        mAppStart = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + Table.APPSTARTED.getName());
+        mAppStartTime = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + Table.APPSTARTTIME.getName());
+        mAppEndState = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + Table.APPENDSTATE.getName());
+        mAppEndData = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + Table.APPENDDATA.getName());
+        mAppPaused = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + Table.APPPAUSED.getName());
+        mSessionIntervalTime = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + Table.SESSIONINTERVALTIME.getName());
     }
 
     /**
@@ -163,6 +180,186 @@ import java.io.File;
         return count;
     }
 
+    /**
+     * add the ActivityStart state to the SharedPreferences
+     * @param appStart the ActivityState
+     */
+    public void commitAppStart(boolean appStart){
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(APP_STARTED, appStart);
+        contentResolver.insert(mAppStart, contentValues);
+    }
+
+    /**
+     * return the state of Activity start
+     * @return Activity count
+     */
+    public boolean getAppStart(){
+        boolean state = true;
+        Cursor cursor = contentResolver.query(mAppStart, new String[]{APP_STARTED},null,null,null);
+        if(cursor != null && cursor.getCount() > 0){
+            while(cursor.moveToNext()){
+                state = cursor.getInt(0) > 0;
+            }
+        }
+
+        if(cursor != null){
+            cursor.close();
+        }
+        SALog.d(TAG,"getAppStart:" + state);
+        return state;
+    }
+
+    /**
+     * add the Activity start time to the SharedPreferences
+     * @param appStartTime the Activity start time
+     */
+    public void commitAppStartTime(long appStartTime){
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(APP_START_TIME, appStartTime);
+        contentResolver.insert(mAppStartTime, contentValues);
+    }
+
+    /**
+     * return the time of Activity start
+     * @return
+     */
+    public long getAppStartTime(){
+        long startTime = 0;
+        Cursor cursor = contentResolver.query(mAppStartTime, new String[]{APP_START_TIME},null,null,null);
+        if(cursor != null && cursor.getCount() > 0){
+            while(cursor.moveToNext()){
+                startTime = cursor.getLong(0);
+            }
+        }
+
+        if(cursor != null){
+            cursor.close();
+        }
+        SALog.d(TAG,"getAppStartTime:" + startTime);
+        return startTime;
+    }
+
+    /**
+     * add the Activity Paused time to the SharedPreferences
+     * @param appPausedTime the Activity paused time
+     */
+    public void commitAppPausedTime(long appPausedTime){
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(APP_PAUSED_TIME, appPausedTime);
+        contentResolver.insert(mAppPaused, contentValues);
+    }
+
+    /**
+     * return the time of Activity Paused
+     * @return Activity End state
+     */
+    public long getAppPausedTime(){
+        long pausedTime = 0;
+        Cursor cursor = contentResolver.query(mAppPaused, new String[]{APP_PAUSED_TIME},null,null,null);
+        if(cursor != null && cursor.getCount() > 0){
+            while(cursor.moveToNext()){
+                pausedTime = cursor.getLong(0);
+            }
+        }
+
+        if(cursor != null){
+            cursor.close();
+        }
+        return pausedTime;
+    }
+
+    /**
+     * add the Activity End to the SharedPreferences
+     * @param appEndState the Activity end state
+     */
+    public void commitAppEndState(boolean appEndState){
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(APP_END_STATE, appEndState);
+        contentResolver.insert(mAppEndState, contentValues);
+    }
+
+    /**
+     * return the state of $AppEnd
+     * @return Activity End state
+     */
+    public boolean getAppEndState(){
+        boolean state = true;
+        Cursor cursor = contentResolver.query(mAppEndState, new String[]{APP_END_STATE},null,null,null);
+        if(cursor != null && cursor.getCount() > 0){
+            while(cursor.moveToNext()){
+                state = cursor.getInt(0) > 0;
+            }
+        }
+
+        if(cursor != null){
+            cursor.close();
+        }
+        SALog.d(TAG,"getAppEndState:" + state);
+        return state;
+    }
+
+    /**
+     * add the Activity End Data to the SharedPreferences
+     * @param appEndData $AppEnd
+     */
+    public void commitAppEndData(String appEndData){
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(APP_END_DATA, appEndData);
+        contentResolver.insert(mAppEndData, contentValues);
+    }
+
+    /**
+     * return the $AppEnd
+     * @return Activity count
+     */
+    public String getAppEndData(){
+        String data = "";
+        Cursor cursor = contentResolver.query(mAppEndData, new String[]{APP_END_DATA},null,null,null);
+        if(cursor != null && cursor.getCount() > 0){
+            while(cursor.moveToNext()){
+                data = cursor.getString(0);
+            }
+        }
+
+        if(cursor != null){
+            cursor.close();
+        }
+        SALog.d(TAG,"getAppEndData:" + data);
+        return data;
+    }
+
+
+    /**
+     * add the session interval time to the SharedPreferences
+     * @param sessionIntervalTime session interval time
+     */
+    public void commitSessionIntervalTime(int sessionIntervalTime){
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(SESSION_INTERVAL_TIME, sessionIntervalTime);
+        contentResolver.insert(mSessionIntervalTime, contentValues);
+    }
+
+    /**
+     * return the $AppEnd
+     * @return Activity count
+     */
+    public int getSessionIntervalTime(){
+        int sessionIntervalTime = 30 * 1000;
+        Cursor cursor = contentResolver.query(mSessionIntervalTime, new String[]{SESSION_INTERVAL_TIME},null,null,null);
+        if(cursor != null && cursor.getCount() > 0){
+            while(cursor.moveToNext()){
+                sessionIntervalTime = cursor.getInt(0);
+            }
+        }
+
+        if(cursor != null){
+            cursor.close();
+        }
+        SALog.d(TAG,"getSessionIntervalTime:" + sessionIntervalTime);
+        return sessionIntervalTime;
+    }
+
     public String[] generateDataString(Table table, int limit) {
         Cursor c = null;
         String data = null;
@@ -225,4 +422,15 @@ import java.io.File;
         return null;
     }
 
+    public Uri getAppStartUri() {
+        return mAppStart;
+    }
+
+    public Uri getIntervalTimeUri() {
+        return mSessionIntervalTime;
+    }
+
+    public Uri getAppEndStateUri() {
+        return mAppEndState;
+    }
 }

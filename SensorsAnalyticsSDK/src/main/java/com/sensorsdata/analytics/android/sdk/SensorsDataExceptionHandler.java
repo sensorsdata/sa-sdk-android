@@ -1,11 +1,8 @@
 package com.sensorsdata.analytics.android.sdk;
 
 
-import android.content.Context;
+import com.sensorsdata.analytics.android.sdk.util.SensorsDataTimer;
 
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
-
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.PrintWriter;
@@ -13,25 +10,19 @@ import java.io.StringWriter;
 import java.io.Writer;
 
 public class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHandler {
-
-    private static final String TAG = "SensorsDataAPI.Exception";
-
     private static final int SLEEP_TIMEOUT_MS = 3000;
 
     private static SensorsDataExceptionHandler sInstance;
     private final Thread.UncaughtExceptionHandler mDefaultExceptionHandler;
-    private static Context mContext;
-
     SensorsDataExceptionHandler() {
         mDefaultExceptionHandler = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler(this);
     }
 
-    public static void init(Context context) {
+    public static void init() {
         if (sInstance == null) {
             synchronized (SensorsDataExceptionHandler.class) {
                 if (sInstance == null) {
-                    mContext = context;
                     sInstance = new SensorsDataExceptionHandler();
                 }
             }
@@ -46,7 +37,7 @@ public class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHand
             public void process(SensorsDataAPI sensorsData) {
                 try {
                     final JSONObject messageProp = new JSONObject();
-
+                    SensorsDataTimer.getInstance().cancleTimerTask();
                     try {
                         Writer writer = new StringWriter();
                         PrintWriter printWriter = new PrintWriter(writer);
@@ -64,12 +55,6 @@ public class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHand
                         ex.printStackTrace();
                     }
                     sensorsData.track("AppCrashed", messageProp);
-                    sensorsData.clearLastScreenUrl();
-                    if (!sensorsData.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_END)) {
-                        if (SensorsDataUtils.isMainProcess(mContext, SensorsDataAPI.sharedInstance(mContext).getMainProcessName())) {
-                            sensorsData.track("$AppEnd");
-                        }
-                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
