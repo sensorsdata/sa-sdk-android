@@ -1,3 +1,6 @@
+/**Created by wangzhuozhou on 2015/08/01.
+ * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
+ 
 package com.sensorsdata.analytics.android.sdk;
 
 
@@ -118,6 +121,21 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     @Override
     public void setFlushBulkSize(int flushBulkSize) {
 
+    }
+
+    /**
+     * 获取 App 切换到后台与下次事件的事件间隔，单位，毫秒
+     */
+    @Override
+    public int getSessionIntervalTime() {
+        return 30 * 1000;
+    }
+
+    /**
+     * 设置 App 切换到后台与下次事件的事件间隔
+     */
+    @Override
+    public void setSessionIntervalTime(int sessionIntervalTime) {
     }
 
     /**
@@ -279,11 +297,29 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     /**
+     * 恢复不被 AutoTrack 的 activity
+     * @param activitiesList
+     */
+    @Override
+    public void resumeAutoTrackActivities(List<Class<?>> activitiesList) {
+
+    }
+
+    /**
      * 指定某个 activity 不被 AutoTrack
      * @param activity Activity
      */
     @Override
     public void ignoreAutoTrackActivity(Class<?> activity) {
+
+    }
+
+    /**
+     * 恢复不被 AutoTrack 的 activity
+     * @param activity
+     */
+    @Override
+    public void resumeAutoTrackActivity(Class<?> activity) {
 
     }
 
@@ -690,6 +726,33 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     @Override
     public void trackTimer(final String eventName, final TimeUnit timeUnit) {
 
+    }
+
+    /**
+     * 删除指定时间的计时器
+     *
+     * @param eventName 事件名称
+     */
+    @Override
+    public void removeTimer(String eventName) {
+        super.removeTimer(eventName);
+    }
+
+    /**
+     * 初始化事件的计时器。
+     *
+     * 若需要统计某个事件的持续时间，先在事件开始时调用 trackTimer("Event") 记录事件开始时间，该方法并不会真正发
+     * 送事件；随后在事件结束时，调用 track("Event", properties)，SDK 会追踪 "Event" 事件，并自动将事件持续时
+     * 间记录在事件属性 "event_duration" 中。
+     *
+     * 多次调用 trackTimer("Event") 时，事件 "Event" 的开始时间以最后一次调用时为准。
+     *
+     * @param eventName 事件的名称
+     * @param eventTimer 自定义事件计时器
+     */
+    @Override
+    public void trackTimer(String eventName, EventTimer eventTimer) {
+        super.trackTimer(eventName, eventTimer);
     }
 
     /**

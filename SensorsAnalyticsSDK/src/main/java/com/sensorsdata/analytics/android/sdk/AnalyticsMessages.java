@@ -1,3 +1,6 @@
+/**Created by wangzhuozhou on 2015/08/01.
+ * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
+ 
 package com.sensorsdata.analytics.android.sdk;
 
 import com.sensorsdata.analytics.android.sdk.exceptions.ConnectErrorException;
@@ -315,26 +318,39 @@ class AnalyticsMessages {
                 } else {
                     count = 0;
                 }
-                if (null != bout)
+
+                if (null != bout) {
                     try {
                         bout.close();
-                    } catch (final IOException e) {
+                    } catch (Exception e) {
                         // TODO: 16/9/23 ignore Exception
                     }
-                if (null != out)
+                }
+
+                if (null != out) {
                     try {
                         out.close();
-                    } catch (final IOException e) {
+                    } catch (Exception e) {
                         // TODO: 16/9/23 ignore Exception
                     }
-                if (null != in)
+                }
+
+                if (null != in) {
                     try {
                         in.close();
-                    } catch (final IOException e) {
+                    } catch (Exception e) {
                         // TODO: 16/9/23 ignore Exception
                     }
-                if (null != connection)
-                    connection.disconnect();
+                }
+
+                if (null != connection) {
+                    try {
+                        connection.disconnect();
+                    } catch (Exception e) {
+                        // TODO: 16/9/23 ignore Exception
+                    }
+                }
+
             }
         }
     }

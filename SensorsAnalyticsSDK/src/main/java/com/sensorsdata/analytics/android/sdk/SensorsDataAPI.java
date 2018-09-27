@@ -1,3 +1,6 @@
+/**Created by wangzhuozhou on 2015/08/01.
+ * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
+ 
 package com.sensorsdata.analytics.android.sdk;
 
 import android.annotation.SuppressLint;
@@ -326,7 +329,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             deviceInfo.put("$os_version",
                     Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE);
             deviceInfo
-                    .put("$manufacturer", Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER.trim());
+                    .put("$manufacturer", SensorsDataUtils.getManufacturer());
             if (TextUtils.isEmpty(Build.MODEL)) {
                 deviceInfo.put("$model", "UNKNOWN");
             } else {
@@ -676,7 +679,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             mOriginServerUrl = serverUrl;
             if (TextUtils.isEmpty(serverUrl) || mDebugMode == DebugMode.DEBUG_OFF) {
                 mServerUrl = serverUrl;
-                disableDebugMode();
             } else {
                 Uri serverURI = Uri.parse(serverUrl);
 
@@ -1204,10 +1206,43 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             mAutoTrackIgnoredActivities = new ArrayList<>();
         }
 
+        int hashCode;
         for (Class<?> activity : activitiesList) {
-            if (activity != null && !mAutoTrackIgnoredActivities.contains(activity.hashCode())) {
-                mAutoTrackIgnoredActivities.add(activity.hashCode());
+            if (activity != null) {
+                hashCode = activity.hashCode();
+                if (!mAutoTrackIgnoredActivities.contains(hashCode)) {
+                    mAutoTrackIgnoredActivities.add(hashCode);
+                }
             }
+        }
+    }
+
+    /**
+     * 恢复不被 AutoTrack 的 activity
+     * @param activitiesList
+     */
+    @Override
+    public void resumeAutoTrackActivities(List<Class<?>> activitiesList) {
+        if (activitiesList == null || activitiesList.size() == 0) {
+            return;
+        }
+
+        if (mAutoTrackIgnoredActivities == null){
+            mAutoTrackIgnoredActivities = new ArrayList<>();
+        }
+
+        try {
+            int hashCode;
+            for (Class activity : activitiesList) {
+                if (activity != null) {
+                    hashCode = activity.hashCode();
+                    if (mAutoTrackIgnoredActivities.contains(hashCode)) {
+                        mAutoTrackIgnoredActivities.remove(Integer.valueOf(hashCode));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -1225,8 +1260,37 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             mAutoTrackIgnoredActivities = new ArrayList<>();
         }
 
-        if (!mAutoTrackIgnoredActivities.contains(activity.hashCode())) {
-            mAutoTrackIgnoredActivities.add(activity.hashCode());
+        try {
+            int hashCode = activity.hashCode();
+            if (!mAutoTrackIgnoredActivities.contains(hashCode)) {
+                mAutoTrackIgnoredActivities.add(hashCode);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 恢复不被 AutoTrack 的 activity
+     * @param activity
+     */
+    @Override
+    public void resumeAutoTrackActivity(Class<?> activity) {
+        if (activity == null) {
+            return;
+        }
+
+        if (mAutoTrackIgnoredActivities == null) {
+            mAutoTrackIgnoredActivities = new ArrayList<>();
+        }
+
+        try {
+            int hashCode = activity.hashCode();
+            if (mAutoTrackIgnoredActivities.contains(hashCode)) {
+                mAutoTrackIgnoredActivities.remove(Integer.valueOf(hashCode));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -3231,7 +3295,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "2.0.3";
+    static final String VERSION = "2.0.4";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;

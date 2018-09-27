@@ -1,3 +1,6 @@
+/**Created by wangzhuozhou on 2015/08/01.
+ * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
+ 
 package com.sensorsdata.analytics.android.sdk.util;
 
 import android.annotation.TargetApi;
@@ -81,6 +84,22 @@ public final class SensorsDataUtils {
             e.printStackTrace();
         }
         return sdkRemoteConfig;
+    }
+
+    public static String getManufacturer() {
+        String manufacturer = Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER.trim();
+        try {
+            if (!TextUtils.isEmpty(manufacturer)) {
+                for (String item : sManufacturer) {
+                    if (item.equalsIgnoreCase(manufacturer)) {
+                        return item;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return manufacturer;
     }
 
     private static String getJsonFromAssets(String fileName, Context context) {
@@ -786,6 +805,15 @@ public final class SensorsDataUtils {
 
         }
     };
+
+    private static final List<String> sManufacturer = new ArrayList<String>() {
+        {
+            add("HUAWEI");
+            add("OPPO");
+            add("vivo");
+        }
+    };
+
     private static final List<String> mInvalidAndroidId = new ArrayList<String>() {
         {
             add("9774d56d682e549c");

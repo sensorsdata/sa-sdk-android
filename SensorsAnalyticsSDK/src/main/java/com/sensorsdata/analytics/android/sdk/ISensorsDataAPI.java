@@ -1,3 +1,6 @@
+/**Created by wangzhuozhou on 2015/08/01.
+ * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
+ 
 package com.sensorsdata.analytics.android.sdk;
 
 import android.annotation.SuppressLint;
@@ -222,10 +225,22 @@ public interface ISensorsDataAPI {
     public void ignoreAutoTrackActivities(List<Class<?>> activitiesList);
 
     /**
+     * 恢复不被 AutoTrack 的 activity
+     * @param activitiesList
+     */
+    public void resumeAutoTrackActivities(List<Class<?>> activitiesList);
+
+    /**
      * 指定某个 activity 不被 AutoTrack
      * @param activity Activity
      */
     public void ignoreAutoTrackActivity(Class<?> activity);
+
+    /**
+     * 恢复不被 AutoTrack 的 activity
+     * @param activity
+     */
+    public void resumeAutoTrackActivity(Class<?> activity);
 
     /**
      * 判断 AutoTrack 时，某个 Activity 的 $AppViewScreen 是否被过滤

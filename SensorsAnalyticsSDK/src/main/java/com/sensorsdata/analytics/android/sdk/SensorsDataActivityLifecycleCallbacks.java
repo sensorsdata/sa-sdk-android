@@ -1,3 +1,6 @@
+/**Created by wangzhuozhou on 2015/08/01.
+ * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
+ 
 package com.sensorsdata.analytics.android.sdk;
 
 import android.annotation.TargetApi;
@@ -95,7 +98,6 @@ class SensorsDataActivityLifecycleCallbacks extends ContentObserver implements A
                     return;
                 }
 
-                mDbAdapter.commitAppStart(true);
                 double timeDiff = System.currentTimeMillis() - mDbAdapter.getAppPausedTime();
                 SALog.d(TAG, "timeDiff:" + timeDiff);
                 if (timeDiff > mDbAdapter.getSessionIntervalTime()) {
@@ -173,6 +175,8 @@ class SensorsDataActivityLifecycleCallbacks extends ContentObserver implements A
     @Override
     public void onActivityResumed(Activity activity) {
         try {
+            mDbAdapter.commitAppStart(true);
+
             boolean mShowAutoTrack = true;
             boolean isAutoTrackEnabled = mSensorsDataInstance.isAutoTrackEnabled();
             if (mSensorsDataInstance.isActivityAutoTrackAppViewScreenIgnored(activity.getClass())) {

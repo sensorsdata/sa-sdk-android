@@ -1,3 +1,6 @@
+/**Created by wangzhuozhou on 2015/08/01.
+ * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
+ 
 package com.sensorsdata.analytics.android.sdk;
 
 import android.app.Activity;
@@ -1067,13 +1070,17 @@ public class SensorsDataAutoTrackHelper {
     }
 
     public static void trackViewOnClick(Object anything) {
-        if (anything != null) {
-            SALog.i("SensorsDataAutoTrackHelper", anything.getClass().getCanonicalName());
-        }
-    }
-
-    public static void trackViewOnClick(View view) {
         try {
+            if (anything == null) {
+                return;
+            }
+
+            if (!(anything instanceof View)) {
+                return;
+            }
+
+            View view = (View) anything;
+
             //关闭 AutoTrack
             if (!SensorsDataAPI.sharedInstance().isAutoTrackEnabled()) {
                 return;
