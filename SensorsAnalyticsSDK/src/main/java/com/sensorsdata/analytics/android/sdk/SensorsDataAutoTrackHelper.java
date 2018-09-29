@@ -1069,12 +1069,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    public static void trackViewOnClick(Object anything) {
-        if (anything != null) {
-            SALog.i("SensorsDataAutoTrackHelper", anything.getClass().getCanonicalName());
-        }
-    }
-
     public static void trackViewOnClick(View view) {
         try {
             //关闭 AutoTrack
@@ -1249,6 +1243,22 @@ public class SensorsDataAutoTrackHelper {
             }
 
             SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void trackViewOnClick(Object anything) {
+        try {
+            if (anything == null) {
+                return;
+            }
+
+            if (!(anything instanceof View)) {
+                return;
+            }
+
+            trackViewOnClick((View) anything);
         } catch (Exception e) {
             e.printStackTrace();
         }

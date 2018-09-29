@@ -3295,7 +3295,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "2.1.0";
+    static final String VERSION = "2.1.1";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
