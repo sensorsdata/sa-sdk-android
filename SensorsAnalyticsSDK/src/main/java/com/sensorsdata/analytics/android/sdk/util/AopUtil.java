@@ -9,7 +9,6 @@ import android.content.ContextWrapper;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
-import android.support.v7.widget.SwitchCompat;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +16,7 @@ import android.view.ViewParent;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CheckedTextView;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.TextView;
@@ -30,6 +30,7 @@ import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -155,13 +156,26 @@ public class AopUtil {
                         continue;
                     }
 
+                    Class<?> switchCompatClass = null;
+                    try {
+                        switchCompatClass = Class.forName("android.support.v7.widget.SwitchCompat");
+                    } catch (Exception e) {
+                        //ignored
+                    }
+
                     CharSequence viewText = null;
                     if (child instanceof CheckBox) {
                         CheckBox checkBox = (CheckBox) child;
                         viewText = checkBox.getText();
-                    } else if (child instanceof SwitchCompat) {
-                        SwitchCompat switchCompat = (SwitchCompat) child;
-                        viewText = switchCompat.getTextOn();
+                    } else if (switchCompatClass != null && switchCompatClass.isInstance(child)) {
+                        CompoundButton switchCompat = (CompoundButton) child;
+                        Method method;
+                        if (switchCompat.isChecked()) {
+                            method = child.getClass().getMethod("getTextOn");
+                        } else {
+                            method = child.getClass().getMethod("getTextOff");
+                        }
+                        viewText = (String)method.invoke(child);
                     } else if (child instanceof RadioButton) {
                         RadioButton radioButton = (RadioButton) child;
                         viewText = radioButton.getText();

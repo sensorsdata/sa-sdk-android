@@ -1070,17 +1070,13 @@ public class SensorsDataAutoTrackHelper {
     }
 
     public static void trackViewOnClick(Object anything) {
+        if (anything != null) {
+            SALog.i("SensorsDataAutoTrackHelper", anything.getClass().getCanonicalName());
+        }
+    }
+
+    public static void trackViewOnClick(View view) {
         try {
-            if (anything == null) {
-                return;
-            }
-
-            if (!(anything instanceof View)) {
-                return;
-            }
-
-            View view = (View) anything;
-
             //关闭 AutoTrack
             if (!SensorsDataAPI.sharedInstance().isAutoTrackEnabled()) {
                 return;

@@ -3,7 +3,7 @@ git.properties
 local.properties
 ### Intellij ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm
-
+.gradle/
 *.iml
 
 ## Directory-based project format:
