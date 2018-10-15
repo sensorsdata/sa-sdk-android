@@ -243,12 +243,37 @@ public interface ISensorsDataAPI {
     public void resumeAutoTrackActivity(Class<?> activity);
 
     /**
+     * 指定 fragment 被 AutoTrack 采集
+     * @param fragment Fragment
+     */
+    void enableAutoTrackFragment(Class<?> fragment);
+
+    /**
+     * 指定 fragments 被 AutoTrack 采集
+     * @param fragmentsList Fragment 集合
+     */
+    void enableAutoTrackFragments(List<Class<?>> fragmentsList);
+
+    /**
+     * 指定 fragment 被 AutoTrack 采集
+     * @param fragmentName
+     */
+    void enableAutoTrackFragment(String fragmentName);
+
+    /**
      * 判断 AutoTrack 时，某个 Activity 的 $AppViewScreen 是否被过滤
      * 如果过滤的话，会过滤掉 Activity 的 $AppViewScreen 事件
      * @param activity Activity
-     * @return Activity 是否被过滤
+     * @return Activity 是否被采集
      */
     public boolean isActivityAutoTrackAppViewScreenIgnored(Class<?> activity);
+
+    /**
+     * 判断 AutoTrack 时，某个 Fragment 的 $AppViewScreen 是否被采集
+     * @param fragment Fragment
+     * @return Fragment 是否被采集
+     */
+    boolean isFragmentAutoTrackAppViewScreen(Class<?> fragment);
 
     /**
      * 判断 AutoTrack 时，某个 Activity 的 $AppClick 是否被过滤
@@ -342,6 +367,12 @@ public interface ISensorsDataAPI {
     public void setViewProperties(View view, JSONObject properties);
 
     public List<Class> getIgnoredViewTypeList();
+
+    /**
+     * 获取需要采集的 Fragment 集合
+     * @return
+     */
+    Set<Integer> getAutoTrackFragments();
 
     /**
      * 忽略某一类型的 View

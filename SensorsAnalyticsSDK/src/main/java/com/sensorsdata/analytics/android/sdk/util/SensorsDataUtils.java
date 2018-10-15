@@ -102,6 +102,44 @@ public final class SensorsDataUtils {
         return manufacturer;
     }
 
+    /**
+     * 读取配置配置的 AutoTrack 的 Fragment
+     * @param context
+     * @return
+     */
+    public static ArrayList<String> getAutoTrackFragments(Context context) {
+        ArrayList<String> autoTrackFragments = new ArrayList<>();
+        BufferedReader bf = null;
+        try {
+            //获取assets资源管理器
+            AssetManager assetManager = context.getAssets();
+            //通过管理器打开文件并读取
+            bf = new BufferedReader(new InputStreamReader(
+                    assetManager.open("sa_autotrack_fragment.config")));
+            String line;
+            while ((line = bf.readLine()) != null) {
+                if (!TextUtils.isEmpty(line) && !line.startsWith("#")) {
+                    autoTrackFragments.add(line);
+                }
+            }
+        } catch (IOException e) {
+            if (e.toString().contains("FileNotFoundException")) {
+                SALog.d(TAG, "SensorsDataAutoTrackFragment file not exists.");
+            } else {
+                e.printStackTrace();
+            }
+        } finally {
+            if (bf != null) {
+                try {
+                    bf.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return autoTrackFragments;
+    }
+
     private static String getJsonFromAssets(String fileName, Context context) {
         //将json数据变成字符串
         StringBuilder stringBuilder = new StringBuilder();
@@ -326,6 +364,10 @@ public final class SensorsDataUtils {
     @TargetApi(11)
     public static String getToolbarTitle(Activity activity) {
         try {
+            if ("com.tencent.connect.common.AssistActivity".equals(activity.getClass().getCanonicalName())) {
+                return activity.getTitle().toString();
+            }
+
             ActionBar actionBar = activity.getActionBar();
             if (actionBar != null) {
                 if (!TextUtils.isEmpty(actionBar.getTitle())) {

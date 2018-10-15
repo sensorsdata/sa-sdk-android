@@ -44,6 +44,7 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 @SuppressWarnings("unused")
 public class SensorsDataAutoTrackHelper {
@@ -186,14 +187,21 @@ public class SensorsDataAutoTrackHelper {
                 return;
             }
 
-            if (fragment.getClass().getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class) != null) {
+            Set<Integer> fragmentsSets = SensorsDataAPI.sharedInstance().getAutoTrackFragments();
+            boolean isAutoTrackFragment = SensorsDataAPI.sharedInstance().isFragmentAutoTrackAppViewScreen(fragment.getClass());
+            if (!isAutoTrackFragment) {
+                return;
+            }
+
+            if (fragment.getClass().getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class) != null
+                    && fragmentsSets == null  && isAutoTrackFragment) {
                 return;
             }
 
             JSONObject properties = new JSONObject();
 
-            Activity activity = fragment.getActivity();
             String fragmentName = fragment.getClass().getCanonicalName();
+            Activity activity = fragment.getActivity();
             if (activity != null) {
                 String activityTitle = AopUtil.getActivityTitle(activity);
                 if (!TextUtils.isEmpty(activityTitle)) {
@@ -625,7 +633,13 @@ public class SensorsDataAutoTrackHelper {
 
             Class<?> tabClass = Class.forName("android.support.design.widget.TabLayout$Tab");
             if (tabClass != null) {
-                Method method = tabClass.getMethod("getText");
+                Method method = null;
+                try {
+                    method = tabClass.getMethod("getText");
+                } catch (NoSuchMethodException e) {
+                    //ignored
+                }
+
                 if (method != null) {
                     Object text = method.invoke(tab);
 

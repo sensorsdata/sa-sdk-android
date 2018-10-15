@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 
 public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
@@ -29,6 +30,28 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     @Override
     public JSONObject getPresetProperties() {
         return new JSONObject();
+    }
+
+    @Override
+    public void enableAutoTrackFragment(Class<?> fragment) {
+    }
+
+    @Override
+    public void enableAutoTrackFragments(List<Class<?>> fragmentsList) {
+    }
+
+    @Override
+    public void enableAutoTrackFragment(String fragmentName) {
+    }
+
+    @Override
+    public boolean isFragmentAutoTrackAppViewScreen(Class<?> fragment) {
+        return false;
+    }
+
+    @Override
+    public Set<Integer> getAutoTrackFragments() {
+        return new CopyOnWriteArraySet<>();
     }
 
     /**

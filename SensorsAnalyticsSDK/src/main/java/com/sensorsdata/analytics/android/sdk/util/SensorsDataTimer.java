@@ -36,9 +36,9 @@ public class SensorsDataTimer {
         };
         if (mTimer == null) {
             mTimer = new Timer();
-            mTimer.schedule(mTimerTask, 0, TIME_INTERVAL);
+            mTimer.schedule(mTimerTask, 500, TIME_INTERVAL);
         } else {
-            mTimer.schedule(mTimerTask, 0, TIME_INTERVAL);
+            mTimer.schedule(mTimerTask, 500, TIME_INTERVAL);
         }
     }
 

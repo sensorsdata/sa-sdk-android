@@ -55,6 +55,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -197,7 +198,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         final String packageName = context.getApplicationContext().getPackageName();
         mAutoTrackIgnoredActivities = new ArrayList<>();
         mHeatMapActivities = new ArrayList<>();
-        mAutoTrackEventTypeList = new ArrayList<>();
+        mAutoTrackEventTypeList = new CopyOnWriteArraySet<>();
 
         try {
             SensorsDataUtils.cleanUserAgent(mContext);
@@ -379,6 +380,13 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             }
         }
 
+        ArrayList<String> autoTrackFragments = SensorsDataUtils.getAutoTrackFragments(context);
+        if (autoTrackFragments.size() > 0) {
+            mAutoTrackFragments = new CopyOnWriteArraySet<>();
+            for(String fragment : autoTrackFragments) {
+                mAutoTrackFragments.add(fragment.hashCode());
+            }
+        }
         mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
         mTrackTimer = new HashMap<>();
         mDbAdapter = new DbAdapter(context, packageName);
@@ -984,13 +992,17 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
-        mAutoTrack = true;
-        if (eventTypeList == null) {
-            eventTypeList = new ArrayList<>();
-        }
+        try {
+            mAutoTrack = true;
+            if (eventTypeList == null) {
+                eventTypeList = new ArrayList<>();
+            }
 
-        mAutoTrackEventTypeList.clear();
-        mAutoTrackEventTypeList.addAll(eventTypeList);
+            mAutoTrackEventTypeList.clear();
+            mAutoTrackEventTypeList.addAll(eventTypeList);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -1006,13 +1018,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         if (mAutoTrackEventTypeList == null) {
             return;
         }
-
-        for (AutoTrackEventType autoTrackEventType: eventTypeList) {
-            if (autoTrackEventType != null) {
-                if (mAutoTrackEventTypeList.contains(autoTrackEventType)) {
-                    mAutoTrackEventTypeList.remove(autoTrackEventType);
-                }
-            }
+        try {
+            mAutoTrackEventTypeList.removeAll(eventTypeList);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         if (mAutoTrackEventTypeList.size() == 0) {
@@ -1034,8 +1043,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             return;
         }
 
-        if (mAutoTrackEventTypeList.contains(autoTrackEventType)) {
-            mAutoTrackEventTypeList.remove(autoTrackEventType);
+        try {
+            if (mAutoTrackEventTypeList.contains(autoTrackEventType)) {
+                mAutoTrackEventTypeList.remove(autoTrackEventType);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         if (mAutoTrackEventTypeList.size() == 0) {
@@ -1295,6 +1308,73 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     /**
+     * 指定 fragment 被 AutoTrack 采集
+     * @param fragment Fragment
+     */
+    @Override
+    public void enableAutoTrackFragment(Class<?> fragment) {
+        if (fragment == null) {
+            return;
+        }
+
+        if (mAutoTrackFragments == null) {
+            mAutoTrackFragments = new CopyOnWriteArraySet<>();
+        }
+
+        try {
+            mAutoTrackFragments.add(fragment.hashCode());
+            mAutoTrackFragments.add(fragment.getCanonicalName().hashCode());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 指定 fragments 被 AutoTrack 采集
+     * @param fragmentsList Fragment 集合
+     */
+    @Override
+    public void enableAutoTrackFragments(List<Class<?>> fragmentsList) {
+        if (fragmentsList == null || fragmentsList.size() == 0) {
+            return;
+        }
+
+        if (mAutoTrackFragments == null) {
+            mAutoTrackFragments = new CopyOnWriteArraySet<>();
+        }
+
+        try {
+            for (Class fragment : fragmentsList) {
+                mAutoTrackFragments.add(fragment.hashCode());
+                mAutoTrackFragments.add(fragment.getCanonicalName().hashCode());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 指定 fragment 被 AutoTrack 采集
+     * @param fragmentName,Fragment 名称，使用 包名 + 类名，建议直接通过 Class.getCanonicalName 获取
+     */
+    @Override
+    public void enableAutoTrackFragment(String fragmentName) {
+        if (TextUtils.isEmpty(fragmentName)) {
+            return;
+        }
+
+        if (mAutoTrackFragments == null) {
+            mAutoTrackFragments = new CopyOnWriteArraySet<>();
+        }
+
+        try {
+            mAutoTrackFragments.add(fragmentName.hashCode());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * 判断 AutoTrack 时，某个 Activity 的 $AppViewScreen 是否被过滤
      * 如果过滤的话，会过滤掉 Activity 的 $AppViewScreen 事件
      * @param activity Activity
@@ -1319,6 +1399,36 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
 
         return false;
+    }
+
+    /**
+     * 判断 AutoTrack 时，某个 Activity 的 $AppViewScreen 是否被采集
+     * @param fragment Fragment
+     * @return
+     */
+    @Override
+    public boolean isFragmentAutoTrackAppViewScreen(Class<?> fragment) {
+        if (fragment == null) {
+            return false;
+        }
+        try {
+            if (mAutoTrackFragments != null && mAutoTrackFragments.size() > 0) {
+                if (mAutoTrackFragments.contains(fragment.hashCode())
+                        || mAutoTrackFragments.contains(fragment.getCanonicalName().hashCode())) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+
+            if (fragment.getClass().getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class) != null) {
+                return false;
+            }
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+
+        return true;
     }
 
     /**
@@ -1348,7 +1458,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return false;
     }
 
-    private List<AutoTrackEventType> mAutoTrackEventTypeList;
+    private Set<AutoTrackEventType> mAutoTrackEventTypeList;
 
     /**
      * 过滤掉 AutoTrack 的某个事件类型
@@ -1535,6 +1645,15 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
 
         return mIgnoredViewTypeList;
+    }
+
+    /**
+     * 返回设置 AutoTrack 的 Fragments 集合，如果没有设置则返回 null.
+     * @return
+     */
+    @Override
+    public Set<Integer> getAutoTrackFragments() {
+        return mAutoTrackFragments;
     }
 
     /**
@@ -3295,7 +3414,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "2.1.1";
+    static final String VERSION = "2.1.2";
 
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
@@ -3349,6 +3468,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private final Map<String, EventTimer> mTrackTimer;
     private List<Integer> mAutoTrackIgnoredActivities;
     private List<Integer> mHeatMapActivities;
+    private Set<Integer> mAutoTrackFragments;
     private int mFlushNetworkPolicy = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
     private final String mMainProcessName;
     private long mMaxCacheSize = 32 * 1024 * 1024; //default 32MB

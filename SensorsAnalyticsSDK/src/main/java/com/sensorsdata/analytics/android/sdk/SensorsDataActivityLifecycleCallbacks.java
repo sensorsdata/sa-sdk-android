@@ -44,7 +44,7 @@ class SensorsDataActivityLifecycleCallbacks extends ContentObserver implements A
     private final SensorsDataAPI mSensorsDataInstance;
     private final PersistentFirstStart mFirstStart;
     private final PersistentFirstDay mFirstDay;
-    private Activity currentActivity;
+    private Context mContext;
     private static CountDownTimer mCountDownTimer;
     private static DbAdapter mDbAdapter;
     private static final String EVENT_TIMER = "event_timer";
@@ -63,7 +63,6 @@ class SensorsDataActivityLifecycleCallbacks extends ContentObserver implements A
     public void onActivityCreated(Activity activity, Bundle bundle) {
         try {
             Uri uri = null;
-            currentActivity = activity;
             if (activity != null) {
                 Intent intent = activity.getIntent();
                 if (intent != null) {
@@ -87,7 +86,7 @@ class SensorsDataActivityLifecycleCallbacks extends ContentObserver implements A
     public void onActivityStarted(Activity activity) {
         try {
             synchronized (mActivityLifecycleCallbacksLock) {
-                currentActivity = activity;
+                mContext = activity.getApplicationContext();
                 boolean isAutoTrackEnabled = mSensorsDataInstance.isAutoTrackEnabled();
                 if (!isAutoTrackEnabled) {
                     if (mFirstDay.get() == null) {
@@ -143,12 +142,12 @@ class SensorsDataActivityLifecycleCallbacks extends ContentObserver implements A
                             properties.put("$is_first_time", firstStart);
                             SensorsDataUtils.getScreenNameAndTitleFromActivity(properties, activity);
 
-                            SensorsDataAPI.sharedInstance(activity).track("$AppStart", properties);
+                            mSensorsDataInstance.track("$AppStart", properties);
                         }
 
                         if (!mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_END)) {
                             mDbAdapter.commitAppStartTime(SystemClock.elapsedRealtime());
-                            SensorsDataAPI.sharedInstance(activity).trackTimer("$AppEnd", TimeUnit.SECONDS);
+                            mSensorsDataInstance.trackTimer("$AppEnd", TimeUnit.SECONDS);
                         }
                     } catch (Exception e) {
                         SALog.i(TAG, e);
@@ -173,7 +172,7 @@ class SensorsDataActivityLifecycleCallbacks extends ContentObserver implements A
     }
 
     @Override
-    public void onActivityResumed(Activity activity) {
+    public void onActivityResumed(final Activity activity) {
         try {
             mDbAdapter.commitAppStart(true);
 
@@ -198,7 +197,7 @@ class SensorsDataActivityLifecycleCallbacks extends ContentObserver implements A
                             SensorsDataUtils.mergeJSONObject(otherProperties, properties);
                         }
 
-                        SensorsDataAPI.sharedInstance(activity).trackViewScreen(screenUrl, properties);
+                        mSensorsDataInstance.trackViewScreen(screenUrl, properties);
                     } else {
                         SensorsDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = activity.getClass().getAnnotation(SensorsDataAutoTrackAppViewScreenUrl.class);
                         if (autoTrackAppViewScreenUrl != null) {
@@ -206,9 +205,9 @@ class SensorsDataActivityLifecycleCallbacks extends ContentObserver implements A
                             if (TextUtils.isEmpty(screenUrl)) {
                                 screenUrl = activity.getClass().getCanonicalName();
                             }
-                            SensorsDataAPI.sharedInstance(activity).trackViewScreen(screenUrl, properties);
+                            mSensorsDataInstance.trackViewScreen(screenUrl, properties);
                         } else {
-                            SensorsDataAPI.sharedInstance(activity).track("$AppViewScreen", properties);
+                            mSensorsDataInstance.track("$AppViewScreen", properties);
                         }
                     }
                 } catch (Exception e) {
@@ -220,7 +219,7 @@ class SensorsDataActivityLifecycleCallbacks extends ContentObserver implements A
                 SensorsDataTimer.getInstance().timer(new Runnable() {
                     @Override
                     public void run() {
-                        generateAppEndData(currentActivity);
+                        generateAppEndData(activity);
                     }
                 });
             }
@@ -300,7 +299,7 @@ class SensorsDataActivityLifecycleCallbacks extends ContentObserver implements A
             e.printStackTrace();
         }
 
-        if (currentActivity != null) {
+        if (mContext != null) {
             if (mSensorsDataInstance.isAutoTrackEnabled()) {
                 try {
                     if (!mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_END)) {
@@ -308,28 +307,23 @@ class SensorsDataActivityLifecycleCallbacks extends ContentObserver implements A
                         JSONObject endDataJsonObject = null;
                         if (!TextUtils.isEmpty(jsonEndData)) {
                             endDataJsonObject = new JSONObject(jsonEndData);
-                            if(endDataJsonObject != null) {
-                                if(endDataJsonObject.has(EVENT_TIMER)){
-                                    long startTime = mDbAdapter.getAppStartTime();
-                                    long endTime = endDataJsonObject.getLong(EVENT_TIMER);
-                                    EventTimer eventTimer = new EventTimer(TimeUnit.SECONDS, startTime, endTime);
-                                    SALog.d(TAG,"startTime:" + startTime + "--endTime:" + endTime + "--event_duration:" + eventTimer.duration());
-                                    SensorsDataAPI.sharedInstance(currentActivity).trackTimer("$AppEnd", eventTimer);
-                                    endDataJsonObject.remove(EVENT_TIMER);
-                                }
+                            if (endDataJsonObject.has(EVENT_TIMER)) {
+                                long startTime = mDbAdapter.getAppStartTime();
+                                long endTime = endDataJsonObject.getLong(EVENT_TIMER);
+                                EventTimer eventTimer = new EventTimer(TimeUnit.SECONDS, startTime, endTime);
+                                SALog.d(TAG,"startTime:" + startTime + "--endTime:" + endTime + "--event_duration:" + eventTimer.duration());
+                                mSensorsDataInstance.trackTimer("$AppEnd", eventTimer);
+                                endDataJsonObject.remove(EVENT_TIMER);
                             }
                         }
-                        JSONObject properties;
-                        if(endDataJsonObject != null) {
+                        JSONObject properties = new JSONObject();
+                        if (endDataJsonObject != null) {
                             properties = new JSONObject(endDataJsonObject.toString());
-                        } else {
-                            properties = new JSONObject();
-                            SensorsDataUtils.getScreenNameAndTitleFromActivity(properties, currentActivity);
                         }
 
                         mSensorsDataInstance.clearLastScreenUrl();
                         properties.put("event_time", mDbAdapter.getAppPausedTime());
-                        SensorsDataAPI.sharedInstance(currentActivity).track("$AppEnd", properties);
+                        mSensorsDataInstance.track("$AppEnd", properties);
                     }
                 } catch (Exception e) {
                     SALog.i(TAG, e);
@@ -358,7 +352,7 @@ class SensorsDataActivityLifecycleCallbacks extends ContentObserver implements A
             properties.put(EVENT_TIMER, SystemClock.elapsedRealtime());
             mDbAdapter.commitAppEndData(properties.toString());
             mDbAdapter.commitAppPausedTime(System.currentTimeMillis());
-        } catch (JSONException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

@@ -323,7 +323,7 @@ class AnalyticsMessages {
                     try {
                         bout.close();
                     } catch (Exception e) {
-                        // TODO: 16/9/23 ignore Exception
+                        SALog.i(TAG, e.getMessage());
                     }
                 }
 
@@ -331,7 +331,7 @@ class AnalyticsMessages {
                     try {
                         out.close();
                     } catch (Exception e) {
-                        // TODO: 16/9/23 ignore Exception
+                        SALog.i(TAG, e.getMessage());
                     }
                 }
 
@@ -339,7 +339,7 @@ class AnalyticsMessages {
                     try {
                         in.close();
                     } catch (Exception e) {
-                        // TODO: 16/9/23 ignore Exception
+                        SALog.i(TAG, e.getMessage());
                     }
                 }
 
@@ -347,7 +347,7 @@ class AnalyticsMessages {
                     try {
                         connection.disconnect();
                     } catch (Exception e) {
-                        // TODO: 16/9/23 ignore Exception
+                        SALog.i(TAG, e.getMessage());
                     }
                 }
 
