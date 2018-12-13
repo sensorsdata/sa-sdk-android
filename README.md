@@ -117,6 +117,9 @@ Android SDK 要求最低系统版本为 API 11（Android 3.0），特别地，Au
 
 See our [full manual](http://www.sensorsdata.cn/manual/android_sdk.html)
 
+或者加入 QQ 讨论群：<br>
+![ QQ 讨论群](screenshots/qrCode.jpeg)
+
 ## For Java Developers
 
 We also maintains a SDK for Java at 
