@@ -53,9 +53,11 @@ public class SALog {
     }
 
     /**
-     *此方法谨慎修改
-     *插件配置 disableLog 会修改此方法
-     *enableLog
+     * 此方法谨慎修改
+     * 插件配置 disableLog 会修改此方法
+     * @param tag String
+     * @param msg String
+     * @param tr Throwable
      */
     public static void info(String tag, String msg, Throwable tr) {
         try {
@@ -66,8 +68,9 @@ public class SALog {
     }
 
     /**
-     *此方法谨慎修改
-     *插件配置 disableLog 会修改此方法
+     * 此方法谨慎修改
+     * 插件配置 disableLog 会修改此方法
+     * @param e Exception
      */
     public static void printStackTrace(Exception e) {
         if (e != null) {

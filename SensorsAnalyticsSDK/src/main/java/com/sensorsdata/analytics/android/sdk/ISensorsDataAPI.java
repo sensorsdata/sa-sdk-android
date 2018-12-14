@@ -48,13 +48,13 @@ public interface ISensorsDataAPI {
 
     /**
      * 返回是否允许后台上传数据，默认是true
-     * @return
+     * @return 是否允许后台上传数据
      */
     boolean isFlushInBackground();
 
     /**
      * 设置是否允许后台上传数据，默认是 true
-     * @param isFlush
+     * @param isFlush boolean
      */
     void setFlushInBackground(boolean isFlush);
 
@@ -113,7 +113,7 @@ public interface ISensorsDataAPI {
      * 默认值为 30*1000 毫秒
      *
      * 若 App 在后台超过设定事件，则认为当前 Session 结束，发送 $AppEnd 事件
-     *
+     * @param sessionIntervalTime int
      */
     public void setSessionIntervalTime(int sessionIntervalTime);
 
@@ -240,7 +240,7 @@ public interface ISensorsDataAPI {
 
     /**
      * 恢复不被 AutoTrack 的 activity
-     * @param activitiesList
+     * @param activitiesList List
      */
     public void resumeAutoTrackActivities(List<Class<?>> activitiesList);
 
@@ -252,7 +252,7 @@ public interface ISensorsDataAPI {
 
     /**
      * 恢复不被 AutoTrack 的 activity
-     * @param activity
+     * @param activity Class
      */
     public void resumeAutoTrackActivity(Class<?> activity);
 
@@ -270,7 +270,7 @@ public interface ISensorsDataAPI {
 
     /**
      * 指定 fragment 被 AutoTrack 采集
-     * @param fragmentName
+     * @param fragmentName String
      */
     void enableAutoTrackFragment(String fragmentName);
 
@@ -384,7 +384,7 @@ public interface ISensorsDataAPI {
 
     /**
      * 获取需要采集的 Fragment 集合
-     * @return
+     * @return Set
      */
     Set<Integer> getAutoTrackFragments();
 

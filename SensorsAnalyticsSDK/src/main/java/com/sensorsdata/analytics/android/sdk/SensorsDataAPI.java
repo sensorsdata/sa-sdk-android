@@ -1270,7 +1270,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     /**
      * 恢复不被 AutoTrack 的 activity
-     * @param activitiesList
+     * @param activitiesList List
      */
     @Override
     public void resumeAutoTrackActivities(List<Class<?>> activitiesList) {
@@ -1323,7 +1323,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     /**
      * 恢复不被 AutoTrack 的 activity
-     * @param activity
+     * @param activity Class
      */
     @Override
     public void resumeAutoTrackActivity(Class<?> activity) {
@@ -1442,7 +1442,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     /**
      * 判断 AutoTrack 时，某个 Activity 的 $AppViewScreen 是否被采集
      * @param fragment Fragment
-     * @return
+     * @return 某个 Activity 的 $AppViewScreen 是否被采集
      */
     @Override
     public boolean isFragmentAutoTrackAppViewScreen(Class<?> fragment) {
@@ -1727,7 +1727,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     /**
      * 返回设置 AutoTrack 的 Fragments 集合，如果没有设置则返回 null.
-     * @return
+     * @return Set
      */
     @Override
     public Set<Integer> getAutoTrackFragments() {
@@ -3449,8 +3449,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     /**
      * 点击图是否进行检查 SSL
-     * @return
-     */
+     * @return boolean 是否进行检查 */
     protected boolean isSSLCertificateChecking(){
         return mIsSSLCertificateChecking;
     }

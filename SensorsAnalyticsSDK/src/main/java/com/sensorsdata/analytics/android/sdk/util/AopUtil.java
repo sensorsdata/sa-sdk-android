@@ -403,7 +403,6 @@ public class AopUtil {
      *
      * @param source JSONObject
      * @param dest JSONObject
-     * @throws JSONException Exception
      */
     public static void mergeJSONObject(final JSONObject source, JSONObject dest) {
         try {

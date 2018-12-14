@@ -14,8 +14,8 @@ import org.json.JSONObject;
 public interface SensorsObjectTrackProperties {
     /**
      * Object 扩展属性
-     * @return
-     * @throws JSONException
+     * @return JSONObject
+     * @throws JSONException JSONException
      */
     JSONObject getSensorsTrackProperties() throws JSONException;
 }

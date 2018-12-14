@@ -252,7 +252,7 @@ class SensorsDataActivityLifecycleCallbacks extends ContentObserver implements A
             mCountDownTimer.start();
             mDbAdapter.commitAppStart(false);
             // cancel TimerTask of current Activity
-            SensorsDataTimer.getInstance().cancleTimerTask();
+            SensorsDataTimer.getInstance().cancelTimerTask();
             // store $AppEnd data
             JSONObject properties = new JSONObject();
             SensorsDataUtils.getScreenNameAndTitleFromActivity(properties, activity);

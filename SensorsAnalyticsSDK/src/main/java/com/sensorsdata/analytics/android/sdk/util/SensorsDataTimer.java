@@ -23,7 +23,9 @@ public class SensorsDataTimer {
 
     /**
      * start a timer task
-     * @param runnable
+     * @param runnable Runnable
+     * @param initialDelay long
+     * @param timePeriod long
      */
     public void timer(final Runnable runnable, long initialDelay, long timePeriod) {
         if (mScheduledExecutorService == null || mScheduledExecutorService.isShutdown()) {
@@ -37,7 +39,7 @@ public class SensorsDataTimer {
     /**
      * cancel timer task
      */
-    public void cancleTimerTask() {
+    public void cancelTimerTask() {
         if (mScheduledExecutorService != null) {
             mScheduledExecutorService.shutdown();
         }

@@ -326,7 +326,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 恢复不被 AutoTrack 的 activity
-     * @param activitiesList
+     * @param activitiesList List
      */
     @Override
     public void resumeAutoTrackActivities(List<Class<?>> activitiesList) {
@@ -344,7 +344,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 恢复不被 AutoTrack 的 activity
-     * @param activity
+     * @param activity Class
      */
     @Override
     public void resumeAutoTrackActivity(Class<?> activity) {

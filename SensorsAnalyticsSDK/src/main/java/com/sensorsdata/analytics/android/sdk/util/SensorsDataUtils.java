@@ -106,7 +106,7 @@ public final class SensorsDataUtils {
     /**
      * 读取配置配置的 AutoTrack 的 Fragment
      * @param context Context
-     * @return ArrayList<String>
+     * @return ArrayList Fragment 列表
      */
     public static ArrayList<String> getAutoTrackFragments(Context context) {
         ArrayList<String> autoTrackFragments = new ArrayList<>();
@@ -500,7 +500,6 @@ public final class SensorsDataUtils {
      * 融合静态公共属性
      * @param source 源属性
      * @param dest  目标属性
-     * @throws JSONException
      */
     public static void mergeSuperJSONObject(final JSONObject source, JSONObject dest) {
         try {
@@ -827,9 +826,10 @@ public final class SensorsDataUtils {
     /**
      * 此方法谨慎修改
      * 插件配置 disableMacAddress 会修改此方法
-     * 获取手机的MAC地址
+     * 获取手机的 Mac 地址
      *
-     * @return String
+     * @param context Context
+     * @return String 当前手机的 Mac 地址
      */
     public static String getMacAddress(Context context) {
         try {

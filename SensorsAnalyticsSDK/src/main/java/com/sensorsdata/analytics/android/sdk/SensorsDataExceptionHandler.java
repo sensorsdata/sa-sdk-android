@@ -37,7 +37,7 @@ public class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHand
                 public void process(SensorsDataAPI sensorsData) {
                     try {
                         final JSONObject messageProp = new JSONObject();
-                        SensorsDataTimer.getInstance().cancleTimerTask();
+                        SensorsDataTimer.getInstance().cancelTimerTask();
                         try {
                             Writer writer = new StringWriter();
                             PrintWriter printWriter = new PrintWriter(writer);
