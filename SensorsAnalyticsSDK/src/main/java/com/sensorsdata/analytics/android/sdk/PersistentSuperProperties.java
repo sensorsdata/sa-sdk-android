@@ -4,7 +4,6 @@
 package com.sensorsdata.analytics.android.sdk;
 
 import android.content.SharedPreferences;
-import android.util.Log;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -23,7 +22,7 @@ class PersistentSuperProperties extends PersistentIdentity<JSONObject> {
                 try {
                     return new JSONObject(value);
                 } catch (JSONException e) {
-                    Log.e("Persistent", "failed to load SuperProperties from SharedPreferences.", e);
+                    SALog.d("Persistent", "failed to load SuperProperties from SharedPreferences.", e);
                     return null;
                 }
             }

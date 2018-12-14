@@ -45,7 +45,7 @@ public class OldBDatabaseHelper extends SQLiteOpenHelper {
                 arr.put(jsonObject);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         } finally {
             close();
         }

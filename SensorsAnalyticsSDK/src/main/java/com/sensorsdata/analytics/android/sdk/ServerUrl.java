@@ -29,7 +29,7 @@ public class ServerUrl {
                 token = uri.getQueryParameter("token");
                 project = uri.getQueryParameter("project");
             } catch (Exception e) {
-                e.printStackTrace();
+                com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             } finally {
                 if (TextUtils.isEmpty(host)) {
                     host = "";
@@ -83,7 +83,7 @@ public class ServerUrl {
 //                }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         return false;
     }

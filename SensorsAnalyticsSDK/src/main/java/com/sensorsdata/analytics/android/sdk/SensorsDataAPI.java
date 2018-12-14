@@ -19,11 +19,10 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Looper;
 import android.os.SystemClock;
-import android.support.v4.view.ViewPager;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.WebView;
 import android.widget.Toast;
@@ -43,6 +42,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,7 +52,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -203,7 +202,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         try {
             SensorsDataUtils.cleanUserAgent(mContext);
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
 
         Bundle configBundle = null;
@@ -214,7 +213,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     .getApplicationInfo(packageName, PackageManager.GET_META_DATA);
             configBundle = appInfo.metaData;
         } catch (final PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
 
         if (null == configBundle) {
@@ -245,21 +244,28 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 false);
         mEnableButterknifeOnClick = configBundle.getBoolean("com.sensorsdata.analytics.android.ButterknifeOnClick",
                 false);
+        mFlushInBackground = configBundle.getBoolean("com.sensorsdata.analytics.android.FlushInBackground",
+                true);
+        mIsSSLCertificateChecking = configBundle.getBoolean("com.sensorsdata.analytics.android.HeatMapSSLCertificateCheck",
+                true);
         String mainProcessName = SensorsDataUtils.getMainProcessName(context);
         if (TextUtils.isEmpty(mainProcessName)) {
             mMainProcessName = configBundle.getString("com.sensorsdata.analytics.android.MainProcessName");
         } else {
             mMainProcessName = mainProcessName;
         }
-
+        mIsMainProcess = SensorsDataUtils.isMainProcess(context, mMainProcessName);
         mEnableAppHeatMapConfirmDialog = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableHeatMapConfirmDialog",
                 true);
 
         mDisableTrackDeviceId = configBundle.getBoolean("com.sensorsdata.analytics.android.DisableTrackDeviceId",
                 false);
 
-        mMessages = AnalyticsMessages.getInstance(mContext, packageName);
+        int flushCacheSize = configBundle.getInt("com.sensorsdata.analytics.android.FlushCacheSize", 10);
 
+        mDbAdapter = new DbAdapter(context, packageName);
+        mMessages = AnalyticsMessages.getInstance(mContext, mDbAdapter, flushCacheSize);
+        mAndroidId = SensorsDataUtils.getAndroidID(mContext);
         final SharedPreferencesLoader.OnPrefsLoadedListener listener =
                 new SharedPreferencesLoader.OnPrefsLoadedListener() {
                     @Override
@@ -281,13 +287,15 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
         mTrackTaskManager = TrackTaskManager.getInstance();
         mTrackTaskManagerThread = new TrackTaskManagerThread();
+        mTrackDBTaskManagerThread = new TrackDBTaskManagerThread();
         new Thread(mTrackTaskManagerThread).start();
+        new Thread(mTrackDBTaskManagerThread).start();
 
         //先从缓存中读取 SDKConfig
         applySDKConfigFromCache();
 
         //打开debug模式，弹出提示
-        if (mDebugMode != DebugMode.DEBUG_OFF && SensorsDataUtils.isMainProcess(mContext.getApplicationContext(), mMainProcessName)) {
+        if (mDebugMode != DebugMode.DEBUG_OFF && mIsMainProcess) {
             if (SHOW_DEBUG_INFO_VIEW) {
                 if (!isSDKDisabled()) {
                     new Thread(new Runnable() {
@@ -306,7 +314,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             final Application app = (Application) context.getApplicationContext();
 
             SensorsDataActivityLifecycleCallbacks lifecycleCallbacks =
-                    new SensorsDataActivityLifecycleCallbacks(this, mFirstStart, mFirstDay, context, packageName);
+                    new SensorsDataActivityLifecycleCallbacks(this, mFirstStart, mFirstDay, mDbAdapter);
             app.registerActivityLifecycleCallbacks(lifecycleCallbacks);
             context.getContentResolver().registerContentObserver(Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + DbAdapter.Table.APPSTARTED.getName()),
                     false, lifecycleCallbacks);
@@ -317,7 +325,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
 
         if (debugMode != DebugMode.DEBUG_OFF) {
-            Log.i(TAG, String.format(Locale.CHINA, "Initialized the instance of Sensors Analytics SDK with server"
+            SALog.i(TAG, String.format(Locale.CHINA, "Initialized the instance of Sensors Analytics SDK with server"
                             + " url '%s', flush interval %d ms, debugMode: %s", mServerUrl, mFlushInterval, debugMode));
         }
 
@@ -342,7 +350,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 deviceInfo.put("$app_version", info.versionName);
             } catch (final Exception e) {
                 if (debugMode != DebugMode.DEBUG_OFF) {
-                    Log.i(TAG, "Exception getting app version name", e);
+                    SALog.i(TAG, "Exception getting app version name", e);
                 }
             }
             final DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
@@ -368,9 +376,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             }
 
             if (!mDisableTrackDeviceId) {
-                String androidID = SensorsDataUtils.getAndroidID(mContext);
-                if (!TextUtils.isEmpty(androidID)) {
-                    deviceInfo.put("$device_id", androidID);
+                if (!TextUtils.isEmpty(mAndroidId)) {
+                    deviceInfo.put("$device_id", mAndroidId);
                 }
             }
 
@@ -389,7 +396,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
         mDeviceInfo = Collections.unmodifiableMap(deviceInfo);
         mTrackTimer = new HashMap<>();
-        mDbAdapter = new DbAdapter(context, packageName);
     }
 
     /**
@@ -412,7 +418,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             SensorsDataAPI instance = sInstanceMap.get(appContext);
 
             if (null == instance) {
-                Log.i(TAG, "The static method sharedInstance(context, serverURL, debugMode) should be called before calling sharedInstance()");
+                SALog.i(TAG, "The static method sharedInstance(context, serverURL, debugMode) should be called before calling sharedInstance()");
                 return new SensorsDataAPIEmptyImplementation();
             }
             return instance;
@@ -497,7 +503,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 mSDKRemoteConfig = sdkRemoteConfig;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -568,7 +574,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                                 setSDKRemoteConfig(sdkRemoteConfig, false);
                             }
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                         } finally {
                             try {
                                 if (in != null) {
@@ -604,7 +610,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 mPullSDKConfigCountDownTimer.cancel();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         } finally {
             mPullSDKConfigCountDownTimer = null;
         }
@@ -636,13 +642,13 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     flush();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
 
             mSDKRemoteConfig = sdkRemoteConfig;
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -672,7 +678,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 properties.put("$device_id", mDeviceInfo.get("$device_id"));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         return properties;
     }
@@ -693,7 +699,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 int pathPrefix = serverURI.getPath().lastIndexOf('/');
                 String hostServer = serverURI.getHost();
                 if (!TextUtils.isEmpty(hostServer) && hostServer.contains("_")) {
-                    Log.i(TAG, "Server url " + serverUrl + " contains '_' is not recommend，" +
+                    SALog.i(TAG, "Server url " + serverUrl + " contains '_' is not recommend，" +
                             "see details: https://en.wikipedia.org/wiki/Hostname");
                 }
                 if (pathPrefix != -1) {
@@ -704,7 +710,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -730,10 +736,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     public void setMaxCacheSize(long maxCacheSize) {
         if (maxCacheSize > 0) {
             //防止设置的值太小导致事件丢失
-            if (maxCacheSize < 16 * 1024 * 1024) {
-                maxCacheSize = 16 * 1024 * 1024;
-            }
-            this.mMaxCacheSize = maxCacheSize;
+            this.mMaxCacheSize = Math.max(16 * 1024 * 1024, maxCacheSize);
         }
     }
 
@@ -774,10 +777,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void setFlushInterval(int flushInterval) {
-        if (flushInterval < 5 * 1000) {
-            flushInterval = 5 * 1000;
-        }
-        mFlushInterval = flushInterval;
+        mFlushInterval = Math.max(5 * 1000, flushInterval);
     }
 
     /**
@@ -827,7 +827,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
 
         if (sessionIntervalTime < 10 * 1000 || sessionIntervalTime > 5 * 60 * 1000) {
-            Log.i(TAG, "SessionIntervalTime:" + sessionIntervalTime + " is invalid, session interval time is between 10s and 300s.");
+            SALog.i(TAG, "SessionIntervalTime:" + sessionIntervalTime + " is invalid, session interval time is between 10s and 300s.");
             return;
         }
 
@@ -868,7 +868,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             mGPSLocation.setLatitude((long)(latitude * Math.pow(10, 6)));
             mGPSLocation.setLongitude((long)(longitude * Math.pow(10, 6)));
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -895,7 +895,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -906,7 +906,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 mOrientationDetector.enable();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -917,7 +917,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 mOrientationDetector.disable();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -928,7 +928,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 return mOrientationDetector.getOrientation();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         return null;
     }
@@ -942,7 +942,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 this.mCookie = cookie;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -955,7 +955,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 return this.mCookie;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return null;
         }
 
@@ -1001,7 +1001,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             mAutoTrackEventTypeList.clear();
             mAutoTrackEventTypeList.addAll(eventTypeList);
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -1021,7 +1021,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         try {
             mAutoTrackEventTypeList.removeAll(eventTypeList);
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
 
         if (mAutoTrackEventTypeList.size() == 0) {
@@ -1048,7 +1048,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 mAutoTrackEventTypeList.remove(autoTrackEventType);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
 
         if (mAutoTrackEventTypeList.size() == 0) {
@@ -1150,6 +1150,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         showUpWebView(webView, null, isSupportJellyBean, enableVerify);
     }
 
+    /**
+     * 此方法谨慎修改
+     * 插件配置 disableJsInterface 会修改此方法
+     *
+     */
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     @Override
     public void showUpWebView(WebView webView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify) {
@@ -1178,6 +1183,39 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         showUpWebView(webView, properties, isSupportJellyBean, false);
     }
 
+    /**
+     *
+     * 此方法谨慎修改
+     * 插件配置 disableJsInterface 会修改此方法
+     */
+    @Override
+    public void showUpX5WebView(Object x5WebView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify) {
+        try {
+            if (Build.VERSION.SDK_INT < 17 && !isSupportJellyBean) {
+                SALog.d(TAG, "For applications targeted to API level JELLY_BEAN or below, this feature NOT SUPPORTED");
+                return;
+            }
+
+            if (x5WebView == null) {
+                return;
+            }
+
+            Class<?> clazz = x5WebView.getClass();
+            Method addJavascriptInterface = clazz.getMethod("addJavascriptInterface", Object.class, String.class);
+            if (addJavascriptInterface == null) {
+                return;
+            }
+
+            addJavascriptInterface.invoke(x5WebView, new AppWebViewInterface(mContext, properties, enableVerify), "SensorsData_APP_JS_Bridge");
+        } catch (Exception e) {
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+        }
+    }
+
+    /**
+     * 此方法谨慎修改
+     * 插件配置 disableJsInterface 会修改此方法
+     */
     @Override
     public void showUpX5WebView(Object x5WebView, boolean enableVerify) {
         try {
@@ -1185,7 +1223,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 return;
             }
 
-            Class clazz = x5WebView.getClass();
+            Class<?> clazz = x5WebView.getClass();
             Method addJavascriptInterface = clazz.getMethod("addJavascriptInterface", Object.class, String.class);
             if (addJavascriptInterface == null) {
                 return;
@@ -1193,7 +1231,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
             addJavascriptInterface.invoke(x5WebView, new AppWebViewInterface(mContext, null, enableVerify), "SensorsData_APP_JS_Bridge");
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -1255,7 +1293,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -1279,7 +1317,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 mAutoTrackIgnoredActivities.add(hashCode);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -1303,7 +1341,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 mAutoTrackIgnoredActivities.remove(Integer.valueOf(hashCode));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -1325,7 +1363,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             mAutoTrackFragments.add(fragment.hashCode());
             mAutoTrackFragments.add(fragment.getCanonicalName().hashCode());
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -1349,7 +1387,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 mAutoTrackFragments.add(fragment.getCanonicalName().hashCode());
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -1370,7 +1408,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         try {
             mAutoTrackFragments.add(fragmentName.hashCode());
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -1425,7 +1463,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 return false;
             }
         } catch (Exception e){
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
 
         return true;
@@ -1543,26 +1581,66 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
     /**
      * 设置界面元素ID
      *
-     * @param view   要设置的View
+     * @param alertDialog   要设置的View
      * @param viewID String 给这个View的ID
      */
     @Override
-    public void setViewID(android.support.v7.app.AlertDialog view, String viewID) {
+    public void setViewID(Object alertDialog, String viewID) {
         try {
-            if (view != null && !TextUtils.isEmpty(viewID)) {
-                if (view.getWindow() != null) {
-                    view.getWindow().getDecorView().setTag(R.id.sensors_analytics_tag_view_id, viewID);
+            if (alertDialog == null) {
+                return;
+
+            }
+
+            Class<?> supportAlertDialogClass = null;
+            Class<?> androidXAlertDialogClass = null;
+            Class<?> currentAlertDialogClass = null;
+            try {
+                supportAlertDialogClass = Class.forName("android.support.v7.app.AlertDialog");
+            } catch (Exception e) {
+                //ignored
+            }
+
+            try {
+                androidXAlertDialogClass = Class.forName("androidx.appcompat.app.AlertDialog");
+            } catch (Exception e) {
+                //ignored
+            }
+
+            if (supportAlertDialogClass != null) {
+                currentAlertDialogClass = supportAlertDialogClass;
+            } else {
+                currentAlertDialogClass = androidXAlertDialogClass;
+            }
+
+            if (currentAlertDialogClass == null) {
+                return;
+            }
+
+            if (!currentAlertDialogClass.isInstance(alertDialog)) {
+                return;
+            }
+
+            if (!TextUtils.isEmpty(viewID)) {
+                Method getWindowMethod = alertDialog.getClass().getMethod("getWindow");
+                if (getWindowMethod == null) {
+                    return;
+                }
+
+                Window window = (Window)getWindowMethod.invoke(alertDialog);
+                if (window != null) {
+                    window.getDecorView().setTag(R.id.sensors_analytics_tag_view_id, viewID);
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -1580,7 +1658,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             }
             view.setTag(R.id.sensors_analytics_tag_view_activity, activity);
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -1598,7 +1676,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             }
             view.setTag(R.id.sensors_analytics_tag_view_fragment_name2, fragmentName);
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -1687,7 +1765,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 return true;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         return false;
     }
@@ -1701,7 +1779,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
             mHeatMapActivities.add(activity.hashCode());
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -1720,7 +1798,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -1785,9 +1863,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public void resetAnonymousId() {
         synchronized (mDistinctId) {
-            String androidId = SensorsDataUtils.getAndroidID(mContext);
-            if (SensorsDataUtils.isValidAndroidId(androidId)) {
-                mDistinctId.commit(androidId);
+            if (SensorsDataUtils.isValidAndroidId(mAndroidId)) {
+                mDistinctId.commit(mAndroidId);
                 return;
             }
             mDistinctId.commit(UUID.randomUUID().toString());
@@ -1820,7 +1897,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         try {
             assertDistinctId(distinctId);
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return;
         }
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -1831,7 +1908,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         mDistinctId.commit(distinctId);
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -1858,7 +1935,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         try {
             assertDistinctId(loginId);
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return;
         }
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -1874,7 +1951,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         }
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -1893,7 +1970,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         mLoginId.commit(null);
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -1925,7 +2002,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
                     trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, originalDistinctId);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -1955,7 +2032,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
                     trackEvent(EventType.TRACK_SIGNUP, "$SignUp", null, originalDistinctId);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -1984,11 +2061,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             @Override
             public void run() {
                 try {
-                    if (!SensorsDataUtils.isMainProcess(mContext, mMainProcessName)) {
+                    if (!mIsMainProcess) {
                         return;
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
 
                 try {
@@ -2020,7 +2097,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
                             if (!SensorsDataUtils.hasUtmProperties(_properties)) {
                                 String installSource = String.format("android_id=%s##imei=%s##mac=%s",
-                                        SensorsDataUtils.getAndroidID(mContext),
+                                        mAndroidId,
                                         SensorsDataUtils.getIMEI(mContext),
                                         SensorsDataUtils.getMacAddress(mContext));
                                 _properties.put("$ios_install_source", installSource);
@@ -2030,7 +2107,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                                 _properties.put("$ios_install_disable_callback", disableCallback);
                             }
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                         }
 
                         // 先发送 track
@@ -2052,7 +2129,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     }
                     flush();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2097,7 +2174,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     trackEvent(EventType.TRACK, eventName, properties, null);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2116,7 +2193,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     trackEvent(EventType.TRACK, eventName, null, null);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2159,7 +2236,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         mTrackTimer.put(eventName, new EventTimer(timeUnit));
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2190,7 +2267,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         mTrackTimer.put(eventName, eventTimer);
                     }
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+                    SALog.printStackTrace(ex);
                 }
             }
         });
@@ -2212,7 +2289,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         mTrackTimer.remove(eventName);
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2273,7 +2350,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     trackEvent(EventType.TRACK, eventName, properties, null);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2291,7 +2368,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     trackEvent(EventType.TRACK, eventName, null, null);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2310,7 +2387,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         mTrackTimer.clear();
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2341,6 +2418,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     @Override
+    @Deprecated
     public String getMainProcessName() {
         return mMainProcessName;
     }
@@ -2381,7 +2459,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         track("$AppViewScreen", trackProperties);
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2419,96 +2497,93 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         track("$AppViewScreen", properties);
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
     }
 
     @Override
-    public void trackViewScreen(final android.app.Fragment fragment) {
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (fragment == null) {
-                        return;
-                    }
-
-                    JSONObject properties = new JSONObject();
-                    String fragmentName = fragment.getClass().getCanonicalName();
-                    String screenName = fragmentName;
-
-                    if (Build.VERSION.SDK_INT >= 11) {
-                        Activity activity = fragment.getActivity();
-                        if (activity != null) {
-                            String activityTitle = SensorsDataUtils.getActivityTitle(activity);
-                            if (!TextUtils.isEmpty(activityTitle)) {
-                                properties.put("$title", activityTitle);
-                            }
-                            screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName);
-                        }
-                    }
-
-                    properties.put("$screen_name", screenName);
-                    track("$AppViewScreen", properties);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-    }
-
-    @Override
-    public void trackViewScreen(final android.support.v4.app.Fragment fragment) {
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (fragment == null) {
-                        return;
-                    }
-
-                    JSONObject properties = new JSONObject();
-                    String fragmentName = fragment.getClass().getCanonicalName();
-                    String screenName = fragmentName;
-
-                    Activity activity = fragment.getActivity();
-                    if (activity != null) {
-                        String activityTitle = SensorsDataUtils.getActivityTitle(activity);
-                        if (!TextUtils.isEmpty(activityTitle)) {
-                            properties.put("$title", activityTitle);
-                        }
-                        screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName);
-                    }
-
-                    properties.put("$screen_name", screenName);
-                    track("$AppViewScreen", properties);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-    }
-
-    public void trackViewPager(final ViewPager viewPager) {
-        if (viewPager == null) {
+    public void trackViewScreen(final Object fragment) {
+        if (fragment == null) {
             return;
         }
-        viewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
-            @Override
-            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
 
+        Class<?> supportFragmentClass = null;
+        Class<?> appFragmentClass = null;
+        Class<?> androidXFragmentClass = null;
+
+        try {
+            try {
+                supportFragmentClass = Class.forName("android.support.v4.app.Fragment");
+            } catch (Exception e) {
+                //ignored
             }
 
-            @Override
-            public void onPageSelected(int position) {
-                SensorsDataAutoTrackHelper.trackViewOnClick(viewPager);
+            try {
+                appFragmentClass = Class.forName("android.app.Fragment");
+            } catch (Exception e) {
+                //ignored
             }
 
-            @Override
-            public void onPageScrollStateChanged(int state) {
+            try {
+                androidXFragmentClass = Class.forName("androidx.fragment.app.Fragment");
+            } catch (Exception e) {
+                //ignored
+            }
+        } catch (Exception e) {
+            //ignored
+        }
 
+        if (!(supportFragmentClass !=null && supportFragmentClass.isInstance(fragment)) &&
+                !(appFragmentClass !=null && appFragmentClass.isInstance(fragment)) &&
+                !(androidXFragmentClass !=null && androidXFragmentClass.isInstance(fragment))) {
+            return;
+        }
+
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    JSONObject properties = new JSONObject();
+                    String screenName = fragment.getClass().getCanonicalName();
+
+                    String title = null;
+
+                    if (fragment.getClass().isAnnotationPresent(SensorsDataFragmentTitle.class)) {
+                        SensorsDataFragmentTitle sensorsDataFragmentTitle = fragment.getClass().getAnnotation(SensorsDataFragmentTitle.class);
+                        if (sensorsDataFragmentTitle != null) {
+                            title = sensorsDataFragmentTitle.title();
+                        }
+                    }
+
+                    if (Build.VERSION.SDK_INT >= 11) {
+                        Activity activity = null;
+                        try {
+                            Method getActivityMethod = fragment.getClass().getMethod("getActivity");
+                            if (getActivityMethod != null) {
+                                activity = (Activity)getActivityMethod.invoke(fragment);
+                            }
+                        } catch (Exception e) {
+                            //ignored
+                        }
+                        if (activity != null) {
+                            if (TextUtils.isEmpty(title)) {
+                                title = SensorsDataUtils.getActivityTitle(activity);
+                            }
+                            screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), screenName);
+                        }
+                    }
+
+                    if (!TextUtils.isEmpty(title)) {
+                        properties.put(AopConstants.TITLE,title);
+                    }
+
+                    properties.put("$screen_name", screenName);
+                    track("$AppViewScreen", properties);
+                } catch (Exception e) {
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                }
             }
         });
     }
@@ -2591,6 +2666,18 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     /**
+     * 以阻塞形式入库数据
+     */
+    void flushDataSync() {
+        mTrackTaskManager.addEventDBTask(new Runnable() {
+            @Override
+            public void run() {
+                mMessages.flushDataSync();
+            }
+        });
+    }
+
+    /**
      * 注册事件动态公共属性
      *
      * @param dynamicSuperProperties 事件动态公共属性回调接口
@@ -2631,14 +2718,14 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             if (superProperties == null) {
                 return;
             }
-            assertPropertyTypes(EventType.REGISTER_SUPER_PROPERTIES, superProperties);
+            assertPropertyTypes(superProperties);
             synchronized (mSuperProperties) {
                 JSONObject properties = mSuperProperties.get();
                 SensorsDataUtils.mergeSuperJSONObject(superProperties, properties);
                 mSuperProperties.commit(properties);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -2656,7 +2743,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 mSuperProperties.commit(superProperties);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -2684,7 +2771,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     trackEvent(EventType.PROFILE_SET, null, properties, null);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2705,7 +2792,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     trackEvent(EventType.PROFILE_SET, null, new JSONObject().put(property, value), null);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2725,7 +2812,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     trackEvent(EventType.PROFILE_SET_ONCE, null, properties, null);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2747,7 +2834,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     trackEvent(EventType.PROFILE_SET_ONCE, null, new JSONObject().put(property, value), null);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2767,7 +2854,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     trackEvent(EventType.PROFILE_INCREMENT, null, new JSONObject(properties), null);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2788,7 +2875,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     trackEvent(EventType.PROFILE_INCREMENT, null, new JSONObject().put(property, value), null);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2812,7 +2899,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     properties.put(property, append_values);
                     trackEvent(EventType.PROFILE_APPEND, null, properties, null);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2838,7 +2925,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     properties.put(property, append_values);
                     trackEvent(EventType.PROFILE_APPEND, null, properties, null);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2857,7 +2944,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     trackEvent(EventType.PROFILE_UNSET, null, new JSONObject().put(property, true), null);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2874,7 +2961,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     trackEvent(EventType.PROFILE_DELETE, null, null, null);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         });
@@ -2883,6 +2970,16 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public boolean isDebugMode() {
         return mDebugMode.isDebugMode();
+    }
+
+    @Override
+    public boolean isFlushInBackground() {
+        return mFlushInBackground;
+    }
+
+    @Override
+    public void setFlushInBackground(boolean Flush) {
+        mFlushInBackground = Flush;
     }
 
     boolean isDebugWriteData() {
@@ -2920,7 +3017,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             Toast.makeText(mContext, info, Toast.LENGTH_LONG).show();
             Looper.loop();
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -2945,7 +3042,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             }
             trackEventFromH5(eventInfo);
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -2965,7 +3062,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 return true;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         return false;
 
@@ -2995,8 +3092,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             eventObject.put("time", System.currentTimeMillis());
 
             try {
-                Random random = new Random();
-                eventObject.put("_track_id", random.nextInt());
+                SecureRandom secureRandom = new SecureRandom();
+                eventObject.put("_track_id", secureRandom.nextInt());
             } catch (Exception e) {
                 //ignore
             }
@@ -3053,7 +3150,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         }
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
 
                 //是否首日访问
@@ -3099,7 +3196,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(eventObject.toString()));
         } catch (Exception e) {
             //ignore
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -3119,7 +3216,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             if (eventType.isTrack()) {
                 assertKey(eventName);
             }
-            assertPropertyTypes(eventType, properties);
+            assertPropertyTypes(properties);
 
             try {
                 JSONObject sendProperties;
@@ -3136,7 +3233,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             }
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                     }
 
                     synchronized (mSuperProperties) {
@@ -3152,7 +3249,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             }
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                     }
 
                     // 当前网络状况
@@ -3168,7 +3265,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             sendProperties.put("$longitude", mGPSLocation.getLongitude());
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                     }
 
                     // 屏幕方向
@@ -3178,7 +3275,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             sendProperties.put("$screen_orientation", screenOrientation);
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                     }
                 } else if (eventType.isProfile()) {
                     sendProperties = new JSONObject();
@@ -3195,7 +3292,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             properties.remove("$lib_detail");
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                     }
 
                     try {
@@ -3204,7 +3301,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             properties.remove("event_time");
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                     }
                     SensorsDataUtils.mergeJSONObject(properties, sendProperties);
                 }
@@ -3217,7 +3314,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         }
                     } catch (Exception e) {
                         //ignore
-                        e.printStackTrace();
+                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                     }
                 }
 
@@ -3240,10 +3337,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 final JSONObject dataObj = new JSONObject();
 
                 try {
-                    Random random = new Random();
+                    SecureRandom random = new SecureRandom();
                     dataObj.put("_track_id", random.nextInt());
                 } catch (Exception e) {
-                    //ignore
+
                 }
 
                 dataObj.put("time", eventTime);
@@ -3260,7 +3357,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         sendProperties.remove("$token");
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
 
                 dataObj.put("properties", sendProperties);
@@ -3329,17 +3426,33 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 throw new InvalidDataException("Unexpected property");
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
     public void stopTrackTaskThread() {
-        mTrackTaskManagerThread.setStop(true);
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                mTrackTaskManagerThread.setStop(true);
+                mTrackDBTaskManagerThread.setStop(true);
+            }
+        });
     }
 
     public void resumeTrackTaskThread() {
         mTrackTaskManagerThread = new TrackTaskManagerThread();
+        mTrackDBTaskManagerThread = new TrackDBTaskManagerThread();
         new Thread(mTrackTaskManagerThread).start();
+        new Thread(mTrackDBTaskManagerThread).start();
+    }
+
+    /**
+     * 点击图是否进行检查 SSL
+     * @return
+     */
+    protected boolean isSSLCertificateChecking(){
+        return mIsSSLCertificateChecking;
     }
 
     private boolean isFirstDay() {
@@ -3347,11 +3460,19 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         if (firstDay == null) {
             return true;
         }
-        String current = mIsFirstDayDateFormat.format(System.currentTimeMillis());
-        return firstDay.equals(current);
+        try {
+            if (mIsFirstDayDateFormat == null) {
+                mIsFirstDayDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            }
+            String current = mIsFirstDayDateFormat.format(System.currentTimeMillis());
+            return firstDay.equals(current);
+        } catch (Exception e) {
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+        }
+        return true;
     }
 
-    private void assertPropertyTypes(EventType eventType, JSONObject properties) throws
+    private void assertPropertyTypes(JSONObject properties) throws
             InvalidDataException {
         if (properties == null) {
             return;
@@ -3410,15 +3531,51 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
+    /**
+     * 保存用户推送 ID 到用户表
+     * @param propertyKey 属性名称（例如 jgId）
+     * @param pushId  推送 ID
+     *                使用 profilePushId("jgId",JPushInterface.getRegistrationID(this))
+     */
+
+    @Override
+    public void profilePushId(String propertyKey, String pushId) {
+        try {
+            assertKey(propertyKey);
+            if (TextUtils.isEmpty(pushId)) {
+                SALog.d(TAG,"pushId is empty");
+                return;
+            }
+            String distinctId = getLoginId();
+            if (TextUtils.isEmpty(distinctId)) {
+                distinctId = getAnonymousId();
+            }
+            String distinctPushId = distinctId + pushId;
+            SharedPreferences sp = SensorsDataUtils.getSharedPreferences(mContext);
+            String spDistinctPushId = sp.getString("distinctId_" + propertyKey, "");
+            if (!spDistinctPushId.equals(distinctPushId)) {
+                profileSet(propertyKey, pushId);
+                sp.edit().putString("distinctId_" + propertyKey, distinctPushId).apply();
+            }
+        } catch (Exception e) {
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+        }
+    }
+
+
     // 可视化埋点功能最低API版本
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "2.1.2";
+    static final String VERSION = "3.0.0";
+    // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
+    static final String MIN_PLUGIN_VERSION = "3.0.0";
 
+    /** AndroidID */
+    static String mAndroidId = null;
+    static boolean mIsMainProcess = false;
     static Boolean ENABLE_LOG = false;
     static Boolean SHOW_DEBUG_INFO_VIEW = true;
-
     private static final Pattern KEY_PATTERN = Pattern.compile(
             "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
             Pattern.CASE_INSENSITIVE);
@@ -3453,7 +3610,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private boolean mEnableAppHeatMapConfirmDialog = true;
     private boolean mDisableDefaultRemoteConfig = false;
     private boolean mDisableTrackDeviceId = false;
+    /*进入后台是否上传数据*/
+    private boolean mFlushInBackground = true;
 
+    /**点击图 https 是否进行 SSL 检查*/
+    private boolean mIsSSLCertificateChecking = true;
     private final Context mContext;
     private final AnalyticsMessages mMessages;
     private final PersistentDistinctId mDistinctId;
@@ -3470,17 +3631,18 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private List<Integer> mHeatMapActivities;
     private Set<Integer> mAutoTrackFragments;
     private int mFlushNetworkPolicy = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI;
+    /** 主进程名称 */
     private final String mMainProcessName;
     private long mMaxCacheSize = 32 * 1024 * 1024; //default 32MB
     private String mCookie;
     private TrackTaskManager mTrackTaskManager;
     private TrackTaskManagerThread mTrackTaskManagerThread;
-
+    private TrackDBTaskManagerThread mTrackDBTaskManagerThread;
     private SensorsDataScreenOrientationDetector mOrientationDetector;
 
     private SensorsDataDynamicSuperProperties mDynamicSuperProperties;
     private static DbAdapter mDbAdapter;
-    private static final SimpleDateFormat mIsFirstDayDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+    private SimpleDateFormat mIsFirstDayDateFormat;
 
     private static final String TAG = "SA.SensorsDataAPI";
 }

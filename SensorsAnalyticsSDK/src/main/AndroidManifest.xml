@@ -2,11 +2,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.sensorsdata.analytics.android.sdk">
 
-    <uses-sdk
-        android:minSdkVersion="9"
-        android:targetSdkVersion="20"
-        tools:ignore="GradleOverrides" />
-
     <!-- 同步数据需要网络权限 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- 获取网络状态 -->

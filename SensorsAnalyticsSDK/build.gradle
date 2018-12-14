@@ -3,7 +3,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 
-version = "2.1.2"
+version = "3.0.0"
 
 android {
     compileSdkVersion 23
@@ -28,8 +28,6 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:23.1.1'
-    compile 'org.aspectj:aspectjrt:1.8.10'
 }
 
 def siteUrl = 'https://github.com/sensorsdata/sa-sdk-android'
@@ -92,9 +90,9 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 }
 
 task makeJar(type: Copy) {
-    def jarName = 'SensorsAnalytics-Android-SDK-Release-' + version + '.jar';
+    def jarName = 'SensorsAnalytics-Android-SDK-Release-' + version + '.jar'
     delete 'build/libs/' + jarName
-    from('build/intermediates/bundles/release/')
+    from('build/intermediates/packaged-classes/release/')
     into('build/libs/')
     include('classes.jar')
     rename ('classes.jar', jarName)

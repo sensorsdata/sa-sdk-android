@@ -1,6 +1,8 @@
-/**Created by wangzhuozhou on 2015/08/01.
- * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
- 
+/**
+ * Created by wangzhuozhou on 2015/08/01.
+ * Copyright © 2015－2018 Sensors Data Inc. All rights reserved.
+ */
+
 package com.sensorsdata.analytics.android.sdk.util;
 
 import android.annotation.TargetApi;
@@ -19,7 +21,6 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.provider.Settings;
-import android.support.v4.content.ContextCompat;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.webkit.WebSettings;
@@ -52,8 +53,8 @@ public final class SensorsDataUtils {
     /**
      * 将 json 格式的字符串转成 SensorsDataSDKRemoteConfig 对象，并处理默认值
      *
-     * @param config
-     * @return
+     * @param config String
+     * @return SensorsDataSDKRemoteConfig
      */
     public static SensorsDataSDKRemoteConfig toSDKRemoteConfig(String config) {
         SensorsDataSDKRemoteConfig sdkRemoteConfig = new SensorsDataSDKRemoteConfig();
@@ -81,7 +82,7 @@ public final class SensorsDataUtils {
                 sdkRemoteConfig.setAutoTrackMode(-1);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         return sdkRemoteConfig;
     }
@@ -97,15 +98,15 @@ public final class SensorsDataUtils {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         return manufacturer;
     }
 
     /**
      * 读取配置配置的 AutoTrack 的 Fragment
-     * @param context
-     * @return
+     * @param context Context
+     * @return ArrayList<String>
      */
     public static ArrayList<String> getAutoTrackFragments(Context context) {
         ArrayList<String> autoTrackFragments = new ArrayList<>();
@@ -126,14 +127,14 @@ public final class SensorsDataUtils {
             if (e.toString().contains("FileNotFoundException")) {
                 SALog.d(TAG, "SensorsDataAutoTrackFragment file not exists.");
             } else {
-                e.printStackTrace();
+                com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             }
         } finally {
             if (bf != null) {
                 try {
                     bf.close();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         }
@@ -155,13 +156,13 @@ public final class SensorsDataUtils {
                 stringBuilder.append(line);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         } finally {
             if (bf != null) {
                 try {
                     bf.close();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         }
@@ -181,11 +182,11 @@ public final class SensorsDataUtils {
                         }
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
 
         return null;
@@ -202,15 +203,16 @@ public final class SensorsDataUtils {
             if (activity != null) {
                 try {
                     String activityTitle = null;
-                    if (!TextUtils.isEmpty(activity.getTitle())) {
-                        activityTitle = activity.getTitle().toString();
-                    }
 
                     if (Build.VERSION.SDK_INT >= 11) {
                         String toolbarTitle = SensorsDataUtils.getToolbarTitle(activity);
                         if (!TextUtils.isEmpty(toolbarTitle)) {
                             activityTitle = toolbarTitle;
                         }
+                    }
+
+                    if (!TextUtils.isEmpty(activityTitle)) {
+                        activityTitle = activity.getTitle().toString();
                     }
 
                     if (TextUtils.isEmpty(activityTitle)) {
@@ -232,7 +234,7 @@ public final class SensorsDataUtils {
             }
             return null;
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return null;
         }
     }
@@ -250,7 +252,7 @@ public final class SensorsDataUtils {
         try {
             mainProcessName = context.getApplicationContext().getApplicationInfo().processName;
         } catch (Exception ex) {
-            ex.printStackTrace();
+            SALog.printStackTrace(ex);
         }
         return mainProcessName;
     }
@@ -287,7 +289,7 @@ public final class SensorsDataUtils {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return null;
         }
         return null;
@@ -344,7 +346,7 @@ public final class SensorsDataUtils {
                 return carrier;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         return other;
     }
@@ -357,7 +359,7 @@ public final class SensorsDataUtils {
 
     }
 
-    private static SharedPreferences getSharedPreferences(Context context) {
+    public static SharedPreferences getSharedPreferences(Context context) {
         return context.getSharedPreferences(SHARED_PREF_EDITS_FILE, Context.MODE_PRIVATE);
     }
 
@@ -365,7 +367,10 @@ public final class SensorsDataUtils {
     public static String getToolbarTitle(Activity activity) {
         try {
             if ("com.tencent.connect.common.AssistActivity".equals(activity.getClass().getCanonicalName())) {
-                return activity.getTitle().toString();
+                if (!TextUtils.isEmpty(activity.getTitle())) {
+                    return activity.getTitle().toString();
+                }
+                return null;
             }
 
             ActionBar actionBar = activity.getActionBar();
@@ -375,7 +380,20 @@ public final class SensorsDataUtils {
                 }
             } else {
                 try {
-                    Class<?> appCompatActivityClass = Class.forName("android.support.v7.app.AppCompatActivity");
+                    Class<?> appCompatActivityClass = null;
+                    try {
+                        appCompatActivityClass = Class.forName("android.support.v7.app.AppCompatActivity");
+                    } catch (Exception e) {
+                        //ignored
+                    }
+
+                    if (appCompatActivityClass == null) {
+                        try {
+                            appCompatActivityClass = Class.forName("androidx.appcompat.app.AppCompatActivity");
+                        } catch (Exception e) {
+                            //ignored
+                        }
+                    }
                     if (appCompatActivityClass != null && appCompatActivityClass.isInstance(activity)) {
                         Method method = activity.getClass().getMethod("getSupportActionBar");
                         if (method != null) {
@@ -383,7 +401,7 @@ public final class SensorsDataUtils {
                             if (supportActionBar != null) {
                                 method = supportActionBar.getClass().getMethod("getTitle");
                                 if (method != null) {
-                                    CharSequence charSequence = (CharSequence)method.invoke(supportActionBar);
+                                    CharSequence charSequence = (CharSequence) method.invoke(supportActionBar);
                                     if (charSequence != null) {
                                         return charSequence.toString();
                                     }
@@ -396,7 +414,7 @@ public final class SensorsDataUtils {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         return null;
     }
@@ -415,7 +433,10 @@ public final class SensorsDataUtils {
         try {
             properties.put("$screen_name", activity.getClass().getCanonicalName());
 
-            String activityTitle = activity.getTitle().toString();
+            String activityTitle = null;
+            if (!TextUtils.isEmpty(activity.getTitle())) {
+                activityTitle = activity.getTitle().toString();
+            }
 
             if (Build.VERSION.SDK_INT >= 11) {
                 String toolbarTitle = getToolbarTitle(activity);
@@ -437,7 +458,7 @@ public final class SensorsDataUtils {
                 properties.put("$title", activityTitle);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -448,23 +469,30 @@ public final class SensorsDataUtils {
             editor.putString(SHARED_PREF_USER_AGENT_KEY, null);
             editor.apply();
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
-    public static void mergeJSONObject(final JSONObject source, JSONObject dest)
-            throws JSONException {
-        Iterator<String> superPropertiesIterator = source.keys();
-        while (superPropertiesIterator.hasNext()) {
-            String key = superPropertiesIterator.next();
-            Object value = source.get(key);
-            if (value instanceof Date) {
-                synchronized (mDateFormat) {
-                    dest.put(key, mDateFormat.format((Date) value));
-                }
-            } else {
-                dest.put(key, value);
+    public static void mergeJSONObject(final JSONObject source, JSONObject dest) {
+        try {
+            Iterator<String> superPropertiesIterator = source.keys();
+            if (mDateFormat == null) {
+                mDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"
+                        + ".SSS", Locale.CHINA);
             }
+            while (superPropertiesIterator.hasNext()) {
+                String key = superPropertiesIterator.next();
+                Object value = source.get(key);
+                if (value instanceof Date) {
+                    synchronized (mDateFormat) {
+                        dest.put(key, mDateFormat.format((Date) value));
+                    }
+                } else {
+                    dest.put(key, value);
+                }
+            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
         }
     }
 
@@ -474,29 +502,35 @@ public final class SensorsDataUtils {
      * @param dest  目标属性
      * @throws JSONException
      */
-    public static void mergeSuperJSONObject(final JSONObject source, JSONObject dest)
-            throws JSONException {
-        Iterator<String> superPropertiesIterator = source.keys();
-        while (superPropertiesIterator.hasNext()) {
-            String key = superPropertiesIterator.next();
+    public static void mergeSuperJSONObject(final JSONObject source, JSONObject dest) {
+        try {
+            Iterator<String> superPropertiesIterator = source.keys();
+            if (mDateFormat == null) {
+                mDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"
+                        + ".SSS", Locale.CHINA);
+            }
+            while (superPropertiesIterator.hasNext()) {
+                String key = superPropertiesIterator.next();
+                Iterator<String> destPropertiesIterator = dest.keys();
+                while (destPropertiesIterator.hasNext()) {
+                    String destKey = destPropertiesIterator.next();
+                    if (!TextUtils.isEmpty(key) && key.toLowerCase().equals(destKey.toLowerCase())) {
+                        dest.remove(destKey);
+                        break;
+                    }
+                }
 
-            Iterator<String> destPropertiesIterator = dest.keys();
-            while (destPropertiesIterator.hasNext()) {
-                String destKey = destPropertiesIterator.next();
-                if (!TextUtils.isEmpty(key) && key.toLowerCase().equals(destKey.toLowerCase())) {
-                    dest.remove(destKey);
-                    break;
+                Object value = source.get(key);
+                if (value instanceof Date) {
+                    synchronized (mDateFormat) {
+                        dest.put(key, mDateFormat.format((Date) value));
+                    }
+                } else {
+                    dest.put(key, value);
                 }
             }
-
-            Object value = source.get(key);
-            if (value instanceof Date) {
-                synchronized (mDateFormat) {
-                    dest.put(key, mDateFormat.format((Date) value));
-                }
-            } else {
-                dest.put(key, value);
-            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
         }
     }
 
@@ -546,7 +580,7 @@ public final class SensorsDataUtils {
 
             return userAgent;
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return null;
         }
     }
@@ -574,7 +608,28 @@ public final class SensorsDataUtils {
      */
     public static boolean checkHasPermission(Context context, String permission) {
         try {
-            if (ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
+            Class<?> contextCompat = null;
+            try {
+                contextCompat = Class.forName("android.support.v4.content.ContextCompat");
+            } catch (Exception e) {
+                //ignored
+            }
+
+            if (contextCompat == null) {
+                try {
+                    contextCompat = Class.forName("androidx.core.content.ContextCompat");
+                } catch (Exception e) {
+                    //ignored
+                }
+            }
+
+            if (contextCompat == null) {
+                return true;
+            }
+
+            Method checkSelfPermissionMethod = contextCompat.getMethod("checkSelfPermission", new Class[]{Context.class, String.class});
+            int result = (int)checkSelfPermissionMethod.invoke(null, new Object[]{context, permission});
+            if (result != PackageManager.PERMISSION_GRANTED) {
                 SALog.i(TAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n"
                         + "<uses-permission android:name=\"" + permission + "\" />");
                 return false;
@@ -588,49 +643,57 @@ public final class SensorsDataUtils {
     }
 
     public static String networkType(Context context) {
-        // 检测权限
-        if (!checkHasPermission(context, "android.permission.ACCESS_NETWORK_STATE")) {
+        try {
+            // 检测权限
+            if (!checkHasPermission(context, "android.permission.ACCESS_NETWORK_STATE")) {
+                return "NULL";
+            }
+
+            // Wifi
+            ConnectivityManager manager = (ConnectivityManager)
+                    context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (manager != null) {
+                NetworkInfo networkInfo = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+                if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
+                    return "WIFI";
+                }
+            }
+
+            // Mobile network
+            TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context
+                    .TELEPHONY_SERVICE);
+
+            if (telephonyManager == null) {
+                return "NULL";
+            }
+
+            int networkType = telephonyManager.getNetworkType();
+            switch (networkType) {
+                case TelephonyManager.NETWORK_TYPE_GPRS:
+                case TelephonyManager.NETWORK_TYPE_EDGE:
+                case TelephonyManager.NETWORK_TYPE_CDMA:
+                case TelephonyManager.NETWORK_TYPE_1xRTT:
+                case TelephonyManager.NETWORK_TYPE_IDEN:
+                    return "2G";
+                case TelephonyManager.NETWORK_TYPE_UMTS:
+                case TelephonyManager.NETWORK_TYPE_EVDO_0:
+                case TelephonyManager.NETWORK_TYPE_EVDO_A:
+                case TelephonyManager.NETWORK_TYPE_HSDPA:
+                case TelephonyManager.NETWORK_TYPE_HSUPA:
+                case TelephonyManager.NETWORK_TYPE_HSPA:
+                case TelephonyManager.NETWORK_TYPE_EVDO_B:
+                case TelephonyManager.NETWORK_TYPE_EHRPD:
+                case TelephonyManager.NETWORK_TYPE_HSPAP:
+                    return "3G";
+                case TelephonyManager.NETWORK_TYPE_LTE:
+                    return "4G";
+            }
+
+            // disconnected to the internet
+            return "NULL";
+        } catch (Exception e) {
             return "NULL";
         }
-
-        // Wifi
-        ConnectivityManager manager = (ConnectivityManager)
-                context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (manager != null) {
-            NetworkInfo networkInfo = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-            if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
-                return "WIFI";
-            }
-        }
-
-        // Mobile network
-        TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context
-                .TELEPHONY_SERVICE);
-
-        int networkType = telephonyManager.getNetworkType();
-        switch (networkType) {
-            case TelephonyManager.NETWORK_TYPE_GPRS:
-            case TelephonyManager.NETWORK_TYPE_EDGE:
-            case TelephonyManager.NETWORK_TYPE_CDMA:
-            case TelephonyManager.NETWORK_TYPE_1xRTT:
-            case TelephonyManager.NETWORK_TYPE_IDEN:
-                return "2G";
-            case TelephonyManager.NETWORK_TYPE_UMTS:
-            case TelephonyManager.NETWORK_TYPE_EVDO_0:
-            case TelephonyManager.NETWORK_TYPE_EVDO_A:
-            case TelephonyManager.NETWORK_TYPE_HSDPA:
-            case TelephonyManager.NETWORK_TYPE_HSUPA:
-            case TelephonyManager.NETWORK_TYPE_HSPA:
-            case TelephonyManager.NETWORK_TYPE_EVDO_B:
-            case TelephonyManager.NETWORK_TYPE_EHRPD:
-            case TelephonyManager.NETWORK_TYPE_HSPAP:
-                return "3G";
-            case TelephonyManager.NETWORK_TYPE_LTE:
-                return "4G";
-        }
-
-        // disconnected to the internet
-        return "NULL";
     }
 
     public static boolean isNetworkAvailable(Context context) {
@@ -646,34 +709,41 @@ public final class SensorsDataUtils {
             }
             return false;
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return false;
         }
     }
 
     /**
-     * 获取IMEI
+     * 此方法谨慎修改
+     * 插件配置 disableIMEI 会修改此方法
      *
+     * 获取IMEI
      * @param mContext Context
      * @return IMEI
      */
     public static String getIMEI(Context mContext) {
         String imei = "";
         try {
-            if (ContextCompat.checkSelfPermission(mContext, "android.permission.READ_PHONE_STATE") != PackageManager.PERMISSION_GRANTED) {
+            if (!checkHasPermission(mContext, "android.permission.READ_PHONE_STATE")) {
                 return imei;
             }
+
             TelephonyManager tm = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
             if (tm != null) {
                 imei = tm.getDeviceId();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         return imei;
     }
 
     /**
+     *
+     * 此方法谨慎修改
+     * 插件配置 disableAndroidID 会修改此方法
+     *
      * 获取 Android ID
      *
      * @param mContext Context
@@ -684,7 +754,7 @@ public final class SensorsDataUtils {
         try {
             androidID = Settings.Secure.getString(mContext.getContentResolver(), Settings.Secure.ANDROID_ID);
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         return androidID;
     }
@@ -693,13 +763,13 @@ public final class SensorsDataUtils {
      * 获取时区偏移值
      * @return 时区偏移值，单位：秒
      */
-    public static Integer getZoneOffset(){
+    public static Integer getZoneOffset() {
         try {
             Calendar cal = Calendar.getInstance(Locale.getDefault());
             int zoneOffset = cal.get(java.util.Calendar.ZONE_OFFSET);
             return zoneOffset / 1000;
         } catch (Exception ex) {
-            ex.printStackTrace();
+            SALog.printStackTrace(ex);
         }
         return null;
     }
@@ -751,14 +821,16 @@ public final class SensorsDataUtils {
         return null;
     }
 
-    /**
-     * 获取手机的MAC地址
-     *
-     * @return mac address
-     */
     private static final String marshmallowMacAddress = "02:00:00:00:00:00";
     private static final String fileAddressMac = "/sys/class/net/wlan0/address";
 
+    /**
+     * 此方法谨慎修改
+     * 插件配置 disableMacAddress 会修改此方法
+     * 获取手机的MAC地址
+     *
+     * @return String
+     */
     public static String getMacAddress(Context context) {
         try {
             if (!checkHasPermission(context, "android.permission.ACCESS_WIFI_STATE")) {
@@ -819,8 +891,7 @@ public final class SensorsDataUtils {
     private static final String SHARED_PREF_DEVICE_ID_KEY = "sensorsdata.device.id";
     private static final String SHARED_PREF_USER_AGENT_KEY = "sensorsdata.user.agent";
 
-    private static final SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"
-            + ".SSS", Locale.CHINA);
+    private static SimpleDateFormat mDateFormat = null;
     private static final Map<String, String> sCarrierMap = new HashMap<String, String>() {
         {
             //中国移动

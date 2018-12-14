@@ -6,7 +6,6 @@ package com.sensorsdata.analytics.android.sdk;
 import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
 import android.os.Build;
-import android.util.Log;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -39,9 +38,9 @@ import java.util.concurrent.Future;
                         data = sharedPreferences.getString(persistentKey, null);
                     }
                 } catch (final ExecutionException e) {
-                    Log.e(LOGTAG, "Cannot read distinct ids from sharedPreferences.", e.getCause());
+                    SALog.d(LOGTAG, "Cannot read distinct ids from sharedPreferences.", e.getCause());
                 } catch (final InterruptedException e) {
-                    Log.e(LOGTAG, "Cannot read distinct ids from sharedPreferences.", e);
+                    SALog.d(LOGTAG, "Cannot read distinct ids from sharedPreferences.", e);
                 }
 
                 T item = null;
@@ -67,9 +66,9 @@ import java.util.concurrent.Future;
             try {
                 sharedPreferences = loadStoredPreferences.get();
             } catch (final ExecutionException e) {
-                Log.e(LOGTAG, "Cannot read distinct ids from sharedPreferences.", e.getCause());
+                SALog.d(LOGTAG, "Cannot read distinct ids from sharedPreferences.", e.getCause());
             } catch (final InterruptedException e) {
-                Log.e(LOGTAG, "Cannot read distinct ids from sharedPreferences.", e);
+                SALog.d(LOGTAG, "Cannot read distinct ids from sharedPreferences.", e);
             }
 
             if (sharedPreferences == null) {

@@ -32,7 +32,16 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.util.zip.GZIPOutputStream;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 @TargetApi(16)
 public class HeatMapViewCrawler implements VTrack {
@@ -47,7 +56,7 @@ public class HeatMapViewCrawler implements VTrack {
             mPostUrl = URLDecoder.decode(postUrl, "UTF-8");
             mMessageObject = new JSONObject("{\"type\":\"snapshot_request\",\"payload\":{\"config\":{\"classes\":[{\"name\":\"android.view.View\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]},{\"name\":\"android.widget.TextView\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]},{\"name\":\"android.widget.ImageView\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]}]}}}");
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             mMessageObject = null;
         }
         final Application app = (Application) mActivity.getApplicationContext();
@@ -80,7 +89,7 @@ public class HeatMapViewCrawler implements VTrack {
                         .sendMessage(mMessageThreadHandler.obtainMessage(MESSAGE_SEND_STATE_FOR_EDITING));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -94,7 +103,7 @@ public class HeatMapViewCrawler implements VTrack {
             final Application app = (Application) mActivity.getApplicationContext();
             app.unregisterActivityLifecycleCallbacks(mLifecycleCallbacks);
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -266,12 +275,17 @@ public class HeatMapViewCrawler implements VTrack {
             if (TextUtils.isEmpty(mFeatureCode) || TextUtils.isEmpty(mPostUrl)) {
                 return;
             }
+
+            InputStream in = null;
+            OutputStream out2 = null;
+            BufferedOutputStream bout = null;
             try {
-                InputStream in;
-                OutputStream out2;
-                BufferedOutputStream bout;
                 HttpURLConnection connection;
                 final URL url = new URL(mPostUrl);
+                if (mPostUrl.startsWith("https://") && !SensorsDataAPI.sharedInstance().isSSLCertificateChecking()) {
+                    disableSSLCertificateChecking();
+                }
+
                 connection = (HttpURLConnection) url.openConnection();
 
                 connection.setDoOutput(true);
@@ -282,7 +296,6 @@ public class HeatMapViewCrawler implements VTrack {
                 bout = new BufferedOutputStream(out2);
                 bout.write(out.toString().getBytes("UTF-8"));
                 bout.flush();
-                bout.close();
                 out.close();
 
                 int responseCode = connection.getResponseCode();
@@ -292,8 +305,6 @@ public class HeatMapViewCrawler implements VTrack {
                     in = connection.getErrorStream();
                 }
                 byte[] responseBody = slurp(in);
-                in.close();
-                out2.close();
 
                 String response = new String(responseBody, "UTF-8");
                 SALog.i(TAG, "responseCode=" + responseCode);
@@ -306,7 +317,31 @@ public class HeatMapViewCrawler implements VTrack {
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                SALog.printStackTrace(e);
+            } finally {
+                if (in != null) {
+                    try {
+                        in.close();
+                    } catch (Exception ex) {
+                        SALog.printStackTrace(ex);
+                    }
+                }
+
+                if (out2 != null) {
+                    try {
+                        out2.close();
+                    } catch (Exception ex) {
+                        SALog.printStackTrace(ex);
+                    }
+                }
+
+                if (bout != null) {
+                    try {
+                        bout.close();
+                    } catch (Exception ex) {
+                        SALog.printStackTrace(ex);
+                    }
+                }
             }
 
             if (rePostSnapshot) {
@@ -329,6 +364,40 @@ public class HeatMapViewCrawler implements VTrack {
 
             buffer.flush();
             return buffer.toByteArray();
+        }
+
+        /**
+         * 将 HTTPS 请求不验证证书，即信任所有证书
+         */
+        private void disableSSLCertificateChecking() {
+            try {
+                SSLContext sc = SSLContext.getInstance("TLS");
+                sc.init(null, new TrustManager[]{new CustomTrustManager()}, new SecureRandom());
+                HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+                HttpsURLConnection.setDefaultHostnameVerifier(new CustomHostnameVerifier());
+            } catch (Exception e) {
+                com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            }
+        }
+
+        private class CustomTrustManager implements X509TrustManager {
+            @Override
+            public void checkClientTrusted(X509Certificate[] chain, String authType) {
+            }
+            @Override
+            public void checkServerTrusted(X509Certificate[] chain, String authType) {
+            }
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                return null;
+            }
+        }
+
+        private class CustomHostnameVerifier implements HostnameVerifier {
+            @Override
+            public boolean verify(String hostname, SSLSession session) {
+                return true;
+            }
         }
 
         private ViewSnapshot mSnapshot;

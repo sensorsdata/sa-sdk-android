@@ -47,6 +47,18 @@ public interface ISensorsDataAPI {
     public boolean isDebugMode();
 
     /**
+     * 返回是否允许后台上传数据，默认是true
+     * @return
+     */
+    boolean isFlushInBackground();
+
+    /**
+     * 设置是否允许后台上传数据，默认是 true
+     * @param isFlush
+     */
+    void setFlushInBackground(boolean isFlush);
+
+    /**
      * 设置本地缓存上限值，单位 byte，默认为 32MB：32 * 1024 * 1024
      * @param maxCacheSize 单位 byte
      */
@@ -211,6 +223,8 @@ public interface ISensorsDataAPI {
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     public void showUpWebView(WebView webView, boolean isSupportJellyBean, JSONObject properties);
 
+    public void showUpX5WebView(Object x5WebView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify);
+
     public void showUpX5WebView(Object x5WebView, boolean enableVerify);
 
     public void showUpX5WebView(Object x5WebView);
@@ -326,7 +340,7 @@ public interface ISensorsDataAPI {
      * @param view   要设置的View
      * @param viewID String 给这个View的ID
      */
-    public void setViewID(android.support.v7.app.AlertDialog view, String viewID);
+    public void setViewID(Object view, String viewID);
 
     /**
      * 设置 View 所属 Activity
@@ -656,9 +670,7 @@ public interface ISensorsDataAPI {
      */
     public void trackViewScreen(Activity activity);
 
-    public void trackViewScreen(android.app.Fragment fragment);
-
-    public void trackViewScreen(android.support.v4.app.Fragment fragment);
+    public void trackViewScreen(Object fragment);
 
     /**
      * 将所有本地缓存的日志发送到 Sensors Analytics.
@@ -848,4 +860,13 @@ public interface ISensorsDataAPI {
      * 删除本地缓存的全部事件
      */
     public void deleteAll();
+
+    /**
+     * 保存用户推送 ID 到用户表
+     * @param propertyKey 属性名称（例如 jgId）
+     * @param pushId  推送 ID
+     *                使用 profilePushId("jgId",JPushInterface.getRegistrationID(this))
+     */
+
+    void profilePushId(String propertyKey, String pushId);
 }

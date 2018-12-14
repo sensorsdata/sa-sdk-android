@@ -298,6 +298,11 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
+    public void showUpX5WebView(Object x5WebView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify) {
+
+    }
+
+    @Override
     public void showUpX5WebView(Object x5WebView, boolean enableVerify) {
 
     }
@@ -427,7 +432,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
      * @param viewID String 给这个View的ID
      */
     @Override
-    public void setViewID(android.support.v7.app.AlertDialog view, String viewID) {
+    public void setViewID(Object view, String viewID) {
 
     }
 
@@ -900,12 +905,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
-    public void trackViewScreen(android.app.Fragment fragment) {
-
-    }
-
-    @Override
-    public void trackViewScreen(android.support.v4.app.Fragment fragment) {
+    public void trackViewScreen(Object fragment) {
 
     }
 
@@ -1127,6 +1127,16 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
+    public boolean isFlushInBackground() {
+        return true;
+    }
+
+    @Override
+    public void setFlushInBackground(boolean isUploadData) {
+
+    }
+
+    @Override
     public void setCookie(String cookie, boolean encode) {
 
     }
@@ -1134,5 +1144,17 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     @Override
     public String getCookie(boolean decode) {
         return null;
+    }
+
+    /**
+     * 保存用户推送 ID 到用户表
+     * @param propertyKey 属性名称（例如 jgId）
+     * @param pushId  推送 ID
+     *                使用 profilePushId("jgId",JPushInterface.getRegistrationID(this))
+     */
+
+    @Override
+    public void profilePushId(String propertyKey, String pushId) {
+
     }
 }

@@ -21,7 +21,7 @@ public class JSONUtils {
                 sb.append('\t');
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -77,7 +77,7 @@ public class JSONUtils {
 
             return sb.toString();
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return "";
         }
     }

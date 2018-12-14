@@ -79,7 +79,7 @@ public class AopUtil {
 
             return -1;
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return -1;
         }
     }
@@ -131,7 +131,7 @@ public class AopUtil {
             }
             properties.put("$element_selector", stringBuffer.toString());
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -161,6 +161,14 @@ public class AopUtil {
                         switchCompatClass = Class.forName("android.support.v7.widget.SwitchCompat");
                     } catch (Exception e) {
                         //ignored
+                    }
+
+                    if (switchCompatClass == null) {
+                        try {
+                            switchCompatClass = Class.forName("androidx.appcompat.widget.SwitchCompat");
+                        } catch (Exception e) {
+                            //ignored
+                        }
                     }
 
                     CharSequence viewText = null;
@@ -211,7 +219,7 @@ public class AopUtil {
             }
             return stringBuilder.toString();
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return stringBuilder.toString();
         }
     }
@@ -234,7 +242,7 @@ public class AopUtil {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -263,7 +271,7 @@ public class AopUtil {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         return activity;
     }
@@ -339,7 +347,7 @@ public class AopUtil {
 
             return false;
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return true;
         }
     }
@@ -385,7 +393,7 @@ public class AopUtil {
             }
             return null;
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return null;
         }
     }
@@ -397,9 +405,12 @@ public class AopUtil {
      * @param dest JSONObject
      * @throws JSONException Exception
      */
-    public static void mergeJSONObject(final JSONObject source, JSONObject dest)
-            throws JSONException {
+    public static void mergeJSONObject(final JSONObject source, JSONObject dest) {
         try {
+            if (mDateFormat == null) {
+                mDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"
+                        + ".SSS", Locale.getDefault());
+            }
             Iterator<String> superPropertiesIterator = source.keys();
             while (superPropertiesIterator.hasNext()) {
                 String key = superPropertiesIterator.next();
@@ -413,10 +424,9 @@ public class AopUtil {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
-    private static final SimpleDateFormat mDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"
-            + ".SSS", Locale.getDefault());
+    private static SimpleDateFormat mDateFormat = null;
 }

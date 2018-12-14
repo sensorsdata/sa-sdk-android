@@ -9,7 +9,7 @@ import java.util.concurrent.Executors;
 /**
  * Created by 王灼洲 on 2018/7/7
  */
-public class TrackTaskManagerThread implements Runnable {
+public class TrackDBTaskManagerThread implements Runnable {
     private TrackTaskManager mTrackTaskManager;
     /**
      * 创建一个可重用固定线程数的线程池
@@ -28,7 +28,7 @@ public class TrackTaskManagerThread implements Runnable {
      */
     private boolean isStop = false;
 
-    public TrackTaskManagerThread() {
+    public TrackDBTaskManagerThread() {
         try {
             this.mTrackTaskManager = TrackTaskManager.getInstance();
             mPool = Executors.newFixedThreadPool(POOL_SIZE);
@@ -41,7 +41,7 @@ public class TrackTaskManagerThread implements Runnable {
     public void run() {
         try {
             while (!isStop) {
-                Runnable downloadTask = mTrackTaskManager.getTrackEventTask();
+                Runnable downloadTask = mTrackTaskManager.getEventDBTask();
                 if (downloadTask != null) {
                     mPool.execute(downloadTask);
                 } else {//如果当前任务队列中没有下载任务downloadTask
@@ -56,10 +56,10 @@ public class TrackTaskManagerThread implements Runnable {
             }
 
             if (isStop) {
-                Runnable downloadTask = mTrackTaskManager.getTrackEventTask();
+                Runnable downloadTask = mTrackTaskManager.getEventDBTask();
                 while (downloadTask != null) {
                     mPool.execute(downloadTask);
-                    downloadTask = mTrackTaskManager.getTrackEventTask();
+                    downloadTask = mTrackTaskManager.getEventDBTask();
                 }
                 mPool.shutdown();
             }

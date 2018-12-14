@@ -52,7 +52,7 @@ import org.json.JSONObject;
         try {
             SensorsDataAPI.sharedInstance(mContext).trackEventFromH5(event, enableVerify);
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -65,7 +65,7 @@ import org.json.JSONObject;
             }
             return SensorsDataAPI.sharedInstance(mContext)._trackEventFromH5(event);
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return false;
         }
     }

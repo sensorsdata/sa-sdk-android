@@ -3,14 +3,6 @@
  
 package com.sensorsdata.analytics.android.sdk;
 
-import com.sensorsdata.analytics.android.sdk.exceptions.ConnectErrorException;
-import com.sensorsdata.analytics.android.sdk.exceptions.DebugModeException;
-import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
-import com.sensorsdata.analytics.android.sdk.exceptions.ResponseErrorException;
-import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
-import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
-
 import android.content.Context;
 import android.net.Uri;
 import android.os.Build;
@@ -20,6 +12,14 @@ import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
 import android.widget.Toast;
+
+import com.sensorsdata.analytics.android.sdk.exceptions.ConnectErrorException;
+import com.sensorsdata.analytics.android.sdk.exceptions.DebugModeException;
+import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
+import com.sensorsdata.analytics.android.sdk.exceptions.ResponseErrorException;
+import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
+import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONObject;
 
@@ -31,7 +31,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
@@ -47,9 +49,9 @@ class AnalyticsMessages {
     /**
      * Do not call directly. You should call AnalyticsMessages.getInstance()
      */
-    /* package */ AnalyticsMessages(final Context context, final String packageName) {
+    /* package */ AnalyticsMessages(final Context context, DbAdapter dbAdapter) {
         mContext = context;
-        mDbAdapter = new DbAdapter(mContext, packageName);
+        mDbAdapter = dbAdapter;
         mWorker = new Worker();
     }
 
@@ -60,13 +62,13 @@ class AnalyticsMessages {
      * @param messageContext should be the Main Activity of the application
      *                       associated with these messages.
      */
-    public static AnalyticsMessages getInstance(final Context messageContext, final String
-            packageName) {
+    public static AnalyticsMessages getInstance(final Context messageContext, DbAdapter dbAdapter, int flushCacheSize) {
         synchronized (sInstances) {
             final Context appContext = messageContext.getApplicationContext();
+            mFlushSize = flushCacheSize;
             final AnalyticsMessages ret;
             if (!sInstances.containsKey(appContext)) {
-                ret = new AnalyticsMessages(appContext, packageName);
+                ret = new AnalyticsMessages(appContext, dbAdapter);
                 sInstances.put(appContext, ret);
             } else {
                 ret = sInstances.get(appContext);
@@ -78,32 +80,47 @@ class AnalyticsMessages {
     public void enqueueEventMessage(final String type, final JSONObject eventJson) {
         try {
             synchronized (mDbAdapter) {
-                int ret = mDbAdapter.addJSON(eventJson, DbAdapter.Table.EVENTS);
-                if (ret < 0) {
-                    String error = "Failed to enqueue the event: " + eventJson;
-                    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-                        throw new DebugModeException(error);
-                    } else {
-                        SALog.i(TAG, error);
-                    }
-                }
+                TrackTaskManager.getInstance().addEventDBTask(new Runnable() {
+                    @Override
+                    public void run() {
+                        int ret;
+                        boolean isDebugMode = SensorsDataAPI.sharedInstance(mContext).isDebugMode();
+                        if (isDebugMode || type.equals("track_signup")) {
+                            ret = mDbAdapter.addJSON(eventJson);
+                        } else {
+                            mEventsList.add(eventJson);
+                            if (mEventsList.size() < mFlushSize && mDbAdapter.getAppStart())return;
+                            ret = mDbAdapter.addJSON(mEventsList);
+                            if (ret >= 0) {
+                                mEventsList.clear();
+                            }
+                        }
+                        if (ret < 0) {
+                            String error = "Failed to enqueue the event: " + eventJson;
+                            if (isDebugMode) {
+                                throw new DebugModeException(error);
+                            } else {
+                                SALog.i(TAG, error);
+                            }
+                        }
 
-                final Message m = Message.obtain();
-                m.what = FLUSH_QUEUE;
+                        final Message m = Message.obtain();
+                        m.what = FLUSH_QUEUE;
 
-                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() || ret ==
-                        DbAdapter.DB_OUT_OF_MEMORY_ERROR) {
-                    mWorker.runMessage(m);
-                } else {
-                    // track_signup 立即发送
-                    if (type.equals("track_signup") || ret > SensorsDataAPI.sharedInstance(mContext)
-                            .getFlushBulkSize()) {
-                        mWorker.runMessage(m);
-                    } else {
-                        final int interval = SensorsDataAPI.sharedInstance(mContext).getFlushInterval();
-                        mWorker.runMessageOnce(m, interval);
+                        if (isDebugMode || ret == DbAdapter.DB_OUT_OF_MEMORY_ERROR) {
+                            mWorker.runMessage(m);
+                        } else {
+                            // track_signup 立即发送
+                            if (type.equals("track_signup") || ret > SensorsDataAPI.sharedInstance(mContext)
+                                    .getFlushBulkSize()) {
+                                mWorker.runMessage(m);
+                            } else {
+                                final int interval = SensorsDataAPI.sharedInstance(mContext).getFlushInterval();
+                                mWorker.runMessageOnce(m, interval);
+                            }
+                        }
                     }
-                }
+                });
             }
         } catch (Exception e) {
             SALog.i(TAG, "enqueueEventMessage error:" + e);
@@ -122,6 +139,19 @@ class AnalyticsMessages {
         m.what = FLUSH_QUEUE;
 
         mWorker.runMessageOnce(m, timeDelayMills);
+    }
+
+    public void flushDataSync() {
+        try {
+            if (mEventsList.size() > 0) {
+                if (mDbAdapter.addJSON(mEventsList) >= 0) {
+                    mEventsList.clear();
+                }
+                flush();
+            }
+        } catch (Exception e) {
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+        }
     }
 
     public void deleteAll() {
@@ -148,11 +178,17 @@ class AnalyticsMessages {
 
     public void sendData() {
         try {
+            if (!SensorsDataAPI.sharedInstance(mContext).isFlushInBackground()) {
+                if (!mDbAdapter.getAppStart()) {
+                    return;
+                }
+            }
+
             if (TextUtils.isEmpty(SensorsDataAPI.sharedInstance(mContext).getServerUrl())) {
                 return;
             }
             //不是主进程
-            if (!SensorsDataUtils.isMainProcess(mContext, SensorsDataAPI.sharedInstance(mContext).getMainProcessName())) {
+            if (!SensorsDataAPI.mIsMainProcess) {
                 return;
             }
 
@@ -167,7 +203,7 @@ class AnalyticsMessages {
                 return;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         int count = 100;
         Toast toast = null;
@@ -213,7 +249,7 @@ class AnalyticsMessages {
                         }
                         connection.addRequestProperty("User-Agent", ua);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                     }
                     if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() && !SensorsDataAPI.sharedInstance
                             (mContext).isDebugWriteData()) {
@@ -306,14 +342,14 @@ class AnalyticsMessages {
                                     toast.show();
                                 }
                             } catch (Exception e) {
-                                e.printStackTrace();
+                                com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                             }
                         }
                     }
                 }
 
                 if (deleteEvents) {
-                    count = mDbAdapter.cleanupEvents(lastId, DbAdapter.Table.EVENTS);
+                    count = mDbAdapter.cleanupEvents(lastId);
                     SALog.i(TAG, String.format(Locale.CHINA, "Events flushed. [left = %d]", count));
                 } else {
                     count = 0;
@@ -417,7 +453,7 @@ class AnalyticsMessages {
                         try {
                             mDbAdapter.deleteAllEvents();
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                         }
                     } else {
                         SALog.i(TAG, "Unexpected message received by SensorsData worker: " + msg);
@@ -436,7 +472,8 @@ class AnalyticsMessages {
     private final Worker mWorker;
     private final Context mContext;
     private final DbAdapter mDbAdapter;
-
+    private List<JSONObject> mEventsList = new ArrayList<>();
+    private static int mFlushSize;
     // Messages for our thread
     private static final int FLUSH_QUEUE = 3;
     private static final int DELETE_ALL = 4;
@@ -444,6 +481,6 @@ class AnalyticsMessages {
     private static final String TAG = "SA.AnalyticsMessages";
 
     private static final Map<Context, AnalyticsMessages> sInstances =
-            new HashMap<Context, AnalyticsMessages>();
+            new HashMap<>();
 
 }

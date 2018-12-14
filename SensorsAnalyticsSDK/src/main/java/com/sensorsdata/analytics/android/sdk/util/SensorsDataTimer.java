@@ -3,16 +3,13 @@
  
 package com.sensorsdata.analytics.android.sdk.util;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class SensorsDataTimer {
-
-    private Timer mTimer;
-    private TimerTask mTimerTask;
     private static SensorsDataTimer instance;
-    private final int TIME_INTERVAL = 1000;
-
+    private ScheduledExecutorService mScheduledExecutorService;
     public static SensorsDataTimer getInstance() {
         if (instance == null) {
             instance = new SensorsDataTimer();
@@ -21,40 +18,28 @@ public class SensorsDataTimer {
     }
 
     private SensorsDataTimer() {
+        mScheduledExecutorService = Executors.newScheduledThreadPool(2);
     }
 
     /**
      * start a timer task
      * @param runnable
      */
-    public void timer(final Runnable runnable) {
-        mTimerTask = new TimerTask() {
-            @Override
-            public void run() {
-                runnable.run();
-            }
-        };
-        if (mTimer == null) {
-            mTimer = new Timer();
-            mTimer.schedule(mTimerTask, 500, TIME_INTERVAL);
-        } else {
-            mTimer.schedule(mTimerTask, 500, TIME_INTERVAL);
+    public void timer(final Runnable runnable, long initialDelay, long timePeriod) {
+        if (mScheduledExecutorService == null || mScheduledExecutorService.isShutdown()) {
+            mScheduledExecutorService = Executors.newScheduledThreadPool(2);
         }
+
+        mScheduledExecutorService.scheduleAtFixedRate(runnable, initialDelay, timePeriod, TimeUnit.MILLISECONDS);
+
     }
 
     /**
      * cancel timer task
      */
     public void cancleTimerTask() {
-        if (mTimerTask != null) {
-            mTimerTask.cancel();
-            mTimerTask = null;
-        }
-
-        if (mTimer != null) {
-            mTimer.cancel();
-            mTimer.purge();
-            mTimer = null;
+        if (mScheduledExecutorService != null) {
+            mScheduledExecutorService.shutdown();
         }
     }
 }

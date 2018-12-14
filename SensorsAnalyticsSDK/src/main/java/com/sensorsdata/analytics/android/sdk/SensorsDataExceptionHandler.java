@@ -22,74 +22,78 @@ public class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHand
         Thread.setDefaultUncaughtExceptionHandler(this);
     }
 
-    public static void init() {
+    public synchronized static void init() {
         if (sInstance == null) {
-            synchronized (SensorsDataExceptionHandler.class) {
-                if (sInstance == null) {
-                    sInstance = new SensorsDataExceptionHandler();
-                }
-            }
+            sInstance = new SensorsDataExceptionHandler();
         }
     }
 
     @Override
     public void uncaughtException(final Thread t, final Throwable e) {
-        // Only one worker thread - giving priority to storing the event first and then flush
-        SensorsDataAPI.allInstances(new SensorsDataAPI.InstanceProcessor() {
-            @Override
-            public void process(SensorsDataAPI sensorsData) {
-                try {
-                    final JSONObject messageProp = new JSONObject();
-                    SensorsDataTimer.getInstance().cancleTimerTask();
+        try {
+            // Only one worker thread - giving priority to storing the event first and then flush
+            SensorsDataAPI.allInstances(new SensorsDataAPI.InstanceProcessor() {
+                @Override
+                public void process(SensorsDataAPI sensorsData) {
                     try {
-                        Writer writer = new StringWriter();
-                        PrintWriter printWriter = new PrintWriter(writer);
-                        e.printStackTrace(printWriter);
-                        Throwable cause = e.getCause();
-                        while (cause != null) {
-                            cause.printStackTrace(printWriter);
-                            cause = cause.getCause();
+                        final JSONObject messageProp = new JSONObject();
+                        SensorsDataTimer.getInstance().cancleTimerTask();
+                        try {
+                            Writer writer = new StringWriter();
+                            PrintWriter printWriter = new PrintWriter(writer);
+                            e.printStackTrace(printWriter);
+                            Throwable cause = e.getCause();
+                            while (cause != null) {
+                                cause.printStackTrace(printWriter);
+                                cause = cause.getCause();
+                            }
+                            printWriter.close();
+                            String result = writer.toString();
+
+                            messageProp.put("app_crashed_reason", result);
+                        } catch (Exception ex) {
+                            SALog.printStackTrace(ex);
                         }
-                        printWriter.close();
-                        String result = writer.toString();
-
-                        messageProp.put("app_crashed_reason", result);
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
+                        sensorsData.track("AppCrashed", messageProp);
+                    } catch (Exception e) {
+                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                     }
-                    sensorsData.track("AppCrashed", messageProp);
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
-            }
-        });
+            });
 
-        SensorsDataAPI.allInstances(new SensorsDataAPI.InstanceProcessor() {
-            @Override
-            public void process(SensorsDataAPI sensorsData) {
-                sensorsData.flush();
-            }
-        });
+            SensorsDataAPI.allInstances(new SensorsDataAPI.InstanceProcessor() {
+                @Override
+                public void process(SensorsDataAPI sensorsData) {
+                    sensorsData.flush();
+                }
+            });
 
-        if (mDefaultExceptionHandler != null) {
-            try {
-                Thread.sleep(SLEEP_TIMEOUT_MS);
-            } catch (InterruptedException e1) {
-                e1.printStackTrace();
+            if (mDefaultExceptionHandler != null) {
+                try {
+                    Thread.sleep(SLEEP_TIMEOUT_MS);
+                } catch (InterruptedException e1) {
+                    SALog.printStackTrace(e1);
+                }
+                try {
+                    mDefaultExceptionHandler.uncaughtException(t, e);
+                } catch (Exception ex) {
+                    //ignored
+                }
+            } else {
+                killProcessAndExit();
             }
-            mDefaultExceptionHandler.uncaughtException(t, e);
-        } else {
-            killProcessAndExit();
+        } catch (Exception exception) {
+            //ignored
         }
     }
 
     private void killProcessAndExit() {
         try {
             Thread.sleep(SLEEP_TIMEOUT_MS);
-        } catch (InterruptedException e1) {
-            e1.printStackTrace();
+            android.os.Process.killProcess(android.os.Process.myPid());
+            System.exit(10);
+        } catch (Exception e) {
+            //ignored
         }
-        android.os.Process.killProcess(android.os.Process.myPid());
-        System.exit(10);
     }
 }

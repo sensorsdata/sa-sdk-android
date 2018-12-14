@@ -33,7 +33,7 @@ public class HeatMapService {
                 mVTrack.stopUpdates(false);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -43,7 +43,7 @@ public class HeatMapService {
                 mVTrack.startUpdates();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -67,7 +67,7 @@ public class HeatMapService {
                 mVTrack.startUpdates();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 }

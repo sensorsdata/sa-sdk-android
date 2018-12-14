@@ -143,7 +143,7 @@ public class ViewSnapshot {
                 j.name("sa_id_name").value(saId);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
 
         j.name("top").value(view.getTop());

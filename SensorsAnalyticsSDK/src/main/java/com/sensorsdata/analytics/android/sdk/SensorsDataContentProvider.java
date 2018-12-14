@@ -85,7 +85,7 @@ public class SensorsDataContentProvider extends ContentProvider {
 
                 context.deleteDatabase(packageName);
             } catch (Exception e) {
-                e.printStackTrace();
+                com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             }
 
             final SharedPreferencesLoader.OnPrefsLoadedListener listener =
@@ -117,14 +117,14 @@ public class SensorsDataContentProvider extends ContentProvider {
             database.delete(DbAdapter.Table.EVENTS.getName(), "_id <= ?", selectionArgs);
             //contentResolver.notifyChange(uri, null);
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         } finally {
 //            try {
 //                if (database != null) {
 //                    database.close();
 //                }
 //            } catch (Exception e) {
-//                e.printStackTrace();
+//                com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
 //            }
         }
         return id;
@@ -148,7 +148,9 @@ public class SensorsDataContentProvider extends ContentProvider {
             } else if (uriMatcher.match(uri) == APP_START) {
                 boolean state = values.getAsBoolean(DbAdapter.APP_STARTED);
                 persistentAppStart.commit(state);
-                contentResolver.notifyChange(uri,null);
+                if (state) {
+                    contentResolver.notifyChange(uri,null);
+                }
             } else if (uriMatcher.match(uri) == APP_START_TIME) {
                 long startTime = values.getAsLong(DbAdapter.APP_START_TIME);
                 persistentAppStartTime.commit(startTime);
@@ -170,17 +172,37 @@ public class SensorsDataContentProvider extends ContentProvider {
                 contentResolver.notifyChange(uri,null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         } finally {
 //            try {
 //                if (database != null) {
 //                    database.close();
 //                }
 //            } catch (Exception e) {
-//                e.printStackTrace();
+//                com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
 //            }
         }
         return u;
+    }
+
+    @Override
+    public int bulkInsert(Uri uri, ContentValues[] values) {
+        int numValues;
+        SQLiteDatabase database = null;
+        try {
+            database = dbHelper.getWritableDatabase();
+            database.beginTransaction();
+            numValues = values.length;
+            for (int i = 0; i < numValues; i++) {
+                insert(uri, values[i]);
+            }
+            database.setTransactionSuccessful();
+        } finally {
+            if (database != null) {
+                database.endTransaction();
+            }
+        }
+        return numValues;
     }
 
     @Override
@@ -224,7 +246,7 @@ public class SensorsDataContentProvider extends ContentProvider {
                 return matrixCursor;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         return cursor;
     }

@@ -128,7 +128,7 @@ public class SensorsDataSDKRemoteConfig {
             configObject.put("disableSDK", disableSDK);
             jsonObject.put("configs", configObject);
         } catch (Exception e) {
-            e.printStackTrace();
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         return jsonObject;
     }
