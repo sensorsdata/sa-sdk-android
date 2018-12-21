@@ -637,7 +637,7 @@ public final class SensorsDataUtils {
             return true;
         } catch (Exception e) {
             SALog.i(TAG, e.toString());
-            return false;
+            return true;
         }
     }
 

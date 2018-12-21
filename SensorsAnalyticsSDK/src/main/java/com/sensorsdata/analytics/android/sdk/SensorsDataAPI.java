@@ -444,16 +444,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             final Context appContext = context.getApplicationContext();
 
             SensorsDataAPI instance = sInstanceMap.get(appContext);
-            if (null == instance && ConfigurationChecker.checkBasicConfiguration(appContext)) {
+            if (null == instance) {
                 instance = new SensorsDataAPI(appContext, serverURL, debugMode);
                 sInstanceMap.put(appContext, instance);
             }
 
-            if (instance != null) {
-                return instance;
-            } else {
-                return new SensorsDataAPIEmptyImplementation();
-            }
+            return instance;
         }
     }
 
@@ -3157,10 +3153,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 if (eventType.isTrack()) {
                     propertiesObject.put("$is_first_day", isFirstDay());
                 }
-
-                if (propertiesObject.has("$is_first_time")) {
-                    propertiesObject.remove("$is_first_time");
-                }
             }
 
             if (eventObject.has("_nocache")) {
@@ -3566,7 +3558,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "3.0.0";
+    static final String VERSION = "3.0.1";
     // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
     static final String MIN_PLUGIN_VERSION = "3.0.0";
 
