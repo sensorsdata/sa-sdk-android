@@ -21,6 +21,7 @@ import android.widget.CompoundButton;
 import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
 import android.widget.GridView;
+import android.widget.HeaderViewListAdapter;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.ListView;
@@ -1235,6 +1236,10 @@ public class SensorsDataAutoTrackHelper {
 
             //扩展属性
             Adapter adapter = adapterView.getAdapter();
+            if (adapter instanceof HeaderViewListAdapter) {
+                adapter = ((HeaderViewListAdapter) adapter).getWrappedAdapter();
+            }
+
             if (adapter instanceof SensorsAdapterViewItemTrackProperties) {
                 try {
                     SensorsAdapterViewItemTrackProperties objectProperties = (SensorsAdapterViewItemTrackProperties) adapter;

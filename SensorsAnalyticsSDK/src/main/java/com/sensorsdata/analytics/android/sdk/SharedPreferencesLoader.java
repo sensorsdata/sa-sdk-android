@@ -19,7 +19,7 @@ import java.util.concurrent.FutureTask;
     }
 
     public SharedPreferencesLoader() {
-        mExecutor = Executors.newSingleThreadExecutor();
+        sensorsDataThreadPool = SensorsDataThreadPool.getInstance();
     }
 
     public Future<SharedPreferences> loadPreferences(Context context, String name,
@@ -27,7 +27,7 @@ import java.util.concurrent.FutureTask;
         final LoadSharedPreferences loadSharedPrefs =
                 new LoadSharedPreferences(context, name, listener);
         final FutureTask<SharedPreferences> task = new FutureTask<SharedPreferences>(loadSharedPrefs);
-        mExecutor.execute(task);
+        sensorsDataThreadPool.execute(task);
         return task;
     }
 
@@ -54,5 +54,5 @@ import java.util.concurrent.FutureTask;
     }
 
 
-    private final Executor mExecutor;
+    private final SensorsDataThreadPool sensorsDataThreadPool;
 }

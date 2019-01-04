@@ -31,11 +31,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.zip.GZIPOutputStream;
 
 /**
@@ -472,7 +472,7 @@ class AnalyticsMessages {
     private final Worker mWorker;
     private final Context mContext;
     private final DbAdapter mDbAdapter;
-    private List<JSONObject> mEventsList = new ArrayList<>();
+    private List<JSONObject> mEventsList = new CopyOnWriteArrayList<>();
     private static int mFlushSize;
     // Messages for our thread
     private static final int FLUSH_QUEUE = 3;

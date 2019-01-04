@@ -169,6 +169,14 @@ public final class SensorsDataUtils {
         return stringBuilder.toString();
     }
 
+    /**
+     * 此方法谨慎修改
+     * 插件配置 disableCarrier 会修改此方法
+     *
+     * 获取运营商信息
+     * @param context Context
+     * @return 运营商信息
+     */
     public static String getCarrier(Context context) {
         try {
             if (SensorsDataUtils.checkHasPermission(context, "android.permission.READ_PHONE_STATE")) {

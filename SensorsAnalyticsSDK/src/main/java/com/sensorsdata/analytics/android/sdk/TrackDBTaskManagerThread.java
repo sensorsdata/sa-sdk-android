@@ -62,6 +62,7 @@ public class TrackDBTaskManagerThread implements Runnable {
                     downloadTask = mTrackTaskManager.getEventDBTask();
                 }
                 mPool.shutdown();
+                SensorsDataThreadPool.getInstance().shutdown();
             }
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);

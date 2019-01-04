@@ -17,6 +17,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.text.TextUtils;
@@ -288,8 +289,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mTrackTaskManager = TrackTaskManager.getInstance();
         mTrackTaskManagerThread = new TrackTaskManagerThread();
         mTrackDBTaskManagerThread = new TrackDBTaskManagerThread();
-        new Thread(mTrackTaskManagerThread).start();
-        new Thread(mTrackDBTaskManagerThread).start();
+        sensorsDataThreadPool = SensorsDataThreadPool.getInstance();
+        sensorsDataThreadPool.execute(mTrackTaskManagerThread);
+        sensorsDataThreadPool.execute(mTrackDBTaskManagerThread);
 
         //先从缓存中读取 SDKConfig
         applySDKConfigFromCache();
@@ -298,12 +300,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         if (mDebugMode != DebugMode.DEBUG_OFF && mIsMainProcess) {
             if (SHOW_DEBUG_INFO_VIEW) {
                 if (!isSDKDisabled()) {
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            showDebugModeWarning();
-                        }
-                    }).start();
+                    showDebugModeWarning();
                 }
             }
         }
@@ -994,7 +991,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 eventTypeList = new ArrayList<>();
             }
 
-            mAutoTrackEventTypeList.clear();
             mAutoTrackEventTypeList.addAll(eventTypeList);
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
@@ -2994,24 +2990,25 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     private void showDebugModeWarning() {
         try {
-            Looper.prepare();
             if (mDebugMode == DebugMode.DEBUG_OFF) {
                 return;
             }
-
             if (TextUtils.isEmpty(getServerUrl())) {
                 return;
             }
-
-            String info = null;
-            if (mDebugMode == DebugMode.DEBUG_ONLY) {
-                info = "现在您打开了 SensorsData SDK 的 'DEBUG_ONLY' 模式，此模式下只校验数据但不导入数据，数据出错时会以 Toast 的方式提示开发者，请上线前一定使用 DEBUG_OFF 模式。";
-            } else if (mDebugMode == DebugMode.DEBUG_AND_TRACK) {
-                info = "现在您打开了神策 SensorsData SDK 的 'DEBUG_AND_TRACK' 模式，此模式下校验数据并且导入数据，数据出错时会以 Toast 的方式提示开发者，请上线前一定使用 DEBUG_OFF 模式。";
-            }
-
-            Toast.makeText(mContext, info, Toast.LENGTH_LONG).show();
-            Looper.loop();
+            Handler handler = new Handler(Looper.getMainLooper());
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    String info = null;
+                    if (mDebugMode == DebugMode.DEBUG_ONLY) {
+                        info = "现在您打开了 SensorsData SDK 的 'DEBUG_ONLY' 模式，此模式下只校验数据但不导入数据，数据出错时会以 Toast 的方式提示开发者，请上线前一定使用 DEBUG_OFF 模式。";
+                    } else if (mDebugMode == DebugMode.DEBUG_AND_TRACK) {
+                        info = "现在您打开了神策 SensorsData SDK 的 'DEBUG_AND_TRACK' 模式，此模式下校验数据并且导入数据，数据出错时会以 Toast 的方式提示开发者，请上线前一定使用 DEBUG_OFF 模式。";
+                    }
+                    Toast.makeText(mContext, info, Toast.LENGTH_LONG).show();
+                }
+            });
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
@@ -3435,8 +3432,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     public void resumeTrackTaskThread() {
         mTrackTaskManagerThread = new TrackTaskManagerThread();
         mTrackDBTaskManagerThread = new TrackDBTaskManagerThread();
-        new Thread(mTrackTaskManagerThread).start();
-        new Thread(mTrackDBTaskManagerThread).start();
+        sensorsDataThreadPool = SensorsDataThreadPool.getInstance();
+        sensorsDataThreadPool.execute(mTrackTaskManagerThread);
+        sensorsDataThreadPool.execute(mTrackDBTaskManagerThread);
     }
 
     /**
@@ -3558,7 +3556,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "3.0.1";
+    static final String VERSION = "3.0.2";
     // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
     static final String MIN_PLUGIN_VERSION = "3.0.0";
 
@@ -3629,10 +3627,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private TrackTaskManager mTrackTaskManager;
     private TrackTaskManagerThread mTrackTaskManagerThread;
     private TrackDBTaskManagerThread mTrackDBTaskManagerThread;
+    private SensorsDataThreadPool sensorsDataThreadPool;
     private SensorsDataScreenOrientationDetector mOrientationDetector;
 
     private SensorsDataDynamicSuperProperties mDynamicSuperProperties;
-    private static DbAdapter mDbAdapter;
+    private DbAdapter mDbAdapter;
     private SimpleDateFormat mIsFirstDayDateFormat;
 
     private static final String TAG = "SA.SensorsDataAPI";
