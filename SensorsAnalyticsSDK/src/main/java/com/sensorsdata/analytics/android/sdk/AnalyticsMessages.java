@@ -13,6 +13,8 @@ import android.os.Message;
 import android.text.TextUtils;
 import android.widget.Toast;
 
+import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
+import com.sensorsdata.analytics.android.sdk.data.DbParams;
 import com.sensorsdata.analytics.android.sdk.exceptions.ConnectErrorException;
 import com.sensorsdata.analytics.android.sdk.exceptions.DebugModeException;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
@@ -49,9 +51,9 @@ class AnalyticsMessages {
     /**
      * Do not call directly. You should call AnalyticsMessages.getInstance()
      */
-    /* package */ AnalyticsMessages(final Context context, DbAdapter dbAdapter) {
+    /* package */ AnalyticsMessages(final Context context) {
         mContext = context;
-        mDbAdapter = dbAdapter;
+        mDbAdapter = DbAdapter.getInstance();
         mWorker = new Worker();
     }
 
@@ -62,13 +64,13 @@ class AnalyticsMessages {
      * @param messageContext should be the Main Activity of the application
      *                       associated with these messages.
      */
-    public static AnalyticsMessages getInstance(final Context messageContext, DbAdapter dbAdapter, int flushCacheSize) {
+    public static AnalyticsMessages getInstance(final Context messageContext, int flushCacheSize) {
         synchronized (sInstances) {
             final Context appContext = messageContext.getApplicationContext();
             mFlushSize = flushCacheSize;
             final AnalyticsMessages ret;
             if (!sInstances.containsKey(appContext)) {
-                ret = new AnalyticsMessages(appContext, dbAdapter);
+                ret = new AnalyticsMessages(appContext);
                 sInstances.put(appContext, ret);
             } else {
                 ret = sInstances.get(appContext);
@@ -107,7 +109,7 @@ class AnalyticsMessages {
                         final Message m = Message.obtain();
                         m.what = FLUSH_QUEUE;
 
-                        if (isDebugMode || ret == DbAdapter.DB_OUT_OF_MEMORY_ERROR) {
+                        if (isDebugMode || ret == DbParams.DB_OUT_OF_MEMORY_ERROR) {
                             mWorker.runMessage(m);
                         } else {
                             // track_signup 立即发送
@@ -209,16 +211,12 @@ class AnalyticsMessages {
         Toast toast = null;
         while (count > 0) {
             boolean deleteEvents = true;
-            InputStream in = null;
-            OutputStream out = null;
-            BufferedOutputStream bout = null;
-            HttpURLConnection connection = null;
             String[] eventsData;
             synchronized (mDbAdapter) {
                 if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-                    eventsData = mDbAdapter.generateDataString(DbAdapter.Table.EVENTS, 1);
+                    eventsData = mDbAdapter.generateDataString(DbParams.TABLE_EVENTS, 1);
                 } else {
-                    eventsData = mDbAdapter.generateDataString(DbAdapter.Table.EVENTS, 50);
+                    eventsData = mDbAdapter.generateDataString(DbParams.TABLE_EVENTS, 50);
                 }
             }
             if (eventsData == null) {
@@ -230,7 +228,6 @@ class AnalyticsMessages {
             String errorMessage = null;
 
             try {
-
                 String data;
                 try {
                     data = encodeData(rawMessage);
@@ -238,79 +235,7 @@ class AnalyticsMessages {
                     // 格式错误，直接将数据删除
                     throw new InvalidDataException(e);
                 }
-
-                try {
-                    final URL url = new URL(SensorsDataAPI.sharedInstance(mContext).getServerUrl());
-                    connection = (HttpURLConnection) url.openConnection();
-                    try {
-                        String ua = SensorsDataUtils.getUserAgent(mContext);
-                        if (TextUtils.isEmpty(ua)) {
-                            ua = "SensorsAnalytics Android SDK";
-                        }
-                        connection.addRequestProperty("User-Agent", ua);
-                    } catch (Exception e) {
-                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-                    }
-                    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() && !SensorsDataAPI.sharedInstance
-                            (mContext).isDebugWriteData()) {
-                        connection.addRequestProperty("Dry-Run", "true");
-                    }
-
-                    connection.setRequestProperty("Cookie", SensorsDataAPI.sharedInstance(mContext).getCookie(false));
-
-                    Uri.Builder builder = new Uri.Builder();
-                    //先校验crc
-                    if (!TextUtils.isEmpty(data)) {
-                        builder.appendQueryParameter("crc", String.valueOf(data.hashCode()));
-                    }
-
-                    builder.appendQueryParameter("gzip", "1");
-                    builder.appendQueryParameter("data_list", data);
-
-                    String query = builder.build().getEncodedQuery();
-
-                    connection.setFixedLengthStreamingMode(query.getBytes().length);
-                    connection.setDoOutput(true);
-                    connection.setRequestMethod("POST");
-                    out = connection.getOutputStream();
-                    bout = new BufferedOutputStream(out);
-                    bout.write(query.getBytes("UTF-8"));
-                    bout.flush();
-                    bout.close();
-                    bout = null;
-                    out.close();
-                    out = null;
-
-                    int responseCode = connection.getResponseCode();
-                    try {
-                        in = connection.getInputStream();
-                    } catch (FileNotFoundException e) {
-                        in = connection.getErrorStream();
-                    }
-                    byte[] responseBody = slurp(in);
-                    in.close();
-                    in = null;
-
-                    String response = new String(responseBody, "UTF-8");
-
-                    //if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-                        if (responseCode == 200) {
-                            SALog.i(TAG, String.format("valid message: \n%s", JSONUtils.formatJson(rawMessage)));
-                        } else {
-                            SALog.i(TAG, String.format("invalid message: \n%s", JSONUtils.formatJson(rawMessage)));
-                            SALog.i(TAG, String.format(Locale.CHINA, "ret_code: %d", responseCode));
-                            SALog.i(TAG, String.format(Locale.CHINA, "ret_content: %s", response));
-                        }
-                    //}
-
-                    if (responseCode < 200 || responseCode >= 300) {
-                        // 校验错误，直接将数据删除
-                        throw new ResponseErrorException(String.format("flush failure with response '%s'",
-                                response));
-                    }
-                } catch (IOException e) {
-                    throw new ConnectErrorException(e);
-                }
+                sendHttpRequest(SensorsDataAPI.sharedInstance(mContext).getServerUrl(), data, rawMessage, false);
             } catch (ConnectErrorException e) {
                 deleteEvents = false;
                 errorMessage = "Connection error: " + e.getMessage();
@@ -342,7 +267,7 @@ class AnalyticsMessages {
                                     toast.show();
                                 }
                             } catch (Exception e) {
-                                com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                                SALog.printStackTrace(e);
                             }
                         }
                     }
@@ -355,38 +280,123 @@ class AnalyticsMessages {
                     count = 0;
                 }
 
-                if (null != bout) {
-                    try {
-                        bout.close();
-                    } catch (Exception e) {
-                        SALog.i(TAG, e.getMessage());
-                    }
-                }
+            }
+        }
+    }
 
-                if (null != out) {
-                    try {
-                        out.close();
-                    } catch (Exception e) {
-                        SALog.i(TAG, e.getMessage());
-                    }
+    private void sendHttpRequest(String path, String data, String rawMessage, boolean isRedirects) throws ConnectErrorException,ResponseErrorException {
+        HttpURLConnection connection = null;
+        InputStream in = null;
+        OutputStream out = null;
+        BufferedOutputStream bout = null;
+        try {
+            final URL url = new URL(path);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setInstanceFollowRedirects(false);
+            try {
+                String ua = SensorsDataUtils.getUserAgent(mContext);
+                if (TextUtils.isEmpty(ua)) {
+                    ua = "SensorsAnalytics Android SDK";
                 }
+                connection.addRequestProperty("User-Agent", ua);
+            } catch (Exception e) {
+                SALog.printStackTrace(e);
+            }
+            if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() && !SensorsDataAPI.sharedInstance
+                    (mContext).isDebugWriteData()) {
+                connection.addRequestProperty("Dry-Run", "true");
+            }
 
-                if (null != in) {
-                    try {
-                        in.close();
-                    } catch (Exception e) {
-                        SALog.i(TAG, e.getMessage());
-                    }
+            connection.setRequestProperty("Cookie", SensorsDataAPI.sharedInstance(mContext).getCookie(false));
+
+            Uri.Builder builder = new Uri.Builder();
+            //先校验crc
+            if (!TextUtils.isEmpty(data)) {
+                builder.appendQueryParameter("crc", String.valueOf(data.hashCode()));
+            }
+
+            builder.appendQueryParameter("gzip", "1");
+            builder.appendQueryParameter("data_list", data);
+
+            String query = builder.build().getEncodedQuery();
+
+            connection.setFixedLengthStreamingMode(query.getBytes().length);
+            connection.setDoOutput(true);
+            connection.setRequestMethod("POST");
+            out = connection.getOutputStream();
+            bout = new BufferedOutputStream(out);
+            bout.write(query.getBytes("UTF-8"));
+            bout.flush();
+
+            int responseCode = connection.getResponseCode();
+            SALog.i(TAG, "responseCode: "+responseCode);
+            if (!isRedirects && SensorsDataHttpURLConnectionHelper.needRedirects(responseCode)) {
+                String location = SensorsDataHttpURLConnectionHelper.getLocation(connection, path);
+                if (!TextUtils.isEmpty(location)) {
+                    closeStream(bout, out, null, connection);
+                    sendHttpRequest(location, data, rawMessage, true);
+                    return;
                 }
+            }
+            try {
+                in = connection.getInputStream();
+            } catch (FileNotFoundException e) {
+                in = connection.getErrorStream();
+            }
+            byte[] responseBody = slurp(in);
+            in.close();
+            in = null;
 
-                if (null != connection) {
-                    try {
-                        connection.disconnect();
-                    } catch (Exception e) {
-                        SALog.i(TAG, e.getMessage());
-                    }
-                }
+            String response = new String(responseBody, "UTF-8");
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                SALog.i(TAG, String.format("valid message: \n%s", JSONUtils.formatJson(rawMessage)));
+            } else {
+                SALog.i(TAG, String.format("invalid message: \n%s", JSONUtils.formatJson(rawMessage)));
+                SALog.i(TAG, String.format(Locale.CHINA, "ret_code: %d", responseCode));
+                SALog.i(TAG, String.format(Locale.CHINA, "ret_content: %s", response));
+            }
+            if (responseCode < HttpURLConnection.HTTP_OK || responseCode >= HttpURLConnection.HTTP_MULT_CHOICE) {
+                // 校验错误，直接将数据删除
+                throw new ResponseErrorException(String.format("flush failure with response '%s'",
+                        response));
+            }
+        } catch (IOException e) {
+            throw new ConnectErrorException(e);
+        } finally {
+            closeStream(bout, out, in, connection);
+        }
+    }
 
+    private void closeStream(BufferedOutputStream bout, OutputStream out, InputStream in, HttpURLConnection connection) {
+        if (null != bout) {
+            try {
+                bout.close();
+            } catch (Exception e) {
+                SALog.i(TAG, e.getMessage());
+            }
+        }
+
+        if (null != out) {
+            try {
+                out.close();
+            } catch (Exception e) {
+                SALog.i(TAG, e.getMessage());
+            }
+        }
+
+        if (null != in) {
+            try {
+                in.close();
+            } catch (Exception e) {
+                SALog.i(TAG, e.getMessage());
+            }
+        }
+
+        if (null != connection) {
+            try {
+                connection.disconnect();
+            } catch (Exception e) {
+                SALog.i(TAG, e.getMessage());
             }
         }
     }

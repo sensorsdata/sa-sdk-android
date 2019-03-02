@@ -1,17 +1,19 @@
 /**Created by wangzhuozhou on 2015/08/01.
  * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
  
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
 import android.os.Build;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
+
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 @SuppressLint("CommitPrefEdits")
-/* package */ abstract class PersistentIdentity<T> {
+public abstract class PersistentIdentity<T> {
 
     interface PersistentSerializer<T> {
         T load(final String value);
@@ -28,7 +30,7 @@ import java.util.concurrent.Future;
         this.persistentKey = persistentKey;
     }
 
-    T get() {
+    public T get() {
         if (this.item == null) {
             String data = null;
             synchronized (loadStoredPreferences) {
@@ -43,22 +45,17 @@ import java.util.concurrent.Future;
                     SALog.d(LOGTAG, "Cannot read distinct ids from sharedPreferences.", e);
                 }
 
-                T item = null;
                 if (data == null) {
                     item = (T) serializer.create();
                 } else {
                     item = (T) serializer.load(data);
-                }
-
-                if (item != null) {
-                    commit(item);
                 }
             }
         }
         return this.item;
     }
 
-    void commit(T item) {
+    public void commit(T item) {
         this.item = item;
 
         synchronized (loadStoredPreferences) {

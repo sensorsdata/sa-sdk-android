@@ -1,14 +1,14 @@
 /**Created by wangzhuozhou on 2015/08/01.
  * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
  
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.data;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import com.sensorsdata.analytics.android.sdk.SensorsDataThreadPool;
+
 import java.util.concurrent.Callable;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 

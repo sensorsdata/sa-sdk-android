@@ -23,7 +23,7 @@ public class SensorsDataThreadPool {
                 executorService.execute(runnable);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            SALog.printStackTrace(e);
         }
     }
 

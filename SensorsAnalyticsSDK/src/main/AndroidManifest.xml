@@ -13,7 +13,7 @@
 
     <application>
         <provider
-            android:name="com.sensorsdata.analytics.android.sdk.SensorsDataContentProvider"
+            android:name="com.sensorsdata.analytics.android.sdk.data.SensorsDataContentProvider"
             android:authorities="${applicationId}.SensorsDataContentProvider"
             android:enabled="true"
             android:exported="false" />

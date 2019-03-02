@@ -18,11 +18,11 @@ public class TrackDBTaskManagerThread implements Runnable {
     /**
      * 创建一个可重用固定线程数的线程池
      */
-    private final int POOL_SIZE = 1;
+    private static final int POOL_SIZE = 1;
     /**
      * 轮询时间，单位：毫秒
      */
-    private final int SLEEP_TIME = 300;
+    private static final int SLEEP_TIME = 300;
     /**
      * 是否停止
      */

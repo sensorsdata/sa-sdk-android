@@ -28,7 +28,6 @@ import android.webkit.WebSettings;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataSDKRemoteConfig;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -555,34 +554,24 @@ public final class SensorsDataUtils {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                     try {
                         Class webSettingsClass = Class.forName("android.webkit.WebSettings");
-                        Method getDefaultUserAgentMethod = webSettingsClass.getMethod("getDefaultUserAgent");
+                        Method getDefaultUserAgentMethod = webSettingsClass.getMethod("getDefaultUserAgent", Context.class);
                         if (getDefaultUserAgentMethod != null) {
                             userAgent = WebSettings.getDefaultUserAgent(context);
                         }
                     } catch (Exception e) {
                         SALog.i(TAG, "WebSettings NoSuchMethod: getDefaultUserAgent");
                     }
-                } else {
-                    try {
-                        final Class<?> webSettingsClassicClass = Class.forName("android.webkit.WebSettingsClassic");
-                        final Constructor<?> constructor = webSettingsClassicClass.getDeclaredConstructor(Context.class, Class.forName("android.webkit.WebViewClassic"));
-                        constructor.setAccessible(true);
-                        final Method method = webSettingsClassicClass.getMethod("getUserAgentString");
-                        userAgent = (String) method.invoke(constructor.newInstance(context, null));
-                    } catch (final Exception e) {
-                        //ignore
-                    }
                 }
-            }
 
-            if (TextUtils.isEmpty(userAgent)) {
-                userAgent = System.getProperty("http.agent");
-            }
+                if (TextUtils.isEmpty(userAgent)) {
+                    userAgent = System.getProperty("http.agent");
+                }
 
-            if (!TextUtils.isEmpty(userAgent)) {
-                final SharedPreferences.Editor editor = preferences.edit();
-                editor.putString(SHARED_PREF_USER_AGENT_KEY, userAgent);
-                editor.apply();
+                if (!TextUtils.isEmpty(userAgent)) {
+                    final SharedPreferences.Editor editor = preferences.edit();
+                    editor.putString(SHARED_PREF_USER_AGENT_KEY, userAgent);
+                    editor.apply();
+                }
             }
 
             return userAgent;

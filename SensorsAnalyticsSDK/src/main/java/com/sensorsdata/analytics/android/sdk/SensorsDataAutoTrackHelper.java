@@ -1,6 +1,6 @@
 /**Created by wangzhuozhou on 2015/08/01.
  * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import android.app.Activity;
@@ -176,11 +176,7 @@ public class SensorsDataAutoTrackHelper {
                         Activity activity = AopUtil.getActivityFromContext(context, view);
                         //$screen_name & $title
                         if (activity != null) {
-                            properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
-                            String activityTitle = AopUtil.getActivityTitle(activity);
-                            if (!TextUtils.isEmpty(activityTitle)) {
-                                properties.put(AopConstants.TITLE, activityTitle);
-                            }
+                            SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
                         }
                         if (view instanceof CompoundButton) {//ReactSwitch
                             return;
@@ -224,7 +220,7 @@ public class SensorsDataAutoTrackHelper {
             }
 
             if (fragment.getClass().getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class) != null
-                    && fragmentsSets == null  && isAutoTrackFragment) {
+                    && fragmentsSets == null ) {
                 return;
             }
 
@@ -242,11 +238,7 @@ public class SensorsDataAutoTrackHelper {
             }
 
             if (activity != null) {
-                String activityTitle = AopUtil.getActivityTitle(activity);
-                if (!TextUtils.isEmpty(activityTitle)) {
-                    properties.put(AopConstants.TITLE, activityTitle);
-                }
-                properties.put(AopConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName));
+                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
             } else {
                 properties.put(AopConstants.SCREEN_NAME, fragmentName);
             }
@@ -471,11 +463,7 @@ public class SensorsDataAutoTrackHelper {
 
             // $screen_name & $title
             if (activity != null) {
-                properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
-                String activityTitle = AopUtil.getActivityTitle(activity);
-                if (!TextUtils.isEmpty(activityTitle)) {
-                    properties.put(AopConstants.TITLE, activityTitle);
-                }
+                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
             }
 
             // ViewId
@@ -604,11 +592,7 @@ public class SensorsDataAutoTrackHelper {
 
             //$screen_name & $title
             if (activity != null) {
-                properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
-                String activityTitle = AopUtil.getActivityTitle(activity);
-                if (!TextUtils.isEmpty(activityTitle)) {
-                    properties.put(AopConstants.TITLE, activityTitle);
-                }
+                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
             }
 
             //ViewId
@@ -756,11 +740,7 @@ public class SensorsDataAutoTrackHelper {
 
             //$screen_name & $title
             if (activity != null) {
-                properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
-                String activityTitle = AopUtil.getActivityTitle(activity);
-                if (!TextUtils.isEmpty(activityTitle)) {
-                    properties.put(AopConstants.TITLE, activityTitle);
-                }
+                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
             }
 
             Class<?> supportTabClass = null;
@@ -908,11 +888,7 @@ public class SensorsDataAutoTrackHelper {
 
             //$screen_name & $title
             if (activity != null) {
-                properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
-                String activityTitle = AopUtil.getActivityTitle(activity);
-                if (!TextUtils.isEmpty(activityTitle)) {
-                    properties.put(AopConstants.TITLE, activityTitle);
-                }
+                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
             }
 
             //ViewID
@@ -977,11 +953,7 @@ public class SensorsDataAutoTrackHelper {
 
             //$screen_name & $title
             if (activity != null) {
-                properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
-                String activityTitle = AopUtil.getActivityTitle(activity);
-                if (!TextUtils.isEmpty(activityTitle)) {
-                    properties.put(AopConstants.TITLE, activityTitle);
-                }
+                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
             }
 
             properties.put(AopConstants.ELEMENT_TYPE, "RadioButton");
@@ -1082,11 +1054,7 @@ public class SensorsDataAutoTrackHelper {
 
             //$screen_name & $title
             if (activity != null) {
-                properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
-                String activityTitle = AopUtil.getActivityTitle(activity);
-                if (!TextUtils.isEmpty(activityTitle)) {
-                    properties.put(AopConstants.TITLE, activityTitle);
-                }
+                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
             }
 
             properties.put(AopConstants.ELEMENT_TYPE, "Dialog");
@@ -1256,11 +1224,7 @@ public class SensorsDataAutoTrackHelper {
 
             //Activity 名称和页面标题
             if (activity != null) {
-                properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
-                String activityTitle = AopUtil.getActivityTitle(activity);
-                if (!TextUtils.isEmpty(activityTitle)) {
-                    properties.put(AopConstants.TITLE, activityTitle);
-                }
+                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
             }
 
             //点击的 position
@@ -1381,11 +1345,7 @@ public class SensorsDataAutoTrackHelper {
 
             //$screen_name & $title
             if (activity != null) {
-                properties.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
-                String activityTitle = AopUtil.getActivityTitle(activity);
-                if (!TextUtils.isEmpty(activityTitle)) {
-                    properties.put(AopConstants.TITLE, activityTitle);
-                }
+                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
             }
 
             String viewType = view.getClass().getCanonicalName();
@@ -1568,7 +1528,39 @@ public class SensorsDataAutoTrackHelper {
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
-
     }
 
+    /**
+     * 构建 Title 和 Screen 的名称
+     * @param activity 页面
+     * @return JSONObject
+     */
+    private static JSONObject buildTitleAndScreenName(Activity activity) {
+        JSONObject propertyJSON = new JSONObject();
+        try {
+            propertyJSON.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
+            String activityTitle = AopUtil.getActivityTitle(activity);
+            if (!TextUtils.isEmpty(activityTitle)) {
+                propertyJSON.put(AopConstants.TITLE, activityTitle);
+            }
+
+            if (activity instanceof ScreenAutoTracker) {
+                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
+                JSONObject trackProperties = screenAutoTracker.getTrackProperties();
+                if (trackProperties != null) {
+                    if (trackProperties.has(AopConstants.SCREEN_NAME)) {
+                        propertyJSON.put(AopConstants.SCREEN_NAME, trackProperties.optString(AopConstants.SCREEN_NAME));
+                    }
+
+                    if (trackProperties.has(AopConstants.TITLE)) {
+                        propertyJSON.put(AopConstants.TITLE, trackProperties.optString(AopConstants.TITLE));
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(ex);
+            return new JSONObject();
+        }
+        return propertyJSON;
+    }
 }

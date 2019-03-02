@@ -1,15 +1,17 @@
 /**Created by wangzhuozhou on 2015/08/01.
  * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
  
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import android.content.SharedPreferences;
 
+import com.sensorsdata.analytics.android.sdk.data.DbParams;
+
 import java.util.concurrent.Future;
 
-public class PersistentAppPaused extends PersistentIdentity<Long> {
-    PersistentAppPaused(Future<SharedPreferences> loadStoredPreferences) {
-        super(loadStoredPreferences, "app_paused", new PersistentSerializer<Long>() {
+public class PersistentAppStartTime extends PersistentIdentity<Long> {
+    public PersistentAppStartTime(Future<SharedPreferences> loadStoredPreferences) {
+        super(loadStoredPreferences, DbParams.TABLE_APPSTARTTIME, new PersistentSerializer<Long>() {
             @Override
             public Long load(String value) {
                 return Long.valueOf(value);

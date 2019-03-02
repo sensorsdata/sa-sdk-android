@@ -27,7 +27,6 @@ import com.sensorsdata.analytics.android.sdk.Pathfinder;
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Method;
@@ -47,7 +46,7 @@ public class AopUtil {
 
     private static int getChildIndex(ViewParent parent, View child) {
         try {
-            if (parent == null || !(parent instanceof ViewGroup)) {
+            if (!(parent instanceof ViewGroup)) {
                 return -1;
             }
 
@@ -304,7 +303,7 @@ public class AopUtil {
 
             List<Class> mIgnoredViewTypeList = SensorsDataAPI.sharedInstance().getIgnoredViewTypeList();
             if (mIgnoredViewTypeList != null) {
-                for (Class clazz : mIgnoredViewTypeList) {
+                for (Class<?> clazz : mIgnoredViewTypeList) {
                     if (clazz.isAssignableFrom(viewType)) {
                         return true;
                     }
@@ -333,7 +332,7 @@ public class AopUtil {
             //ViewType 被忽略
             List<Class> mIgnoredViewTypeList = SensorsDataAPI.sharedInstance().getIgnoredViewTypeList();
             if (mIgnoredViewTypeList != null) {
-                for (Class clazz : mIgnoredViewTypeList) {
+                for (Class<?> clazz : mIgnoredViewTypeList) {
                     if (clazz.isAssignableFrom(view.getClass())) {
                         return true;
                     }
@@ -341,11 +340,8 @@ public class AopUtil {
             }
 
             //View 被忽略
-            if ("1".equals(view.getTag(R.id.sensors_analytics_tag_view_ignored))) {
-                return true;
-            }
+            return "1".equals(view.getTag(R.id.sensors_analytics_tag_view_ignored));
 
-            return false;
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return true;
@@ -415,9 +411,7 @@ public class AopUtil {
                 String key = superPropertiesIterator.next();
                 Object value = source.get(key);
                 if (value instanceof Date) {
-                    synchronized (mDateFormat) {
-                        dest.put(key, mDateFormat.format((Date) value));
-                    }
+                    dest.put(key, mDateFormat.format((Date) value));
                 } else {
                     dest.put(key, value);
                 }

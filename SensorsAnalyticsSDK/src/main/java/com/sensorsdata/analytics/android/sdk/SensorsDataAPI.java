@@ -28,6 +28,16 @@ import android.view.WindowManager;
 import android.webkit.WebView;
 import android.widget.Toast;
 
+import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
+import com.sensorsdata.analytics.android.sdk.data.PersistentLoader;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentDistinctId;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallation;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallationWithCallback;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProperties;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
@@ -56,7 +66,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -188,7 +197,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mDeviceInfo = null;
         mTrackTimer = null;
         mMainProcessName = null;
-        mDbAdapter = null;
     }
 
     SensorsDataAPI(Context context, String serverURL, DebugMode debugMode) {
@@ -262,29 +270,21 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mDisableTrackDeviceId = configBundle.getBoolean("com.sensorsdata.analytics.android.DisableTrackDeviceId",
                 false);
 
-        int flushCacheSize = configBundle.getInt("com.sensorsdata.analytics.android.FlushCacheSize", 10);
+        int flushCacheSize = configBundle.getInt("com.sensorsdata.analytics.android.FlushCacheSize", 5);
 
-        mDbAdapter = new DbAdapter(context, packageName);
-        mMessages = AnalyticsMessages.getInstance(mContext, mDbAdapter, flushCacheSize);
+        DbAdapter.getInstance(context, packageName);
+        mMessages = AnalyticsMessages.getInstance(mContext, flushCacheSize);
         mAndroidId = SensorsDataUtils.getAndroidID(mContext);
-        final SharedPreferencesLoader.OnPrefsLoadedListener listener =
-                new SharedPreferencesLoader.OnPrefsLoadedListener() {
-                    @Override
-                    public void onPrefsLoaded(SharedPreferences preferences) {
-                    }
-                };
 
-        final String prefsName = "com.sensorsdata.analytics.android.sdk.SensorsDataAPI";
-        final Future<SharedPreferences> storedPreferences =
-                sPrefsLoader.loadPreferences(context, prefsName, listener);
-
-        mDistinctId = new PersistentDistinctId(storedPreferences, mContext);
-        mLoginId = new PersistentLoginId(storedPreferences);
-        mSuperProperties = new PersistentSuperProperties(storedPreferences);
-        mFirstStart = new PersistentFirstStart(storedPreferences);
-        mFirstTrackInstallation = new PersistentFirstTrackInstallation(storedPreferences);
-        mFirstTrackInstallationWithCallback = new PersistentFirstTrackInstallationWithCallback(storedPreferences);
-        mPersistentRemoteSDKConfig = new PersistentRemoteSDKConfig(storedPreferences);
+        PersistentLoader.initLoader(context);
+        mDistinctId = (PersistentDistinctId) PersistentLoader.loadPersistent("events_distinct_id");
+        mLoginId = (PersistentLoginId) PersistentLoader.loadPersistent("events_login_id");
+        mSuperProperties = (PersistentSuperProperties) PersistentLoader.loadPersistent("super_properties");
+        mFirstStart = (PersistentFirstStart) PersistentLoader.loadPersistent("first_start");
+        mFirstTrackInstallation = (PersistentFirstTrackInstallation) PersistentLoader.loadPersistent("first_track_installation");
+        mFirstTrackInstallationWithCallback = (PersistentFirstTrackInstallationWithCallback) PersistentLoader.loadPersistent("first_track_installation_with_callback");
+        mPersistentRemoteSDKConfig = (PersistentRemoteSDKConfig) PersistentLoader.loadPersistent("sensorsdata_sdk_configuration");
+        mFirstDay = (PersistentFirstDay) PersistentLoader.loadPersistent("first_day");
 
         mTrackTaskManager = TrackTaskManager.getInstance();
         mTrackTaskManagerThread = new TrackTaskManagerThread();
@@ -305,20 +305,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             }
         }
 
-        mFirstDay = new PersistentFirstDay(storedPreferences);
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
             final Application app = (Application) context.getApplicationContext();
-
-            SensorsDataActivityLifecycleCallbacks lifecycleCallbacks =
-                    new SensorsDataActivityLifecycleCallbacks(this, mFirstStart, mFirstDay, mDbAdapter);
+            final SensorsDataActivityLifecycleCallbacks lifecycleCallbacks =
+                    new SensorsDataActivityLifecycleCallbacks(this, mFirstStart, mFirstDay, context);
             app.registerActivityLifecycleCallbacks(lifecycleCallbacks);
-            context.getContentResolver().registerContentObserver(Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + DbAdapter.Table.APPSTARTED.getName()),
-                    false, lifecycleCallbacks);
-            context.getContentResolver().registerContentObserver(Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + DbAdapter.Table.SESSIONINTERVALTIME.getName()),
-                    false, lifecycleCallbacks);
-            context.getContentResolver().registerContentObserver(Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + DbAdapter.Table.APPENDSTATE.getName()),
-                    false, lifecycleCallbacks);
         }
 
         if (debugMode != DebugMode.DEBUG_OFF) {
@@ -432,7 +423,23 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      *                     {@link com.sensorsdata.analytics.android.sdk.SensorsDataAPI.DebugMode}
      * @return SensorsDataAPI单例
      */
+    @Deprecated
     public static SensorsDataAPI sharedInstance(Context context, String serverURL, DebugMode debugMode) {
+        return getInstance(context,serverURL,debugMode);
+    }
+
+    /**
+     * 初始化并获取SensorsDataAPI单例
+     *
+     * @param context      App 的 Context
+     * @param serverURL    用于收集事件的服务地址
+     * @return SensorsDataAPI单例
+     */
+    public static SensorsDataAPI sharedInstance(Context context, String serverURL) {
+       return getInstance(context,serverURL,DebugMode.DEBUG_OFF);
+    }
+
+    private static SensorsDataAPI getInstance(Context context, String serverURL, DebugMode debugMode){
         if (null == context) {
             return new SensorsDataAPIEmptyImplementation();
         }
@@ -548,7 +555,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             int responseCode = urlConnection.getResponseCode();
 
                             //配置没有更新
-                            if (responseCode == 304) {
+                            if (responseCode == 304 || responseCode == 404) {
                                 resetPullSDKConfigTimer();
                                 return;
                             }
@@ -622,7 +629,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
             //关闭 debug 模式
             if (sdkRemoteConfig.isDisableDebugMode()) {
-                disableDebugMode();
+                setDebugMode(DebugMode.DEBUG_OFF);
             }
 
             //开启关闭 AutoTrack
@@ -801,7 +808,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void setFlushBulkSize(int flushBulkSize) {
-        mFlushBulkSize = flushBulkSize;
+        mFlushBulkSize = Math.max(50, flushBulkSize);
     }
 
     /**
@@ -814,7 +821,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void setSessionIntervalTime(int sessionIntervalTime) {
-        if(mDbAdapter == null){
+        if(DbAdapter.getInstance() == null){
             SALog.i(TAG, "The static method sharedInstance(context, serverURL, debugMode) should be called before calling sharedInstance()");
             return;
         }
@@ -824,7 +831,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             return;
         }
 
-        mDbAdapter.commitSessionIntervalTime(sessionIntervalTime);
+        DbAdapter.getInstance().commitSessionIntervalTime(sessionIntervalTime);
     }
 
     /**
@@ -838,12 +845,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public int getSessionIntervalTime() {
-        if(mDbAdapter == null){
+        if(DbAdapter.getInstance() == null){
             SALog.i(TAG, "The static method sharedInstance(context, serverURL, debugMode) should be called before calling sharedInstance()");
             return 30 * 1000;
         }
 
-        return mDbAdapter.getSessionIntervalTime();
+        return DbAdapter.getInstance().getSessionIntervalTime();
     }
 
     /**
@@ -1874,6 +1881,19 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     public String getLoginId() {
         synchronized (mLoginId) {
             return mLoginId.get();
+        }
+    }
+
+    /**
+     * 获取当前用户的 ID
+     * @return 优先返回登录 ID ，登录 ID 为空时，返回匿名 ID
+     */
+    String getCurrentDistinctId() {
+        String mLoginId = getLoginId();
+        if (!TextUtils.isEmpty(mLoginId)) {
+            return mLoginId;
+        } else {
+            return getAnonymousId();
         }
     }
 
@@ -2978,10 +2998,19 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return mDebugMode.isDebugWriteData();
     }
 
-    private void disableDebugMode() {
-        mDebugMode = DebugMode.DEBUG_OFF;
-        enableLog(false);
-        mServerUrl = mOriginServerUrl;
+    void setDebugMode(DebugMode debugMode) {
+        mDebugMode = debugMode;
+        if (debugMode == DebugMode.DEBUG_OFF) {
+            enableLog(false);
+            mServerUrl = mOriginServerUrl;
+        } else {
+            enableLog(true);
+            setServerUrl(mOriginServerUrl);
+        }
+    }
+
+    DebugMode getDebugMode() {
+        return mDebugMode;
     }
 
     String getServerUrl() {
@@ -3074,9 +3103,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
             String distinctIdKey = "distinct_id";
             if (eventType == EventType.TRACK_SIGNUP) {
-                distinctIdKey = "original_id";
-            }
-            if (!TextUtils.isEmpty(getLoginId())) {
+                eventObject.put("original_id", getAnonymousId());
+            } else if (!TextUtils.isEmpty(getLoginId())) {
                 eventObject.put(distinctIdKey, getLoginId());
             } else {
                 eventObject.put(distinctIdKey, getAnonymousId());
@@ -3556,7 +3584,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "3.0.2";
+    static final String VERSION = "3.0.3";
     // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
     static final String MIN_PLUGIN_VERSION = "3.0.0";
 
@@ -3571,7 +3599,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     // Maps each token to a singleton SensorsDataAPI instance
     private static final Map<Context, SensorsDataAPI> sInstanceMap = new HashMap<>();
-    private static final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
     private static SensorsDataSDKRemoteConfig mSDKRemoteConfig;
     private static SensorsDataGPSLocation mGPSLocation;
 
@@ -3580,7 +3607,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private String mServerUrl;
     private String mOriginServerUrl;
     /* Debug模式选项 */
-    private DebugMode mDebugMode;
+    private DebugMode mDebugMode = DebugMode.DEBUG_OFF;
     /* Flush时间间隔 */
     private int mFlushInterval;
     /* Flush数据量阈值 */
@@ -3629,9 +3656,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private TrackDBTaskManagerThread mTrackDBTaskManagerThread;
     private SensorsDataThreadPool sensorsDataThreadPool;
     private SensorsDataScreenOrientationDetector mOrientationDetector;
-
     private SensorsDataDynamicSuperProperties mDynamicSuperProperties;
-    private DbAdapter mDbAdapter;
     private SimpleDateFormat mIsFirstDayDateFormat;
 
     private static final String TAG = "SA.SensorsDataAPI";
