@@ -186,7 +186,7 @@ public class DbAdapter {
     }
 
     /**
-     * Removes events with an _id <= last_id from table
+     * Removes events with an _id &lt;= last_id from table
      *
      * @param last_id the last id to delete
      * @return the number of rows in the table

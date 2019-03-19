@@ -238,7 +238,7 @@ public class SensorsDataAutoTrackHelper {
             }
 
             if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
+                properties.put(AopConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName));
             } else {
                 properties.put(AopConstants.SCREEN_NAME, fragmentName);
             }

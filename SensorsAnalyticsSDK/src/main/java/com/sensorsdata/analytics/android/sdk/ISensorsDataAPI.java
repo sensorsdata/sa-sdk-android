@@ -20,31 +20,31 @@ public interface ISensorsDataAPI {
      * 返回预置属性
      * @return JSONObject 预置属性
      */
-    public JSONObject getPresetProperties();
+    JSONObject getPresetProperties();
 
     /**
      * 设置当前 serverUrl
      * @param serverUrl 当前 serverUrl
      */
-    public void setServerUrl(String serverUrl);
+    void setServerUrl(String serverUrl);
 
     /**
      * 设置是否开启 log
      * @param enable boolean
      */
-    public void enableLog(boolean enable);
+    void enableLog(boolean enable);
 
     /**
      * 获取本地缓存上限制
      * @return 字节
      */
-    public long getMaxCacheSize();
+    long getMaxCacheSize();
 
     /**
      * 返回档期是否是开启 debug 模式
      * @return true：是，false：不是
      */
-    public boolean isDebugMode();
+    boolean isDebugMode();
 
     /**
      * 返回是否允许后台上传数据，默认是true
@@ -62,13 +62,13 @@ public interface ISensorsDataAPI {
      * 设置本地缓存上限值，单位 byte，默认为 32MB：32 * 1024 * 1024
      * @param maxCacheSize 单位 byte
      */
-    public void setMaxCacheSize(long maxCacheSize);
+    void setMaxCacheSize(long maxCacheSize);
 
     /**
      * 设置 flush 时网络发送策略，默认 3G、4G、WI-FI 环境下都会尝试 flush
      * @param networkType int 网络类型
      */
-    public void setFlushNetworkPolicy(int networkType);
+    void setFlushNetworkPolicy(int networkType);
 
     /**
      * 两次数据发送的最小时间间隔，单位毫秒
@@ -86,26 +86,26 @@ public interface ISensorsDataAPI {
      *
      * @return 返回时间间隔，单位毫秒
      */
-    public int getFlushInterval();
+    int getFlushInterval();
 
     /**
      * 设置两次数据发送的最小时间间隔
      * @param flushInterval 时间间隔，单位毫秒
      */
-    public void setFlushInterval(int flushInterval);
+    void setFlushInterval(int flushInterval);
 
     /**
      * 返回本地缓存日志的最大条目数
      * @return 条数
      */
-    public int getFlushBulkSize();
+    int getFlushBulkSize();
 
     /**
      * 设置本地缓存日志的最大条目数
      *
      * @param flushBulkSize 缓存数目
      */
-    public void setFlushBulkSize(int flushBulkSize);
+    void setFlushBulkSize(int flushBulkSize);
 
     /**
      * 设置 App 切换到后台与下次事件的事件间隔
@@ -115,7 +115,7 @@ public interface ISensorsDataAPI {
      * 若 App 在后台超过设定事件，则认为当前 Session 结束，发送 $AppEnd 事件
      * @param sessionIntervalTime int
      */
-    public void setSessionIntervalTime(int sessionIntervalTime);
+    void setSessionIntervalTime(int sessionIntervalTime);
 
     /**
      * 设置 App 切换到后台与下次事件的事件间隔
@@ -126,7 +126,7 @@ public interface ISensorsDataAPI {
      *
      * @return 返回设置的 SessionIntervalTime ，默认是 30s
      */
-    public int getSessionIntervalTime();
+    int getSessionIntervalTime();
 
     /**
      * 打开 SDK 自动追踪
@@ -138,7 +138,7 @@ public interface ISensorsDataAPI {
      * 该功能仅在 API 14 及以上版本中生效，默认关闭
      */
     @Deprecated
-    public void enableAutoTrack();
+    void enableAutoTrack();
 
     /**
      * 打开 SDK 自动追踪
@@ -150,51 +150,51 @@ public interface ISensorsDataAPI {
      *
      * @param eventTypeList 开启 AutoTrack 的事件列表
      */
-    public void enableAutoTrack(List<SensorsDataAPI.AutoTrackEventType> eventTypeList);
+    void enableAutoTrack(List<SensorsDataAPI.AutoTrackEventType> eventTypeList);
 
     /**
      * 关闭 AutoTrack 中的部分事件
      * @param eventTypeList AutoTrackEventType 类型 List
      */
-    public void disableAutoTrack(List<SensorsDataAPI.AutoTrackEventType> eventTypeList);
+     void disableAutoTrack(List<SensorsDataAPI.AutoTrackEventType> eventTypeList);
 
     /**
      * 关闭 AutoTrack 中的某个事件
      * @param autoTrackEventType AutoTrackEventType 类型
      */
-    public void disableAutoTrack(SensorsDataAPI.AutoTrackEventType autoTrackEventType);
+     void disableAutoTrack(SensorsDataAPI.AutoTrackEventType autoTrackEventType);
 
     /**
      * 自动收集 App Crash 日志，该功能默认是关闭的
      */
-    public void trackAppCrash();
+     void trackAppCrash();
 
     /**
      * 是否开启 AutoTrack
      * @return true: 开启 AutoTrack; false：没有开启 AutoTrack
      */
-    public boolean isAutoTrackEnabled();
+     boolean isAutoTrackEnabled();
 
     /**
      * 是否开启了支持 Butterknife
      * @return true：支持，false：不支持
      */
-    public boolean isButterknifeOnClickEnabled();
+     boolean isButterknifeOnClickEnabled();
 
     /**
      * 是否开启自动追踪 Fragment 的 $AppViewScreen 事件
      * 默认不开启
      */
-    public void trackFragmentAppViewScreen();
+     void trackFragmentAppViewScreen();
 
-    public boolean isTrackFragmentAppViewScreenEnabled();
+     boolean isTrackFragmentAppViewScreenEnabled();
 
     /**
      * 开启 AutoTrack 支持 React Native
      */
-    public void enableReactNativeAutoTrack();
+     void enableReactNativeAutoTrack();
 
-    public boolean isReactNativeAutoTrackEnabled();
+     boolean isReactNativeAutoTrackEnabled();
 
     /**
      * 向WebView注入本地方法, 将distinctId传递给当前的WebView
@@ -204,13 +204,13 @@ public interface ISensorsDataAPI {
      * 因为API level 16及以下的版本, addJavascriptInterface有安全漏洞,请谨慎使用
      */
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
-    public void showUpWebView(WebView webView, boolean isSupportJellyBean);
+     void showUpWebView(WebView webView, boolean isSupportJellyBean);
 
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
-    public void showUpWebView(WebView webView, boolean isSupportJellyBean, boolean enableVerify);
+     void showUpWebView(WebView webView, boolean isSupportJellyBean, boolean enableVerify);
 
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
-    public void showUpWebView(WebView webView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify);
+     void showUpWebView(WebView webView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify);
 
     /**
      * 向WebView注入本地方法, 将distinctId传递给当前的WebView
@@ -221,13 +221,13 @@ public interface ISensorsDataAPI {
      * @param properties 用户自定义属性
      */
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
-    public void showUpWebView(WebView webView, boolean isSupportJellyBean, JSONObject properties);
+     void showUpWebView(WebView webView, boolean isSupportJellyBean, JSONObject properties);
 
-    public void showUpX5WebView(Object x5WebView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify);
+     void showUpX5WebView(Object x5WebView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify);
 
-    public void showUpX5WebView(Object x5WebView, boolean enableVerify);
+     void showUpX5WebView(Object x5WebView, boolean enableVerify);
 
-    public void showUpX5WebView(Object x5WebView);
+     void showUpX5WebView(Object x5WebView);
 
     /**
      * 指定哪些 activity 不被AutoTrack
@@ -236,25 +236,25 @@ public interface ISensorsDataAPI {
      *
      * @param activitiesList  activity列表
      */
-    public void ignoreAutoTrackActivities(List<Class<?>> activitiesList);
+     void ignoreAutoTrackActivities(List<Class<?>> activitiesList);
 
     /**
      * 恢复不被 AutoTrack 的 activity
      * @param activitiesList List
      */
-    public void resumeAutoTrackActivities(List<Class<?>> activitiesList);
+     void resumeAutoTrackActivities(List<Class<?>> activitiesList);
 
     /**
      * 指定某个 activity 不被 AutoTrack
      * @param activity Activity
      */
-    public void ignoreAutoTrackActivity(Class<?> activity);
+     void ignoreAutoTrackActivity(Class<?> activity);
 
     /**
      * 恢复不被 AutoTrack 的 activity
      * @param activity Class
      */
-    public void resumeAutoTrackActivity(Class<?> activity);
+     void resumeAutoTrackActivity(Class<?> activity);
 
     /**
      * 指定 fragment 被 AutoTrack 采集
@@ -280,7 +280,7 @@ public interface ISensorsDataAPI {
      * @param activity Activity
      * @return Activity 是否被采集
      */
-    public boolean isActivityAutoTrackAppViewScreenIgnored(Class<?> activity);
+     boolean isActivityAutoTrackAppViewScreenIgnored(Class<?> activity);
 
     /**
      * 判断 AutoTrack 时，某个 Fragment 的 $AppViewScreen 是否被采集
@@ -295,28 +295,28 @@ public interface ISensorsDataAPI {
      * @param activity Activity
      * @return Activity 是否被过滤
      */
-    public boolean isActivityAutoTrackAppClickIgnored(Class<?> activity);
+     boolean isActivityAutoTrackAppClickIgnored(Class<?> activity);
 
     /**
      * 过滤掉 AutoTrack 的某个事件类型
      * @param autoTrackEventType AutoTrackEventType
      */
     @Deprecated
-    public void ignoreAutoTrackEventType(SensorsDataAPI.AutoTrackEventType autoTrackEventType);
+     void ignoreAutoTrackEventType(SensorsDataAPI.AutoTrackEventType autoTrackEventType);
 
     /**
      * 过滤掉 AutoTrack 的某些事件类型
      * @param eventTypeList AutoTrackEventType List
      */
     @Deprecated
-    public void ignoreAutoTrackEventType(List<SensorsDataAPI.AutoTrackEventType> eventTypeList);
+     void ignoreAutoTrackEventType(List<SensorsDataAPI.AutoTrackEventType> eventTypeList);
 
     /**
      * 判断 某个 AutoTrackEventType 是否被忽略
      * @param eventType AutoTrackEventType
      * @return true 被忽略; false 没有被忽略
      */
-    public boolean isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType eventType);
+     boolean isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType eventType);
 
     /**
      * 设置界面元素ID
@@ -324,7 +324,7 @@ public interface ISensorsDataAPI {
      * @param view   要设置的View
      * @param viewID String 给这个View的ID
      */
-    public void setViewID(View view, String viewID);
+     void setViewID(View view, String viewID);
 
     /**
      * 设置界面元素ID
@@ -332,7 +332,7 @@ public interface ISensorsDataAPI {
      * @param view   要设置的View
      * @param viewID String 给这个View的ID
      */
-    public void setViewID(android.app.Dialog view, String viewID);
+     void setViewID(android.app.Dialog view, String viewID);
 
     /**
      * 设置界面元素ID
@@ -340,7 +340,7 @@ public interface ISensorsDataAPI {
      * @param view   要设置的View
      * @param viewID String 给这个View的ID
      */
-    public void setViewID(Object view, String viewID);
+     void setViewID(Object view, String viewID);
 
     /**
      * 设置 View 所属 Activity
@@ -348,7 +348,7 @@ public interface ISensorsDataAPI {
      * @param view   要设置的View
      * @param activity Activity View 所属 Activity
      */
-    public void setViewActivity(View view, Activity activity);
+     void setViewActivity(View view, Activity activity);
 
     /**
      * 设置 View 所属 Fragment 名称
@@ -356,21 +356,21 @@ public interface ISensorsDataAPI {
      * @param view   要设置的View
      * @param fragmentName String View 所属 Fragment 名称
      */
-    public void setViewFragmentName(View view, String fragmentName);
+     void setViewFragmentName(View view, String fragmentName);
 
     /**
      * 忽略View
      *
      * @param view 要忽略的View
      */
-    public void ignoreView(View view);
+     void ignoreView(View view);
 
     /**
      * 忽略View
      * @param view View
      * @param ignore 是否忽略
      */
-    public void ignoreView(View view, boolean ignore);
+     void ignoreView(View view, boolean ignore);
 
     /**
      * 设置View属性
@@ -378,9 +378,9 @@ public interface ISensorsDataAPI {
      * @param view       要设置的View
      * @param properties 要设置的View的属性
      */
-    public void setViewProperties(View view, JSONObject properties);
+     void setViewProperties(View view, JSONObject properties);
 
-    public List<Class> getIgnoredViewTypeList();
+     List<Class> getIgnoredViewTypeList();
 
     /**
      * 获取需要采集的 Fragment 集合
@@ -393,22 +393,22 @@ public interface ISensorsDataAPI {
      *
      * @param viewType Class
      */
-    public void ignoreViewType(Class viewType);
+     void ignoreViewType(Class viewType);
 
-    public boolean isHeatMapActivity(Class<?> activity);
+     boolean isHeatMapActivity(Class<?> activity);
 
-    public void addHeatMapActivity(Class<?> activity);
+     void addHeatMapActivity(Class<?> activity);
 
-    public void addHeatMapActivities(List<Class<?>> activitiesList);
+     void addHeatMapActivities(List<Class<?>> activitiesList);
 
-    public boolean isHeatMapEnabled();
+     boolean isHeatMapEnabled();
 
-    public void enableAppHeatMapConfirmDialog(boolean enable);
+     void enableAppHeatMapConfirmDialog(boolean enable);
 
     /**
      * 开启 HeatMap，$AppClick 事件将会采集控件的 viewPath
      */
-    public void enableHeatMap();
+     void enableHeatMap();
 
     /**
      * 获取当前用户的distinctId
@@ -421,7 +421,7 @@ public interface ISensorsDataAPI {
      * @return 当前用户的distinctId
      */
     @Deprecated
-    public String getDistinctId();
+     String getDistinctId();
 
     /**
      * 获取当前用户的匿名id
@@ -431,12 +431,12 @@ public interface ISensorsDataAPI {
      *
      * @return 当前用户的匿名id
      */
-    public String getAnonymousId();
+     String getAnonymousId();
 
     /**
      * 重置默认匿名id
      */
-    public void resetAnonymousId();
+     void resetAnonymousId();
 
     /**
      * 获取当前用户的 loginId
@@ -445,7 +445,7 @@ public interface ISensorsDataAPI {
      *
      * @return 当前用户的 loginId
      */
-    public String getLoginId();
+     String getLoginId();
 
     /**
      * 设置当前用户的distinctId。一般情况下，如果是一个注册用户，则应该使用注册系统内
@@ -454,14 +454,14 @@ public interface ISensorsDataAPI {
      *
      * @param distinctId 当前用户的distinctId，仅接受数字、下划线和大小写字母
      */
-    public void identify(String distinctId);
+     void identify(String distinctId);
 
     /**
      * 登录，设置当前用户的 loginId
      *
      * @param loginId 当前用户的 loginId，不能为空，且长度不能大于255
      */
-    public void login(String loginId);
+     void login(String loginId);
 
     /**
      * 登录，设置当前用户的 loginId
@@ -469,12 +469,12 @@ public interface ISensorsDataAPI {
      * @param loginId 当前用户的 loginId，不能为空，且长度不能大于255
      * @param properties 用户登录属性
      */
-    public void login(final String loginId , final JSONObject properties);
+     void login(final String loginId , final JSONObject properties);
 
     /**
      * 注销，清空当前用户的 loginId
      */
-    public void logout();
+     void logout();
 
     /**
      * 记录第一次登录行为
@@ -488,7 +488,7 @@ public interface ISensorsDataAPI {
      * @param properties    事件的属性
      */
     @Deprecated
-    public void trackSignUp(String newDistinctId, JSONObject properties);
+     void trackSignUp(String newDistinctId, JSONObject properties);
 
     /**
      * 与 {@link #trackSignUp(String, JSONObject)} 类似，无事件属性
@@ -501,7 +501,7 @@ public interface ISensorsDataAPI {
      * @param newDistinctId 用户完成注册后生成的注册ID
      */
     @Deprecated
-    public void trackSignUp(String newDistinctId);
+     void trackSignUp(String newDistinctId);
 
     /**
      * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
@@ -512,7 +512,7 @@ public interface ISensorsDataAPI {
      * @param properties 渠道追踪事件的属性
      * @param disableCallback 是否关闭这次渠道匹配的回调请求
      */
-    public void trackInstallation(String eventName, JSONObject properties, boolean disableCallback);
+     void trackInstallation(String eventName, JSONObject properties, boolean disableCallback);
 
     /**
      * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
@@ -522,7 +522,7 @@ public interface ISensorsDataAPI {
      * @param eventName  渠道追踪事件的名称
      * @param properties 渠道追踪事件的属性
      */
-    public void trackInstallation(String eventName, JSONObject properties);
+     void trackInstallation(String eventName, JSONObject properties);
 
     /**
      * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
@@ -531,7 +531,7 @@ public interface ISensorsDataAPI {
      *
      * @param eventName  渠道追踪事件的名称
      */
-    public void trackInstallation(String eventName);
+     void trackInstallation(String eventName);
 
     /**
      * 调用track接口，追踪一个带有属性的事件
@@ -539,14 +539,14 @@ public interface ISensorsDataAPI {
      * @param eventName  事件的名称
      * @param properties 事件的属性
      */
-    public void track(String eventName, JSONObject properties);
+     void track(String eventName, JSONObject properties);
 
     /**
      * 与 {@link #track(String, JSONObject)} 类似，无事件属性
      *
      * @param eventName 事件的名称
      */
-    public void track(String eventName);
+     void track(String eventName);
 
     /**
      * 初始化事件的计时器，默认计时单位为毫秒。
@@ -556,7 +556,7 @@ public interface ISensorsDataAPI {
      * @param eventName 事件的名称
      */
     @Deprecated
-    public void trackTimer(final String eventName);
+     void trackTimer(final String eventName);
 
     /**
      * 初始化事件的计时器。
@@ -571,7 +571,7 @@ public interface ISensorsDataAPI {
      * @param timeUnit  计时结果的时间单位
      */
     @Deprecated
-    public void trackTimer(final String eventName, final TimeUnit timeUnit);
+     void trackTimer(final String eventName, final TimeUnit timeUnit);
 
     /**
      * 初始化事件的计时器。
@@ -602,7 +602,7 @@ public interface ISensorsDataAPI {
      *
      * @param eventName 事件的名称
      */
-    public void trackTimerBegin(final String eventName);
+     void trackTimerBegin(final String eventName);
 
     /**
      * 初始化事件的计时器。
@@ -616,104 +616,110 @@ public interface ISensorsDataAPI {
      * @param eventName 事件的名称
      * @param timeUnit  计时结果的时间单位
      */
-    public void trackTimerBegin(final String eventName, final TimeUnit timeUnit);
+     void trackTimerBegin(final String eventName, final TimeUnit timeUnit);
 
     /**
      * 停止事件计时器
      * @param eventName 事件的名称
      * @param properties 事件的属性
      */
-    public void trackTimerEnd(final String eventName, JSONObject properties);
+     void trackTimerEnd(final String eventName, JSONObject properties);
 
     /**
      * 停止事件计时器
      * @param eventName 事件的名称
      */
-    public void trackTimerEnd(final String eventName);
+     void trackTimerEnd(final String eventName);
 
     /**
      * 清除所有事件计时器
      */
-    public void clearTrackTimer();
+     void clearTrackTimer();
 
     /**
      * 获取LastScreenUrl
      * @return String
      */
-    public String getLastScreenUrl();
+     String getLastScreenUrl();
 
     /**
      * App 退出或进到后台时清空 referrer，默认情况下不清空
      */
-    public void clearReferrerWhenAppEnd();
+     void clearReferrerWhenAppEnd();
 
-    public void clearLastScreenUrl();
+     void clearLastScreenUrl();
 
-    public String getMainProcessName();
+     String getMainProcessName();
 
     /**
      * 获取LastScreenTrackProperties
      * @return JSONObject
      */
-    public JSONObject getLastScreenTrackProperties();
+     JSONObject getLastScreenTrackProperties();
 
     /**
      * Track 进入页面事件 ($AppViewScreen)
      * @param url String
      * @param properties JSONObject
      */
-    public void trackViewScreen(String url, JSONObject properties);
+     void trackViewScreen(String url, JSONObject properties);
 
     /**
      * Track Activity 进入页面事件($AppViewScreen)
      * @param activity activity Activity，当前 Activity
      */
-    public void trackViewScreen(Activity activity);
+     void trackViewScreen(Activity activity);
 
-    public void trackViewScreen(Object fragment);
+     void trackViewScreen(Object fragment);
 
     /**
      * 将所有本地缓存的日志发送到 Sensors Analytics.
      */
-    public void flush();
+     void flush();
 
     /**
      * 以阻塞形式将所有本地缓存的日志发送到 Sensors Analytics，该方法不能在 UI 线程调用。
      */
-    public void flushSync();
+     void flushSync();
 
     /**
      * 注册事件动态公共属性
      *
      * @param dynamicSuperProperties 事件动态公共属性回调接口
      */
-    public void registerDynamicSuperProperties(SensorsDataDynamicSuperProperties dynamicSuperProperties);
+     void registerDynamicSuperProperties(SensorsDataDynamicSuperProperties dynamicSuperProperties);
+
+    /**
+     * 设置 track 事件回调
+     * @param trackEventCallBack track 事件回调接口
+     */
+    void setTrackEventCallBack(SensorsDataTrackEventCallBack trackEventCallBack);
 
     /**
      * 获取事件公共属性
      *
      * @return 当前所有Super属性
      */
-    public JSONObject getSuperProperties();
+     JSONObject getSuperProperties();
 
     /**
      * 注册所有事件都有的公共属性
      *
      * @param superProperties 事件公共属性
      */
-    public void registerSuperProperties(JSONObject superProperties);
+     void registerSuperProperties(JSONObject superProperties);
 
     /**
      * 删除事件公共属性
      *
      * @param superPropertyName 事件属性名称
      */
-    public void unregisterSuperProperty(String superPropertyName);
+     void unregisterSuperProperty(String superPropertyName);
 
     /**
      * 删除所有事件公共属性
      */
-    public void clearSuperProperties();
+     void clearSuperProperties();
 
     /**
      * 设置用户的一个或多个Profile。
@@ -721,7 +727,7 @@ public interface ISensorsDataAPI {
      *
      * @param properties 属性列表
      */
-    public void profileSet(JSONObject properties);
+     void profileSet(JSONObject properties);
 
     /**
      * 设置用户的一个Profile，如果之前存在，则覆盖，否则，新创建
@@ -730,7 +736,7 @@ public interface ISensorsDataAPI {
      * @param value    属性的值，值的类型只允许为
      *                 {@link String}, {@link Number}, {@link java.util.Date}, {@link List}
      */
-    public void profileSet(String property, Object value);
+     void profileSet(String property, Object value);
 
     /**
      * 首次设置用户的一个或多个Profile。
@@ -738,7 +744,7 @@ public interface ISensorsDataAPI {
      *
      * @param properties 属性列表
      */
-    public void profileSetOnce(JSONObject properties);
+     void profileSetOnce(JSONObject properties);
 
     /**
      * 首次设置用户的一个Profile
@@ -748,7 +754,7 @@ public interface ISensorsDataAPI {
      * @param value    属性的值，值的类型只允许为
      *                 {@link String}, {@link Number}, {@link java.util.Date}, {@link List}
      */
-    public void profileSetOnce(String property, Object value);
+     void profileSetOnce(String property, Object value);
 
     /**
      * 给一个或多个数值类型的Profile增加一个数值。只能对数值型属性进行操作，若该属性
@@ -756,7 +762,7 @@ public interface ISensorsDataAPI {
      *
      * @param properties 一个或多个属性集合
      */
-    public void profileIncrement(Map<String, ? extends Number> properties);
+     void profileIncrement(Map<String, ? extends Number> properties);
 
     /**
      * 给一个数值类型的Profile增加一个数值。只能对数值型属性进行操作，若该属性
@@ -765,7 +771,7 @@ public interface ISensorsDataAPI {
      * @param property 属性名称
      * @param value    属性的值，值的类型只允许为 {@link Number}
      */
-    public void profileIncrement(String property, Number value);
+     void profileIncrement(String property, Number value);
 
     /**
      * 给一个列表类型的Profile增加一个元素
@@ -773,7 +779,7 @@ public interface ISensorsDataAPI {
      * @param property 属性名称
      * @param value    新增的元素
      */
-    public void profileAppend(String property, String value);
+     void profileAppend(String property, String value);
 
     /**
      * 给一个列表类型的Profile增加一个或多个元素
@@ -781,64 +787,64 @@ public interface ISensorsDataAPI {
      * @param property 属性名称
      * @param values   新增的元素集合
      */
-    public void profileAppend(String property, Set<String> values);
+     void profileAppend(String property, Set<String> values);
 
     /**
      * 删除用户的一个Profile
      *
      * @param property 属性名称
      */
-    public void profileUnset(String property);
+     void profileUnset(String property);
 
     /**
      * 删除用户所有Profile
      */
-    public void profileDelete();
+     void profileDelete();
 
-    public void trackEventFromH5(String eventInfo, boolean enableVerify);
+     void trackEventFromH5(String eventInfo, boolean enableVerify);
 
-    public void trackEventFromH5(String eventInfo);
+     void trackEventFromH5(String eventInfo);
 
     /**
      * 更新 GPS 位置信息
      * @param latitude 纬度
      * @param longitude 经度
      */
-    public void setGPSLocation(double latitude, double longitude);
+     void setGPSLocation(double latitude, double longitude);
 
     /**
      * 清楚 GPS 位置信息
      */
-    public void clearGPSLocation();
+     void clearGPSLocation();
 
     /**
      * 开启/关闭采集屏幕方向
      * @param enable true：开启 false：关闭
      */
-    public void enableTrackScreenOrientation(boolean enable);
+     void enableTrackScreenOrientation(boolean enable);
 
     /**
      * 恢复采集屏幕方向
      */
-    public void resumeTrackScreenOrientation();
+     void resumeTrackScreenOrientation();
 
     /**
      * 暂停采集屏幕方向
      */
-    public void stopTrackScreenOrientation();
+     void stopTrackScreenOrientation();
 
     /**
      * 获取当前屏幕方向
      * @return portrait:竖屏 landscape:横屏
      */
-    public String getScreenOrientation();
+     String getScreenOrientation();
 
     /**
      * 初始化事件的计时器，计时单位为秒。
      *
      * @param eventName 事件的名称
      */
-    public void trackTimerStart(final String eventName);
+     void trackTimerStart(final String eventName);
 
     /**
      * 设置 Cookie，flush 的时候会设置 HTTP 的 cookie
@@ -846,7 +852,7 @@ public interface ISensorsDataAPI {
      * @param cookie String cookie
      * @param encode boolean 是否 encode
      */
-    public void setCookie(final String cookie, boolean encode);
+     void setCookie(final String cookie, boolean encode);
 
     /**
      * 获取已设置的 Cookie
@@ -854,12 +860,12 @@ public interface ISensorsDataAPI {
      * @param decode String
      * @return String cookie
      */
-    public String getCookie(boolean decode);
+     String getCookie(boolean decode);
 
     /**
      * 删除本地缓存的全部事件
      */
-    public void deleteAll();
+     void deleteAll();
 
     /**
      * 保存用户推送 ID 到用户表

@@ -42,9 +42,25 @@
 -keep class android.app.Fragment {*;}
 -keep class android.support.v4.app.Fragment {*;}
 -keep class androidx.fragment.app.Fragment {*;}
--keep class * extends android.app.Fragment {*;}
--keep class * extends android.support.v4.app.Fragment {*;}
--keep class * extends androidx.fragment.app.Fragment {*;}
+-keepclassmembers class * extends androidx.fragment.app.Fragment {
+    public void setUserVisibleHint(boolean);
+    public void onViewCreated(android.view.View, android.os.Bundle);
+    public void onHiddenChanged(boolean);
+    public void onResume();
+}
+-keepclassmembers class * extends android.app.Fragment {
+    public void setUserVisibleHint(boolean);
+    public void onViewCreated(android.view.View, android.os.Bundle);
+    public void onHiddenChanged(boolean);
+    public void onResume();
+}
+-keepclassmembers class * extends android.support.v4.app.Fragment {
+    public void setUserVisibleHint(boolean);
+    public void onViewCreated(android.view.View, android.os.Bundle);
+    public void onHiddenChanged(boolean);
+    public void onResume();
+}
+
 
 # TabLayout
 -keep class android.support.design.widget.TabLayout$Tab {*;}
