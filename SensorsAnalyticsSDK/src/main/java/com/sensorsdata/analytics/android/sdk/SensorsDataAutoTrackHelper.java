@@ -220,7 +220,7 @@ public class SensorsDataAutoTrackHelper {
             }
 
             if (fragment.getClass().getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class) != null
-                    && fragmentsSets == null ) {
+                    && fragmentsSets == null) {
                 return;
             }
 
@@ -231,7 +231,7 @@ public class SensorsDataAutoTrackHelper {
             try {
                 Method getActivityMethod = fragment.getClass().getMethod("getActivity");
                 if (getActivityMethod != null) {
-                    activity = (Activity)getActivityMethod.invoke(fragment);
+                    activity = (Activity) getActivityMethod.invoke(fragment);
                 }
             } catch (Exception e) {
                 //ignored
@@ -286,7 +286,7 @@ public class SensorsDataAutoTrackHelper {
 
         try {
             Method getParentFragmentMethod = object.getClass().getMethod("getParentFragment");
-            if (getParentFragmentMethod != null ) {
+            if (getParentFragmentMethod != null) {
                 Object parentFragment = getParentFragmentMethod.invoke(object);
                 if (parentFragment == null) {
                     if (!fragmentIsHidden(object) && fragmentGetUserVisibleHint(object)) {
@@ -307,7 +307,7 @@ public class SensorsDataAutoTrackHelper {
         try {
             Method getUserVisibleHintMethod = fragment.getClass().getMethod("getUserVisibleHint");
             if (getUserVisibleHintMethod != null) {
-                return (boolean)getUserVisibleHintMethod.invoke(fragment);
+                return (boolean) getUserVisibleHintMethod.invoke(fragment);
             }
         } catch (Exception e) {
             //ignored
@@ -319,7 +319,7 @@ public class SensorsDataAutoTrackHelper {
         try {
             Method isHiddenMethod = fragment.getClass().getMethod("isHidden");
             if (isHiddenMethod != null) {
-                return (boolean)isHiddenMethod.invoke(fragment);
+                return (boolean) isHiddenMethod.invoke(fragment);
             }
         } catch (Exception e) {
             //ignored
@@ -369,7 +369,7 @@ public class SensorsDataAutoTrackHelper {
         try {
             Method isResumedMethod = fragment.getClass().getMethod("isResumed");
             if (isResumedMethod != null) {
-                return (boolean)isResumedMethod.invoke(fragment);
+                return (boolean) isResumedMethod.invoke(fragment);
             }
         } catch (Exception e) {
             //ignored
@@ -712,6 +712,7 @@ public class SensorsDataAutoTrackHelper {
 
             //将 Context 转成 Activity
             Activity activity = null;
+            boolean isFragment = false;
             if (object instanceof Context) {
                 activity = AopUtil.getActivityFromContext((Context) object, null);
             } else {
@@ -723,6 +724,13 @@ public class SensorsDataAutoTrackHelper {
                         if (bridgeObject instanceof Activity) {
                             activity = (Activity) bridgeObject;
                             break;
+                        } else if (isFragment(bridgeObject)) {
+                            object = bridgeObject;
+                            isFragment = true;
+                            break;
+                        } else if (bridgeObject instanceof View) {
+                            View view = (View) bridgeObject;
+                            activity = AopUtil.getActivityFromContext(view.getContext(), null);
                         }
                     }
                 } catch (Exception e) {
@@ -739,7 +747,10 @@ public class SensorsDataAutoTrackHelper {
             JSONObject properties = new JSONObject();
 
             //$screen_name & $title
-            if (activity != null) {
+            if (isFragment) {
+                activity = AopUtil.getActivityFromFragment(object);
+                AopUtil.getScreenNameAndTitleFromFragment(properties, object);
+            } else if (activity != null) {
                 SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
             }
 
@@ -1109,7 +1120,7 @@ public class SensorsDataAutoTrackHelper {
                 try {
                     Method getButtonMethod = dialog.getClass().getMethod("getButton", new Class[]{int.class});
                     if (getButtonMethod != null) {
-                        button = (Button)getButtonMethod.invoke(dialog, whichButton);
+                        button = (Button) getButtonMethod.invoke(dialog, whichButton);
                     }
                 } catch (Exception e) {
                     //ignored
@@ -1123,7 +1134,7 @@ public class SensorsDataAutoTrackHelper {
                     try {
                         Method getListViewMethod = dialog.getClass().getMethod("getListView");
                         if (getListViewMethod != null) {
-                            ListView listView = (ListView)getListViewMethod.invoke(dialog);
+                            ListView listView = (ListView) getListViewMethod.invoke(dialog);
                             if (listView != null) {
                                 ListAdapter listAdapter = listView.getAdapter();
                                 Object object = listAdapter.getItem(whichButton);
@@ -1405,11 +1416,11 @@ public class SensorsDataAutoTrackHelper {
                         Object viewPagerAdapter = getAdapterMethod.invoke(view);
                         Method getCurrentItemMethod = view.getClass().getMethod("getCurrentItem");
                         if (getCurrentItemMethod != null) {
-                            int currentItem = (int)getCurrentItemMethod.invoke(view);
+                            int currentItem = (int) getCurrentItemMethod.invoke(view);
                             properties.put(AopConstants.ELEMENT_POSITION, String.format(Locale.CHINA, "%d", currentItem));
                             Method getPageTitleMethod = viewPagerAdapter.getClass().getMethod("getPageTitle", new Class[]{int.class});
                             if (getPageTitleMethod != null) {
-                                viewText = (String)getPageTitleMethod.invoke(viewPagerAdapter, new Object[]{currentItem});
+                                viewText = (String) getPageTitleMethod.invoke(viewPagerAdapter, new Object[]{currentItem});
                             }
                         }
                     }
@@ -1425,7 +1436,7 @@ public class SensorsDataAutoTrackHelper {
                 } else {
                     method = view.getClass().getMethod("getTextOff");
                 }
-                viewText = (String)method.invoke(view);
+                viewText = (String) method.invoke(view);
             } else if (view instanceof RadioButton) { // RadioButton
                 viewType = "RadioButton";
                 RadioButton radioButton = (RadioButton) view;
@@ -1511,7 +1522,7 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    public static void track(String eventName,String properties) {
+    public static void track(String eventName, String properties) {
         try {
             if (TextUtils.isEmpty(eventName)) {
                 return;

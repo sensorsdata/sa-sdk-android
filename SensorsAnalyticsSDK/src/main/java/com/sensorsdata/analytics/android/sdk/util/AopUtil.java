@@ -25,7 +25,10 @@ import android.widget.ToggleButton;
 import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.Pathfinder;
 import com.sensorsdata.analytics.android.sdk.R;
+import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.SensorsDataFragmentTitle;
 
 import org.json.JSONObject;
 
@@ -232,11 +235,30 @@ public class AopUtil {
                     fragmentName = fragmentName2;
                 }
                 if (!TextUtils.isEmpty(fragmentName)) {
-                    String screenName = properties.optString(AopConstants.SCREEN_NAME);
-                    if (!TextUtils.isEmpty(fragmentName)) {
-                        properties.put(AopConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", screenName, fragmentName));
-                    } else {
-                        properties.put(AopConstants.SCREEN_NAME, fragmentName);
+                    boolean isScreenNameAdd = false;
+                    Object fragment =  Class.forName(fragmentName).newInstance();
+                    if (fragment instanceof ScreenAutoTracker) {
+                        ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
+                        JSONObject trackProperties = screenAutoTracker.getTrackProperties();
+                        if (trackProperties != null) {
+                            if (trackProperties.has(AopConstants.SCREEN_NAME)) {
+                                properties.put(AopConstants.SCREEN_NAME, trackProperties.optString(AopConstants.SCREEN_NAME));
+                                isScreenNameAdd = true;
+                            }
+
+                            if (trackProperties.has(AopConstants.TITLE)) {
+                                properties.put(AopConstants.TITLE, trackProperties.optString(AopConstants.TITLE));
+                            }
+                        }
+                    }
+
+                    if (!isScreenNameAdd) {
+                        String screenName = properties.optString(AopConstants.SCREEN_NAME);
+                        if (!TextUtils.isEmpty(screenName)) {
+                            properties.put(AopConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", screenName, fragmentName));
+                        } else {
+                            properties.put(AopConstants.SCREEN_NAME, fragmentName);
+                        }
                     }
                 }
             }
@@ -271,6 +293,86 @@ public class AopUtil {
             }
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+        }
+        return activity;
+    }
+
+    /**
+     * 尝试读取页面 title
+     *
+     * @param properties JSONObject
+     * @param fragment   Fragment
+     */
+    public static void getScreenNameAndTitleFromFragment(JSONObject properties, Object fragment) {
+        try {
+            String screenName = null;
+            String title = null;
+            if (fragment instanceof ScreenAutoTracker) {
+                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
+                JSONObject trackProperties = screenAutoTracker.getTrackProperties();
+                if (trackProperties != null) {
+                    if (trackProperties.has(AopConstants.SCREEN_NAME)) {
+                        screenName = trackProperties.optString(AopConstants.SCREEN_NAME);
+                    }
+
+                    if (trackProperties.has(AopConstants.TITLE)) {
+                        title = trackProperties.optString(AopConstants.TITLE);
+                    }
+                }
+            }
+
+            if (TextUtils.isEmpty(title) && fragment.getClass().isAnnotationPresent(SensorsDataFragmentTitle.class)) {
+                SensorsDataFragmentTitle sensorsDataFragmentTitle = fragment.getClass().getAnnotation(SensorsDataFragmentTitle.class);
+                if (sensorsDataFragmentTitle != null) {
+                    title = sensorsDataFragmentTitle.title();
+                }
+            }
+
+            boolean isTitleNull = TextUtils.isEmpty(title);
+            boolean isScreenNameNull = TextUtils.isEmpty(screenName);
+            if (isTitleNull || isScreenNameNull) {
+                Activity activity = getActivityFromFragment(fragment);
+                if (activity != null) {
+                    if (isTitleNull) {
+                        title = SensorsDataUtils.getActivityTitle(activity);
+                    }
+
+                    if (isScreenNameNull) {
+                        screenName = fragment.getClass().getCanonicalName();
+                        screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), screenName);
+                    }
+                }
+            }
+
+            if (!TextUtils.isEmpty(title)) {
+                properties.put(AopConstants.TITLE, title);
+            }
+
+            if (TextUtils.isEmpty(screenName)) {
+                screenName = fragment.getClass().getCanonicalName();
+            }
+            properties.put("$screen_name", screenName);
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+    }
+
+    /**
+     * 根据 Fragment 获取对应的 Activity
+     * @param fragment，Fragment
+     * @return Activity or null
+     */
+    public static Activity getActivityFromFragment(Object fragment) {
+        Activity activity = null;
+        if (Build.VERSION.SDK_INT >= 11) {
+            try {
+                Method getActivityMethod = fragment.getClass().getMethod("getActivity");
+                if (getActivityMethod != null) {
+                    activity = (Activity) getActivityMethod.invoke(fragment);
+                }
+            } catch (Exception e) {
+                //ignored
+            }
         }
         return activity;
     }

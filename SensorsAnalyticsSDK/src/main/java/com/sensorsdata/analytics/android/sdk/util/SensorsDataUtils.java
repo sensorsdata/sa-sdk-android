@@ -74,11 +74,6 @@ public final class SensorsDataUtils {
                     sdkRemoteConfig.setAutoTrackMode(-1);
                 }
                 return sdkRemoteConfig;
-            } else {
-                //默认配置
-                sdkRemoteConfig.setDisableDebugMode(false);
-                sdkRemoteConfig.setDisableSDK(false);
-                sdkRemoteConfig.setAutoTrackMode(-1);
             }
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
