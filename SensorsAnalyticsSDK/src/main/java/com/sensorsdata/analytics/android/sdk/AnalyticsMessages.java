@@ -1,6 +1,20 @@
-/**Created by wangzhuozhou on 2015/08/01.
- * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
- 
+/*
+ * Created by wangzhuozhou on 2015/08/01.
+ * Copyright 2015－2019 Sensors Data Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.sensorsdata.analytics.android.sdk;
 
 import android.content.Context;
@@ -149,7 +163,6 @@ class AnalyticsMessages {
                 if (mDbAdapter.addJSON(mEventsList) >= 0) {
                     mEventsList.clear();
                 }
-                flush();
             }
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
@@ -319,13 +332,16 @@ class AnalyticsMessages {
             builder.appendQueryParameter("data_list", data);
 
             String query = builder.build().getEncodedQuery();
+            if (TextUtils.isEmpty(query)) {
+                return;
+            }
 
-            connection.setFixedLengthStreamingMode(query.getBytes().length);
+            connection.setFixedLengthStreamingMode(query.getBytes(CHARSET_UTF8).length);
             connection.setDoOutput(true);
             connection.setRequestMethod("POST");
             out = connection.getOutputStream();
             bout = new BufferedOutputStream(out);
-            bout.write(query.getBytes("UTF-8"));
+            bout.write(query.getBytes(CHARSET_UTF8));
             bout.flush();
 
             int responseCode = connection.getResponseCode();
@@ -347,7 +363,7 @@ class AnalyticsMessages {
             in.close();
             in = null;
 
-            String response = new String(responseBody, "UTF-8");
+            String response = new String(responseBody, CHARSET_UTF8);
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 SALog.i(TAG, String.format("valid message: \n%s", JSONUtils.formatJson(rawMessage)));
             } else {
@@ -402,9 +418,9 @@ class AnalyticsMessages {
     }
 
     private String encodeData(final String rawMessage) throws IOException {
-        ByteArrayOutputStream os = new ByteArrayOutputStream(rawMessage.getBytes().length);
+        ByteArrayOutputStream os = new ByteArrayOutputStream(rawMessage.getBytes(CHARSET_UTF8).length);
         GZIPOutputStream gos = new GZIPOutputStream(os);
-        gos.write(rawMessage.getBytes());
+        gos.write(rawMessage.getBytes(CHARSET_UTF8));
         gos.close();
         byte[] compressed = os.toByteArray();
         os.close();
@@ -487,7 +503,8 @@ class AnalyticsMessages {
     // Messages for our thread
     private static final int FLUSH_QUEUE = 3;
     private static final int DELETE_ALL = 4;
-
+    /* 指定默认编码 */
+    private static final String CHARSET_UTF8 = "UTF-8";
     private static final String TAG = "SA.AnalyticsMessages";
 
     private static final Map<Context, AnalyticsMessages> sInstances =

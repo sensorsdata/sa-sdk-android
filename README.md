@@ -116,6 +116,12 @@ Android SDK 要求最低系统版本为 API 11（Android 3.0），特别地，Au
 
 ```
 
+
+## 新书推荐
+神策数据出品的[《Android 全埋点解决方案》](https://item.jd.com/12574672.html)发售啦！！！
+
+[![《Android 全埋点解决方案》](screenshots/android_autotrack_book.png)](https://item.jd.com/12574672.html)
+
 ## To Learn More
 
 See our [full manual](http://www.sensorsdata.cn/manual/android_sdk.html)
@@ -128,13 +134,13 @@ See our [full manual](http://www.sensorsdata.cn/manual/android_sdk.html)
 We also maintains a SDK for Java at 
 
     https://github.com/sensorsdata/sa-sdk-java
-   
+
 ## 感谢
 [mixpanel-android](https://github.com/mixpanel/mixpanel-android) 
 
 ## License
 
-Copyright 2015－2018 Sensors Data Inc.
+Copyright 2015－2019 Sensors Data Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

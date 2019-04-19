@@ -1,5 +1,19 @@
-/**Created by wangzhuozhou on 2015/08/01.
- * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
+/*
+ * Created by wangzhuozhou on 2015/08/01.
+ * Copyright 2015－2019 Sensors Data Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package com.sensorsdata.analytics.android.sdk;
 
@@ -41,6 +55,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
@@ -99,6 +114,12 @@ public class SensorsDataAutoTrackHelper {
         try {
             Class<?> supportFragmentClass = null;
             Class<?> androidXFragmentClass = null;
+            Class<?> fragment = null;
+            try {
+                fragment = Class.forName("android.app.Fragment");
+            } catch (Exception e) {
+                //ignored
+            }
             try {
                 supportFragmentClass = Class.forName("android.support.v4.app.Fragment");
             } catch (Exception e) {
@@ -111,12 +132,13 @@ public class SensorsDataAutoTrackHelper {
                 //ignored
             }
 
-            if (supportFragmentClass == null && androidXFragmentClass == null) {
+            if (supportFragmentClass == null && androidXFragmentClass == null && fragment == null) {
                 return false;
             }
 
             if ((supportFragmentClass != null && supportFragmentClass.isInstance(object)) ||
-                    (androidXFragmentClass != null && androidXFragmentClass.isInstance(object))) {
+                    (androidXFragmentClass != null && androidXFragmentClass.isInstance(object)) ||
+                    (fragment != null && fragment.isInstance(object))) {
                 return true;
             }
         } catch (Exception e) {
@@ -176,7 +198,7 @@ public class SensorsDataAutoTrackHelper {
                         Activity activity = AopUtil.getActivityFromContext(context, view);
                         //$screen_name & $title
                         if (activity != null) {
-                            SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
+                            SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
                         }
                         if (view instanceof CompoundButton) {//ReactSwitch
                             return;
@@ -225,29 +247,7 @@ public class SensorsDataAutoTrackHelper {
             }
 
             JSONObject properties = new JSONObject();
-
-            String fragmentName = fragment.getClass().getCanonicalName();
-            Activity activity = null;
-            try {
-                Method getActivityMethod = fragment.getClass().getMethod("getActivity");
-                if (getActivityMethod != null) {
-                    activity = (Activity) getActivityMethod.invoke(fragment);
-                }
-            } catch (Exception e) {
-                //ignored
-            }
-
-            if (activity != null) {
-                properties.put(AopConstants.SCREEN_NAME, String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), fragmentName));
-            } else {
-                properties.put(AopConstants.SCREEN_NAME, fragmentName);
-            }
-
-            SensorsDataFragmentTitle sensorsDataFragmentTitle = fragment.getClass().getAnnotation(SensorsDataFragmentTitle.class);
-            if (sensorsDataFragmentTitle != null) {
-                properties.put(AopConstants.TITLE, sensorsDataFragmentTitle.title());
-            }
-
+            AopUtil.getScreenNameAndTitleFromFragment(properties, fragment, null);
             if (fragment instanceof ScreenAutoTracker) {
                 ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
 
@@ -263,7 +263,7 @@ public class SensorsDataAutoTrackHelper {
                 if (autoTrackAppViewScreenUrl != null) {
                     String screenUrl = autoTrackAppViewScreenUrl.url();
                     if (TextUtils.isEmpty(screenUrl)) {
-                        screenUrl = fragmentName;
+                        screenUrl = fragment.getClass().getCanonicalName();;
                     }
                     SensorsDataAPI.sharedInstance().trackViewScreen(screenUrl, properties);
                 } else {
@@ -463,7 +463,7 @@ public class SensorsDataAutoTrackHelper {
 
             // $screen_name & $title
             if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
+                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
             // ViewId
@@ -493,7 +493,7 @@ public class SensorsDataAutoTrackHelper {
             }
 
             //fragmentName
-            AopUtil.getFragmentNameFromView(expandableListView, properties);
+            AopUtil.getFragmentNameFromView(expandableListView, properties, activity);
 
             // 获取 View 自定义属性
             JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
@@ -592,7 +592,7 @@ public class SensorsDataAutoTrackHelper {
 
             //$screen_name & $title
             if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
+                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
             //ViewId
@@ -621,7 +621,7 @@ public class SensorsDataAutoTrackHelper {
             }
 
             //fragmentName
-            AopUtil.getFragmentNameFromView(expandableListView, properties);
+            AopUtil.getFragmentNameFromView(expandableListView, properties, activity);
 
             //获取 View 自定义属性
             JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
@@ -749,9 +749,9 @@ public class SensorsDataAutoTrackHelper {
             //$screen_name & $title
             if (isFragment) {
                 activity = AopUtil.getActivityFromFragment(object);
-                AopUtil.getScreenNameAndTitleFromFragment(properties, object);
+                AopUtil.getScreenNameAndTitleFromFragment(properties, object, activity);
             } else if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
+                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
             Class<?> supportTabClass = null;
@@ -809,6 +809,26 @@ public class SensorsDataAutoTrackHelper {
                         if (field != null) {
                             field.setAccessible(true);
                             view = (View) field.get(tab);
+                            if (view != null) {
+                                try {
+                                    StringBuilder stringBuilder = new StringBuilder();
+                                    String viewText;
+                                    if (view instanceof ViewGroup) {
+                                        viewText  = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
+                                        if (!TextUtils.isEmpty(viewText)) {
+                                            viewText = viewText.substring(0, viewText.length() - 1);
+                                        }
+                                    } else {
+                                        viewText = AopUtil.getViewText(view);
+                                    }
+
+                                    if (!TextUtils.isEmpty(viewText)) {
+                                        properties.put(AopConstants.ELEMENT_CONTENT, viewText);
+                                    }
+                                } catch (Exception e) {
+                                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                                }
+                            }
                         }
 
                         if (view == null || view.getId() == -1) {
@@ -899,7 +919,7 @@ public class SensorsDataAutoTrackHelper {
 
             //$screen_name & $title
             if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
+                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
             //ViewID
@@ -923,6 +943,10 @@ public class SensorsDataAutoTrackHelper {
 
     public static void trackRadioGroup(RadioGroup view, int checkedId) {
         try {
+            if (!view.findViewById(checkedId).isPressed()) {
+                return;
+            }
+
             //关闭 AutoTrack
             if (!SensorsDataAPI.sharedInstance().isAutoTrackEnabled()) {
                 return;
@@ -964,7 +988,7 @@ public class SensorsDataAutoTrackHelper {
 
             //$screen_name & $title
             if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
+                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
             properties.put(AopConstants.ELEMENT_TYPE, "RadioButton");
@@ -989,7 +1013,7 @@ public class SensorsDataAutoTrackHelper {
             }
 
             //fragmentName
-            AopUtil.getFragmentNameFromView(view, properties);
+            AopUtil.getFragmentNameFromView(view, properties, activity);
 
             //获取 View 自定义属性
             JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
@@ -1065,7 +1089,7 @@ public class SensorsDataAutoTrackHelper {
 
             //$screen_name & $title
             if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
+                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
             properties.put(AopConstants.ELEMENT_TYPE, "Dialog");
@@ -1235,7 +1259,7 @@ public class SensorsDataAutoTrackHelper {
 
             //Activity 名称和页面标题
             if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
+                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
             //点击的 position
@@ -1261,7 +1285,7 @@ public class SensorsDataAutoTrackHelper {
             }
 
             //fragmentName
-            AopUtil.getFragmentNameFromView(adapterView, properties);
+            AopUtil.getFragmentNameFromView(adapterView, properties, activity);
 
             //获取 View 自定义属性
             JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
@@ -1356,14 +1380,21 @@ public class SensorsDataAutoTrackHelper {
 
             //$screen_name & $title
             if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(buildTitleAndScreenName(activity), properties);
+                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
             String viewType = view.getClass().getCanonicalName();
-
+            Class<?> androidSwitchClass = null;
             Class<?> supportSwitchCompatClass = null;
             Class<?> androidXSwitchCompatClass = null;
             Class<?> currentSwitchCompatClass = null;
+
+            try {
+                androidSwitchClass = Class.forName("android.widget.Switch");
+            } catch (Exception e) {
+                //ignore
+            }
+
             try {
                 supportSwitchCompatClass = Class.forName("android.support.v7.widget.SwitchCompat");
             } catch (Exception e) {
@@ -1382,74 +1413,37 @@ public class SensorsDataAutoTrackHelper {
                 currentSwitchCompatClass = androidXSwitchCompatClass;
             }
 
-            Class<?> supportViewPagerClass = null;
-            Class<?> androidXViewPagerClass = null;
-            Class<?> currentViewPagerClass = null;
-            try {
-                supportViewPagerClass = Class.forName("android.support.v4.view.ViewPager");
-            } catch (Exception e) {
-                //ignored
-            }
-
-            try {
-                androidXViewPagerClass = Class.forName("androidx.viewpager.widget.ViewPager");
-            } catch (Exception e) {
-                //ignored
-            }
-
-            if (supportViewPagerClass != null) {
-                currentViewPagerClass = supportViewPagerClass;
-            } else {
-                currentViewPagerClass = androidXViewPagerClass;
-            }
-
             CharSequence viewText = null;
             if (view instanceof CheckBox) { // CheckBox
+                if (!view.isPressed()) {
+                    return;
+                }
                 viewType = "CheckBox";
                 CheckBox checkBox = (CheckBox) view;
                 viewText = checkBox.getText();
-            } else if (currentViewPagerClass != null && currentViewPagerClass.isInstance(view)) {
-                viewType = "ViewPager";
-                try {
-                    Method getAdapterMethod = view.getClass().getMethod("getAdapter");
-                    if (getAdapterMethod != null) {
-                        Object viewPagerAdapter = getAdapterMethod.invoke(view);
-                        Method getCurrentItemMethod = view.getClass().getMethod("getCurrentItem");
-                        if (getCurrentItemMethod != null) {
-                            int currentItem = (int) getCurrentItemMethod.invoke(view);
-                            properties.put(AopConstants.ELEMENT_POSITION, String.format(Locale.CHINA, "%d", currentItem));
-                            Method getPageTitleMethod = viewPagerAdapter.getClass().getMethod("getPageTitle", new Class[]{int.class});
-                            if (getPageTitleMethod != null) {
-                                viewText = (String) getPageTitleMethod.invoke(viewPagerAdapter, new Object[]{currentItem});
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+
+            }else if (androidSwitchClass != null && androidSwitchClass.isInstance(view)) {
+                if (!view.isPressed()) {
+                    return;
                 }
+                viewType = "Switch";
+                viewText = AopUtil.getCompoundButtonText(view);
             } else if (currentSwitchCompatClass != null && currentSwitchCompatClass.isInstance(view)) {
-                viewType = "SwitchCompat";
-                CompoundButton switchCompat = (CompoundButton) view;
-                Method method;
-                if (switchCompat.isChecked()) {
-                    method = view.getClass().getMethod("getTextOn");
-                } else {
-                    method = view.getClass().getMethod("getTextOff");
+                if (!view.isPressed()) {
+                    return;
                 }
-                viewText = (String) method.invoke(view);
+                viewType = "SwitchCompat";
+                viewText = AopUtil.getCompoundButtonText(view);
             } else if (view instanceof RadioButton) { // RadioButton
                 viewType = "RadioButton";
                 RadioButton radioButton = (RadioButton) view;
                 viewText = radioButton.getText();
             } else if (view instanceof ToggleButton) { // ToggleButton
-                viewType = "ToggleButton";
-                ToggleButton toggleButton = (ToggleButton) view;
-                boolean isChecked = toggleButton.isChecked();
-                if (isChecked) {
-                    viewText = toggleButton.getTextOn();
-                } else {
-                    viewText = toggleButton.getTextOff();
+                if (!view.isPressed()) {
+                    return;
                 }
+                viewType = "ToggleButton";
+                viewText = AopUtil.getCompoundButtonText(view);
             } else if (view instanceof Button) { // Button
                 viewType = "Button";
                 Button button = (Button) view;
@@ -1508,7 +1502,7 @@ public class SensorsDataAutoTrackHelper {
             properties.put(AopConstants.ELEMENT_TYPE, viewType);
 
             //fragmentName
-            AopUtil.getFragmentNameFromView(view, properties);
+            AopUtil.getFragmentNameFromView(view, properties, activity);
 
             //获取 View 自定义属性
             JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
@@ -1539,39 +1533,5 @@ public class SensorsDataAutoTrackHelper {
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
-    }
-
-    /**
-     * 构建 Title 和 Screen 的名称
-     * @param activity 页面
-     * @return JSONObject
-     */
-    private static JSONObject buildTitleAndScreenName(Activity activity) {
-        JSONObject propertyJSON = new JSONObject();
-        try {
-            propertyJSON.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
-            String activityTitle = AopUtil.getActivityTitle(activity);
-            if (!TextUtils.isEmpty(activityTitle)) {
-                propertyJSON.put(AopConstants.TITLE, activityTitle);
-            }
-
-            if (activity instanceof ScreenAutoTracker) {
-                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
-                JSONObject trackProperties = screenAutoTracker.getTrackProperties();
-                if (trackProperties != null) {
-                    if (trackProperties.has(AopConstants.SCREEN_NAME)) {
-                        propertyJSON.put(AopConstants.SCREEN_NAME, trackProperties.optString(AopConstants.SCREEN_NAME));
-                    }
-
-                    if (trackProperties.has(AopConstants.TITLE)) {
-                        propertyJSON.put(AopConstants.TITLE, trackProperties.optString(AopConstants.TITLE));
-                    }
-                }
-            }
-        } catch (Exception ex) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(ex);
-            return new JSONObject();
-        }
-        return propertyJSON;
     }
 }

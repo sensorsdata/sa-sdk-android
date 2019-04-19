@@ -1,20 +1,8 @@
-/*
- * Created by wangzhuozhou on 2017/9/7.
- * Copyright 2015－2019 Sensors Data Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+/**
+ Created by 任庆友 on 2019/04/13.
+ Copyright © 2015－2019 Sensors Data Inc. All rights reserved.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import android.app.Activity;
@@ -23,16 +11,20 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 
-public class HeatMapService {
-    private static HeatMapService instance;
-    private static HeatMapViewCrawler mVTrack;
+/**
+ * Created by 任庆友 on 2019/04/13
+ */
 
-    private HeatMapService() {
+public class VisualizedAutoTrackService {
+    private static VisualizedAutoTrackService instance;
+    private static VisualizedAutoTrackViewCrawler mVTrack;
+
+    private VisualizedAutoTrackService() {
     }
 
-    public static HeatMapService getInstance() {
+    public static VisualizedAutoTrackService getInstance() {
         if (instance == null) {
-            instance = new HeatMapService();
+            instance = new VisualizedAutoTrackService();
         }
         return instance;
     }
@@ -43,7 +35,7 @@ public class HeatMapService {
                 mVTrack.stopUpdates(false);
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -53,7 +45,7 @@ public class HeatMapService {
                 mVTrack.startUpdates();
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -73,11 +65,11 @@ public class HeatMapService {
                     resourcePackageName = activity.getPackageName();
                 }
 
-                mVTrack = new HeatMapViewCrawler(activity, resourcePackageName, featureCode, postUrl);
+                mVTrack = new VisualizedAutoTrackViewCrawler(activity, resourcePackageName, featureCode, postUrl);
                 mVTrack.startUpdates();
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 }

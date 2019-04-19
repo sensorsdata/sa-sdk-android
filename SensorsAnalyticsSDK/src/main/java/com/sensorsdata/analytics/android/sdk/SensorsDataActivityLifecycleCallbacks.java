@@ -1,5 +1,19 @@
-/**Created by wangzhuozhou on 2015/08/01.
- * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
+/*
+ * Created by wangzhuozhou on 2017/4/12.
+ * Copyright 2015－2019 Sensors Data Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package com.sensorsdata.analytics.android.sdk;
 
@@ -27,6 +41,7 @@ import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
+import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataTimer;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
@@ -42,9 +57,6 @@ import java.text.SimpleDateFormat;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Created by 王灼洲 on 2017/4/12
- */
 
 @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
@@ -61,18 +73,13 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private JSONObject endDataProperty = new JSONObject();
     private boolean isAutoTrackEnabled;
     private static final String EVENT_TIMER = "event_timer";
-    public SensorsDataActivityLifecycleCallbacks(SensorsDataAPI instance, PersistentFirstStart firstStart,
-                                                 PersistentFirstDay firstDay, Context context) {
+    SensorsDataActivityLifecycleCallbacks(SensorsDataAPI instance, PersistentFirstStart firstStart,
+                                          PersistentFirstDay firstDay, Context context) {
         this.mSensorsDataInstance = instance;
         this.mFirstStart = firstStart;
         this.mFirstDay = firstDay;
         this.mContext = context;
         this.mDbAdapter = DbAdapter.getInstance();
-        try {
-            mIsFirstDayDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
-        }
         if (Looper.myLooper() == null) {
             new Thread(new Runnable() {
                 @Override
@@ -106,6 +113,10 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                 } else if ("debugmode".equals(host)) {
                     String infoId = uri.getQueryParameter("info_id");
                     showDebugModeSelectDialog(activity, infoId);
+                } else if ("visualized".equals(host)) {
+                    String featureCode = uri.getQueryParameter("feature_code");
+                    String postUrl = uri.getQueryParameter("url");
+                    showOpenVisualizedAutoTrackDialog(activity, featureCode, postUrl);
                 }
             }
         } catch (Exception e) {
@@ -118,12 +129,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         try {
             isAutoTrackEnabled = mSensorsDataInstance.isAutoTrackEnabled();
             if (!isAutoTrackEnabled) {
-                if (mFirstDay.get() == null) {
-                    if (mIsFirstDayDateFormat == null) {
-                        mIsFirstDayDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-                    }
-                    mFirstDay.commit(mIsFirstDayDateFormat.format(System.currentTimeMillis()));
-                }
+                checkFirstDay();
                 //先从缓存中读取 SDKConfig
                 mSensorsDataInstance.applySDKConfigFromCache();
                 //每次启动 App，重新拉取最新的配置信息
@@ -131,24 +137,16 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                 return;
             }
 
-            SensorsDataUtils.getScreenNameAndTitleFromActivity(activityProperty, activity);
+            activityProperty = AopUtil.buildTitleAndScreenName(activity);
             SensorsDataUtils.mergeJSONObject(activityProperty, endDataProperty);
-            boolean sessionTimeOut = Math.abs(System.currentTimeMillis() - mDbAdapter.getAppPausedTime()) > mDbAdapter.getSessionIntervalTime();
-            SALog.d(TAG, "SessionTimeOut:" + sessionTimeOut);
+            boolean sessionTimeOut = isSessionTimeOut();
             if (sessionTimeOut && !mDbAdapter.getAppEndState()) {
                 trackAppEnd();
             }
 
             if (sessionTimeOut || mDbAdapter.getAppEndState()) {
                 mDbAdapter.commitAppEndState(false);
-
-                if (mFirstDay.get() == null) {
-                    if (mIsFirstDayDateFormat == null) {
-                        mIsFirstDayDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-                    }
-                    mFirstDay.commit(mIsFirstDayDateFormat.format(System.currentTimeMillis()));
-                }
-
+                checkFirstDay();
                 // XXX: 注意内部执行顺序
                 boolean firstStart = mFirstStart.get();
 
@@ -170,22 +168,20 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                 mSensorsDataInstance.pullSDKConfigFromServer();
 
                 try {
-                    if (isAutoTrackEnabled) {
-                        if (!mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_START)) {
-                            if (firstStart) {
-                                mFirstStart.commit(false);
-                            }
-                            JSONObject properties = new JSONObject();
-                            properties.put("$resume_from_background", resumeFromBackground);
-                            properties.put("$is_first_time", firstStart);
-                            SensorsDataUtils.mergeJSONObject(activityProperty, properties);
-                            mSensorsDataInstance.track("$AppStart", properties);
+                    if (!mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_START)) {
+                        if (firstStart) {
+                            mFirstStart.commit(false);
                         }
+                        JSONObject properties = new JSONObject();
+                        properties.put("$resume_from_background", resumeFromBackground);
+                        properties.put("$is_first_time", firstStart);
+                        SensorsDataUtils.mergeJSONObject(activityProperty, properties);
+                        mSensorsDataInstance.track("$AppStart", properties);
+                    }
 
-                        if (!mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_END)) {
-                            mDbAdapter.commitAppStartTime(SystemClock.elapsedRealtime());
-                            mSensorsDataInstance.trackTimer("$AppEnd", TimeUnit.SECONDS);
-                        }
+                    if (!mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_END)) {
+                        mDbAdapter.commitAppStartTime(SystemClock.elapsedRealtime());
+                        mSensorsDataInstance.trackTimer("$AppEnd", TimeUnit.SECONDS);
                     }
                 } catch (Exception e) {
                     SALog.i(TAG, e);
@@ -194,6 +190,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                 if (resumeFromBackground) {
                     try {
                         HeatMapService.getInstance().resume();
+                        VisualizedAutoTrackService.getInstance().resume();
                     } catch (Exception e) {
                         com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                     }
@@ -213,12 +210,8 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         try {
             mDbAdapter.commitAppStart(true);
 
-            boolean mShowAutoTrack = true;
-            if (mSensorsDataInstance.isActivityAutoTrackAppViewScreenIgnored(activity.getClass())) {
-                mShowAutoTrack = false;
-            }
-
-            if (isAutoTrackEnabled && mShowAutoTrack && !mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
+            if (isAutoTrackEnabled && !mSensorsDataInstance.isActivityAutoTrackAppViewScreenIgnored(activity.getClass())
+                    && !mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
                 try {
                     JSONObject properties = new JSONObject();
                     SensorsDataUtils.mergeJSONObject(activityProperty, properties);
@@ -253,16 +246,10 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                     @Override
                     public void run() {
                         generateAppEndData();
+                        mSensorsDataInstance.flushDataSync();
                     }
-                }, 500, 1000);
+                }, 1000, 15000);
             }
-            SensorsDataTimer.getInstance().timer(new Runnable() {
-                @Override
-                public void run() {
-                    mSensorsDataInstance.flushDataSync();
-                }
-            }, 15000, 15000);
-
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
@@ -286,7 +273,6 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
     @Override
     public void onActivityStopped(Activity activity) {
-        mSensorsDataInstance.flushDataSync();
     }
 
     @Override
@@ -308,6 +294,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
             mSensorsDataInstance.stopTrackScreenOrientation();
             mSensorsDataInstance.resetPullSDKConfigTimer();
             HeatMapService.getInstance().stop();
+            VisualizedAutoTrackService.getInstance().stop();
             mSensorsDataInstance.appEnterBackground();
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
@@ -362,6 +349,17 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         }
     }
 
+    /**
+     * 判断是否超出 Session 时间间隔
+     * @return true 超时，false 未超时
+     */
+    private boolean isSessionTimeOut() {
+        long currentTime = System.currentTimeMillis() > 946656000000L ? System.currentTimeMillis() :946656000000L;
+        boolean sessionTimeOut = Math.abs(currentTime - mDbAdapter.getAppPausedTime()) > mDbAdapter.getSessionIntervalTime();
+        SALog.d(TAG, "SessionTimeOut:" + sessionTimeOut);
+        return sessionTimeOut;
+    }
+
     private void initTimerAndObserver() {
         initCountDownTimer();
         registerObserver();
@@ -382,6 +380,23 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                 mSensorsDataInstance.stopTrackTaskThread();
             }
         };
+    }
+
+    /**
+     * 检查 DateFormat 是否为空，如果为空则进行初始化
+     */
+    private void checkFirstDay() {
+        try {
+            if (mFirstDay.get() == null) {
+                if (mIsFirstDayDateFormat == null) {
+                    mIsFirstDayDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                }
+
+                mFirstDay.commit(mIsFirstDayDateFormat.format(System.currentTimeMillis()));
+            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
     }
 
     private void registerObserver(){
@@ -454,9 +469,9 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
             AlertDialog.Builder builder = new AlertDialog.Builder(context);
             builder.setTitle("提示");
             if (isWifi) {
-                builder.setMessage("正在连接 APP 点击分析");
+                builder.setMessage("正在连接 App 点击分析");
             } else {
-                builder.setMessage("正在连接 APP 点击分析，建议在 WiFi 环境下使用");
+                builder.setMessage("正在连接 App 点击分析，建议在 WiFi 环境下使用");
             }
             builder.setCancelable(false);
             builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
@@ -605,6 +620,57 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                     SALog.printStackTrace(e);
                 }
             }
+        }
+    }
+
+    private void showOpenVisualizedAutoTrackDialog(final Activity context, final String featureCode, final String postUrl) {
+        try {
+            if (!SensorsDataAPI.sharedInstance().isVisualizedAutoTrackConfirmDialogEnabled()) {
+                VisualizedAutoTrackService.getInstance().start(context, featureCode, postUrl);
+                return;
+            }
+
+            boolean isWifi = false;
+            try {
+                String networkType = SensorsDataUtils.networkType(context);
+                if (networkType.equals("WIFI")) {
+                    isWifi = true;
+                }
+            } catch (Exception e) {
+
+            }
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(context);
+            builder.setTitle("提示");
+            if (isWifi) {
+                builder.setMessage("正在连接 App 可视化全埋点");
+            } else {
+                builder.setMessage("正在连接 App 可视化全埋点，建议在 WiFi 环境下使用");
+            }
+            builder.setCancelable(false);
+            builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+
+                }
+            });
+            builder.setPositiveButton("继续", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    VisualizedAutoTrackService.getInstance().start(context, featureCode, postUrl);
+                }
+            });
+            AlertDialog dialog = builder.create();
+            dialog.show();
+
+            try {
+                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.BLACK);
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.RED);
+            } catch (Exception e) {
+                SALog.printStackTrace(e);
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
     }
 }

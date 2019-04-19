@@ -68,15 +68,6 @@
 -keep class * extends android.support.design.widget.TabLayout$Tab {*;}
 -keep class * extends com.google.android.material.tabs.TabLayout$Tab {*;}
 
-# ViewPager
--keep class android.support.v4.view.ViewPager {*;}
--keep class android.support.v4.view.PagerAdapter {*;}
--keep class androidx.viewpager.widget.ViewPager {*;}
--keep class androidx.viewpager.widget.PagerAdapter {*;}
--keep class * extends android.support.v4.view.ViewPager {*;}
--keep class * extends android.support.v4.view.PagerAdapter {*;}
--keep class * extends androidx.viewpager.widget.ViewPager {*;}
--keep class * extends androidx.viewpager.widget.PagerAdapter {*;}
 
 # SwitchCompat
 -keep class android.support.v7.widget.SwitchCompat {*;}

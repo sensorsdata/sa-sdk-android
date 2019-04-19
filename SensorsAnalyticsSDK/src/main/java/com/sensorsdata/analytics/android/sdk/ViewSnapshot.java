@@ -1,5 +1,19 @@
-/**Created by wangzhuozhou on 2015/08/01.
- * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
+/*
+ * Created by wangzhuozhou on 2015/08/01.
+ * Copyright 2015－2019 Sensors Data Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
  
 package com.sensorsdata.analytics.android.sdk;
 
@@ -25,7 +39,12 @@ import android.util.LruCache;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.RatingBar;
 import android.widget.RelativeLayout;
+import android.widget.SeekBar;
+import android.widget.Spinner;
 
 import org.json.JSONObject;
 
@@ -227,7 +246,24 @@ public class ViewSnapshot {
                 } else if (value instanceof Number) {
                     j.name(desc.name).value((Number) value);
                 } else if (value instanceof Boolean) {
-                    j.name(desc.name).value((Boolean) value);
+                    boolean clickable = (boolean) value;
+
+                    //针对部分类型控件，clickable 特殊处理
+                    if (TextUtils.equals("clickable", desc.name)) {
+                        // RatingBar 或 SeeekBar 类型，clickable 为 true
+                        if (v instanceof RatingBar || v instanceof SeekBar) {
+                            clickable = true;
+                        } else if (isForbiddenClick(v)) {
+                            clickable = false;
+                        } else {
+                            // ListView item 类型，clickable 为 true
+                            ViewParent parent = v.getParent();
+                            if (parent instanceof ListView) {
+                                clickable = true;
+                            }
+                        }
+                    }
+                    j.name(desc.name).value(clickable);
                 } else if (value instanceof ColorStateList) {
                     j.name(desc.name).value((Integer) ((ColorStateList) value).getDefaultColor());
                 } else if (value instanceof Drawable) {
@@ -262,6 +298,60 @@ public class ViewSnapshot {
         }
     }
 
+
+    private boolean isForbiddenClick(View v) {
+        if (v instanceof ListView || v instanceof Spinner || v instanceof EditText || isNavigationMenuItemView(v)) {
+            return true;
+        }
+
+        if (isOtherForbiddenClick(v)) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isNavigationMenuItemView(View view) {
+        try {
+            Class<?> tabClass = Class.forName("android.support.design.internal.NavigationMenuItemView");
+            if (tabClass.isAssignableFrom(view.getClass())) {
+                return true;
+            }
+        } catch (Exception e) {
+            //不需要打日志
+        }
+        return false;
+    }
+
+    private boolean isOtherForbiddenClick(View v) {
+        if (isAssignableFromClass(v, "android.support.v7.widget.Toolbar")) {
+            return true;
+        } else if (isAssignableFromClass(v, "android.support.design.widget.TabLayout")) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isAssignableFromClass(View v, String className) {
+        try {
+            Class<?> someClass = Class.forName(className);
+            if (someClass.isAssignableFrom(v.getClass())) {
+                return true;
+            } else {
+                ViewParent viewParent = v.getParent();
+                if (viewParent == null) {
+                    return false;
+                }
+                if (!(viewParent instanceof View)) {
+                    return false;
+                }
+                return isAssignableFromClass((View) viewParent, className);
+            }
+        } catch (Exception e) {
+            //不需要打日志
+        }
+        return false;
+    }
+
     public void updateLastImageHashArray(String lastImageHashList) {
         if (lastImageHashList == null || lastImageHashList.length() <= 0) {
             mLastImageHashArray = null;
@@ -292,7 +382,7 @@ public class ViewSnapshot {
     }
 
     private int getChildIndex(ViewParent parent, View child) {
-        if (parent == null || !(parent instanceof ViewGroup)) {
+        if (!(parent instanceof ViewGroup)) {
             return -1;
         }
 

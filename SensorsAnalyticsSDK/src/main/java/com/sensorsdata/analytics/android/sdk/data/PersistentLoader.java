@@ -1,5 +1,20 @@
-/**Created by wangzhuozhou on 2019/02/01.
- * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
+/*
+ * Created by wangzhuozhou on 2019/02/01.
+ * Copyright 2015－2019 Sensors Data Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.sensorsdata.analytics.android.sdk.data;
 
 import android.content.Context;
@@ -84,13 +99,13 @@ public class PersistentLoader {
         return null;
     }
 
-    static class PersistentName {
-        public static final String APP_END_DATA = DbParams.TABLE_APPENDDATA;
-        public static final String APP_END_STATE = DbParams.TABLE_APPENDSTATE;
-        public static final String APP_PAUSED_TIME = DbParams.TABLE_APPPAUSEDTIME;
-        public static final String APP_START_STATE = DbParams.TABLE_APPSTARTED;
-        public static final String APP_START_TIME = DbParams.TABLE_APPSTARTTIME;
-        public static final String APP_SESSION_TIME = DbParams.TABLE_SESSIONINTERVALTIME;
+    public static class PersistentName {
+        static final String APP_END_DATA = DbParams.TABLE_APPENDDATA;
+        static final String APP_END_STATE = DbParams.TABLE_APPENDSTATE;
+        static final String APP_PAUSED_TIME = DbParams.TABLE_APPPAUSEDTIME;
+        static final String APP_START_STATE = DbParams.TABLE_APPSTARTED;
+        static final String APP_START_TIME = DbParams.TABLE_APPSTARTTIME;
+        static final String APP_SESSION_TIME = DbParams.TABLE_SESSIONINTERVALTIME;
         public static final String DISTINCT_ID = "events_distinct_id";
         public static final String FIRST_DAY = "first_day";
         public static final String FIRST_START = "first_start";

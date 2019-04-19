@@ -1,6 +1,19 @@
-/**Created by wangzhuozhou on 2015/08/01.
- * Copyright © 2015－2018 Sensors Data Inc. All rights reserved. */
- 
+/*
+ * Created by wangzhuozhou on 2015/08/01.
+ * Copyright 2015－2019 Sensors Data Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.sensorsdata.analytics.android.sdk;
 
 
@@ -25,6 +38,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 返回预置属性
+     *
      * @return JSONObject 预置属性
      */
     @Override
@@ -56,6 +70,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 设置当前 serverUrl
+     *
      * @param serverUrl 当前 serverUrl
      */
     @Override
@@ -65,6 +80,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 设置是否开启 log
+     *
      * @param enable boolean
      */
     @Override
@@ -84,6 +100,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 设置本地缓存上限值，单位 byte，默认为 32MB：32 * 1024 * 1024
+     *
      * @param maxCacheSize 单位 byte
      */
     @Override
@@ -93,6 +110,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 设置 flush 时网络发送策略，默认 3G、4G、WI-FI 环境下都会尝试 flush
+     *
      * @param networkType int 网络类型
      */
     @Override
@@ -193,6 +211,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 关闭 AutoTrack 中的部分事件
+     *
      * @param eventTypeList AutoTrackEventType 类型 List
      */
     @Override
@@ -202,6 +221,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 关闭 AutoTrack 中的某个事件
+     *
      * @param autoTrackEventType AutoTrackEventType 类型
      */
     @Override
@@ -219,6 +239,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 是否开启 AutoTrack
+     *
      * @return true: 开启 AutoTrack; false：没有开启 AutoTrack
      */
     @Override
@@ -288,7 +309,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
      *
      * @param webView 当前WebView
      * @param isSupportJellyBean 是否支持API level 16及以下的版本。
-     *                           因为API level 16及以下的版本, addJavascriptInterface有安全漏洞,请谨慎使用
+     * 因为API level 16及以下的版本, addJavascriptInterface有安全漏洞,请谨慎使用
      * @param properties 用户自定义属性
      */
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
@@ -317,7 +338,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
      *
      * 指定activity的格式为：activity.getClass().getCanonicalName()
      *
-     * @param activitiesList  activity列表
+     * @param activitiesList activity列表
      */
     @Override
     public void ignoreAutoTrackActivities(List<Class<?>> activitiesList) {
@@ -326,6 +347,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 恢复不被 AutoTrack 的 activity
+     *
      * @param activitiesList List
      */
     @Override
@@ -335,6 +357,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 指定某个 activity 不被 AutoTrack
+     *
      * @param activity Activity
      */
     @Override
@@ -344,6 +367,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 恢复不被 AutoTrack 的 activity
+     *
      * @param activity Class
      */
     @Override
@@ -354,6 +378,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     /**
      * 判断 AutoTrack 时，某个 Activity 的 $AppViewScreen 是否被过滤
      * 如果过滤的话，会过滤掉 Activity 的 $AppViewScreen 事件
+     *
      * @param activity Activity
      * @return Activity 是否被过滤
      */
@@ -365,6 +390,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     /**
      * 判断 AutoTrack 时，某个 Activity 的 $AppClick 是否被过滤
      * 如果过滤的话，会过滤掉 Activity 的 $AppClick 事件
+     *
      * @param activity Activity
      * @return Activity 是否被过滤
      */
@@ -375,6 +401,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 过滤掉 AutoTrack 的某个事件类型
+     *
      * @param autoTrackEventType AutoTrackEventType
      */
     @Deprecated
@@ -385,6 +412,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 过滤掉 AutoTrack 的某些事件类型
+     *
      * @param eventTypeList AutoTrackEventType List
      */
     @Deprecated
@@ -395,6 +423,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 判断 某个 AutoTrackEventType 是否被忽略
+     *
      * @param eventType AutoTrackEventType
      * @return true 被忽略; false 没有被忽略
      */
@@ -406,7 +435,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     /**
      * 设置界面元素ID
      *
-     * @param view   要设置的View
+     * @param view 要设置的View
      * @param viewID String 给这个View的ID
      */
     @Override
@@ -417,7 +446,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     /**
      * 设置界面元素ID
      *
-     * @param view   要设置的View
+     * @param view 要设置的View
      * @param viewID String 给这个View的ID
      */
     @Override
@@ -428,7 +457,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     /**
      * 设置界面元素ID
      *
-     * @param view   要设置的View
+     * @param view 要设置的View
      * @param viewID String 给这个View的ID
      */
     @Override
@@ -439,7 +468,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     /**
      * 设置 View 所属 Activity
      *
-     * @param view   要设置的View
+     * @param view 要设置的View
      * @param activity Activity View 所属 Activity
      */
     @Override
@@ -450,7 +479,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     /**
      * 设置 View 所属 Fragment 名称
      *
-     * @param view   要设置的View
+     * @param view 要设置的View
      * @param fragmentName String View 所属 Fragment 名称
      */
     @Override
@@ -470,6 +499,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 忽略View
+     *
      * @param view View
      * @param ignore 是否忽略
      */
@@ -481,7 +511,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     /**
      * 设置View属性
      *
-     * @param view       要设置的View
+     * @param view 要设置的View
      * @param properties 要设置的View的属性
      */
     @Override
@@ -504,31 +534,62 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     }
 
+    /**
+     * activity 是否开启了点击图
+     *
+     * @param activity activity 类的对象
+     * @return true 代表 activity 开启了点击图， false 代表 activity 关闭了点击图
+     */
     @Override
     public boolean isHeatMapActivity(Class<?> activity) {
         return false;
     }
 
+    /**
+     * 开启某个 activity 的点击图
+     *
+     * @param activity activity 类的对象
+     */
     @Override
     public void addHeatMapActivity(Class<?> activity) {
 
     }
 
+    /**
+     * 开启多个 activity 的点击图
+     *
+     * @param activitiesList activity 类的对象集合
+     */
     @Override
     public void addHeatMapActivities(List<Class<?>> activitiesList) {
 
     }
 
+    /**
+     * 是否开启点击图
+     *
+     * @return true 代表开启了点击图，false 代表关闭了点击图
+     */
     @Override
     public boolean isHeatMapEnabled() {
         return false;
     }
 
+    /**
+     * 返回是否开启点击图的提示框
+     *
+     * @return true 代表开启了点击图的提示框， false 代表关闭了点击图的提示框
+     */
     @Override
-    public boolean isAppHeatMapConfirmDialogEnabled() {
+    boolean isAppHeatMapConfirmDialogEnabled() {
         return true;
     }
 
+    /**
+     * 开启点击图的提示框
+     *
+     * @param enable true 代表开启， false 代表关闭
+     */
     @Override
     public void enableAppHeatMapConfirmDialog(boolean enable) {
 
@@ -641,7 +702,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
      * 该方法已不推荐使用，可以具体参考 {@link #login(String)} 方法
      *
      * @param newDistinctId 用户完成注册后生成的注册ID
-     * @param properties    事件的属性
+     * @param properties 事件的属性
      */
     @Deprecated
     @Override
@@ -670,7 +731,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
      *
      * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
      *
-     * @param eventName  渠道追踪事件的名称
+     * @param eventName 渠道追踪事件的名称
      * @param properties 渠道追踪事件的属性
      * @param disableCallback 是否关闭这次渠道匹配的回调请求
      */
@@ -684,7 +745,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
      *
      * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
      *
-     * @param eventName  渠道追踪事件的名称
+     * @param eventName 渠道追踪事件的名称
      * @param properties 渠道追踪事件的属性
      */
     @Override
@@ -697,7 +758,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
      *
      * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
      *
-     * @param eventName  渠道追踪事件的名称
+     * @param eventName 渠道追踪事件的名称
      */
     @Override
     public void trackInstallation(String eventName) {
@@ -707,7 +768,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     /**
      * 调用track接口，追踪一个带有属性的事件
      *
-     * @param eventName  事件的名称
+     * @param eventName 事件的名称
      * @param properties 事件的属性
      */
     @Override
@@ -748,7 +809,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
      * 多次调用 trackTimer("Event") 时，事件 "Event" 的开始时间以最后一次调用时为准。
      *
      * @param eventName 事件的名称
-     * @param timeUnit  计时结果的时间单位
+     * @param timeUnit 计时结果的时间单位
      */
     @Deprecated
     @Override
@@ -815,7 +876,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
      * 多次调用 trackTimerBegin("Event") 时，事件 "Event" 的开始时间以最后一次调用时为准。
      *
      * @param eventName 事件的名称
-     * @param timeUnit  计时结果的时间单位
+     * @param timeUnit 计时结果的时间单位
      */
     @Override
     public void trackTimerBegin(final String eventName, final TimeUnit timeUnit) {
@@ -824,6 +885,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 停止事件计时器
+     *
      * @param eventName 事件的名称
      * @param properties 事件的属性
      */
@@ -834,6 +896,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 停止事件计时器
+     *
      * @param eventName 事件的名称
      */
     @Override
@@ -851,6 +914,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 获取LastScreenUrl
+     *
      * @return String
      */
     @Override
@@ -878,6 +942,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 获取LastScreenTrackProperties
+     *
      * @return JSONObject
      */
     @Override
@@ -887,6 +952,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * Track 进入页面事件 ($AppViewScreen)
+     *
      * @param url String
      * @param properties JSONObject
      */
@@ -897,6 +963,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * Track Activity 进入页面事件($AppViewScreen)
+     *
      * @param activity activity Activity，当前 Activity
      */
     @Override
@@ -937,6 +1004,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 设置 track 事件回调
+     *
      * @param trackEventCallBack track 事件回调接口
      */
     @Override
@@ -1005,8 +1073,8 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
      * 设置用户的一个Profile，如果之前存在，则覆盖，否则，新创建
      *
      * @param property 属性名称
-     * @param value    属性的值，值的类型只允许为
-     *                 {@link String}, {@link Number}, {@link java.util.Date}, {@link List}
+     * @param value 属性的值，值的类型只允许为
+     * {@link String}, {@link Number}, {@link java.util.Date}, {@link List}
      */
     @Override
     public void profileSet(String property, Object value) {
@@ -1029,8 +1097,8 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
      * 与profileSet接口不同的是，如果之前存在，则忽略，否则，新创建
      *
      * @param property 属性名称
-     * @param value    属性的值，值的类型只允许为
-     *                 {@link String}, {@link Number}, {@link java.util.Date}, {@link List}
+     * @param value 属性的值，值的类型只允许为
+     * {@link String}, {@link Number}, {@link java.util.Date}, {@link List}
      */
     @Override
     public void profileSetOnce(String property, Object value) {
@@ -1053,10 +1121,10 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
      * 未设置，则添加属性并设置默认值为0
      *
      * @param property 属性名称
-     * @param value    属性的值，值的类型只允许为 {@link Number}
+     * @param value 属性的值，值的类型只允许为 {@link Number}
      */
     @Override
-    public void profileIncrement(String property, Number value)  {
+    public void profileIncrement(String property, Number value) {
 
     }
 
@@ -1064,7 +1132,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
      * 给一个列表类型的Profile增加一个元素
      *
      * @param property 属性名称
-     * @param value    新增的元素
+     * @param value 新增的元素
      */
     @Override
     public void profileAppend(String property, String value) {
@@ -1075,7 +1143,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
      * 给一个列表类型的Profile增加一个或多个元素
      *
      * @param property 属性名称
-     * @param values   新增的元素集合
+     * @param values 新增的元素集合
      */
     @Override
     public void profileAppend(String property, Set<String> values) {
@@ -1157,13 +1225,82 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     /**
      * 保存用户推送 ID 到用户表
+     *
      * @param propertyKey 属性名称（例如 jgId）
-     * @param pushId  推送 ID
-     *                使用 profilePushId("jgId",JPushInterface.getRegistrationID(this))
+     * @param pushId 推送 ID
+     * 使用 profilePushId("jgId",JPushInterface.getRegistrationID(this))
      */
 
     @Override
     public void profilePushId(String propertyKey, String pushId) {
+
+    }
+
+    /**
+     * activity 是否开启了可视化全埋点
+     *
+     * @param activity activity 类的对象
+     * @return true 代表 activity 开启了可视化全埋点，false 代表 activity 关闭了可视化全埋点
+     */
+    @Override
+    public boolean isVisualizedAutoTrackActivity(Class<?> activity) {
+        return false;
+    }
+
+    /**
+     * 开启某个 activity 的可视化全埋点
+     *
+     * @param activity activity 类的对象
+     */
+    @Override
+    public void addVisualizedAutoTrackActivity(Class<?> activity) {
+
+    }
+
+    /**
+     * 开启多个 activity 的可视化全埋点
+     *
+     * @param activitiesList activity 类的对象集合
+     */
+    @Override
+    public void addVisualizedAutoTrackActivities(List<Class<?>> activitiesList) {
+
+    }
+
+    /**
+     * 是否开启可视化全埋点
+     *
+     * @return true 代表开启了可视化全埋点， false 代表关闭了可视化全埋点
+     */
+    @Override
+    public boolean isVisualizedAutoTrackEnabled() {
+        return false;
+    }
+
+    /**
+     * 是否开启可视化全埋点的提示框
+     *
+     * @return true 代表开启了可视化全埋点的提示框， false 代表关闭了可视化全埋点的提示框
+     */
+    boolean isVisualizedAutoTrackConfirmDialogEnabled() {
+        return false;
+    }
+
+    /**
+     * 是否开启可视化全埋点的提示框
+     *
+     * @param enable true 代表开启了可视化全埋点的提示框， false 代表关闭了可视化全埋点的提示框
+     */
+    @Override
+    public void enableVisualizedAutoTrackConfirmDialog(boolean enable) {
+
+    }
+
+    /**
+     * 开启可视化全埋点，$AppClick 事件将会采集控件的 viewPath
+     */
+    @Override
+    public void enableVisualizedAutoTrack() {
 
     }
 }
