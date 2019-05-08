@@ -90,7 +90,7 @@ public class SensorsDataAutoTrackHelper {
             if (root == null) {
                 return;
             }
-
+            root.setTag(R.id.sensors_analytics_tag_view_fragment_name,fragmentName);
             final int childCount = root.getChildCount();
             for (int i = 0; i < childCount; ++i) {
                 final View child = root.getChildAt(i);
