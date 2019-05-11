@@ -39,7 +39,11 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 
 import java.io.UnsupportedEncodingException;
 
+
 public class Base64Coder {
+
+    /* 指定默认编码 */
+    public static final String CHARSET_UTF8 = "UTF-8";
 
     // Mapping table from 6-bit nibbles to Base64 characters.
     private static char[] map1 = new char[64];
@@ -75,7 +79,7 @@ public class Base64Coder {
      */
     public static String encodeString(String s) {
         try {
-            return new String(encode(s.getBytes("UTF-8")));
+            return new String(encode(s.getBytes(CHARSET_UTF8)));
         } catch (UnsupportedEncodingException e) {
             SALog.printStackTrace(e);
         }
@@ -97,7 +101,7 @@ public class Base64Coder {
      * Encodes a byte array into Base64 format.
      * No blanks or line breaks are inserted.
      *
-     * @param in   an array containing the data bytes to be encoded.
+     * @param in an array containing the data bytes to be encoded.
      * @param iLen number of bytes to process in <code>in</code>.
      * @return A character array with the Base64 encoded data.
      */

@@ -19,9 +19,6 @@ package com.sensorsdata.analytics.android.sdk;
 
 import org.json.JSONObject;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class SensorsDataSDKRemoteConfig {
     /**
      * config 版本号
@@ -43,15 +40,17 @@ public class SensorsDataSDKRemoteConfig {
      */
     private boolean disableSDK;
 
-    private List<SensorsDataAPI.AutoTrackEventType> mAutoTrackEventTypeList;
+    private int mAutoTrackEventType;
+
+    static final int REMOTE_EVENT_TYPE_NO_USE = -1;
 
     public SensorsDataSDKRemoteConfig() {
         this.disableDebugMode = false;
         this.disableSDK = false;
-        this.autoTrackMode = -1;
+        this.autoTrackMode = REMOTE_EVENT_TYPE_NO_USE;
     }
 
-    public String getV() {
+    String getV() {
         return v;
     }
 
@@ -59,7 +58,7 @@ public class SensorsDataSDKRemoteConfig {
         this.v = v;
     }
 
-    public boolean isDisableDebugMode() {
+    boolean isDisableDebugMode() {
         return disableDebugMode;
     }
 
@@ -67,7 +66,7 @@ public class SensorsDataSDKRemoteConfig {
         this.disableDebugMode = disableDebugMode;
     }
 
-    public boolean isDisableSDK() {
+    boolean isDisableSDK() {
         return disableSDK;
     }
 
@@ -75,12 +74,16 @@ public class SensorsDataSDKRemoteConfig {
         this.disableSDK = disableSDK;
     }
 
-    public int getAutoTrackMode() {
+    int getAutoTrackMode() {
         return autoTrackMode;
     }
 
-    protected boolean isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType eventType) {
-        if (autoTrackMode == -1) {
+    int getAutoTrackEventType() {
+        return mAutoTrackEventType;
+    }
+
+    boolean isAutoTrackEventTypeIgnored(int eventType) {
+        if (autoTrackMode == REMOTE_EVENT_TYPE_NO_USE) {
             return false;
         }
 
@@ -88,51 +91,35 @@ public class SensorsDataSDKRemoteConfig {
             return true;
         }
 
-        if (this.mAutoTrackEventTypeList.contains(eventType)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    protected List<SensorsDataAPI.AutoTrackEventType> getAutoTrackEventTypeList() {
-        return mAutoTrackEventTypeList;
+        return (mAutoTrackEventType | eventType) != mAutoTrackEventType;
     }
 
     public void setAutoTrackMode(int autoTrackMode) {
         this.autoTrackMode = autoTrackMode;
 
-        if (this.autoTrackMode == -1) {
-            mAutoTrackEventTypeList = null;
+        if (this.autoTrackMode == REMOTE_EVENT_TYPE_NO_USE || this.autoTrackMode == 0) {
+            mAutoTrackEventType = 0;
             return;
         }
 
-        if (this.mAutoTrackEventTypeList == null) {
-            this.mAutoTrackEventTypeList = new ArrayList<>();
+        if ((this.autoTrackMode & SensorsAnalyticsAutoTrackEventType.APP_START) == SensorsAnalyticsAutoTrackEventType.APP_START) {
+            this.mAutoTrackEventType |= SensorsAnalyticsAutoTrackEventType.APP_START;
         }
 
-        if ((this.autoTrackMode & SensorsDataAPI.AutoTrackEventType.APP_START.getEventValue()) == SensorsDataAPI.AutoTrackEventType.APP_START.getEventValue()) {
-            mAutoTrackEventTypeList.add(SensorsDataAPI.AutoTrackEventType.APP_START);
+        if ((this.autoTrackMode & SensorsAnalyticsAutoTrackEventType.APP_END) == SensorsAnalyticsAutoTrackEventType.APP_END) {
+            this.mAutoTrackEventType |= SensorsAnalyticsAutoTrackEventType.APP_END;
         }
 
-        if ((this.autoTrackMode & SensorsDataAPI.AutoTrackEventType.APP_END.getEventValue()) == SensorsDataAPI.AutoTrackEventType.APP_END.getEventValue()) {
-            mAutoTrackEventTypeList.add(SensorsDataAPI.AutoTrackEventType.APP_END);
+        if ((this.autoTrackMode & SensorsAnalyticsAutoTrackEventType.APP_CLICK) == SensorsAnalyticsAutoTrackEventType.APP_CLICK) {
+            this.mAutoTrackEventType |= SensorsAnalyticsAutoTrackEventType.APP_CLICK;
         }
 
-        if ((this.autoTrackMode & SensorsDataAPI.AutoTrackEventType.APP_CLICK.getEventValue()) == SensorsDataAPI.AutoTrackEventType.APP_CLICK.getEventValue()) {
-            mAutoTrackEventTypeList.add(SensorsDataAPI.AutoTrackEventType.APP_CLICK);
-        }
-
-        if ((this.autoTrackMode & SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN.getEventValue()) == SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN.getEventValue()) {
-            mAutoTrackEventTypeList.add(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN);
-        }
-
-        if (this.autoTrackMode == 0) {
-            mAutoTrackEventTypeList.clear();
+        if ((this.autoTrackMode & SensorsAnalyticsAutoTrackEventType.APP_VIEW_SCREEN) == SensorsAnalyticsAutoTrackEventType.APP_VIEW_SCREEN) {
+            this.mAutoTrackEventType |= SensorsAnalyticsAutoTrackEventType.APP_VIEW_SCREEN;
         }
     }
 
-    public JSONObject toJson() {
+    JSONObject toJson() {
         JSONObject jsonObject = new JSONObject();
         try {
             jsonObject.put("v", v);

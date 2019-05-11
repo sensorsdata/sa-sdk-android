@@ -54,6 +54,12 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.zip.GZIPOutputStream;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
+
+import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
+
+
 /**
  * Manage communication of events with the internal database and the SensorsData servers.
  * <p/>
@@ -76,7 +82,7 @@ class AnalyticsMessages {
      * for yourself.
      *
      * @param messageContext should be the Main Activity of the application
-     *                       associated with these messages.
+     * associated with these messages.
      */
     public static AnalyticsMessages getInstance(final Context messageContext, int flushCacheSize) {
         synchronized (sInstances) {
@@ -93,7 +99,7 @@ class AnalyticsMessages {
         }
     }
 
-    public void enqueueEventMessage(final String type, final JSONObject eventJson) {
+    void enqueueEventMessage(final String type, final JSONObject eventJson) {
         try {
             synchronized (mDbAdapter) {
                 TrackTaskManager.getInstance().addEventDBTask(new Runnable() {
@@ -105,7 +111,7 @@ class AnalyticsMessages {
                             ret = mDbAdapter.addJSON(eventJson);
                         } else {
                             mEventsList.add(eventJson);
-                            if (mEventsList.size() < mFlushSize && mDbAdapter.getAppStart())return;
+                            if (mEventsList.size() < mFlushSize && mDbAdapter.getAppStart()) return;
                             ret = mDbAdapter.addJSON(mEventsList);
                             if (ret >= 0) {
                                 mEventsList.clear();
@@ -143,21 +149,33 @@ class AnalyticsMessages {
         }
     }
 
-    public void flush() {
+    void flush() {
+        syncData();
         final Message m = Message.obtain();
         m.what = FLUSH_QUEUE;
 
         mWorker.runMessage(m);
     }
 
-    public void flush(long timeDelayMills) {
+    void flush(long timeDelayMills) {
+        syncData();
         final Message m = Message.obtain();
         m.what = FLUSH_QUEUE;
 
         mWorker.runMessageOnce(m, timeDelayMills);
     }
 
-    public void flushDataSync() {
+    void flushSync() {
+        TrackTaskManager.getInstance().addEventDBTask(new Runnable() {
+            @Override
+            public void run() {
+                syncData();
+                sendData();
+            }
+        });
+    }
+
+    private void syncData() {
         try {
             if (mEventsList.size() > 0) {
                 if (mDbAdapter.addJSON(mEventsList) >= 0) {
@@ -169,14 +187,14 @@ class AnalyticsMessages {
         }
     }
 
-    public void deleteAll() {
+    void deleteAll() {
         final Message m = Message.obtain();
         m.what = DELETE_ALL;
 
         mWorker.runMessage(m);
     }
 
-    public static byte[] slurp(final InputStream inputStream)
+    private static byte[] slurp(final InputStream inputStream)
             throws IOException {
         final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
@@ -191,7 +209,7 @@ class AnalyticsMessages {
         return buffer.toByteArray();
     }
 
-    public void sendData() {
+    void sendData() {
         try {
             if (!SensorsDataAPI.sharedInstance(mContext).isFlushInBackground()) {
                 if (!mDbAdapter.getAppStart()) {
@@ -297,7 +315,7 @@ class AnalyticsMessages {
         }
     }
 
-    private void sendHttpRequest(String path, String data, String rawMessage, boolean isRedirects) throws ConnectErrorException,ResponseErrorException {
+    private void sendHttpRequest(String path, String data, String rawMessage, boolean isRedirects) throws ConnectErrorException, ResponseErrorException {
         HttpURLConnection connection = null;
         InputStream in = null;
         OutputStream out = null;
@@ -305,6 +323,13 @@ class AnalyticsMessages {
         try {
             final URL url = new URL(path);
             connection = (HttpURLConnection) url.openConnection();
+            if (connection == null) {
+                SALog.i(TAG, String.format("can not connect %s, it shouldn't happen", url.toString()), null);
+                return;
+            }
+            if (SensorsDataAPI.sharedInstance().getSSLSocketFactory() != null && connection instanceof HttpsURLConnection) {
+                ((HttpsURLConnection) connection).setSSLSocketFactory(SensorsDataAPI.sharedInstance().getSSLSocketFactory());
+            }
             connection.setInstanceFollowRedirects(false);
             try {
                 String ua = SensorsDataUtils.getUserAgent(mContext);
@@ -345,7 +370,7 @@ class AnalyticsMessages {
             bout.flush();
 
             int responseCode = connection.getResponseCode();
-            SALog.i(TAG, "responseCode: "+responseCode);
+            SALog.i(TAG, "responseCode: " + responseCode);
             if (!isRedirects && SensorsDataHttpURLConnectionHelper.needRedirects(responseCode)) {
                 String location = SensorsDataHttpURLConnectionHelper.getLocation(connection, path);
                 if (!TextUtils.isEmpty(location)) {
@@ -432,7 +457,7 @@ class AnalyticsMessages {
     // XXX: Worker class is unnecessary, should be just a subclass of HandlerThread
     private class Worker {
 
-        public Worker() {
+        Worker() {
             final HandlerThread thread =
                     new HandlerThread("com.sensorsdata.analytics.android.sdk.AnalyticsMessages.Worker",
                             Thread.MIN_PRIORITY);
@@ -440,7 +465,7 @@ class AnalyticsMessages {
             mHandler = new AnalyticsMessageHandler(thread.getLooper());
         }
 
-        public void runMessage(Message msg) {
+        void runMessage(Message msg) {
             synchronized (mHandlerLock) {
                 if (mHandler == null) {
                     // We died under suspicious circumstances. Don't try to send any more events.
@@ -451,7 +476,7 @@ class AnalyticsMessages {
             }
         }
 
-        public void runMessageOnce(Message msg, long delay) {
+        void runMessageOnce(Message msg, long delay) {
             synchronized (mHandlerLock) {
                 if (mHandler == null) {
                     // We died under suspicious circumstances. Don't try to send any more events.
@@ -466,7 +491,7 @@ class AnalyticsMessages {
 
         private class AnalyticsMessageHandler extends Handler {
 
-            public AnalyticsMessageHandler(Looper looper) {
+            AnalyticsMessageHandler(Looper looper) {
                 super(looper);
             }
 
@@ -503,8 +528,7 @@ class AnalyticsMessages {
     // Messages for our thread
     private static final int FLUSH_QUEUE = 3;
     private static final int DELETE_ALL = 4;
-    /* 指定默认编码 */
-    private static final String CHARSET_UTF8 = "UTF-8";
+
     private static final String TAG = "SA.AnalyticsMessages";
 
     private static final Map<Context, AnalyticsMessages> sInstances =

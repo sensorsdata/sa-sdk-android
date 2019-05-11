@@ -1,6 +1,18 @@
-/**
- Created by 任庆友 on 2019/04/13.
- Copyright © 2015－2019 Sensors Data Inc. All rights reserved.
+/*
+ * Created by renqingyou on 2019/04/13.
+ * Copyright 2015－2019 Sensors Data Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.sensorsdata.analytics.android.sdk;
@@ -24,6 +36,12 @@ import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
@@ -34,7 +52,12 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.util.zip.GZIPOutputStream;
+
+import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
+
 
 @TargetApi(16)
 class VisualizedAutoTrackViewCrawler implements VTrack {
@@ -46,7 +69,7 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
         mEditState.add(activity);
         mLifecycleCallbacks = new LifecycleCallbacks();
         try {
-            mPostUrl = URLDecoder.decode(postUrl, "UTF-8");
+            mPostUrl = URLDecoder.decode(postUrl, CHARSET_UTF8);
             mMessageObject = new JSONObject("{\"type\":\"snapshot_request\",\"payload\":{\"config\":{\"classes\":[{\"name\":\"android.view.View\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]},{\"name\":\"android.widget.TextView\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]},{\"name\":\"android.widget.ImageView\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]}]}}}");
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -269,16 +292,21 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
                 OutputStream out2;
                 BufferedOutputStream bout;
                 HttpURLConnection connection;
+                if (mPostUrl.startsWith("https://") && !SensorsDataAPI.sharedInstance().isVisualizedAutoTrackSSLCertificateChecking()) {
+                    disableSSLCertificateChecking();
+                }
                 final URL url = new URL(mPostUrl);
                 connection = (HttpURLConnection) url.openConnection();
-
+                if (SensorsDataAPI.sharedInstance().getSSLSocketFactory() != null && connection instanceof HttpsURLConnection && SensorsDataAPI.sharedInstance().isVisualizedAutoTrackSSLCertificateChecking()) {
+                    ((HttpsURLConnection) connection).setSSLSocketFactory(SensorsDataAPI.sharedInstance().getSSLSocketFactory());
+                }
                 connection.setDoOutput(true);
                 connection.setRequestMethod("POST");
                 connection.setRequestProperty("Content-type", "text/plain");
 
                 out2 = connection.getOutputStream();
                 bout = new BufferedOutputStream(out2);
-                bout.write(out.toString().getBytes("UTF-8"));
+                bout.write(out.toString().getBytes(CHARSET_UTF8));
                 bout.flush();
                 bout.close();
                 out.close();
@@ -293,7 +321,7 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
                 in.close();
                 out2.close();
 
-                String response = new String(responseBody, "UTF-8");
+                String response = new String(responseBody, CHARSET_UTF8);
                 SALog.i(TAG, "responseCode=" + responseCode);
                 SALog.i(TAG, "response=" + response);
                 JSONObject responseJson = new JSONObject(response);
@@ -327,6 +355,42 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
 
             buffer.flush();
             return buffer.toByteArray();
+        }
+
+        /**
+         * 将 HTTPS 请求不验证证书，即信任所有证书
+         */
+        private void disableSSLCertificateChecking() {
+            try {
+                SSLContext sc = SSLContext.getInstance("TLS");
+                sc.init(null, new TrustManager[]{new VisualizedAutoTrackViewCrawler.ViewCrawlerHandler.CustomTrustManager()}, new SecureRandom());
+                HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+                HttpsURLConnection.setDefaultHostnameVerifier(new VisualizedAutoTrackViewCrawler.ViewCrawlerHandler.CustomHostnameVerifier());
+            } catch (Exception e) {
+                SALog.printStackTrace(e);
+            }
+        }
+
+        private class CustomTrustManager implements X509TrustManager {
+            @Override
+            public void checkClientTrusted(X509Certificate[] chain, String authType) {
+            }
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] chain, String authType) {
+            }
+
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                return null;
+            }
+        }
+
+        private class CustomHostnameVerifier implements HostnameVerifier {
+            @Override
+            public boolean verify(String hostname, SSLSession session) {
+                return true;
+            }
         }
 
         private ViewSnapshot mSnapshot;

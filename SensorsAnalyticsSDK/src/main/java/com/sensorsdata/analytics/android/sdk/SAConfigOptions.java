@@ -17,55 +17,127 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
-public final class SAConfigOptions {
-    /**
-     * 请求配置地址，默认从 ServerUrl 解析
-     */
-    private String remoteConfigUrl;
-
-    /**
-     * 数据上报服务器地址
-     */
-    private String serverUrl;
-
+public final class SAConfigOptions extends AbstractSAConfigOptions {
     /**
      * 私有构造函数
      */
-    private SAConfigOptions(){}
+    private SAConfigOptions() {
+    }
 
     /**
      * 获取 SAOptionsConfig 实例
+     *
      * @param serverUrl，数据上报服务器地址
      */
     public SAConfigOptions(String serverUrl) {
-        this.serverUrl = serverUrl;
+        this.mServerUrl = serverUrl;
     }
 
     /**
      * 设置远程配置请求地址
+     *
      * @param remoteConfigUrl，远程配置请求地址
      * @return SAOptionsConfig
      */
     public SAConfigOptions setRemoteConfigUrl(String remoteConfigUrl) {
-        this.remoteConfigUrl = remoteConfigUrl;
+        this.mRemoteConfigUrl = remoteConfigUrl;
         return this;
     }
 
     /**
      * 设置数据上报地址
+     *
      * @param serverUrl，数据上报地址
      * @return SAOptionsConfig
      */
     public SAConfigOptions setServerUrl(String serverUrl) {
-        this.serverUrl = serverUrl;
+        this.mServerUrl = serverUrl;
         return this;
     }
 
-    String getRemoteConfigUrl() {
-        return remoteConfigUrl;
+    /**
+     * 设置 AutoTrackEvent 的类型，可通过 '|' 进行连接
+     *
+     * @param autoTrackEventType 开启的 AutoTrack 类型
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions setAutoTrackEventType(int autoTrackEventType) {
+        this.mAutoTrackEventType = autoTrackEventType;
+        return this;
     }
 
-    String getServerUrl() {
-        return serverUrl;
+    /**
+     * 设置是否开启 AppCrash 采集，默认是关闭的
+     *
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions enableTrackAppCrash() {
+        this.mEnableTrackAppCrash = true;
+        return this;
+    }
+
+    /**
+     * 设置两次数据发送的最小时间间隔，最小值 5 秒
+     *
+     * @param flushInterval 时间间隔，单位毫秒
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions setFlushInterval(int flushInterval) {
+        this.mFlushInterval = Math.max(5 * 1000, flushInterval);
+        return this;
+    }
+
+    /**
+     * 设置本地缓存日志的最大条目数
+     *
+     * @param flushBulkSize 缓存数目
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions setFlushBulkSize(int flushBulkSize) {
+        this.mFlushBulkSize = Math.max(50, flushBulkSize);
+        return this;
+    }
+
+    /**
+     * 设置本地缓存上限值，单位 byte，默认为 32MB：32 * 1024 * 1024，最小值 16MB
+     *
+     * @param maxCacheSize 单位 byte
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions setMaxCacheSize(long maxCacheSize) {
+        this.mMaxCacheSize = Math.max(16 * 1024 * 1024, maxCacheSize);
+        return this;
+    }
+
+    /**
+     * 设置远程配置请求最小间隔时长
+     *
+     * @param minRequestInterval 最小时长间隔，单位：小时，默认 24
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions setMinRequestInterval(int minRequestInterval) {
+        this.mMinRequestInterval = minRequestInterval;
+        return this;
+    }
+
+    /**
+     * 设置远程配置请求最大间隔时长
+     *
+     * @param maxRequestInterval 最大时长间隔，单位：小时，默认 48
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions setMaxRequestInterval(int maxRequestInterval) {
+        this.mMaxRequestInterval = maxRequestInterval;
+        return this;
+    }
+
+    /**
+     * 禁用分散请求远程配置
+     *
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions disableRandomTimeRequestRemoteConfig() {
+        this.mDisableRandomTimeRequestRemoteConfig = true;
+        return this;
     }
 }

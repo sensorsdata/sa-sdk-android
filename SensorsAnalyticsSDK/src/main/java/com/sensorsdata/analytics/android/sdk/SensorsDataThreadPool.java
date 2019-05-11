@@ -44,7 +44,7 @@ public class SensorsDataThreadPool {
     }
 
     public void shutdown() {
-        if (executorService != null) {
+        if (executorService != null && !executorService.isShutdown()) {
             executorService.shutdown();
         }
     }

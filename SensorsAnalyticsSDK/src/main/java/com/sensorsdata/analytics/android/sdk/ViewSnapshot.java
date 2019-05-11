@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
 package com.sensorsdata.analytics.android.sdk;
 
 import android.annotation.TargetApi;
@@ -22,7 +21,6 @@ import android.app.Activity;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
@@ -52,8 +50,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -443,9 +439,7 @@ public class ViewSnapshot {
         @Override
         public List<RootViewInfo> call() throws Exception {
             mRootViews.clear();
-
             final Set<Activity> liveActivities = mLiveActivities.getAll();
-
             for (final Activity a : liveActivities) {
                 final String activityName = a.getClass().getCanonicalName();
                 final View rootView = a.getWindow().getDecorView().getRootView();
@@ -453,75 +447,63 @@ public class ViewSnapshot {
                 final RootViewInfo info = new RootViewInfo(activityName, rootView);
                 mRootViews.add(info);
             }
-
             final int viewCount = mRootViews.size();
             for (int i = 0; i < viewCount; i++) {
                 final RootViewInfo info = mRootViews.get(i);
                 takeScreenshot(info);
             }
-
             return mRootViews;
         }
 
         private void takeScreenshot(final RootViewInfo info) {
             final View rootView = info.rootView;
             Bitmap rawBitmap = null;
-
-            try {
-                final Method createSnapshot = View.class
-                        .getDeclaredMethod("createSnapshot", Bitmap.Config.class, Integer.TYPE, Boolean.TYPE);
-                createSnapshot.setAccessible(true);
-                rawBitmap =
-                        (Bitmap) createSnapshot.invoke(rootView, Bitmap.Config.RGB_565, Color.WHITE, false);
-            } catch (final NoSuchMethodException e) {
-                SALog.i(TAG, "Can't call createSnapshot, will use drawCache", e);
-            } catch (final IllegalArgumentException e) {
-                SALog.i(TAG, "Can't call createSnapshot with arguments", e);
-            } catch (final InvocationTargetException e) {
-                SALog.i(TAG, "Exception when calling createSnapshot", e);
-            } catch (final IllegalAccessException e) {
-                SALog.i(TAG, "Can't access createSnapshot, using drawCache", e);
-            } catch (final ClassCastException e) {
-                SALog.i(TAG, "createSnapshot didn't return a bitmap?", e);
-            }
-
-            Boolean originalCacheState = null;
-            try {
-                if (null == rawBitmap) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                try {
+                    rawBitmap = Bitmap.createBitmap(rootView.getWidth(), rootView.getHeight(), Bitmap.Config.ARGB_8888);
+                    Canvas canvas = new Canvas(rawBitmap);
+                    rootView.draw(canvas);
+                    scaleBitmap(info, rawBitmap);
+                } catch (RuntimeException e) {
+                    SALog.i(TAG, "Can't take a bitmap snapshot of view " + rootView + ", skipping for now.", e);
+                }
+            } else {
+                Boolean originalCacheState;
+                try {
                     originalCacheState = rootView.isDrawingCacheEnabled();
                     rootView.setDrawingCacheEnabled(true);
                     rootView.buildDrawingCache(true);
                     rawBitmap = rootView.getDrawingCache();
+                    scaleBitmap(info, rawBitmap);
+                    if (null != originalCacheState && !originalCacheState) {
+                        rootView.setDrawingCacheEnabled(false);
+                    }
+                } catch (final RuntimeException e) {
+                    SALog.i(TAG, "Can't take a bitmap snapshot of view " + rootView + ", skipping for now.", e);
                 }
-            } catch (final RuntimeException e) {
-                SALog.i(TAG, "Can't take a bitmap snapshot of view " + rootView + ", skipping for now.",
-                        e);
             }
 
+        }
+
+        private void scaleBitmap(final RootViewInfo info, Bitmap rawBitmap) {
             float scale = 1.0f;
             if (null != rawBitmap) {
                 final int rawDensity = rawBitmap.getDensity();
-
                 if (rawDensity != Bitmap.DENSITY_NONE) {
                     scale = ((float) mClientDensity) / rawDensity;
                 }
-
                 final int rawWidth = rawBitmap.getWidth();
                 final int rawHeight = rawBitmap.getHeight();
                 final int destWidth = (int) ((rawBitmap.getWidth() * scale) + 0.5);
                 final int destHeight = (int) ((rawBitmap.getHeight() * scale) + 0.5);
-
                 if (rawWidth > 0 && rawHeight > 0 && destWidth > 0 && destHeight > 0) {
                     mCachedBitmap.recreate(destWidth, destHeight, mClientDensity, rawBitmap);
                 }
             }
-
-            if (null != originalCacheState && !originalCacheState) {
-                rootView.setDrawingCacheEnabled(false);
-            }
             info.scale = scale;
             info.screenshot = mCachedBitmap;
         }
+
 
         private UIThreadSet<Activity> mLiveActivities;
         private final List<RootViewInfo> mRootViews;

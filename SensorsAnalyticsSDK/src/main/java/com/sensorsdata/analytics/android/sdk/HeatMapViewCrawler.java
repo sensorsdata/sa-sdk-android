@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import android.annotation.TargetApi;
@@ -36,6 +36,13 @@ import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
@@ -50,12 +57,9 @@ import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.zip.GZIPOutputStream;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
+
+import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
+
 
 @TargetApi(16)
 public class HeatMapViewCrawler implements VTrack {
@@ -67,7 +71,7 @@ public class HeatMapViewCrawler implements VTrack {
         mEditState.add(activity);
         mLifecycleCallbacks = new LifecycleCallbacks();
         try {
-            mPostUrl = URLDecoder.decode(postUrl, "UTF-8");
+            mPostUrl = URLDecoder.decode(postUrl, CHARSET_UTF8);
             mMessageObject = new JSONObject("{\"type\":\"snapshot_request\",\"payload\":{\"config\":{\"classes\":[{\"name\":\"android.view.View\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]},{\"name\":\"android.widget.TextView\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]},{\"name\":\"android.widget.ImageView\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]}]}}}");
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
@@ -295,20 +299,21 @@ public class HeatMapViewCrawler implements VTrack {
             BufferedOutputStream bout = null;
             try {
                 HttpURLConnection connection;
-                final URL url = new URL(mPostUrl);
                 if (mPostUrl.startsWith("https://") && !SensorsDataAPI.sharedInstance().isSSLCertificateChecking()) {
                     disableSSLCertificateChecking();
                 }
-
+                final URL url = new URL(mPostUrl);
                 connection = (HttpURLConnection) url.openConnection();
-
+                if (SensorsDataAPI.sharedInstance().getSSLSocketFactory() != null && SensorsDataAPI.sharedInstance().isSSLCertificateChecking() && connection instanceof HttpsURLConnection) {
+                    ((HttpsURLConnection) connection).setSSLSocketFactory(SensorsDataAPI.sharedInstance().getSSLSocketFactory());
+                }
                 connection.setDoOutput(true);
                 connection.setRequestMethod("POST");
                 connection.setRequestProperty("Content-type", "text/plain");
 
                 out2 = connection.getOutputStream();
                 bout = new BufferedOutputStream(out2);
-                bout.write(out.toString().getBytes("UTF-8"));
+                bout.write(out.toString().getBytes(CHARSET_UTF8));
                 bout.flush();
                 out.close();
 
@@ -320,7 +325,7 @@ public class HeatMapViewCrawler implements VTrack {
                 }
                 byte[] responseBody = slurp(in);
 
-                String response = new String(responseBody, "UTF-8");
+                String response = new String(responseBody, CHARSET_UTF8);
                 SALog.i(TAG, "responseCode=" + responseCode);
                 SALog.i(TAG, "response=" + response);
                 JSONObject responseJson = new JSONObject(response);
@@ -398,9 +403,11 @@ public class HeatMapViewCrawler implements VTrack {
             @Override
             public void checkClientTrusted(X509Certificate[] chain, String authType) {
             }
+
             @Override
             public void checkServerTrusted(X509Certificate[] chain, String authType) {
             }
+
             @Override
             public X509Certificate[] getAcceptedIssuers() {
                 return null;

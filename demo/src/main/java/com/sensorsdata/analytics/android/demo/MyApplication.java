@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
 package com.sensorsdata.analytics.android.demo;
 
 import android.app.Application;
 
+import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
 import java.util.ArrayList;
@@ -28,7 +28,7 @@ public class MyApplication extends Application {
     /**
      * Sensors Analytics 采集数据的地址
      */
-    private final static String SA_SERVER_URL = "http://sdkdebugtest.datasink.sensorsdata.cn/sa?project=default&token=cfb8b60e42e0ae9b";
+    private final static String SA_SERVER_URL = "https://sdkdebugtest.datasink.sensorsdata.cn/sa?project=default&token=cfb8b60e42e0ae9b";
 
     @Override
     public void onCreate() {
@@ -40,9 +40,9 @@ public class MyApplication extends Application {
      * 初始化 Sensors Analytics SDK
      */
     private void initSensorsDataAPI() {
-        SensorsDataAPI.sharedInstance(
-                this,                               // 传入 Context
-                SA_SERVER_URL);                     // Debug 模式选项
+
+        SensorsDataAPI.sharedInstance(this, new SAConfigOptions(SA_SERVER_URL));
+
         // 打开自动采集, 并指定追踪哪些 AutoTrack 事件
         List<SensorsDataAPI.AutoTrackEventType> eventTypeList = new ArrayList<>();
         // $AppStart
@@ -54,5 +54,6 @@ public class MyApplication extends Application {
         // $AppClick
         eventTypeList.add(SensorsDataAPI.AutoTrackEventType.APP_CLICK);
         SensorsDataAPI.sharedInstance(this).enableAutoTrack(eventTypeList);
+
     }
 }

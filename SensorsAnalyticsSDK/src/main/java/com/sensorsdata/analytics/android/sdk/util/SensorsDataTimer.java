@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk.util;
 
 import java.util.concurrent.Executors;
@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 public class SensorsDataTimer {
     private static SensorsDataTimer instance;
     private ScheduledExecutorService mScheduledExecutorService;
+
     public static SensorsDataTimer getInstance() {
         if (instance == null) {
             instance = new SensorsDataTimer();
@@ -32,30 +33,36 @@ public class SensorsDataTimer {
     }
 
     private SensorsDataTimer() {
-        mScheduledExecutorService = Executors.newScheduledThreadPool(1);
     }
 
     /**
-     * start a timer task
+     * 开启 timer 线程池
+     *
      * @param runnable Runnable
      * @param initialDelay long
      * @param timePeriod long
      */
     public void timer(final Runnable runnable, long initialDelay, long timePeriod) {
-        if (mScheduledExecutorService == null || mScheduledExecutorService.isShutdown()) {
+        if (isShutdown()) {
             mScheduledExecutorService = Executors.newScheduledThreadPool(1);
+            mScheduledExecutorService.scheduleAtFixedRate(runnable, initialDelay, timePeriod, TimeUnit.MILLISECONDS);
         }
-
-        mScheduledExecutorService.scheduleAtFixedRate(runnable, initialDelay, timePeriod, TimeUnit.MILLISECONDS);
-
     }
 
     /**
-     * cancel timer task
+     * 关闭 timer 线程池
      */
-    public void cancelTimerTask() {
+    public void shutdownTimerTask() {
         if (mScheduledExecutorService != null) {
             mScheduledExecutorService.shutdown();
         }
+    }
+
+    /**
+     * 当前线程池是否可用
+     * @return Boolean 返回当前线程池状态 true : 不可用 false : 可用
+     */
+    private boolean isShutdown() {
+        return mScheduledExecutorService == null || mScheduledExecutorService.isShutdown();
     }
 }

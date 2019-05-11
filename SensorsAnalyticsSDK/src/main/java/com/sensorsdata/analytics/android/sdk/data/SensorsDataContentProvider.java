@@ -26,15 +26,16 @@ import android.content.UriMatcher;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.net.Uri;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndData;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndEventState;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppPaused;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppStart;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppStartTime;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSessionIntervalTime;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -58,6 +59,8 @@ public class SensorsDataContentProvider extends ContentProvider {
     private PersistentAppEndData persistentAppEndData;
     private PersistentAppPaused persistentAppPaused;
     private PersistentSessionIntervalTime persistentSessionIntervalTime;
+
+    private boolean isDbWritable = true;
 
     @Override
     public boolean onCreate() {
@@ -84,20 +87,26 @@ public class SensorsDataContentProvider extends ContentProvider {
                     OldBDatabaseHelper oldBDatabaseHelper = new OldBDatabaseHelper(context, packageName);
 
                     JSONArray oldEvents = oldBDatabaseHelper.getAllEvents();
-                    for (int i = 0; i< oldEvents.length(); i++) {
+                    for (int i = 0; i < oldEvents.length(); i++) {
                         JSONObject jsonObject = oldEvents.getJSONObject(i);
                         final ContentValues cv = new ContentValues();
                         cv.put(DbParams.KEY_DATA, jsonObject.getString(DbParams.KEY_DATA));
                         cv.put(DbParams.KEY_CREATED_AT, jsonObject.getString(DbParams.KEY_CREATED_AT));
 
-                        SQLiteDatabase database = dbHelper.getWritableDatabase();
-                        database.insert(DbParams.TABLE_EVENTS, "_id", cv);
+                        try {
+                            SQLiteDatabase database = dbHelper.getWritableDatabase();
+                            database.insert(DbParams.TABLE_EVENTS, "_id", cv);
+                        } catch (SQLiteException e) {
+                            isDbWritable = false;
+                            SALog.printStackTrace(e);
+                        }
                     }
                 }
-
-                context.deleteDatabase(packageName);
+                if (isDbWritable) {
+                    context.deleteDatabase(packageName);
+                }
             } catch (Exception e) {
-                com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                SALog.printStackTrace(e);
             }
             PersistentLoader.initLoader(context);
             persistentAppStart = (PersistentAppStart) PersistentLoader.loadPersistent(DbParams.TABLE_APPSTARTED);
@@ -112,14 +121,22 @@ public class SensorsDataContentProvider extends ContentProvider {
 
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
+        if (!isDbWritable) {
+            return 0;
+        }
         int id = 0;
         SQLiteDatabase database = null;
         try {
-            database = dbHelper.getWritableDatabase();
+            try {
+                database = dbHelper.getWritableDatabase();
+            } catch (SQLiteException e) {
+                isDbWritable = false;
+                SALog.printStackTrace(e);
+            }
             database.delete(DbParams.TABLE_EVENTS, "_id <= ?", selectionArgs);
             //contentResolver.notifyChange(uri, null);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         } finally {
 //            try {
 //                if (database != null) {
@@ -139,11 +156,21 @@ public class SensorsDataContentProvider extends ContentProvider {
 
     @Override
     public Uri insert(Uri uri, ContentValues values) {
+        if (!isDbWritable) {
+            return uri;
+        }
         try {
             int code = uriMatcher.match(uri);
             switch (code) {
                 case EVENTS:
-                    SQLiteDatabase database = dbHelper.getWritableDatabase();
+                    SQLiteDatabase database = null;
+                    try {
+                        database = dbHelper.getWritableDatabase();
+                    } catch (SQLiteException e) {
+                        isDbWritable = false;
+                        SALog.printStackTrace(e);
+                        return uri;
+                    }
                     long d = database.insert(DbParams.TABLE_EVENTS, "_id", values);
                     return ContentUris.withAppendedId(uri, d);
                 default:
@@ -151,7 +178,7 @@ public class SensorsDataContentProvider extends ContentProvider {
                     return uri;
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         } finally {
 //            try {
 //                if (database != null) {
@@ -166,10 +193,19 @@ public class SensorsDataContentProvider extends ContentProvider {
 
     @Override
     public int bulkInsert(Uri uri, ContentValues[] values) {
+        if (!isDbWritable) {
+            return 0;
+        }
         int numValues;
         SQLiteDatabase database = null;
         try {
-            database = dbHelper.getWritableDatabase();
+            try {
+                database = dbHelper.getWritableDatabase();
+            } catch (SQLiteException e) {
+                isDbWritable = false;
+                SALog.printStackTrace(e);
+                return 0;
+            }
             database.beginTransaction();
             numValues = values.length;
             for (int i = 0; i < numValues; i++) {
@@ -186,19 +222,29 @@ public class SensorsDataContentProvider extends ContentProvider {
 
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
+        if (!isDbWritable) {
+            return null;
+        }
         Cursor cursor = null;
         try {
             int code = uriMatcher.match(uri);
             switch (code) {
                 case EVENTS:
-                    SQLiteDatabase database = dbHelper.getReadableDatabase();
+                    SQLiteDatabase database;
+                    try {
+                        database = dbHelper.getWritableDatabase();
+                    } catch (SQLiteException e) {
+                        isDbWritable = false;
+                        SALog.printStackTrace(e);
+                        return null;
+                    }
                     cursor = database.query(DbParams.TABLE_EVENTS, projection, selection, selectionArgs, null, null, sortOrder);
                     break;
                 default:
                     return query(code);
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
         return cursor;
     }
@@ -210,6 +256,7 @@ public class SensorsDataContentProvider extends ContentProvider {
 
     /**
      * insert 处理
+     *
      * @param code Uri code
      * @param uri Uri
      * @param values ContentValues
@@ -221,7 +268,7 @@ public class SensorsDataContentProvider extends ContentProvider {
                 state = values.getAsBoolean(DbParams.TABLE_APPSTARTED);
                 persistentAppStart.commit(values.getAsBoolean(DbParams.TABLE_APPSTARTED));
                 if (state) {
-                    contentResolver.notifyChange(uri,null);
+                    contentResolver.notifyChange(uri, null);
                 }
                 break;
             case APP_START_TIME:
@@ -242,7 +289,7 @@ public class SensorsDataContentProvider extends ContentProvider {
                 break;
             case SESSION_INTERVAL_TIME:
                 persistentSessionIntervalTime.commit(values.getAsInteger(DbParams.TABLE_SESSIONINTERVALTIME));
-                contentResolver.notifyChange(uri,null);
+                contentResolver.notifyChange(uri, null);
                 break;
             default:
                 break;
@@ -251,6 +298,7 @@ public class SensorsDataContentProvider extends ContentProvider {
 
     /**
      * query 处理
+     *
      * @param code Uri code
      * @return Cursor
      */

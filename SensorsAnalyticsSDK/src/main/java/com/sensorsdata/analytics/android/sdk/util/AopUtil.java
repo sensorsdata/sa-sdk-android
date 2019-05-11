@@ -46,9 +46,7 @@ import com.sensorsdata.analytics.android.sdk.SensorsDataFragmentTitle;
 
 import org.json.JSONObject;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -104,7 +102,7 @@ public class AopUtil {
             }
 
             if (activity != null) {
-                if (!SensorsDataAPI.sharedInstance().isHeatMapActivity(activity.getClass()) && !SensorsDataAPI.sharedInstance().isVisualizedAutoTrackActivity(activity.getClass()) ) {
+                if (!SensorsDataAPI.sharedInstance().isHeatMapActivity(activity.getClass()) && !SensorsDataAPI.sharedInstance().isVisualizedAutoTrackActivity(activity.getClass())) {
                     return;
                 }
             }
@@ -242,6 +240,8 @@ public class AopUtil {
                 if (!TextUtils.isEmpty(imageView.getContentDescription())) {
                     viewText = imageView.getContentDescription().toString();
                 }
+            } else {
+                viewText = child.getContentDescription().toString();
             }
             if (!TextUtils.isEmpty(viewText)) {
                 return viewText.toString();
@@ -261,7 +261,7 @@ public class AopUtil {
                     fragmentName = fragmentName2;
                 }
                 if (!TextUtils.isEmpty(fragmentName)) {
-                    Object fragment =  Class.forName(fragmentName).newInstance();
+                    Object fragment = Class.forName(fragmentName).newInstance();
                     if (fragment != null) {
                         getScreenNameAndTitleFromFragment(properties, fragment, activity);
                     }
@@ -306,7 +306,8 @@ public class AopUtil {
      * 尝试读取页面 title
      *
      * @param properties JSONObject
-     * @param fragment   Fragment
+     * @param fragment Fragment
+     * @param activity Activity
      */
     public static void getScreenNameAndTitleFromFragment(JSONObject properties, Object fragment, Activity activity) {
         try {
@@ -366,6 +367,7 @@ public class AopUtil {
 
     /**
      * 根据 Fragment 获取对应的 Activity
+     *
      * @param fragment，Fragment
      * @return Activity or null
      */
@@ -386,6 +388,7 @@ public class AopUtil {
 
     /**
      * 构建 Title 和 Screen 的名称
+     *
      * @param activity 页面
      * @return JSONObject
      */
@@ -455,7 +458,38 @@ public class AopUtil {
     }
 
     /**
+     * 采集 View 的 $element_type 主要区分继承系统 View 和继承系统 View 的自定义 View
+     *
+     * @param viewName View.getCanonicalName（）返回的 name
+     * @param defaultTypeName 默认的 typeName
+     * @return typeName
+     */
+    public static String getViewType(String viewName, String defaultTypeName) {
+        if (TextUtils.isEmpty(viewName)) {
+            return defaultTypeName;
+        }
+        if (TextUtils.isEmpty(defaultTypeName)) {
+            return viewName;
+        }
+        try {
+            //将包名和类名按照 . 拆分
+            String[] lineNames = viewName.split("\\.");
+            if (lineNames.length > 0) {
+                if (TextUtils.equals(lineNames[lineNames.length - 1], defaultTypeName)) {
+                    return defaultTypeName;
+                } else {
+                    return viewName;
+                }
+            }
+        } catch (Exception e) {
+            //ignore
+        }
+        return viewName;
+    }
+
+    /**
      * ViewType 被忽略
+     *
      * @param viewType Class
      * @return 是否被忽略
      */
@@ -466,12 +500,11 @@ public class AopUtil {
             }
 
             List<Class> mIgnoredViewTypeList = SensorsDataAPI.sharedInstance().getIgnoredViewTypeList();
-            if (mIgnoredViewTypeList != null) {
+            if (!mIgnoredViewTypeList.isEmpty()) {
                 for (Class<?> clazz : mIgnoredViewTypeList) {
                     if (clazz.isAssignableFrom(viewType)) {
                         return true;
                     }
-
                 }
             }
             return false;
@@ -566,16 +599,12 @@ public class AopUtil {
      */
     public static void mergeJSONObject(final JSONObject source, JSONObject dest) {
         try {
-            if (mDateFormat == null) {
-                mDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"
-                        + ".SSS", Locale.getDefault());
-            }
             Iterator<String> superPropertiesIterator = source.keys();
             while (superPropertiesIterator.hasNext()) {
                 String key = superPropertiesIterator.next();
                 Object value = source.get(key);
                 if (value instanceof Date) {
-                    dest.put(key, mDateFormat.format((Date) value));
+                    dest.put(key, DateFormatUtils.formatDate((Date) value));
                 } else {
                     dest.put(key, value);
                 }
@@ -584,6 +613,4 @@ public class AopUtil {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
-
-    private static SimpleDateFormat mDateFormat = null;
 }

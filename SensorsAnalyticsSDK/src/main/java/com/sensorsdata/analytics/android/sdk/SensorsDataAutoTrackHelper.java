@@ -55,7 +55,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
@@ -94,19 +93,16 @@ public class SensorsDataAutoTrackHelper {
             final int childCount = root.getChildCount();
             for (int i = 0; i < childCount; ++i) {
                 final View child = root.getChildAt(i);
-                if (child instanceof ListView ||
+                child.setTag(R.id.sensors_analytics_tag_view_fragment_name, fragmentName);
+                if (child instanceof ViewGroup && !(child instanceof ListView ||
                         child instanceof GridView ||
                         child instanceof Spinner ||
-                        child instanceof RadioGroup) {
-                    child.setTag(R.id.sensors_analytics_tag_view_fragment_name, fragmentName);
-                } else if (child instanceof ViewGroup) {
+                        child instanceof RadioGroup)) {
                     traverseView(fragmentName, (ViewGroup) child);
-                } else {
-                    child.setTag(R.id.sensors_analytics_tag_view_fragment_name, fragmentName);
                 }
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -155,14 +151,13 @@ public class SensorsDataAutoTrackHelper {
 
             //Fragment名称
             String fragmentName = object.getClass().getName();
+            rootView.setTag(R.id.sensors_analytics_tag_view_fragment_name, fragmentName);
 
             if (rootView instanceof ViewGroup) {
                 traverseView(fragmentName, (ViewGroup) rootView);
-            } else {
-                rootView.setTag(R.id.sensors_analytics_tag_view_fragment_name, fragmentName);
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -221,7 +216,7 @@ public class SensorsDataAutoTrackHelper {
             }
             SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -263,7 +258,7 @@ public class SensorsDataAutoTrackHelper {
                 if (autoTrackAppViewScreenUrl != null) {
                     String screenUrl = autoTrackAppViewScreenUrl.url();
                     if (TextUtils.isEmpty(screenUrl)) {
-                        screenUrl = fragment.getClass().getCanonicalName();;
+                        screenUrl = fragment.getClass().getCanonicalName();
                     }
                     SensorsDataAPI.sharedInstance().trackViewScreen(screenUrl, properties);
                 } else {
@@ -271,7 +266,7 @@ public class SensorsDataAutoTrackHelper {
                 }
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -484,7 +479,7 @@ public class SensorsDataAutoTrackHelper {
                         viewText = viewText.substring(0, viewText.length() - 1);
                     }
                 } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                    SALog.printStackTrace(e);
                 }
             }
             //$element_content
@@ -512,14 +507,14 @@ public class SensorsDataAutoTrackHelper {
                             AopUtil.mergeJSONObject(jsonObject, properties);
                         }
                     } catch (JSONException e) {
-                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                        SALog.printStackTrace(e);
                     }
                 }
             }
 
             SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -612,7 +607,7 @@ public class SensorsDataAutoTrackHelper {
                         viewText = viewText.substring(0, viewText.length() - 1);
                     }
                 } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                    SALog.printStackTrace(e);
                 }
             }
             //$element_content
@@ -632,7 +627,7 @@ public class SensorsDataAutoTrackHelper {
             SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
 
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -660,7 +655,7 @@ public class SensorsDataAutoTrackHelper {
 
             SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -734,7 +729,7 @@ public class SensorsDataAutoTrackHelper {
                         }
                     }
                 } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                    SALog.printStackTrace(e);
                 }
             }
             //Activity 被忽略
@@ -814,7 +809,7 @@ public class SensorsDataAutoTrackHelper {
                                     StringBuilder stringBuilder = new StringBuilder();
                                     String viewText;
                                     if (view instanceof ViewGroup) {
-                                        viewText  = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
+                                        viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
                                         if (!TextUtils.isEmpty(viewText)) {
                                             viewText = viewText.substring(0, viewText.length() - 1);
                                         }
@@ -826,7 +821,7 @@ public class SensorsDataAutoTrackHelper {
                                         properties.put(AopConstants.ELEMENT_CONTENT, viewText);
                                     }
                                 } catch (Exception e) {
-                                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                                    SALog.printStackTrace(e);
                                 }
                             }
                         }
@@ -846,7 +841,7 @@ public class SensorsDataAutoTrackHelper {
                             properties.put(AopConstants.ELEMENT_ID, resourceId);
                         }
                     } catch (Exception e) {
-                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                        SALog.printStackTrace(e);
                     }
                 }
             }
@@ -856,7 +851,7 @@ public class SensorsDataAutoTrackHelper {
 
             SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -912,7 +907,7 @@ public class SensorsDataAutoTrackHelper {
                     idString = context.getResources().getResourceEntryName(menuItem.getItemId());
                 }
             } catch (Exception e) {
-                com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                SALog.printStackTrace(e);
             }
 
             JSONObject properties = new JSONObject();
@@ -937,7 +932,7 @@ public class SensorsDataAutoTrackHelper {
 
             SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -1008,7 +1003,7 @@ public class SensorsDataAutoTrackHelper {
                         AopUtil.addViewPathProperties(activity, radioButton, properties);
                     }
                 } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                    SALog.printStackTrace(e);
                 }
             }
 
@@ -1023,7 +1018,7 @@ public class SensorsDataAutoTrackHelper {
 
             SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -1084,7 +1079,7 @@ public class SensorsDataAutoTrackHelper {
                     }
                 }
             } catch (Exception e) {
-                com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                SALog.printStackTrace(e);
             }
 
             //$screen_name & $title
@@ -1177,7 +1172,7 @@ public class SensorsDataAutoTrackHelper {
 
             SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -1216,18 +1211,20 @@ public class SensorsDataAutoTrackHelper {
 
             JSONObject properties = new JSONObject();
 
-            List<Class> mIgnoredViewTypeList = SensorsDataAPI.sharedInstance().getIgnoredViewTypeList();
-            if (mIgnoredViewTypeList != null) {
-                if (adapterView instanceof ListView) {
-                    properties.put(AopConstants.ELEMENT_TYPE, "ListView");
-                    if (AopUtil.isViewIgnored(ListView.class)) {
-                        return;
-                    }
-                } else if (adapterView instanceof GridView) {
-                    properties.put(AopConstants.ELEMENT_TYPE, "GridView");
-                    if (AopUtil.isViewIgnored(GridView.class)) {
-                        return;
-                    }
+            if (adapterView instanceof ListView) {
+                properties.put(AopConstants.ELEMENT_TYPE, "ListView");
+                if (AopUtil.isViewIgnored(ListView.class)) {
+                    return;
+                }
+            } else if (adapterView instanceof GridView) {
+                properties.put(AopConstants.ELEMENT_TYPE, "GridView");
+                if (AopUtil.isViewIgnored(GridView.class)) {
+                    return;
+                }
+            } else if (adapterView instanceof Spinner) {
+                properties.put(AopConstants.ELEMENT_TYPE, "Spinner");
+                if (AopUtil.isViewIgnored(Spinner.class)) {
+                    return;
                 }
             }
 
@@ -1251,7 +1248,7 @@ public class SensorsDataAutoTrackHelper {
                         AopUtil.mergeJSONObject(jsonObject, properties);
                     }
                 } catch (JSONException e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                    SALog.printStackTrace(e);
                 }
             }
 
@@ -1274,7 +1271,7 @@ public class SensorsDataAutoTrackHelper {
                         viewText = viewText.substring(0, viewText.length() - 1);
                     }
                 } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                    SALog.printStackTrace(e);
                 }
             } else if (view instanceof TextView) {
                 viewText = ((TextView) view).getText().toString();
@@ -1295,7 +1292,7 @@ public class SensorsDataAutoTrackHelper {
 
             SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -1308,7 +1305,7 @@ public class SensorsDataAutoTrackHelper {
 
             trackViewOnClick(view);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -1321,7 +1318,7 @@ public class SensorsDataAutoTrackHelper {
 
             trackViewOnClick(view);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -1363,7 +1360,7 @@ public class SensorsDataAutoTrackHelper {
                         return;
                     }
                 } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                    SALog.printStackTrace(e);
                 }
             }
             view.setTag(R.id.sensors_analytics_tag_view_onclick_timestamp, String.valueOf(currentOnClickTimestamp));
@@ -1418,60 +1415,60 @@ public class SensorsDataAutoTrackHelper {
                 if (!view.isPressed()) {
                     return;
                 }
-                viewType = "CheckBox";
+                viewType = AopUtil.getViewType(viewType, "CheckBox");
                 CheckBox checkBox = (CheckBox) view;
                 viewText = checkBox.getText();
 
-            }else if (androidSwitchClass != null && androidSwitchClass.isInstance(view)) {
+            } else if (androidSwitchClass != null && androidSwitchClass.isInstance(view)) {
                 if (!view.isPressed()) {
                     return;
                 }
-                viewType = "Switch";
+                viewType = AopUtil.getViewType(viewType, "Switch");
                 viewText = AopUtil.getCompoundButtonText(view);
             } else if (currentSwitchCompatClass != null && currentSwitchCompatClass.isInstance(view)) {
                 if (!view.isPressed()) {
                     return;
                 }
-                viewType = "SwitchCompat";
+                viewType = AopUtil.getViewType(viewType, "SwitchCompat");
                 viewText = AopUtil.getCompoundButtonText(view);
             } else if (view instanceof RadioButton) { // RadioButton
-                viewType = "RadioButton";
+                viewType = AopUtil.getViewType(viewType, "RadioButton");
                 RadioButton radioButton = (RadioButton) view;
                 viewText = radioButton.getText();
             } else if (view instanceof ToggleButton) { // ToggleButton
                 if (!view.isPressed()) {
                     return;
                 }
-                viewType = "ToggleButton";
+                viewType = AopUtil.getViewType(viewType, "ToggleButton");
                 viewText = AopUtil.getCompoundButtonText(view);
             } else if (view instanceof Button) { // Button
-                viewType = "Button";
+                viewType = AopUtil.getViewType(viewType, "Button");
                 Button button = (Button) view;
                 viewText = button.getText();
             } else if (view instanceof CheckedTextView) { // CheckedTextView
-                viewType = "CheckedTextView";
+                viewType = AopUtil.getViewType(viewType, "CheckedTextView");
                 CheckedTextView textView = (CheckedTextView) view;
                 viewText = textView.getText();
             } else if (view instanceof TextView) { // TextView
-                viewType = "TextView";
+                viewType = AopUtil.getViewType(viewType, "TextView");
                 TextView textView = (TextView) view;
                 viewText = textView.getText();
             } else if (view instanceof ImageView) { // ImageView
-                viewType = "ImageView";
+                viewType = AopUtil.getViewType(viewType, "ImageView");
                 ImageView imageView = (ImageView) view;
                 if (!TextUtils.isEmpty(imageView.getContentDescription())) {
                     viewText = imageView.getContentDescription().toString();
                 }
             } else if (view instanceof RatingBar) {
-                viewType = "RatingBar";
+                viewType = AopUtil.getViewType(viewType, "RatingBar");
                 RatingBar ratingBar = (RatingBar) view;
                 viewText = String.valueOf(ratingBar.getRating());
             } else if (view instanceof SeekBar) {
-                viewType = "SeekBar";
+                viewType = AopUtil.getViewType(viewType, "SeekBar");
                 SeekBar seekBar = (SeekBar) view;
                 viewText = String.valueOf(seekBar.getProgress());
             } else if (view instanceof Spinner) {
-                viewType = "Spinner";
+                viewType = AopUtil.getViewType(viewType, "Spinner");
                 try {
                     StringBuilder stringBuilder = new StringBuilder();
                     viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
@@ -1479,18 +1476,24 @@ public class SensorsDataAutoTrackHelper {
                         viewText = viewText.toString().substring(0, viewText.length() - 1);
                     }
                 } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                    SALog.printStackTrace(e);
                 }
             } else if (view instanceof ViewGroup) {
-                try {
-                    StringBuilder stringBuilder = new StringBuilder();
-                    viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
-                    if (!TextUtils.isEmpty(viewText)) {
-                        viewText = viewText.toString().substring(0, viewText.length() - 1);
+                viewText = view.getContentDescription();
+                if (TextUtils.isEmpty(viewText)) {
+                    try {
+                        StringBuilder stringBuilder = new StringBuilder();
+                        viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
+                        if (!TextUtils.isEmpty(viewText)) {
+                            viewText = viewText.toString().substring(0, viewText.length() - 1);
+                        }
+                    } catch (Exception e) {
+                        SALog.printStackTrace(e);
                     }
-                } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
+            }
+            if (TextUtils.isEmpty(viewText)) {
+                viewText = view.getContentDescription();
             }
 
             //$element_content
@@ -1512,7 +1515,7 @@ public class SensorsDataAutoTrackHelper {
 
             SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -1526,12 +1529,12 @@ public class SensorsDataAutoTrackHelper {
                 try {
                     pro = new JSONObject(properties);
                 } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                    SALog.printStackTrace(e);
                 }
             }
             SensorsDataAPI.sharedInstance().track(eventName, pro);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 }

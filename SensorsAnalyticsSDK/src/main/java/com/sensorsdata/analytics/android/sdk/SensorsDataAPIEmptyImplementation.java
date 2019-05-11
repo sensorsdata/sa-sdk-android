@@ -19,11 +19,13 @@ package com.sensorsdata.analytics.android.sdk;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
 import android.view.View;
 import android.webkit.WebView;
 
 import org.json.JSONObject;
 
+import javax.net.ssl.SSLSocketFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -604,28 +606,21 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     /**
-     * 获取当前用户的distinctId
+     * 获取当前用户的 distinctId
      *
-     * 若调用前未调用 {@link #identify(String)} 设置用户的 distinctId，SDK 会调用 {@link java.util.UUID} 随机生成
-     * UUID，作为用户的 distinctId
-     *
-     * 该方法已不推荐使用，请参考 {@link #getAnonymousId()}
-     *
-     * @return 当前用户的distinctId
+     * @return 优先返回登录 ID，登录 ID 为空时，返回匿名 ID
      */
-    @Deprecated
     @Override
     public String getDistinctId() {
         return null;
     }
 
     /**
-     * 获取当前用户的匿名id
+     * 获取当前用户的匿名 ID
+     * 若调用前未调用 {@link #identify(String)} 设置用户的匿名 ID，SDK 会优先调用 {@link com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils#getAndroidID(Context)}获取 Android ID，
+     * 如获取的 Android ID 非法，则调用 {@link java.util.UUID} 随机生成 UUID，作为用户的匿名 ID
      *
-     * 若调用前未调用 {@link #identify(String)} 设置用户的匿名id，SDK 会调用 {@link java.util.UUID} 随机生成
-     * UUID，作为用户的匿名id
-     *
-     * @return 当前用户的匿名id
+     * @return 当前用户的匿名 ID
      */
     @Override
     public String getAnonymousId() {
@@ -1301,6 +1296,11 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
      */
     @Override
     public void enableVisualizedAutoTrack() {
+
+    }
+
+    @Override
+    public void setSSLSocketFactory(SSLSocketFactory sf) {
 
     }
 }

@@ -18,11 +18,13 @@ package com.sensorsdata.analytics.android.sdk;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
 import android.view.View;
 import android.webkit.WebView;
 
 import org.json.JSONObject;
 
+import javax.net.ssl.SSLSocketFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -94,15 +96,12 @@ public interface ISensorsDataAPI {
 
     /**
      * 两次数据发送的最小时间间隔，单位毫秒
-     *
      * 默认值为15 * 1000毫秒
      * 在每次调用track、signUp以及profileSet等接口的时候，都会检查如下条件，以判断是否向服务器上传数据:
-     *
      * 1. 是否是WIFI/3G/4G网络条件
      * 2. 是否满足发送条件之一:
      * 1) 与上次发送的时间间隔是否大于 flushInterval
      * 2) 本地缓存日志数目是否大于 flushBulkSize
-     *
      * 如果满足这两个条件，则向服务器发送一次数据；如果不满足，则把数据加入到队列中，等待下次检查时把整个队列的内
      * 容一并发送。需要注意的是，为了避免占用过多存储，队列最多只缓存20MB数据。
      *
@@ -133,9 +132,7 @@ public interface ISensorsDataAPI {
 
     /**
      * 设置 App 切换到后台与下次事件的事件间隔
-     *
      * 默认值为 30*1000 毫秒
-     *
      * 若 App 在后台超过设定事件，则认为当前 Session 结束，发送 $AppEnd 事件
      *
      * @param sessionIntervalTime int
@@ -144,9 +141,7 @@ public interface ISensorsDataAPI {
 
     /**
      * 设置 App 切换到后台与下次事件的事件间隔
-     *
      * 默认值为 30*1000 毫秒
-     *
      * 若 App 在后台超过设定事件，则认为当前 Session 结束，发送 $AppEnd 事件
      *
      * @return 返回设置的 SessionIntervalTime ，默认是 30s
@@ -155,11 +150,9 @@ public interface ISensorsDataAPI {
 
     /**
      * 打开 SDK 自动追踪
-     *
      * 该功能自动追踪 App 的一些行为，例如 SDK 初始化、App 启动（$AppStart） / 关闭（$AppEnd）、
      * 进入页面（$AppViewScreen）等等，具体信息请参考文档:
      * https://sensorsdata.cn/manual/android_sdk.html
-     *
      * 该功能仅在 API 14 及以上版本中生效，默认关闭
      */
     @Deprecated
@@ -167,10 +160,8 @@ public interface ISensorsDataAPI {
 
     /**
      * 打开 SDK 自动追踪
-     *
      * 该功能自动追踪 App 的一些行为，指定哪些 AutoTrack 事件被追踪，具体信息请参考文档:
      * https://sensorsdata.cn/manual/android_sdk.html
-     *
      * 该功能仅在 API 14 及以上版本中生效，默认关闭
      *
      * @param eventTypeList 开启 AutoTrack 的事件列表
@@ -260,7 +251,6 @@ public interface ISensorsDataAPI {
 
     /**
      * 指定哪些 activity 不被AutoTrack
-     *
      * 指定activity的格式为：activity.getClass().getCanonicalName()
      *
      * @param activitiesList activity列表
@@ -352,12 +342,20 @@ public interface ISensorsDataAPI {
     void ignoreAutoTrackEventType(List<SensorsDataAPI.AutoTrackEventType> eventTypeList);
 
     /**
-     * 判断 某个 AutoTrackEventType 是否被忽略
+     * 判断某个 AutoTrackEventType 是否被忽略
      *
      * @param eventType AutoTrackEventType
      * @return true 被忽略; false 没有被忽略
      */
     boolean isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType eventType);
+
+    /**
+     * 判断某个 AutoTrackEventType 是否被忽略
+     *
+     * @param autoTrackEventType SensorsAnalyticsAutoTrackEventType 中的事件类型，可通过 '|' 进行连接传递
+     * @return true 被忽略; false 没有被忽略
+     */
+    boolean isAutoTrackEventTypeIgnored(int autoTrackEventType);
 
     /**
      * 设置界面元素ID
@@ -521,25 +519,18 @@ public interface ISensorsDataAPI {
     void enableHeatMap();
 
     /**
-     * 获取当前用户的distinctId
+     * 获取当前用户的 distinctId
      *
-     * 若调用前未调用 {@link #identify(String)} 设置用户的 distinctId，SDK 会调用 {@link java.util.UUID} 随机生成
-     * UUID，作为用户的 distinctId
-     *
-     * 该方法已不推荐使用，请参考 {@link #getAnonymousId()}
-     *
-     * @return 当前用户的distinctId
+     * @return 优先返回登录 ID，登录 ID 为空时，返回匿名 ID
      */
-    @Deprecated
     String getDistinctId();
 
     /**
-     * 获取当前用户的匿名id
+     * 获取当前用户的匿名 ID
+     * 若调用前未调用 {@link #identify(String)} 设置用户的匿名 ID，SDK 会优先调用 {@link com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils#getAndroidID(Context)}获取 Android ID，
+     * 如获取的 Android ID 非法，则调用 {@link java.util.UUID} 随机生成 UUID，作为用户的匿名 ID
      *
-     * 若调用前未调用 {@link #identify(String)} 设置用户的匿名id，SDK 会调用 {@link java.util.UUID} 随机生成
-     * UUID，作为用户的匿名id
-     *
-     * @return 当前用户的匿名id
+     * @return 当前用户的匿名 ID
      */
     String getAnonymousId();
 
@@ -550,7 +541,6 @@ public interface ISensorsDataAPI {
 
     /**
      * 获取当前用户的 loginId
-     *
      * 若调用前未调用 {@link #login(String)} 设置用户的 loginId，会返回null
      *
      * @return 当前用户的 loginId
@@ -588,7 +578,6 @@ public interface ISensorsDataAPI {
 
     /**
      * 记录第一次登录行为
-     *
      * 这个接口是一个较为复杂的功能，请在使用前先阅读相关说明:
      * http://www.sensorsdata.cn/manual/track_signup.html
      * 并在必要时联系我们的技术支持人员。
@@ -602,7 +591,6 @@ public interface ISensorsDataAPI {
 
     /**
      * 与 {@link #trackSignUp(String, JSONObject)} 类似，无事件属性
-     *
      * 这个接口是一个较为复杂的功能，请在使用前先阅读相关说明:
      * http://www.sensorsdata.cn/manual/track_signup.html，
      * 并在必要时联系我们的技术支持人员。
@@ -615,7 +603,6 @@ public interface ISensorsDataAPI {
 
     /**
      * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
-     *
      * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
      *
      * @param eventName 渠道追踪事件的名称
@@ -626,7 +613,6 @@ public interface ISensorsDataAPI {
 
     /**
      * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
-     *
      * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
      *
      * @param eventName 渠道追踪事件的名称
@@ -636,7 +622,6 @@ public interface ISensorsDataAPI {
 
     /**
      * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
-     *
      * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
      *
      * @param eventName 渠道追踪事件的名称
@@ -660,7 +645,6 @@ public interface ISensorsDataAPI {
 
     /**
      * 初始化事件的计时器，默认计时单位为毫秒。
-     *
      * 详细用法请参考 trackTimer(String, TimeUnit)
      *
      * @param eventName 事件的名称
@@ -670,11 +654,9 @@ public interface ISensorsDataAPI {
 
     /**
      * 初始化事件的计时器。
-     *
      * 若需要统计某个事件的持续时间，先在事件开始时调用 trackTimer("Event") 记录事件开始时间，该方法并不会真正发
      * 送事件；随后在事件结束时，调用 track("Event", properties)，SDK 会追踪 "Event" 事件，并自动将事件持续时
      * 间记录在事件属性 "event_duration" 中。
-     *
      * 多次调用 trackTimer("Event") 时，事件 "Event" 的开始时间以最后一次调用时为准。
      *
      * @param eventName 事件的名称
@@ -685,11 +667,9 @@ public interface ISensorsDataAPI {
 
     /**
      * 初始化事件的计时器。
-     *
      * 若需要统计某个事件的持续时间，先在事件开始时调用 trackTimer("Event") 记录事件开始时间，该方法并不会真正发
      * 送事件；随后在事件结束时，调用 track("Event", properties)，SDK 会追踪 "Event" 事件，并自动将事件持续时
      * 间记录在事件属性 "event_duration" 中。
-     *
      * 多次调用 trackTimer("Event") 时，事件 "Event" 的开始时间以最后一次调用时为准。
      *
      * @param eventName 事件的名称
@@ -707,7 +687,6 @@ public interface ISensorsDataAPI {
 
     /**
      * 初始化事件的计时器，默认计时单位为毫秒。
-     *
      * 详细用法请参考 trackTimerBegin(String, TimeUnit)
      *
      * @param eventName 事件的名称
@@ -716,11 +695,9 @@ public interface ISensorsDataAPI {
 
     /**
      * 初始化事件的计时器。
-     *
      * 若需要统计某个事件的持续时间，先在事件开始时调用 trackTimerBegin("Event") 记录事件开始时间，该方法并不会真正发
      * 送事件；随后在事件结束时，调用 track("Event", properties)，SDK 会追踪 "Event" 事件，并自动将事件持续时
      * 间记录在事件属性 "event_duration" 中。
-     *
      * 多次调用 trackTimerBegin("Event") 时，事件 "Event" 的开始时间以最后一次调用时为准。
      *
      * @param eventName 事件的名称
@@ -998,4 +975,11 @@ public interface ISensorsDataAPI {
      */
 
     void profilePushId(String propertyKey, String pushId);
+
+    /**
+     * 设置 SSLSocketFactory，HTTPS 请求连接时需要使用
+     *
+     * @param sf SSLSocketFactory 对象
+     */
+    void setSSLSocketFactory(SSLSocketFactory sf);
 }

@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 apply plugin: 'com.sensorsdata.analytics.android'
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 'android-Q'
 
     defaultConfig {
         applicationId "com.sensorsdata.analytics.android.demo"
@@ -34,7 +34,7 @@ android {
 }
 
 dependencies {
-    compile fileTree(include: ['.jar', '.so'], dir: 'libs')
+    implementation fileTree(include: ['.jar', '.so'], dir: 'libs')
     implementation 'androidx.appcompat:appcompat:1.0.2'
     implementation 'com.google.android.material:material:1.0.0'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'

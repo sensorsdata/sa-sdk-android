@@ -17,6 +17,7 @@
 
 package com.sensorsdata.analytics.android.sdk.util;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.Activity;
@@ -28,10 +29,13 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
+import android.os.SystemClock;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -48,7 +52,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.net.NetworkInterface;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -58,6 +61,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 public final class SensorsDataUtils {
@@ -111,6 +115,7 @@ public final class SensorsDataUtils {
 
     /**
      * 读取配置配置的 AutoTrack 的 Fragment
+     *
      * @param context Context
      * @return ArrayList Fragment 列表
      */
@@ -178,8 +183,8 @@ public final class SensorsDataUtils {
     /**
      * 此方法谨慎修改
      * 插件配置 disableCarrier 会修改此方法
-     *
      * 获取运营商信息
+     *
      * @param context Context
      * @return 运营商信息
      */
@@ -190,9 +195,24 @@ public final class SensorsDataUtils {
                     TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context
                             .TELEPHONY_SERVICE);
                     if (telephonyManager != null) {
-                        String operatorString = telephonyManager.getSubscriberId();
-                        if (!TextUtils.isEmpty(operatorString)) {
-                            return SensorsDataUtils.operatorToCarrier(context, operatorString);
+                        String operator = telephonyManager.getSimOperator();
+                        String alternativeName = "未知";
+                        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+                            CharSequence tmpCarrierName = telephonyManager.getSimPreciseCarrierIdName();
+                            if (!TextUtils.isEmpty(tmpCarrierName)) {
+                                alternativeName = tmpCarrierName.toString();
+                            }
+                        } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.P) {
+                            CharSequence tmpCarrierName = telephonyManager.getSimCarrierIdName();
+                            if (!TextUtils.isEmpty(tmpCarrierName)) {
+                                alternativeName = tmpCarrierName.toString();
+                            }
+                        } else {
+                            alternativeName = telephonyManager.getSimOperatorName();
+                        }
+
+                        if (!TextUtils.isEmpty(operator)) {
+                            return SensorsDataUtils.operatorToCarrier(context, operator, alternativeName);
                         }
                     }
                 } catch (Exception e) {
@@ -255,6 +275,7 @@ public final class SensorsDataUtils {
 
     /**
      * 获取主进程的名称
+     *
      * @param context Context
      * @return 主进程名称
      */
@@ -322,12 +343,18 @@ public final class SensorsDataUtils {
         return false;
     }
 
-    public static String operatorToCarrier(Context context, String operator) {
-        final String other = "其他";
-
+    /**
+     * 根据 operator，获取本地化运营商信息
+     *
+     * @param context context
+     * @param operator sim operator
+     * @param alternativeName 备选名称
+     * @return local carrier name
+     */
+    private static String operatorToCarrier(Context context, String operator, String alternativeName) {
         try {
             if (TextUtils.isEmpty(operator)) {
-                return other;
+                return alternativeName;
             }
 
             for (Map.Entry<String, String> entry : sCarrierMap.entrySet()) {
@@ -338,31 +365,20 @@ public final class SensorsDataUtils {
 
             String carrierJson = getJsonFromAssets("sa_mcc_mnc_mini.json", context);
             if (TextUtils.isEmpty(carrierJson)) {
-                return other;
+                sCarrierMap.put(operator, alternativeName);
+                return alternativeName;
             }
 
             JSONObject jsonObject = new JSONObject(carrierJson);
-            int operatorLength = operator.length();
-            String carrier = null;
-
-            //mcc与mnc之和为5位数或6位数,6位数比较少，先截取6位数进行判断
-            if (operatorLength >= 6) {
-                String mccMnc = operator.substring(0, 6);
-                carrier = getCarrierFromJsonObject(jsonObject, mccMnc);
-            }
-
-            if (TextUtils.isEmpty(carrier) && operatorLength >= 5) {
-                String mccMnc = operator.substring(0, 5);
-                carrier = getCarrierFromJsonObject(jsonObject, mccMnc);
-            }
-
+            String carrier = getCarrierFromJsonObject(jsonObject, operator);
             if (!TextUtils.isEmpty(carrier)) {
+                sCarrierMap.put(operator, carrier);
                 return carrier;
             }
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
-        return other;
+        return alternativeName;
     }
 
     private static String getCarrierFromJsonObject(JSONObject jsonObject, String mccMnc) {
@@ -397,17 +413,13 @@ public final class SensorsDataUtils {
                     Class<?> appCompatActivityClass = null;
                     try {
                         appCompatActivityClass = Class.forName("android.support.v7.app.AppCompatActivity");
+                        if (appCompatActivityClass == null) {
+                            appCompatActivityClass = Class.forName("androidx.appcompat.app.AppCompatActivity");
+                        }
                     } catch (Exception e) {
                         //ignored
                     }
 
-                    if (appCompatActivityClass == null) {
-                        try {
-                            appCompatActivityClass = Class.forName("androidx.appcompat.app.AppCompatActivity");
-                        } catch (Exception e) {
-                            //ignored
-                        }
-                    }
                     if (appCompatActivityClass != null && appCompatActivityClass.isInstance(activity)) {
                         Method method = activity.getClass().getMethod("getSupportActionBar");
                         if (method != null) {
@@ -437,7 +449,7 @@ public final class SensorsDataUtils {
      * 尝试读取页面 title
      *
      * @param properties JSONObject
-     * @param activity   Activity
+     * @param activity Activity
      */
     public static void getScreenNameAndTitleFromActivity(JSONObject properties, Activity activity) {
         if (activity == null || properties == null) {
@@ -452,7 +464,7 @@ public final class SensorsDataUtils {
                 activityTitle = activity.getTitle().toString();
             }
 
-            if (Build.VERSION.SDK_INT >= 11) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
                 String toolbarTitle = getToolbarTitle(activity);
                 if (!TextUtils.isEmpty(toolbarTitle)) {
                     activityTitle = toolbarTitle;
@@ -490,17 +502,12 @@ public final class SensorsDataUtils {
     public static void mergeJSONObject(final JSONObject source, JSONObject dest) {
         try {
             Iterator<String> superPropertiesIterator = source.keys();
-            if (mDateFormat == null) {
-                mDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"
-                        + ".SSS", Locale.CHINA);
-            }
+
             while (superPropertiesIterator.hasNext()) {
                 String key = superPropertiesIterator.next();
                 Object value = source.get(key);
                 if (value instanceof Date) {
-                    synchronized (mDateFormat) {
-                        dest.put(key, mDateFormat.format((Date) value));
-                    }
+                    dest.put(key, DateFormatUtils.formatDate((Date) value, Locale.CHINA));
                 } else {
                     dest.put(key, value);
                 }
@@ -512,16 +519,13 @@ public final class SensorsDataUtils {
 
     /**
      * 融合静态公共属性
+     *
      * @param source 源属性
-     * @param dest  目标属性
+     * @param dest 目标属性
      */
     public static void mergeSuperJSONObject(final JSONObject source, JSONObject dest) {
         try {
             Iterator<String> superPropertiesIterator = source.keys();
-            if (mDateFormat == null) {
-                mDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"
-                        + ".SSS", Locale.CHINA);
-            }
             while (superPropertiesIterator.hasNext()) {
                 String key = superPropertiesIterator.next();
                 Iterator<String> destPropertiesIterator = dest.keys();
@@ -535,9 +539,7 @@ public final class SensorsDataUtils {
 
                 Object value = source.get(key);
                 if (value instanceof Date) {
-                    synchronized (mDateFormat) {
-                        dest.put(key, mDateFormat.format((Date) value));
-                    }
+                    dest.put(key, DateFormatUtils.formatDate((Date) value, Locale.CHINA));
                 } else {
                     dest.put(key, value);
                 }
@@ -605,7 +607,7 @@ public final class SensorsDataUtils {
     /**
      * 检测权限
      *
-     * @param context    Context
+     * @param context Context
      * @param permission 权限名称
      * @return true:已允许该权限; false:没有允许该权限
      */
@@ -631,7 +633,7 @@ public final class SensorsDataUtils {
             }
 
             Method checkSelfPermissionMethod = contextCompat.getMethod("checkSelfPermission", new Class[]{Context.class, String.class});
-            int result = (int)checkSelfPermissionMethod.invoke(null, new Object[]{context, permission});
+            int result = (int) checkSelfPermissionMethod.invoke(null, new Object[]{context, permission});
             if (result != PackageManager.PERMISSION_GRANTED) {
                 SALog.i(TAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n"
                         + "<uses-permission android:name=\"" + permission + "\" />");
@@ -656,9 +658,19 @@ public final class SensorsDataUtils {
             ConnectivityManager manager = (ConnectivityManager)
                     context.getSystemService(Context.CONNECTIVITY_SERVICE);
             if (manager != null) {
-                NetworkInfo networkInfo = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-                if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
-                    return "WIFI";
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    Network network = manager.getActiveNetwork();
+                    if (network != null) {
+                        NetworkCapabilities capabilities = manager.getNetworkCapabilities(network);
+                        if (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                            return "WIFI";
+                        }
+                    }
+                } else {
+                    NetworkInfo networkInfo = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+                    if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
+                        return "WIFI";
+                    }
                 }
             }
 
@@ -690,10 +702,11 @@ public final class SensorsDataUtils {
                     return "3G";
                 case TelephonyManager.NETWORK_TYPE_LTE:
                     return "4G";
+                case TelephonyManager.NETWORK_TYPE_NR:
+                    return "5G";
+                default:
+                    return "NULL";
             }
-
-            // disconnected to the internet
-            return "NULL";
         } catch (Exception e) {
             return "NULL";
         }
@@ -706,13 +719,28 @@ public final class SensorsDataUtils {
         }
         try {
             ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            NetworkInfo networkInfo = cm.getActiveNetworkInfo();
-            if (networkInfo != null && networkInfo.isConnected()) {
-                return true;
+            if (cm != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    Network network = cm.getActiveNetwork();
+                    if (network != null) {
+                        NetworkCapabilities capabilities = cm.getNetworkCapabilities(network);
+                        if (capabilities != null) {
+                            return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+                                    || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+                                    || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+                                    || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN);
+                        }
+                    }
+                } else {
+                    NetworkInfo networkInfo = cm.getActiveNetworkInfo();
+                    if (networkInfo != null && networkInfo.isConnected()) {
+                        return true;
+                    }
+                }
             }
             return false;
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
             return false;
         }
     }
@@ -720,11 +748,12 @@ public final class SensorsDataUtils {
     /**
      * 此方法谨慎修改
      * 插件配置 disableIMEI 会修改此方法
-     *
      * 获取IMEI
+     *
      * @param mContext Context
      * @return IMEI
      */
+    @SuppressLint("MissingPermission")
     public static String getIMEI(Context mContext) {
         String imei = "";
         try {
@@ -734,19 +763,27 @@ public final class SensorsDataUtils {
 
             TelephonyManager tm = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
             if (tm != null) {
-                imei = tm.getDeviceId();
+                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+                    if (tm.hasCarrierPrivileges()) {
+                        imei = tm.getImei();
+                    } else {
+                        SALog.d(TAG, "Can not get IMEI info.");
+                    }
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    imei = tm.getImei();
+                } else {
+                    imei = tm.getDeviceId();
+                }
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
         return imei;
     }
 
     /**
-     *
      * 此方法谨慎修改
      * 插件配置 disableAndroidID 会修改此方法
-     *
      * 获取 Android ID
      *
      * @param mContext Context
@@ -764,6 +801,7 @@ public final class SensorsDataUtils {
 
     /**
      * 获取时区偏移值
+     *
      * @return 时区偏移值，单位：秒
      */
     public static Integer getZoneOffset() {
@@ -879,6 +917,28 @@ public final class SensorsDataUtils {
         return true;
     }
 
+    public static boolean isRequestValid(Context context, int minRequestHourInterval, int maxRequestHourInterval) {
+        SharedPreferences sharedPreferences = getSharedPreferences(context);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        boolean isRequestValid = true;
+        long lastRequestTime = sharedPreferences.getLong(SHARED_PREF_REQUEST_TIME, 0);
+        int randomTime = sharedPreferences.getInt(SHARED_PREF_REQUEST_TIME_RANDOM, 0);
+        if (lastRequestTime != 0 && randomTime != 0) {
+            float requestInterval = SystemClock.elapsedRealtime() - lastRequestTime;
+            if (requestInterval > 0 && requestInterval / 1000 < randomTime * 3600) {
+                isRequestValid = false;
+            }
+        }
+
+        if (isRequestValid) {
+            editor.putLong(SHARED_PREF_REQUEST_TIME, SystemClock.elapsedRealtime());
+            editor.putInt(SHARED_PREF_REQUEST_TIME_RANDOM,
+                    new Random().nextInt(maxRequestHourInterval - minRequestHourInterval + 1) + minRequestHourInterval);
+            editor.apply();
+        }
+        return isRequestValid;
+    }
+
     public static boolean hasUtmProperties(JSONObject properties) {
         if (properties == null) {
             return false;
@@ -894,8 +954,9 @@ public final class SensorsDataUtils {
     private static final String SHARED_PREF_EDITS_FILE = "sensorsdata";
     private static final String SHARED_PREF_DEVICE_ID_KEY = "sensorsdata.device.id";
     private static final String SHARED_PREF_USER_AGENT_KEY = "sensorsdata.user.agent";
+    private static final String SHARED_PREF_REQUEST_TIME = "sensorsdata.request.time";
+    private static final String SHARED_PREF_REQUEST_TIME_RANDOM = "sensorsdata.request.time.random";
 
-    private static SimpleDateFormat mDateFormat = null;
     private static final Map<String, String> sCarrierMap = new HashMap<String, String>() {
         {
             //中国移动
@@ -942,8 +1003,8 @@ public final class SensorsDataUtils {
      * 根据设备 rotation，判断屏幕方向，获取自然方向宽
      *
      * @param rotation 设备方向
-     * @param width    逻辑宽
-     * @param height   逻辑高
+     * @param width 逻辑宽
+     * @param height 逻辑高
      * @return 自然尺寸
      */
     public static int getNaturalWidth(int rotation, int width, int height) {
@@ -955,8 +1016,8 @@ public final class SensorsDataUtils {
      * 根据设备 rotation，判断屏幕方向，获取自然方向高
      *
      * @param rotation 设备方向
-     * @param width    逻辑宽
-     * @param height   逻辑高
+     * @param width 逻辑宽
+     * @param height 逻辑高
      * @return 自然尺寸
      */
     public static int getNaturalHeight(int rotation, int width, int height) {
