@@ -195,12 +195,14 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
 
         static boolean isAutoTrackType(String eventName) {
-            switch (eventName) {
-                case "$AppStart":
-                case "$AppEnd":
-                case "$AppClick":
-                case "$AppViewScreen":
-                    return true;
+            if (!TextUtils.isEmpty(eventName)) {
+                switch (eventName) {
+                    case "$AppStart":
+                    case "$AppEnd":
+                    case "$AppClick":
+                    case "$AppViewScreen":
+                        return true;
+                }
             }
             return false;
         }
@@ -3937,7 +3939,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "3.1.1";
+    static final String VERSION = "3.1.2";
     // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
     static final String MIN_PLUGIN_VERSION = "3.0.0";
 
