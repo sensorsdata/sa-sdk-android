@@ -982,4 +982,21 @@ public interface ISensorsDataAPI {
      * @param sf SSLSocketFactory 对象
      */
     void setSSLSocketFactory(SSLSocketFactory sf);
+
+    /**
+     * 设置 item
+     *
+     * @param itemType item 类型
+     * @param itemId item ID
+     * @param properties item 相关属性
+     */
+    void itemSet(String itemType, String itemId, JSONObject properties);
+
+    /**
+     * 删除 item
+     *
+     * @param itemType item 类型
+     * @param itemId item ID
+     */
+    void itemDelete(String itemType, String itemId);
 }

@@ -1303,4 +1303,12 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     public void setSSLSocketFactory(SSLSocketFactory sf) {
 
     }
+
+    @Override
+    public void itemSet(String itemType, String itemId, JSONObject properties) {
+    }
+
+    @Override
+    public void itemDelete(String itemType, String itemId) {
+    }
 }

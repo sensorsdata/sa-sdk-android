@@ -26,7 +26,9 @@ enum EventType {
     PROFILE_INCREMENT("profile_increment", false, true),
     PROFILE_APPEND("profile_append", false, true),
     PROFILE_DELETE("profile_delete", false, true),
-    REGISTER_SUPER_PROPERTIES("register_super_properties", false, false);
+    REGISTER_SUPER_PROPERTIES("register_super_properties", false, false),
+    ITEM_SET("item_set", false, false),
+    ITEM_DELETE("item_delete", false, false);
 
     EventType(String eventType, boolean isTrack, boolean isProfile) {
         this.eventType = eventType;

@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 
+import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataTimer;
 
 import org.json.JSONObject;
@@ -31,6 +32,7 @@ public class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHand
 
     private static SensorsDataExceptionHandler sInstance;
     private final Thread.UncaughtExceptionHandler mDefaultExceptionHandler;
+
     SensorsDataExceptionHandler() {
         mDefaultExceptionHandler = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler(this);
@@ -68,6 +70,7 @@ public class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHand
                         } catch (Exception ex) {
                             SALog.printStackTrace(ex);
                         }
+                        DbAdapter.getInstance().commitAppPausedTime(System.currentTimeMillis());
                         sensorsData.track("AppCrashed", messageProp);
                     } catch (Exception e) {
                         com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);

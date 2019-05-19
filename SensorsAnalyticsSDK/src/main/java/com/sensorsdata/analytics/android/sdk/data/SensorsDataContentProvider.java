@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk.data;
 
 import android.content.ContentProvider;
@@ -36,6 +36,7 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppPaused
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppStart;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppStartTime;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSessionIntervalTime;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -280,9 +281,6 @@ public class SensorsDataContentProvider extends ContentProvider {
             case APP_END_STATE:
                 state = values.getAsBoolean(DbParams.TABLE_APPENDSTATE);
                 persistentAppEndEventState.commit(state);
-                if (state) {
-                    contentResolver.notifyChange(uri, null);
-                }
                 break;
             case APP_END_DATA:
                 persistentAppEndData.commit(values.getAsString(DbParams.TABLE_APPENDDATA));

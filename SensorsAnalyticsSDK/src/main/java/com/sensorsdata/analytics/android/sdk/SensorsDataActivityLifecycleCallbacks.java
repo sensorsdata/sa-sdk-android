@@ -190,7 +190,12 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
                     if (!mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_END)) {
                         mDbAdapter.commitAppStartTime(SystemClock.elapsedRealtime());
-                        mSensorsDataInstance.trackTimer("$AppEnd", TimeUnit.SECONDS);
+                        TrackTaskManager.getInstance().addTrackEventTask(new Runnable() {
+                            @Override
+                            public void run() {
+                                generateAppEndData();
+                            }
+                        });
                     }
                 } catch (Exception e) {
                     SALog.i(TAG, e);
@@ -250,7 +255,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                 }
             }
 
-            SensorsDataTimer.getInstance().timer(timer, 1000, mSensorsDataInstance.getFlushInterval());
+            SensorsDataTimer.getInstance().timer(timer, 0, mSensorsDataInstance.getFlushInterval());
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
@@ -406,7 +411,6 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         final SensorsActivityStateObserver activityStateObserver = new SensorsActivityStateObserver(new Handler(Looper.myLooper()));
         mContext.getContentResolver().registerContentObserver(DbParams.getInstance().getAppStartUri(), false, activityStateObserver);
         mContext.getContentResolver().registerContentObserver(DbParams.getInstance().getSessionTimeUri(), false, activityStateObserver);
-        mContext.getContentResolver().registerContentObserver(DbParams.getInstance().getAppEndStateUri(), false, activityStateObserver);
     }
 
     private void showDebugModeSelectDialog(final Activity activity, final String infoId) {
@@ -524,8 +528,6 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                     }
                 } else if (DbParams.getInstance().getSessionTimeUri().equals(uri)) {
                     initCountDownTimer();
-                } else if (DbParams.getInstance().getAppEndStateUri().equals(uri)) {
-                    mSensorsDataInstance.flush(3000);
                 }
             } catch (Exception e) {
                 SALog.printStackTrace(e);

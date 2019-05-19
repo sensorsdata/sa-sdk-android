@@ -37,6 +37,7 @@ import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedOutputStream;
@@ -55,7 +56,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.zip.GZIPOutputStream;
 
 import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSocketFactory;
 
 import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
 
@@ -106,8 +106,15 @@ class AnalyticsMessages {
                     @Override
                     public void run() {
                         int ret;
+                        String eventName = "";
+                        try {
+                            eventName = eventJson.getString("event");
+                        } catch (JSONException e) {
+                            SALog.printStackTrace(e);
+                        }
                         boolean isDebugMode = SensorsDataAPI.sharedInstance(mContext).isDebugMode();
-                        if (isDebugMode || type.equals("track_signup")) {
+                        if (isDebugMode || type.equals("track_signup") || "$AppStart".equals(eventName)
+                                || "$AppEnd".equals(eventName)) {
                             ret = mDbAdapter.addJSON(eventJson);
                         } else {
                             mEventsList.add(eventJson);
@@ -389,12 +396,15 @@ class AnalyticsMessages {
             in = null;
 
             String response = new String(responseBody, CHARSET_UTF8);
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                SALog.i(TAG, String.format("valid message: \n%s", JSONUtils.formatJson(rawMessage)));
-            } else {
-                SALog.i(TAG, String.format("invalid message: \n%s", JSONUtils.formatJson(rawMessage)));
-                SALog.i(TAG, String.format(Locale.CHINA, "ret_code: %d", responseCode));
-                SALog.i(TAG, String.format(Locale.CHINA, "ret_content: %s", response));
+            if (SensorsDataAPI.ENABLE_LOG) {
+                String jsonMessage = JSONUtils.formatJson(rawMessage);
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    SALog.i(TAG, "valid message: \n" + jsonMessage);
+                } else {
+                    SALog.i(TAG, "invalid message: \n" + jsonMessage);
+                    SALog.i(TAG, String.format(Locale.CHINA, "ret_code: %d", responseCode));
+                    SALog.i(TAG, String.format(Locale.CHINA, "ret_content: %s", response));
+                }
             }
             if (responseCode < HttpURLConnection.HTTP_OK || responseCode >= HttpURLConnection.HTTP_MULT_CHOICE) {
                 // 校验错误，直接将数据删除

@@ -19,10 +19,8 @@ package com.sensorsdata.analytics.android.demo;
 import android.app.Application;
 
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
+import com.sensorsdata.analytics.android.sdk.SensorsAnalyticsAutoTrackEventType;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class MyApplication extends Application {
     /**
@@ -40,20 +38,15 @@ public class MyApplication extends Application {
      * 初始化 Sensors Analytics SDK
      */
     private void initSensorsDataAPI() {
-
-        SensorsDataAPI.sharedInstance(this, new SAConfigOptions(SA_SERVER_URL));
-
+        SAConfigOptions configOptions = new SAConfigOptions(SA_SERVER_URL);
         // 打开自动采集, 并指定追踪哪些 AutoTrack 事件
-        List<SensorsDataAPI.AutoTrackEventType> eventTypeList = new ArrayList<>();
-        // $AppStart
-        eventTypeList.add(SensorsDataAPI.AutoTrackEventType.APP_START);
-        // $AppEnd
-        eventTypeList.add(SensorsDataAPI.AutoTrackEventType.APP_END);
-        // $AppViewScreen
-        eventTypeList.add(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN);
-        // $AppClick
-        eventTypeList.add(SensorsDataAPI.AutoTrackEventType.APP_CLICK);
-        SensorsDataAPI.sharedInstance(this).enableAutoTrack(eventTypeList);
-
+        configOptions.setAutoTrackEventType(SensorsAnalyticsAutoTrackEventType.APP_START |
+                SensorsAnalyticsAutoTrackEventType.APP_END |
+                SensorsAnalyticsAutoTrackEventType.APP_VIEW_SCREEN |
+                SensorsAnalyticsAutoTrackEventType.APP_CLICK);
+        // 打开 crash 信息采集
+        configOptions.enableTrackAppCrash();
+        //传入 SAConfigOptions 对象，初始化神策 SDK
+        SensorsDataAPI.sharedInstance(this, configOptions);
     }
 }

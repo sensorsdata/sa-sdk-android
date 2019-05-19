@@ -17,6 +17,7 @@
 
 package com.sensorsdata.analytics.android.sdk.util;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.ActionBar;
@@ -65,6 +66,7 @@ import java.util.Random;
 import java.util.UUID;
 
 public final class SensorsDataUtils {
+
     /**
      * 将 json 格式的字符串转成 SensorsDataSDKRemoteConfig 对象，并处理默认值
      *
@@ -92,7 +94,7 @@ public final class SensorsDataUtils {
                 return sdkRemoteConfig;
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
         return sdkRemoteConfig;
     }
@@ -108,7 +110,7 @@ public final class SensorsDataUtils {
                 }
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
         return manufacturer;
     }
@@ -138,14 +140,14 @@ public final class SensorsDataUtils {
             if (e.toString().contains("FileNotFoundException")) {
                 SALog.d(TAG, "SensorsDataAutoTrackFragment file not exists.");
             } else {
-                com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                SALog.printStackTrace(e);
             }
         } finally {
             if (bf != null) {
                 try {
                     bf.close();
                 } catch (IOException e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                    SALog.printStackTrace(e);
                 }
             }
         }
@@ -167,13 +169,13 @@ public final class SensorsDataUtils {
                 stringBuilder.append(line);
             }
         } catch (IOException e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         } finally {
             if (bf != null) {
                 try {
                     bf.close();
                 } catch (IOException e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                    SALog.printStackTrace(e);
                 }
             }
         }
@@ -190,39 +192,37 @@ public final class SensorsDataUtils {
      */
     public static String getCarrier(Context context) {
         try {
-            if (SensorsDataUtils.checkHasPermission(context, "android.permission.READ_PHONE_STATE")) {
+            if (SensorsDataUtils.checkHasPermission(context, Manifest.permission.READ_PHONE_STATE)) {
                 try {
                     TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context
                             .TELEPHONY_SERVICE);
                     if (telephonyManager != null) {
                         String operator = telephonyManager.getSimOperator();
-                        String alternativeName = "未知";
-                        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-                            CharSequence tmpCarrierName = telephonyManager.getSimPreciseCarrierIdName();
-                            if (!TextUtils.isEmpty(tmpCarrierName)) {
-                                alternativeName = tmpCarrierName.toString();
-                            }
-                        } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.P) {
+                        String alternativeName = null;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                             CharSequence tmpCarrierName = telephonyManager.getSimCarrierIdName();
                             if (!TextUtils.isEmpty(tmpCarrierName)) {
                                 alternativeName = tmpCarrierName.toString();
                             }
-                        } else {
-                            alternativeName = telephonyManager.getSimOperatorName();
                         }
-
+                        if (TextUtils.isEmpty(alternativeName)) {
+                            if (telephonyManager.getSimState() == TelephonyManager.SIM_STATE_READY) {
+                                alternativeName = telephonyManager.getSimOperatorName();
+                            } else {
+                                alternativeName = "未知";
+                            }
+                        }
                         if (!TextUtils.isEmpty(operator)) {
-                            return SensorsDataUtils.operatorToCarrier(context, operator, alternativeName);
+                            return operatorToCarrier(context, operator, alternativeName);
                         }
                     }
                 } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                    SALog.printStackTrace(e);
                 }
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
-
         return null;
     }
 
@@ -268,7 +268,7 @@ public final class SensorsDataUtils {
             }
             return null;
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
             return null;
         }
     }
@@ -324,7 +324,7 @@ public final class SensorsDataUtils {
                 }
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
             return null;
         }
         return null;
@@ -356,19 +356,14 @@ public final class SensorsDataUtils {
             if (TextUtils.isEmpty(operator)) {
                 return alternativeName;
             }
-
-            for (Map.Entry<String, String> entry : sCarrierMap.entrySet()) {
-                if (operator.startsWith(entry.getKey())) {
-                    return entry.getValue();
-                }
+            if (sCarrierMap.containsKey(operator)) {
+                return sCarrierMap.get(operator);
             }
-
             String carrierJson = getJsonFromAssets("sa_mcc_mnc_mini.json", context);
             if (TextUtils.isEmpty(carrierJson)) {
                 sCarrierMap.put(operator, alternativeName);
                 return alternativeName;
             }
-
             JSONObject jsonObject = new JSONObject(carrierJson);
             String carrier = getCarrierFromJsonObject(jsonObject, operator);
             if (!TextUtils.isEmpty(carrier)) {
@@ -376,7 +371,7 @@ public final class SensorsDataUtils {
                 return carrier;
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
         return alternativeName;
     }
@@ -440,7 +435,7 @@ public final class SensorsDataUtils {
                 }
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
         return null;
     }
@@ -484,7 +479,7 @@ public final class SensorsDataUtils {
                 properties.put("$title", activityTitle);
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -495,7 +490,7 @@ public final class SensorsDataUtils {
             editor.putString(SHARED_PREF_USER_AGENT_KEY, null);
             editor.apply();
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -585,7 +580,7 @@ public final class SensorsDataUtils {
 
             return userAgent;
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
             return null;
         }
     }
@@ -650,7 +645,7 @@ public final class SensorsDataUtils {
     public static String networkType(Context context) {
         try {
             // 检测权限
-            if (!checkHasPermission(context, "android.permission.ACCESS_NETWORK_STATE")) {
+            if (!checkHasPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
                 return "NULL";
             }
 
@@ -714,7 +709,7 @@ public final class SensorsDataUtils {
 
     public static boolean isNetworkAvailable(Context context) {
         // 检测权限
-        if (!checkHasPermission(context, "android.permission.ACCESS_NETWORK_STATE")) {
+        if (!checkHasPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
             return false;
         }
         try {
@@ -757,7 +752,7 @@ public final class SensorsDataUtils {
     public static String getIMEI(Context mContext) {
         String imei = "";
         try {
-            if (!checkHasPermission(mContext, "android.permission.READ_PHONE_STATE")) {
+            if (!checkHasPermission(mContext, Manifest.permission.READ_PHONE_STATE)) {
                 return imei;
             }
 
@@ -794,7 +789,7 @@ public final class SensorsDataUtils {
         try {
             androidID = Settings.Secure.getString(mContext.getContentResolver(), Settings.Secure.ANDROID_ID);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
         return androidID;
     }
@@ -875,7 +870,7 @@ public final class SensorsDataUtils {
      */
     public static String getMacAddress(Context context) {
         try {
-            if (!checkHasPermission(context, "android.permission.ACCESS_WIFI_STATE")) {
+            if (!checkHasPermission(context, Manifest.permission.ACCESS_WIFI_STATE)) {
                 return "";
             }
             WifiManager wifiMan = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);

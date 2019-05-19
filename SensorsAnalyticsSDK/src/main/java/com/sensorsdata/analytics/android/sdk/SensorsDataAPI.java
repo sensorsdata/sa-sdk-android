@@ -2052,7 +2052,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public void identify(final String distinctId) {
         try {
-            assertDistinctId(distinctId);
+            assertValue(distinctId);
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return;
@@ -2090,7 +2090,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public void login(final String loginId, final JSONObject properties) {
         try {
-            assertDistinctId(loginId);
+            assertValue(loginId);
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return;
@@ -3351,10 +3351,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             }
 
             String eventName = eventObject.optString("event");
-            boolean enterDb = isEnterDb(eventName, propertiesObject);
-            if (!enterDb) {
-                SALog.d(TAG, eventName + " event can not enter database");
-                return;
+            if (eventType.isTrack()) {
+                boolean enterDb = isEnterDb(eventName, propertiesObject);
+                if (!enterDb) {
+                    SALog.d(TAG, eventName + " event can not enter database");
+                    return;
+                }
             }
             eventObject.put("properties", propertiesObject);
 
@@ -3371,7 +3373,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             } else {
                 mMessages.enqueueEventMessage(type, eventObject);
             }
-            SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(eventObject.toString()));
+            if(ENABLE_LOG) {
+                SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(eventObject.toString()));
+            }
         } catch (Exception e) {
             //ignore
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
@@ -3544,7 +3548,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
                     try {
                         if ("$AppEnd".equals(eventName)) {
-                            eventTime = properties.getLong("event_time");
+                            long appEndTime = properties.getLong("event_time");
+                            eventTime = appEndTime > 0 ? appEndTime : eventTime;
                             properties.remove("event_time");
                         }
                     } catch (Exception e) {
@@ -3642,8 +3647,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
                 if (TextUtils.isEmpty(libDetail)) {
                     StackTraceElement[] trace = (new Exception()).getStackTrace();
-                    if (trace.length > 2) {
-                        StackTraceElement traceElement = trace[2];
+                    if (trace.length > 1) {
+                        StackTraceElement traceElement = trace[0];
                         libDetail = String.format("%s##%s##%s##%s", traceElement
                                         .getClassName(), traceElement.getMethodName(), traceElement.getFileName(),
                                 traceElement.getLineNumber());
@@ -3658,14 +3663,18 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         sendProperties.put("$device_id", mDeviceInfo.get("$device_id"));
                     }
                 }
-                boolean isEnterDb = isEnterDb(eventName, sendProperties);
-                if (!isEnterDb) {
-                    SALog.d(TAG, eventName + " event can not enter database");
-                    return;
+                if (eventType.isTrack()) {
+                    boolean isEnterDb = isEnterDb(eventName, sendProperties);
+                    if (!isEnterDb) {
+                        SALog.d(TAG, eventName + " event can not enter database");
+                        return;
+                    }
                 }
                 dataObj.put("properties", sendProperties);
                 mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
-                SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(dataObj.toString()));
+                if(ENABLE_LOG) {
+                    SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(dataObj.toString()));
+                }
             } catch (JSONException e) {
                 throw new InvalidDataException("Unexpected property");
             }
@@ -3777,12 +3786,69 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    private void assertDistinctId(String key) throws InvalidDataException {
-        if (key == null || key.length() < 1) {
-            throw new InvalidDataException("The distinct_id or original_id or login_id is empty.");
+    private void assertValue(String value) throws InvalidDataException {
+        if (TextUtils.isEmpty(value)) {
+            throw new InvalidDataException("The " + value + " is empty.");
         }
-        if (key.length() > 255) {
-            throw new InvalidDataException("The max length of distinct_id or original_id or login_id is 255.");
+        if (value.length() > 255) {
+            throw new InvalidDataException("The " + value + " is too long, max length is 255.");
+        }
+    }
+
+    private void trackItemEvent(String itemType, String itemId, String eventType, JSONObject properties) {
+        try {
+            assertKey(itemType);
+            assertValue(itemId);
+            assertPropertyTypes(properties);
+
+            String eventProject = null;
+            if (properties != null && properties.has("$project")) {
+                eventProject = (String) properties.get("$project");
+                properties.remove("$project");
+            }
+
+            JSONObject libProperties = new JSONObject();
+            libProperties.put("$lib", "Android");
+            libProperties.put("$lib_version", VERSION);
+            libProperties.put("$lib_method", "code");
+
+            if (mDeviceInfo.containsKey("$app_version")) {
+                libProperties.put("$app_version", mDeviceInfo.get("$app_version"));
+            }
+
+            JSONObject superProperties = mSuperProperties.get();
+            if (superProperties != null) {
+                if (superProperties.has("$app_version")) {
+                    libProperties.put("$app_version", superProperties.get("$app_version"));
+                }
+            }
+
+            StackTraceElement[] trace = (new Exception()).getStackTrace();
+            if (trace.length > 1) {
+                StackTraceElement traceElement = trace[0];
+                String libDetail = String.format("%s##%s##%s##%s", traceElement
+                                .getClassName(), traceElement.getMethodName(), traceElement.getFileName(),
+                        traceElement.getLineNumber());
+                if (!TextUtils.isEmpty(libDetail)) {
+                    libProperties.put("$lib_detail", libDetail);
+                }
+            }
+
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("item_type", itemType);
+            eventProperties.put("item_id", itemId);
+            eventProperties.put("type", eventType);
+            eventProperties.put("time", System.currentTimeMillis());
+            eventProperties.put("properties", properties);
+            eventProperties.put("lib", libProperties);
+
+            if (!TextUtils.isEmpty(eventProject)) {
+                eventProperties.put("project", eventProject);
+            }
+            mMessages.enqueueEventMessage(eventType, eventProperties);
+            SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(eventProperties.toString()));
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
         }
     }
 
@@ -3926,6 +3992,26 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
+    @Override
+    public void itemSet(final String itemType, final String itemId, final JSONObject properties) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                trackItemEvent(itemType, itemId, EventType.ITEM_SET.getEventType(), properties);
+            }
+        });
+    }
+
+    @Override
+    public void itemDelete(final String itemType, final String itemId) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                trackItemEvent(itemType, itemId, EventType.ITEM_DELETE.getEventType(), null);
+            }
+        });
+    }
+
     SSLSocketFactory getSSLSocketFactory() {
         return mSSLSocketFactory;
     }
@@ -3939,7 +4025,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "3.1.2";
+    static final String VERSION = "3.1.3";
     // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
     static final String MIN_PLUGIN_VERSION = "3.0.0";
 
