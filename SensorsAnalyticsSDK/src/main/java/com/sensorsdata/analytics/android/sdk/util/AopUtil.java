@@ -241,7 +241,7 @@ public class AopUtil {
                     viewText = imageView.getContentDescription().toString();
                 }
             } else {
-                viewText = child.getContentDescription().toString();
+                viewText = child.getContentDescription();
             }
             if (!TextUtils.isEmpty(viewText)) {
                 return viewText.toString();
