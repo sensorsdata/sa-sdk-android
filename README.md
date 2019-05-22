@@ -35,7 +35,7 @@ SensorsAnalytics SDK 是国内第一家，也是目前唯一的开源商用版�
 ## 新书推荐
 
 | 《数据驱动：从方法到实践》 | 《Android 全埋点解决方案》 |
-| ------ | ------ | ------ |
+| ------ | ------ |
 | [![《Android 全埋点解决方案》](docs/data_driven_book.jpg)](https://u.jd.com/dWkE2x) | [![《Android 全埋点解决方案》](docs/android_autotrack_book.jpg)](https://u.jd.com/2JFaeG) |
 
 
