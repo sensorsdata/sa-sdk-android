@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">SensorsDataAPIDemo</string>
+
+    <string-array name="spinner_test">
+        <item>Beijing</item>
+        <item>Shanghai</item>
+        <item>Shenzhen</item>
+        <item>Hefei</item>
+    </string-array>
+
+
+    <string-array name="list_test">
+        <item>Beijing</item>
+        <item>Shanghai</item>
+        <item>Shenzhen</item>
+        <item>Hefei</item>
+        <item>Beijing2</item>
+        <item>Shanghai2</item>
+        <item>Shenzhen2</item>
+        <item>Hefei3</item>
+        <item>Beijing3</item>
+        <item>Shanghai3</item>
+        <item>Shenzhen3</item>
+        <item>Hefei3</item>
+    </string-array>
+
+</resources>

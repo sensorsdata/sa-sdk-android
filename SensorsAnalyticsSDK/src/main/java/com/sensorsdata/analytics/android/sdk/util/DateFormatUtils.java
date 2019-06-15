@@ -18,8 +18,10 @@
 package com.sensorsdata.analytics.android.sdk.util;
 
 import android.text.TextUtils;
+
 import com.sensorsdata.analytics.android.sdk.SALog;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -30,6 +32,7 @@ import java.util.Map;
 /**
  * 线程安全的日期格式化工具类
  * create on 2019/4/3
+ *
  * @author : chenru
  */
 public class DateFormatUtils {
@@ -151,5 +154,44 @@ public class DateFormatUtils {
             SALog.printStackTrace(e);
         }
         return formatString;
+    }
+
+    /**
+     * 验证日期是否合法
+     *
+     * @param date Date
+     * @return 是否合法
+     */
+    public static boolean isDateValid(Date date) {
+        try {
+            SimpleDateFormat simpleDateFormat = getDateFormat(YYYY_MM_DD_HH_MM_SS_SSS, Locale.getDefault());
+            final Date baseDate = simpleDateFormat.parse("2015-05-15 10:24:00.000");
+            return date.after(baseDate);
+        } catch (ParseException e) {
+            SALog.printStackTrace(e);
+        }
+
+        return false;
+    }
+
+    /**
+     * 验证日期是否合法，目前校验比较粗糙，仅要求数据在 "2015-05-15 10:24:00.000" 以后
+     *
+     * @param time Time
+     * @return 是否合法
+     */
+    public static boolean isDateValid(long time) {
+        try {
+            SimpleDateFormat simpleDateFormat = getDateFormat(YYYY_MM_DD_HH_MM_SS_SSS, Locale.getDefault());
+            final Date baseDate = simpleDateFormat.parse("2015-05-15 10:24:00.000");
+            if (baseDate == null) {
+                return false;
+            }
+            return baseDate.getTime() < time;
+        } catch (ParseException e) {
+            SALog.printStackTrace(e);
+        }
+
+        return false;
     }
 }

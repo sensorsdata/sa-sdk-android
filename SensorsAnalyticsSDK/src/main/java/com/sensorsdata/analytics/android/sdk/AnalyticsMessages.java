@@ -35,6 +35,7 @@ import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.exceptions.ResponseErrorException;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
+import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONException;
@@ -106,14 +107,9 @@ class AnalyticsMessages {
                     @Override
                     public void run() {
                         int ret;
-                        String eventName = "";
-                        try {
-                            eventName = eventJson.getString("event");
-                        } catch (JSONException e) {
-                            SALog.printStackTrace(e);
-                        }
+                        String eventName = eventJson.optString("event", "");
                         boolean isDebugMode = SensorsDataAPI.sharedInstance(mContext).isDebugMode();
-                        if (isDebugMode || type.equals("track_signup") || "$AppStart".equals(eventName)
+                        if (isDebugMode || "track_signup".equals(type) || "$AppStart".equals(eventName)
                                 || "$AppEnd".equals(eventName)) {
                             ret = mDbAdapter.addJSON(eventJson);
                         } else {
@@ -218,10 +214,9 @@ class AnalyticsMessages {
 
     void sendData() {
         try {
-            if (!SensorsDataAPI.sharedInstance(mContext).isFlushInBackground()) {
-                if (!mDbAdapter.getAppStart()) {
-                    return;
-                }
+            if (!SensorsDataAPI.sharedInstance(mContext).isNetworkRequestEnable()) {
+                SALog.i(TAG, "NetworkRequest 已关闭，不发送数据！");
+                return;
             }
 
             if (TextUtils.isEmpty(SensorsDataAPI.sharedInstance(mContext).getServerUrl())) {
@@ -233,17 +228,17 @@ class AnalyticsMessages {
             }
 
             //无网络
-            if (!SensorsDataUtils.isNetworkAvailable(mContext)) {
+            if (!NetworkUtils.isNetworkAvailable(mContext)) {
                 return;
             }
 
             //不符合同步数据的网络策略
-            String networkType = SensorsDataUtils.networkType(mContext);
-            if (!SensorsDataAPI.sharedInstance(mContext).isShouldFlush(networkType)) {
+            String networkType = NetworkUtils.networkType(mContext);
+            if (!NetworkUtils.isShouldFlush(networkType, SensorsDataAPI.sharedInstance(mContext).mFlushNetworkPolicy)) {
                 return;
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
         int count = 100;
         Toast toast = null;
@@ -252,6 +247,7 @@ class AnalyticsMessages {
             String[] eventsData;
             synchronized (mDbAdapter) {
                 if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+                    /** debug 模式下服务器只允许接收 1 条数据 */
                     eventsData = mDbAdapter.generateDataString(DbParams.TABLE_EVENTS, 1);
                 } else {
                     eventsData = mDbAdapter.generateDataString(DbParams.TABLE_EVENTS, 50);
@@ -278,10 +274,8 @@ class AnalyticsMessages {
                 deleteEvents = false;
                 errorMessage = "Connection error: " + e.getMessage();
             } catch (InvalidDataException e) {
-                deleteEvents = true;
                 errorMessage = "Invalid data: " + e.getMessage();
             } catch (ResponseErrorException e) {
-                deleteEvents = true;
                 errorMessage = "ResponseErrorException: " + e.getMessage();
             } catch (Exception e) {
                 deleteEvents = false;
@@ -289,7 +283,7 @@ class AnalyticsMessages {
             } finally {
                 boolean isDebugMode = SensorsDataAPI.sharedInstance(mContext).isDebugMode();
                 if (!TextUtils.isEmpty(errorMessage)) {
-                    if (isDebugMode || SensorsDataAPI.ENABLE_LOG) {
+                    if (isDebugMode || SensorsDataAPI.sEnableLog) {
                         SALog.i(TAG, errorMessage);
                         if (isDebugMode && SensorsDataAPI.SHOW_DEBUG_INFO_VIEW) {
                             try {
@@ -311,7 +305,7 @@ class AnalyticsMessages {
                     }
                 }
 
-                if (deleteEvents) {
+                if (deleteEvents || isDebugMode) {
                     count = mDbAdapter.cleanupEvents(lastId);
                     SALog.i(TAG, String.format(Locale.CHINA, "Events flushed. [left = %d]", count));
                 } else {
@@ -396,9 +390,11 @@ class AnalyticsMessages {
             in = null;
 
             String response = new String(responseBody, CHARSET_UTF8);
-            if (SensorsDataAPI.ENABLE_LOG) {
+            if (SensorsDataAPI.sEnableLog) {
                 String jsonMessage = JSONUtils.formatJson(rawMessage);
-                if (responseCode == HttpURLConnection.HTTP_OK) {
+                // 状态码 200 - 300 间都认为正确
+                if (responseCode >= HttpURLConnection.HTTP_OK &&
+                        responseCode < HttpURLConnection.HTTP_MULT_CHOICE) {
                     SALog.i(TAG, "valid message: \n" + jsonMessage);
                 } else {
                     SALog.i(TAG, "invalid message: \n" + jsonMessage);

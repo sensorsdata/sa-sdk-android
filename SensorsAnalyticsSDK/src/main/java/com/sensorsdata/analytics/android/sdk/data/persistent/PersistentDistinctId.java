@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.data.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import java.util.UUID;
@@ -28,7 +28,7 @@ import java.util.concurrent.Future;
 
 public class PersistentDistinctId extends PersistentIdentity<String> {
     public PersistentDistinctId(Future<SharedPreferences> loadStoredPreferences, final Context context) {
-        super(loadStoredPreferences, "events_distinct_id", new PersistentSerializer<String>() {
+        super(loadStoredPreferences, PersistentLoader.PersistentName.DISTINCT_ID, new PersistentSerializer<String>() {
             @Override
             public String load(String value) {
                 return value;
@@ -36,7 +36,7 @@ public class PersistentDistinctId extends PersistentIdentity<String> {
 
             @Override
             public String save(String item) {
-                return item;
+                return item == null ? create() : item;
             }
 
             @Override

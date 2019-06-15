@@ -19,11 +19,13 @@ package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import android.content.SharedPreferences;
 
+import com.sensorsdata.analytics.android.sdk.data.PersistentLoader;
+
 import java.util.concurrent.Future;
 
 public class PersistentFirstDay extends PersistentIdentity<String> {
     public PersistentFirstDay(Future<SharedPreferences> loadStoredPreferences) {
-        super(loadStoredPreferences, "first_day", new PersistentSerializer<String>() {
+        super(loadStoredPreferences, PersistentLoader.PersistentName.FIRST_DAY, new PersistentSerializer<String>() {
             @Override
             public String load(String value) {
                 return value;

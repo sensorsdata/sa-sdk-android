@@ -57,7 +57,6 @@ import org.json.JSONObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -836,9 +835,11 @@ public class SensorsDataAutoTrackHelper {
                             view = (View) field.get(tab);
                         }
 
-                        String resourceId = activity.getResources().getResourceEntryName(view.getId());
-                        if (!TextUtils.isEmpty(resourceId)) {
-                            properties.put(AopConstants.ELEMENT_ID, resourceId);
+                        if (view.getId() != View.NO_ID) {
+                            String resourceId = activity.getResources().getResourceEntryName(view.getId());
+                            if (!TextUtils.isEmpty(resourceId)) {
+                                properties.put(AopConstants.ELEMENT_ID, resourceId);
+                            }
                         }
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
@@ -1432,6 +1433,9 @@ public class SensorsDataAutoTrackHelper {
                 viewType = AopUtil.getViewType(viewType, "SwitchCompat");
                 viewText = AopUtil.getCompoundButtonText(view);
             } else if (view instanceof RadioButton) { // RadioButton
+                if (!view.isPressed()) {
+                    return;
+                }
                 viewType = AopUtil.getViewType(viewType, "RadioButton");
                 RadioButton radioButton = (RadioButton) view;
                 viewText = radioButton.getText();
@@ -1460,6 +1464,9 @@ public class SensorsDataAutoTrackHelper {
                     viewText = imageView.getContentDescription().toString();
                 }
             } else if (view instanceof RatingBar) {
+                if (!view.isPressed()) {
+                    return;
+                }
                 viewType = AopUtil.getViewType(viewType, "RatingBar");
                 RatingBar ratingBar = (RatingBar) view;
                 viewText = String.valueOf(ratingBar.getRating());

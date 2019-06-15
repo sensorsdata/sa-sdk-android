@@ -299,12 +299,12 @@ public class HeatMapViewCrawler implements VTrack {
             BufferedOutputStream bout = null;
             try {
                 HttpURLConnection connection;
-                if (mPostUrl.startsWith("https://") && !SensorsDataAPI.sharedInstance().isSSLCertificateChecking()) {
+                if (mPostUrl.startsWith("https://") && !SensorsDataAPI.sharedInstance().isHeatMapSSLCheckEnabled()) {
                     disableSSLCertificateChecking();
                 }
                 final URL url = new URL(mPostUrl);
                 connection = (HttpURLConnection) url.openConnection();
-                if (SensorsDataAPI.sharedInstance().getSSLSocketFactory() != null && SensorsDataAPI.sharedInstance().isSSLCertificateChecking() && connection instanceof HttpsURLConnection) {
+                if (SensorsDataAPI.sharedInstance().getSSLSocketFactory() != null && SensorsDataAPI.sharedInstance().isHeatMapSSLCheckEnabled() && connection instanceof HttpsURLConnection) {
                     ((HttpsURLConnection) connection).setSSLSocketFactory(SensorsDataAPI.sharedInstance().getSSLSocketFactory());
                 }
                 connection.setDoOutput(true);

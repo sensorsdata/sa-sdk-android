@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk.data;
 
 import android.content.ContentResolver;
@@ -37,13 +37,13 @@ public class DbAdapter {
     private static DbAdapter instance;
     private final File mDatabaseFile;
     private final DbParams mDbParams;
-    /** Session 时长间隔 */
+    /* Session 时长间隔 */
     private int mSessionTime = 30 * 1000, mSavedSessionTime = 0;
-    /** AppPaused 的时间戳 */
+    /* AppPaused 的时间戳 */
     private long mAppPausedTime = 0;
-    /** AppEnd 事件是否发送，true 发送、false 未发送 */
+    /* AppEnd 事件是否发送，true 发送、false 未发送 */
     private boolean mAppEndState = true;
-    /** App 是否启动到 onResume*/
+    /* App 是否启动到 onResume */
     private boolean mAppStart = false;
     private ContentResolver contentResolver;
     private final Context mContext;
@@ -83,7 +83,7 @@ public class DbAdapter {
     }
 
     private DbAdapter(Context context, String packageName) {
-        mContext = context;
+        mContext = context.getApplicationContext();
         contentResolver = mContext.getContentResolver();
         mDatabaseFile = context.getDatabasePath(DbParams.DATABASE_NAME);
         mDbParams = DbParams.getInstance(packageName);
@@ -93,7 +93,7 @@ public class DbAdapter {
      * Adds a JSON string representing an event with properties or a person record
      * to the SQLiteDatabase.
      *
-     * @param j     the JSON to record
+     * @param j the JSON to record
      * @return the number of rows in the table, or DB_OUT_OF_MEMORY_ERROR/DB_UPDATE_ERROR
      * on failure
      */
@@ -119,8 +119,8 @@ public class DbAdapter {
             final ContentValues cv = new ContentValues();
             cv.put(DbParams.KEY_DATA, j.toString() + "\t" + j.toString().hashCode());
             cv.put(DbParams.KEY_CREATED_AT, System.currentTimeMillis());
-            contentResolver.insert(mDbParams.gemUri(), cv);
-            c = contentResolver.query(mDbParams.gemUri(), null, null, null, null);
+            contentResolver.insert(mDbParams.getEventUri(), cv);
+            c = contentResolver.query(mDbParams.getEventUri(), null, null, null, null);
             if (c != null) {
                 count = c.getCount();
             }
@@ -138,7 +138,7 @@ public class DbAdapter {
      * Adds a JSON string representing an event with properties or a person record
      * to the SQLiteDatabase.
      *
-     * @param eventsList  the JSON to record
+     * @param eventsList the JSON to record
      * @return the number of rows in the table, or DB_OUT_OF_MEMORY_ERROR/DB_UPDATE_ERROR
      * on failure
      */
@@ -162,14 +162,14 @@ public class DbAdapter {
             ContentValues[] contentValues = new ContentValues[eventsList.size()];
             ContentValues cv;
             int index = 0;
-            for(JSONObject j : eventsList) {
+            for (JSONObject j : eventsList) {
                 cv = new ContentValues();
                 cv.put(DbParams.KEY_DATA, j.toString() + "\t" + j.toString().hashCode());
                 cv.put(DbParams.KEY_CREATED_AT, System.currentTimeMillis());
                 contentValues[index++] = cv;
             }
-            contentResolver.bulkInsert(mDbParams.gemUri(), contentValues);
-            c = contentResolver.query(mDbParams.gemUri(), null, null, null, null);
+            contentResolver.bulkInsert(mDbParams.getEventUri(), contentValues);
+            c = contentResolver.query(mDbParams.getEventUri(), null, null, null, null);
             if (c != null) {
                 count = c.getCount();
             }
@@ -189,11 +189,10 @@ public class DbAdapter {
 
     /**
      * Removes all events from table
-     *
      */
     public void deleteAllEvents() {
         try {
-            contentResolver.delete(mDbParams.gemUri(), null, new String[]{});
+            contentResolver.delete(mDbParams.getEventUri(), null, null);
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
@@ -210,8 +209,8 @@ public class DbAdapter {
         int count = DbParams.DB_UPDATE_ERROR;
 
         try {
-            contentResolver.delete(mDbParams.gemUri(), "_id <= ?", new String[]{last_id});
-            c = contentResolver.query(mDbParams.gemUri(), null, null, null, null);
+            contentResolver.delete(mDbParams.getEventUri(), "_id <= ?", new String[]{last_id});
+            c = contentResolver.query(mDbParams.getEventUri(), null, null, null, null);
             if (c != null) {
                 count = c.getCount();
             }
@@ -230,62 +229,67 @@ public class DbAdapter {
     }
 
     /**
-     * add the ActivityStart state to the SharedPreferences
-     * @param appStart the ActivityState
+     * 保存 Activity 的状态
+     *
+     * @param appStart Activity 的状态
      */
-    public void commitAppStart(boolean appStart){
+    public void commitAppStart(boolean appStart) {
         ContentValues contentValues = new ContentValues();
-        contentValues.put(DbParams.TABLE_APPSTARTED, appStart);
+        contentValues.put(DbParams.TABLE_APP_STARTED, appStart);
         contentResolver.insert(mDbParams.getAppStartUri(), contentValues);
         mAppStart = appStart;
     }
 
     /**
-     * return the state of Activity start
-     * @return Activity count
+     * 返回 Activity 的状态
+     *
+     * @return Activity 的状态
      */
-    public boolean getAppStart(){
+    public boolean getAppStart() {
         return mAppStart;
     }
 
     /**
-     * add the Activity start time to the SharedPreferences
-     * @param appStartTime the Activity start time
+     * 保存 Activity 启动时间戳
+     *
+     * @param appStartTime Activity 启动时间戳
      */
-    public void commitAppStartTime(long appStartTime){
+    public void commitAppStartTime(long appStartTime) {
         ContentValues contentValues = new ContentValues();
-        contentValues.put(DbParams.TABLE_APPSTARTTIME, appStartTime);
+        contentValues.put(DbParams.TABLE_APP_START_TIME, appStartTime);
         contentResolver.insert(mDbParams.getAppStartTimeUri(), contentValues);
     }
 
     /**
-     * return the time of Activity start
-     * @return getAppStartTime
+     * 获取 Activity 启动时间
+     *
+     * @return Activity 启动时间戳
      */
-    public long getAppStartTime(){
+    public long getAppStartTime() {
         long startTime = 0;
-        Cursor cursor = contentResolver.query(mDbParams.getAppStartTimeUri(), new String[]{DbParams.TABLE_APPSTARTTIME},null,null,null);
-        if(cursor != null && cursor.getCount() > 0){
-            while(cursor.moveToNext()){
+        Cursor cursor = contentResolver.query(mDbParams.getAppStartTimeUri(), null, null, null, null);
+        if (cursor != null && cursor.getCount() > 0) {
+            while (cursor.moveToNext()) {
                 startTime = cursor.getLong(0);
             }
         }
 
-        if(cursor != null){
+        if (cursor != null) {
             cursor.close();
         }
-        SALog.d(TAG,"getAppStartTime:" + startTime);
+        SALog.d(TAG, "getAppStartTime:" + startTime);
         return startTime;
     }
 
     /**
-     * add the Activity Paused time to the SharedPreferences
-     * @param appPausedTime the Activity paused time
+     * 保存 Activity 暂停时间戳
+     *
+     * @param appPausedTime Activity 暂停时间戳
      */
-    public void commitAppPausedTime(long appPausedTime){
+    public void commitAppPausedTime(long appPausedTime) {
         try {
             ContentValues contentValues = new ContentValues();
-            contentValues.put(DbParams.TABLE_APPPAUSEDTIME, appPausedTime);
+            contentValues.put(DbParams.TABLE_APP_PAUSED_TIME, appPausedTime);
             contentResolver.insert(mDbParams.getAppPausedUri(), contentValues);
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
@@ -294,14 +298,15 @@ public class DbAdapter {
     }
 
     /**
-     * return the time of Activity Paused
-     * @return Activity End state
+     * 获取 Activity 暂停时间戳
+     *
+     * @return Activity 暂停时间戳
      */
-    public long getAppPausedTime(){
+    public long getAppPausedTime() {
         if (System.currentTimeMillis() - mAppPausedTime > mSessionTime) {
             Cursor cursor = null;
             try {
-                cursor = contentResolver.query(mDbParams.getAppPausedUri(), new String[]{DbParams.TABLE_APPPAUSEDTIME}, null, null, null);
+                cursor = contentResolver.query(mDbParams.getAppPausedUri(), null, null, null, null);
                 if (cursor != null && cursor.getCount() > 0) {
                     while (cursor.moveToNext()) {
                         mAppPausedTime = cursor.getLong(0);
@@ -310,7 +315,7 @@ public class DbAdapter {
             } catch (Exception e) {
                 com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             } finally {
-                if(cursor != null){
+                if (cursor != null) {
                     cursor.close();
                 }
             }
@@ -319,14 +324,15 @@ public class DbAdapter {
     }
 
     /**
-     * add the Activity End to the SharedPreferences
-     * @param appEndState the Activity end state
+     * 保存 $AppEnd 事件状态
+     *
+     * @param appEndState $AppEnd 事件状态
      */
-    public void commitAppEndState(boolean appEndState){
-        if (appEndState == mAppEndState)return;
+    public void commitAppEndState(boolean appEndState) {
+        if (appEndState == mAppEndState) return;
         try {
             ContentValues contentValues = new ContentValues();
-            contentValues.put(DbParams.TABLE_APPENDSTATE, appEndState);
+            contentValues.put(DbParams.TABLE_APP_END_STATE, appEndState);
             contentResolver.insert(mDbParams.getAppEndStateUri(), contentValues);
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
@@ -336,14 +342,15 @@ public class DbAdapter {
     }
 
     /**
-     * return the state of $AppEnd
-     * @return Activity End state
+     * 获取 $AppEnd 事件状态
+     *
+     * @return $AppEnd 事件状态
      */
-    public boolean getAppEndState(){
+    public boolean getAppEndState() {
         Cursor cursor = null;
         if (mAppEndState) {
             try {
-                cursor = contentResolver.query(mDbParams.getAppEndStateUri(), new String[]{DbParams.TABLE_APPENDSTATE}, null, null, null);
+                cursor = contentResolver.query(mDbParams.getAppEndStateUri(), null, null, null, null);
                 if (cursor != null && cursor.getCount() > 0) {
                     while (cursor.moveToNext()) {
                         mAppEndState = cursor.getInt(0) > 0;
@@ -358,29 +365,31 @@ public class DbAdapter {
             }
         }
 
-        SALog.d(TAG,"getAppEndState:" + mAppEndState);
+        SALog.d(TAG, "getAppEndState:" + mAppEndState);
         return mAppEndState;
     }
 
     /**
-     * add the Activity End Data to the SharedPreferences
-     * @param appEndData $AppEnd
+     * 获取 $AppEnd 事件数据
+     *
+     * @param appEndData $AppEnd 事件数据
      */
-    public void commitAppEndData(String appEndData){
+    public void commitAppEndData(String appEndData) {
         ContentValues contentValues = new ContentValues();
-        contentValues.put(DbParams.TABLE_APPENDDATA, appEndData);
+        contentValues.put(DbParams.TABLE_APP_END_DATA, appEndData);
         contentResolver.insert(mDbParams.getAppEndDataUri(), contentValues);
     }
 
     /**
-     * return the $AppEnd
-     * @return Activity count
+     * 获取 $AppEnd 事件数据
+     *
+     * @return $AppEnd 事件数据
      */
-    public String getAppEndData(){
+    public String getAppEndData() {
         String data = "";
-        Cursor cursor = contentResolver.query(mDbParams.getAppEndDataUri(), new String[]{DbParams.TABLE_APPENDDATA},null,null,null);
-        if(cursor != null && cursor.getCount() > 0){
-            while(cursor.moveToNext()){
+        Cursor cursor = contentResolver.query(mDbParams.getAppEndDataUri(), null, null, null, null);
+        if (cursor != null && cursor.getCount() > 0) {
+            while (cursor.moveToNext()) {
                 data = cursor.getString(0);
             }
         }
@@ -388,20 +397,52 @@ public class DbAdapter {
         if (cursor != null) {
             cursor.close();
         }
-        SALog.d(TAG,"getAppEndData:" + data);
+        SALog.d(TAG, "getAppEndData:" + data);
         return data;
     }
 
+    /**
+     * 存储 LoginId
+     *
+     * @param loginId 登录 Id
+     */
+    public void commitLoginId(String loginId) {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(DbParams.TABLE_LOGIN_ID, loginId);
+        contentResolver.insert(mDbParams.getLoginIdUri(), contentValues);
+    }
 
     /**
-     * add the session interval time to the SharedPreferences
-     * @param sessionIntervalTime session interval time
+     * 获取 LoginId
+     *
+     * @return LoginId
      */
-    public void commitSessionIntervalTime(int sessionIntervalTime){
-        if (sessionIntervalTime == mSavedSessionTime)return;
+    public String getLoginId() {
+        String data = "";
+        Cursor cursor = contentResolver.query(mDbParams.getLoginIdUri(), null, null, null, null);
+        if (cursor != null && cursor.getCount() > 0) {
+            while (cursor.moveToNext()) {
+                data = cursor.getString(0);
+            }
+        }
+
+        if (cursor != null) {
+            cursor.close();
+        }
+        SALog.d(TAG, "getLoginId:" + data);
+        return data;
+    }
+
+    /**
+     * 存储 $AppEnd 触发 Session 时长
+     *
+     * @param sessionIntervalTime $AppEnd 触发 Session 时长
+     */
+    public void commitSessionIntervalTime(int sessionIntervalTime) {
+        if (sessionIntervalTime == mSavedSessionTime) return;
         try {
             ContentValues contentValues = new ContentValues();
-            contentValues.put(DbParams.TABLE_SESSIONINTERVALTIME, sessionIntervalTime);
+            contentValues.put(DbParams.TABLE_SESSION_INTERVAL_TIME, sessionIntervalTime);
             contentResolver.insert(mDbParams.getSessionTimeUri(), contentValues);
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
@@ -410,14 +451,15 @@ public class DbAdapter {
     }
 
     /**
-     * return the $AppEnd
-     * @return Activity count
+     * 返回 $AppEnd 触发 Session 时长
+     *
+     * @return $AppEnd 触发 Session 时长
      */
-    public int getSessionIntervalTime(){
+    public int getSessionIntervalTime() {
         if (mSessionTime != mSavedSessionTime) {
             Cursor cursor = null;
             try {
-                cursor = contentResolver.query(mDbParams.getSessionTimeUri(), new String[]{DbParams.TABLE_SESSIONINTERVALTIME}, null, null, null);
+                cursor = contentResolver.query(mDbParams.getSessionTimeUri(), null, null, null, null);
                 if (cursor != null && cursor.getCount() > 0) {
                     while (cursor.moveToNext()) {
                         mSessionTime = cursor.getInt(0);
@@ -432,7 +474,7 @@ public class DbAdapter {
             }
         }
         mSavedSessionTime = mSessionTime;
-        SALog.d(TAG,"getSessionIntervalTime:" + mSessionTime);
+        SALog.d(TAG, "getSessionIntervalTime:" + mSessionTime);
         return mSessionTime;
     }
 
@@ -441,7 +483,7 @@ public class DbAdapter {
         String data = null;
         String last_id = null;
         try {
-            c = contentResolver.query(mDbParams.gemUri(), null, null, null, DbParams.KEY_CREATED_AT + " ASC LIMIT " + String.valueOf(limit));
+            c = contentResolver.query(mDbParams.getEventUri(), null, null, null, DbParams.KEY_CREATED_AT + " ASC LIMIT " + String.valueOf(limit));
 
             if (c != null) {
                 StringBuilder dataBuilder = new StringBuilder();
@@ -467,7 +509,7 @@ public class DbAdapter {
                                 }
                                 keyData = content;
                             }
-                            dataBuilder.append(keyData, 0, keyData.length()-1)
+                            dataBuilder.append(keyData, 0, keyData.length() - 1)
                                     .append(flush_time)
                                     .append(System.currentTimeMillis())
                                     .append("}").append(suffix);

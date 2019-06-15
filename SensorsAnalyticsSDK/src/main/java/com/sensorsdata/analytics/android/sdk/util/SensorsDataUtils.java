@@ -501,7 +501,7 @@ public final class SensorsDataUtils {
             while (superPropertiesIterator.hasNext()) {
                 String key = superPropertiesIterator.next();
                 Object value = source.get(key);
-                if (value instanceof Date) {
+                if (value instanceof Date && !"$time".equals(key)) {
                     dest.put(key, DateFormatUtils.formatDate((Date) value, Locale.CHINA));
                 } else {
                     dest.put(key, value);
@@ -533,7 +533,7 @@ public final class SensorsDataUtils {
                 }
 
                 Object value = source.get(key);
-                if (value instanceof Date) {
+                if (value instanceof Date && !"$time".equals(key)) {
                     dest.put(key, DateFormatUtils.formatDate((Date) value, Locale.CHINA));
                 } else {
                     dest.put(key, value);
@@ -639,104 +639,6 @@ public final class SensorsDataUtils {
         } catch (Exception e) {
             SALog.i(TAG, e.toString());
             return true;
-        }
-    }
-
-    public static String networkType(Context context) {
-        try {
-            // 检测权限
-            if (!checkHasPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
-                return "NULL";
-            }
-
-            // Wifi
-            ConnectivityManager manager = (ConnectivityManager)
-                    context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            if (manager != null) {
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                    Network network = manager.getActiveNetwork();
-                    if (network != null) {
-                        NetworkCapabilities capabilities = manager.getNetworkCapabilities(network);
-                        if (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                            return "WIFI";
-                        }
-                    }
-                } else {
-                    NetworkInfo networkInfo = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-                    if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
-                        return "WIFI";
-                    }
-                }
-            }
-
-            // Mobile network
-            TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context
-                    .TELEPHONY_SERVICE);
-
-            if (telephonyManager == null) {
-                return "NULL";
-            }
-
-            int networkType = telephonyManager.getNetworkType();
-            switch (networkType) {
-                case TelephonyManager.NETWORK_TYPE_GPRS:
-                case TelephonyManager.NETWORK_TYPE_EDGE:
-                case TelephonyManager.NETWORK_TYPE_CDMA:
-                case TelephonyManager.NETWORK_TYPE_1xRTT:
-                case TelephonyManager.NETWORK_TYPE_IDEN:
-                    return "2G";
-                case TelephonyManager.NETWORK_TYPE_UMTS:
-                case TelephonyManager.NETWORK_TYPE_EVDO_0:
-                case TelephonyManager.NETWORK_TYPE_EVDO_A:
-                case TelephonyManager.NETWORK_TYPE_HSDPA:
-                case TelephonyManager.NETWORK_TYPE_HSUPA:
-                case TelephonyManager.NETWORK_TYPE_HSPA:
-                case TelephonyManager.NETWORK_TYPE_EVDO_B:
-                case TelephonyManager.NETWORK_TYPE_EHRPD:
-                case TelephonyManager.NETWORK_TYPE_HSPAP:
-                    return "3G";
-                case TelephonyManager.NETWORK_TYPE_LTE:
-                    return "4G";
-                case TelephonyManager.NETWORK_TYPE_NR:
-                    return "5G";
-                default:
-                    return "NULL";
-            }
-        } catch (Exception e) {
-            return "NULL";
-        }
-    }
-
-    public static boolean isNetworkAvailable(Context context) {
-        // 检测权限
-        if (!checkHasPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
-            return false;
-        }
-        try {
-            ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            if (cm != null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    Network network = cm.getActiveNetwork();
-                    if (network != null) {
-                        NetworkCapabilities capabilities = cm.getNetworkCapabilities(network);
-                        if (capabilities != null) {
-                            return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
-                                    || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
-                                    || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
-                                    || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN);
-                        }
-                    }
-                } else {
-                    NetworkInfo networkInfo = cm.getActiveNetworkInfo();
-                    if (networkInfo != null && networkInfo.isConnected()) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-            return false;
         }
     }
 

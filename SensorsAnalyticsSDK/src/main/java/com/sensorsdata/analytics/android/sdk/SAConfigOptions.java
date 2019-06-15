@@ -19,6 +19,41 @@ package com.sensorsdata.analytics.android.sdk;
 
 public final class SAConfigOptions extends AbstractSAConfigOptions {
     /**
+     * 是否设置点击图开关
+     */
+    boolean mInvokeHeatMapEnabled;
+
+    /**
+     * 是否设置点击图对话框
+     */
+    boolean mInvokeHeatMapConfirmDialog;
+
+    /**
+     * 是否设置点击图证书检查
+     */
+    boolean mInvokeHeatMapSSLCheck;
+
+    /**
+     * 是否设置可视化全埋点开关
+     */
+    boolean mInvokeVisualizedEnabled;
+
+    /**
+     * 是否设置可视化全埋点对话框
+     */
+    boolean mInvokeVisualizedConfirmDialog;
+
+    /**
+     * 是否设置点击图证书检查
+     */
+    boolean mInvokeVisualizedSSLCheck;
+
+    /**
+     * 是否设置打印日志
+     */
+    boolean mInvokeLog;
+
+    /**
      * 私有构造函数
      */
     private SAConfigOptions() {
@@ -138,6 +173,133 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
      */
     public SAConfigOptions disableRandomTimeRequestRemoteConfig() {
         this.mDisableRandomTimeRequestRemoteConfig = true;
+        return this;
+    }
+
+    /**
+     * 设置点击图是否可用
+     *
+     * @param enableHeatMap 点击图是否可用
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions enableHeatMap(boolean enableHeatMap) {
+        this.mHeatMapEnabled = enableHeatMap;
+        this.mInvokeHeatMapEnabled = true;
+        return this;
+    }
+
+    /**
+     * 设置点击图提示对话框是否可用
+     *
+     * @param enableDialog 对话框状态是否可用
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions enableHeatMapConfirmDialog(boolean enableDialog) {
+        this.mHeatMapConfirmDialogEnabled = enableDialog;
+        this.mInvokeHeatMapConfirmDialog = true;
+        return this;
+    }
+
+    /**
+     * 设置点击图是否检查证书
+     *
+     * @param enableHeatMapSSLCheck 点击图是否检查证书
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions enableHeatMapSSLCheck(boolean enableHeatMapSSLCheck) {
+        this.mHeatMapSSLChecked = enableHeatMapSSLCheck;
+        this.mInvokeHeatMapSSLCheck = true;
+        return this;
+    }
+
+    /**
+     * 设置可视化全埋点是否可用
+     *
+     * @param enableVisualizedAutoTrack 可视化全埋点是否可用
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions enableVisualizedAutoTrack(boolean enableVisualizedAutoTrack) {
+        this.mVisualizedEnabled = enableVisualizedAutoTrack;
+        this.mInvokeVisualizedEnabled = true;
+        return this;
+    }
+
+    /**
+     * 设置可视化全埋点提示对话框是否可用
+     *
+     * @param enableDialog 对话框状态是否可用
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions enableVisualizedAutoTrackConfirmDialog(boolean enableDialog) {
+        this.mVisualizedConfirmDialogEnabled = enableDialog;
+        this.mInvokeVisualizedConfirmDialog = true;
+        return this;
+    }
+
+    /**
+     * 设置可视化全埋点是否检查证书
+     *
+     * @param enableVisualizedSSLCheck 可视化全埋点是否检查证书
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions enableVisualizedAutoTrackSSLCheck(boolean enableVisualizedSSLCheck) {
+        this.mVisualizedSSLChecked = enableVisualizedSSLCheck;
+        this.mInvokeVisualizedSSLCheck = true;
+        return this;
+    }
+
+    /**
+     * 是否打印日志
+     *
+     * @param enableLog 是否开启打印日志
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions enableLog(boolean enableLog) {
+        this.mLogEnabled = enableLog;
+        this.mInvokeLog = true;
+        return this;
+    }
+
+    /**
+     * 是否开启 RN 数据采集
+     *
+     * @param enableRN 是否开启 RN 采集
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions enableReactNativeAutoTrack(boolean enableRN) {
+        this.mRNAutoTrackEnabled = enableRN;
+        return this;
+    }
+
+    /**
+     * 是否开启屏幕方向采集
+     *
+     * @param enableScreenOrientation 是否开启屏幕方向采集
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions enableTrackScreenOrientation(boolean enableScreenOrientation) {
+        this.mTrackScreenOrientationEnabled = enableScreenOrientation;
+        return this;
+    }
+
+    /**
+     * 设置数据的网络上传策略
+     *
+     * @param networkTypePolicy 数据的网络上传策略
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions setNetworkTypePolicy(int networkTypePolicy) {
+        this.mNetworkTypePolicy = networkTypePolicy;
+        return this;
+    }
+
+    /**
+     * 设置 DistinctId
+     * @param distinctId DistinctId
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions setDistinctId(String distinctId) {
+        this.mDistinctId = distinctId;
         return this;
     }
 }

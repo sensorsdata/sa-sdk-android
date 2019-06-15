@@ -45,19 +45,19 @@ public class SALog {
     }
 
     public static void i(String tag, String msg) {
-        if (SensorsDataAPI.ENABLE_LOG) {
+        if (SensorsDataAPI.sEnableLog) {
             info(tag, msg,null);
         }
     }
 
     public static void i(String tag, Throwable tr) {
-        if (SensorsDataAPI.ENABLE_LOG) {
+        if (SensorsDataAPI.sEnableLog) {
             info(tag,"",tr);
         }
     }
 
     public static void i(String tag, String msg, Throwable tr) {
-        if (SensorsDataAPI.ENABLE_LOG) {
+        if (SensorsDataAPI.sEnableLog) {
             info(tag,msg,tr);
         }
     }

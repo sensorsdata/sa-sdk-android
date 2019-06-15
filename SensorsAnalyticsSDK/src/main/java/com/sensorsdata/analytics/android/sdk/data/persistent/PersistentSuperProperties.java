@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import android.content.SharedPreferences;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.data.PersistentLoader;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -28,7 +29,7 @@ import java.util.concurrent.Future;
 
 public class PersistentSuperProperties extends PersistentIdentity<JSONObject> {
     public PersistentSuperProperties(Future<SharedPreferences> loadStoredPreferences) {
-        super(loadStoredPreferences, "super_properties", new PersistentSerializer<JSONObject>() {
+        super(loadStoredPreferences, PersistentLoader.PersistentName.SUPER_PROPERTIES, new PersistentSerializer<JSONObject>() {
             @Override
             public JSONObject load(String value) {
                 try {
@@ -41,7 +42,7 @@ public class PersistentSuperProperties extends PersistentIdentity<JSONObject> {
 
             @Override
             public String save(JSONObject item) {
-                return item.toString();
+                return item == null ? create().toString() : item.toString();
             }
 
             @Override

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk.data;
 
 import android.content.Context;
@@ -26,45 +26,34 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 
-/* package */ class SharedPreferencesLoader {
+class SharedPreferencesLoader {
 
-    /* package */ interface OnPrefsLoadedListener {
-        void onPrefsLoaded(SharedPreferences prefs);
-    }
-
-    public SharedPreferencesLoader() {
+    SharedPreferencesLoader() {
         sensorsDataThreadPool = SensorsDataThreadPool.getInstance();
     }
 
-    public Future<SharedPreferences> loadPreferences(Context context, String name,
-                                                     OnPrefsLoadedListener listener) {
+    Future<SharedPreferences> loadPreferences(Context context, String name) {
         final LoadSharedPreferences loadSharedPrefs =
-                new LoadSharedPreferences(context, name, listener);
-        final FutureTask<SharedPreferences> task = new FutureTask<SharedPreferences>(loadSharedPrefs);
+                new LoadSharedPreferences(context, name);
+        final FutureTask<SharedPreferences> task = new FutureTask<>(loadSharedPrefs);
         sensorsDataThreadPool.execute(task);
         return task;
     }
 
     private static class LoadSharedPreferences implements Callable<SharedPreferences> {
-        public LoadSharedPreferences(Context context, String prefsName,
-                                     OnPrefsLoadedListener listener) {
+        LoadSharedPreferences(Context context, String prefsName) {
             mContext = context;
             mPrefsName = prefsName;
-            mListener = listener;
         }
 
         @Override
         public SharedPreferences call() {
             final SharedPreferences ret = mContext.getSharedPreferences(mPrefsName, Context.MODE_PRIVATE);
-            if (null != mListener) {
-                mListener.onPrefsLoaded(ret);
-            }
             return ret;
         }
 
         private final Context mContext;
         private final String mPrefsName;
-        private final OnPrefsLoadedListener mListener;
     }
 
 

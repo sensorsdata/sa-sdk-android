@@ -49,11 +49,12 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallation;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallationWithCallback;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProperties;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
+import com.sensorsdata.analytics.android.sdk.util.DateFormatUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
+import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONArray;
@@ -80,7 +81,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -140,27 +140,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         public static final int TYPE_ALL = 0xFF;//ALL
     }
 
-    protected boolean isShouldFlush(String networkType) {
-        return (toNetworkType(networkType) & mFlushNetworkPolicy) != 0;
-    }
-
-    private int toNetworkType(String networkType) {
-        if ("NULL".equals(networkType)) {
-            return NetworkType.TYPE_ALL;
-        } else if ("WIFI".equals(networkType)) {
-            return NetworkType.TYPE_WIFI;
-        } else if ("2G".equals(networkType)) {
-            return NetworkType.TYPE_2G;
-        } else if ("3G".equals(networkType)) {
-            return NetworkType.TYPE_3G;
-        } else if ("4G".equals(networkType)) {
-            return NetworkType.TYPE_4G;
-        } else if ("5G".equals(networkType)) {
-            return NetworkType.TYPE_5G;
-        }
-        return NetworkType.TYPE_ALL;
-    }
-
     /**
      * AutoTrack 默认采集的事件类型
      */
@@ -217,7 +196,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mContext = null;
         mMessages = null;
         mDistinctId = null;
-        mLoginId = null;
         mSuperProperties = null;
         mFirstStart = null;
         mFirstDay = null;
@@ -241,15 +219,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
+
         SALog.init(this);
-        initSAConfig(serverURL, packageName);
-        DbAdapter.getInstance(context, packageName);
-        mMessages = AnalyticsMessages.getInstance(mContext, mSAConfigOptions.mFlushCacheSize);
-        mAndroidId = SensorsDataUtils.getAndroidID(mContext);
 
         PersistentLoader.initLoader(context);
         mDistinctId = (PersistentDistinctId) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.DISTINCT_ID);
-        mLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.LOGIN_ID);
         mSuperProperties = (PersistentSuperProperties) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.SUPER_PROPERTIES);
         mFirstStart = (PersistentFirstStart) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.FIRST_START);
         mFirstTrackInstallation = (PersistentFirstTrackInstallation) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.FIRST_INSTALL);
@@ -263,6 +237,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         sensorsDataThreadPool = SensorsDataThreadPool.getInstance();
         sensorsDataThreadPool.execute(mTrackTaskManagerThread);
         sensorsDataThreadPool.execute(mTrackDBTaskManagerThread);
+
+        initSAConfig(serverURL, packageName);
+        DbAdapter.getInstance(context, packageName);
+        mMessages = AnalyticsMessages.getInstance(mContext, mSAConfigOptions.mFlushCacheSize);
+        mAndroidId = SensorsDataUtils.getAndroidID(mContext);
 
         //先从缓存中读取 SDKConfig
         applySDKConfigFromCache();
@@ -501,7 +480,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     void pullSDKConfigFromServer() {
-        if (mSAConfigOptions != null && !SensorsDataUtils.isRequestValid(mContext,
+        if (!isNetworkRequestEnable() && mSAConfigOptions != null && !SensorsDataUtils.isRequestValid(mContext,
                 mSAConfigOptions.mMinRequestInterval, mSAConfigOptions.mMaxRequestInterval)) {
             return;
         }
@@ -685,7 +664,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             properties.put("$os_version", mDeviceInfo.get("$os_version"));
             properties.put("$screen_height", mDeviceInfo.get("$screen_height"));
             properties.put("$screen_width", mDeviceInfo.get("$screen_width"));
-            String networkType = SensorsDataUtils.networkType(mContext);
+            String networkType = NetworkUtils.networkType(mContext);
             properties.put("$wifi", networkType.equals("WIFI"));
             properties.put("$network_type", networkType);
             properties.put("$carrier", mDeviceInfo.get("$carrier"));
@@ -747,7 +726,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void enableLog(boolean enable) {
-        this.ENABLE_LOG = enable;
+        this.sEnableLog = enable;
     }
 
     @Override
@@ -1122,12 +1101,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void enableReactNativeAutoTrack() {
-        this.mEnableReactNativeAutoTrack = true;
+        this.mRNAutoTrackEnabled = true;
     }
 
     @Override
     public boolean isReactNativeAutoTrackEnabled() {
-        return this.mEnableReactNativeAutoTrack;
+        return this.mRNAutoTrackEnabled;
     }
 
     /**
@@ -1854,7 +1833,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public boolean isVisualizedAutoTrackEnabled() {
-        return mVisualizedAutoTrackEnabled;
+        return mVisualizedEnabled;
     }
 
     /**
@@ -1863,7 +1842,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @return true 代表开启了可视化全埋点的提示框， false 代表关闭了可视化全埋点的提示框
      */
     boolean isVisualizedAutoTrackConfirmDialogEnabled() {
-        return mEnableVisualizedAutoTrackConfirmDialog;
+        return mVisualizedConfirmDialogEnabled;
     }
 
     /**
@@ -1873,7 +1852,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void enableVisualizedAutoTrackConfirmDialog(boolean enable) {
-        this.mEnableVisualizedAutoTrackConfirmDialog = enable;
+        this.mVisualizedConfirmDialogEnabled = enable;
     }
 
     /**
@@ -1881,7 +1860,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void enableVisualizedAutoTrack() {
-        mVisualizedAutoTrackEnabled = true;
+        this.mVisualizedEnabled = true;
     }
 
     /**
@@ -1965,7 +1944,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @return true 代表开启了点击图的提示框， false 代表关闭了点击图的提示框
      */
     boolean isAppHeatMapConfirmDialogEnabled() {
-        return mEnableAppHeatMapConfirmDialog;
+        return mHeatMapConfirmDialogEnabled;
     }
 
     /**
@@ -1975,7 +1954,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public void enableAppHeatMapConfirmDialog(boolean enable) {
-        this.mEnableAppHeatMapConfirmDialog = enable;
+        this.mHeatMapConfirmDialogEnabled = enable;
     }
 
     /**
@@ -2037,9 +2016,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      */
     @Override
     public String getLoginId() {
-        synchronized (mLoginId) {
-            return mLoginId.get();
-        }
+        return DbAdapter.getInstance().getLoginId();
     }
 
     /**
@@ -2099,9 +2076,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             @Override
             public void run() {
                 try {
-                    synchronized (mLoginId) {
-                        if (!loginId.equals(mLoginId.get())) {
-                            mLoginId.commit(loginId);
+                    synchronized (mLoginIdLock) {
+                        if (!loginId.equals(DbAdapter.getInstance().getLoginId())) {
+                            DbAdapter.getInstance().commitLoginId(loginId);
                             if (!loginId.equals(getAnonymousId())) {
                                 trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, getAnonymousId());
                             }
@@ -2123,8 +2100,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             @Override
             public void run() {
                 try {
-                    synchronized (mLoginId) {
-                        mLoginId.commit(null);
+                    synchronized (mLoginIdLock) {
+                        DbAdapter.getInstance().commitLoginId(null);
                     }
                 } catch (Exception e) {
                     com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
@@ -2451,6 +2428,41 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public void trackTimerStart(String eventName) {
         trackTimerBegin(eventName, TimeUnit.SECONDS);
+    }
+
+    /**
+     * 触发事件的暂停/恢复
+     *
+     * @param eventName 事件名称
+     * @param isPause 设置是否暂停
+     */
+    private void trackTimerState(final String eventName, final boolean isPause) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    assertKey(eventName);
+                    synchronized (mTrackTimer) {
+                        EventTimer eventTimer = mTrackTimer.get(eventName);
+                        if (eventTimer != null && eventTimer.isPause() != isPause) {
+                            eventTimer.setTimerState(isPause);
+                        }
+                    }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
+            }
+        });
+    }
+
+    @Override
+    public void trackTimerPause(String eventName) {
+        trackTimerState(eventName, true);
+    }
+
+    @Override
+    public void trackTimerResume(String eventName) {
+        trackTimerState(eventName, false);
     }
 
     /**
@@ -3137,13 +3149,13 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     @Override
-    public boolean isFlushInBackground() {
-        return mFlushInBackground;
+    public boolean isNetworkRequestEnable() {
+        return mEnableNetworkRequest;
     }
 
     @Override
-    public void setFlushInBackground(boolean Flush) {
-        mFlushInBackground = Flush;
+    public void enableNetworkRequest(boolean isRequest) {
+        this.mEnableNetworkRequest = isRequest;
     }
 
     boolean isDebugWriteData() {
@@ -3306,7 +3318,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 }
 
                 // 当前网络状况
-                String networkType = SensorsDataUtils.networkType(mContext);
+                String networkType = NetworkUtils.networkType(mContext);
                 propertiesObject.put("$wifi", networkType.equals("WIFI"));
                 propertiesObject.put("$network_type", networkType);
 
@@ -3350,6 +3362,18 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 propertiesObject.remove("$token");
             }
 
+            if (propertiesObject.has("$time")) {
+                try {
+                    long time = propertiesObject.getLong("$time");
+                    if (DateFormatUtils.isDateValid(time)) {
+                        eventObject.put("time", time);
+                    }
+                } catch (Exception ex) {
+                    SALog.printStackTrace(ex);
+                }
+                propertiesObject.remove("$time");
+            }
+
             String eventName = eventObject.optString("event");
             if (eventType.isTrack()) {
                 boolean enterDb = isEnterDb(eventName, propertiesObject);
@@ -3362,9 +3386,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
             if (eventType == EventType.TRACK_SIGNUP) {
                 String loginId = eventObject.getString("distinct_id");
-                synchronized (mLoginId) {
-                    if (!loginId.equals(mLoginId.get())) {
-                        mLoginId.commit(loginId);
+                synchronized (mLoginIdLock) {
+                    if (!loginId.equals(DbAdapter.getInstance().getLoginId())) {
+                        DbAdapter.getInstance().commitLoginId(loginId);
                         if (!loginId.equals(getAnonymousId())) {
                             mMessages.enqueueEventMessage(type, eventObject);
                         }
@@ -3373,7 +3397,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             } else {
                 mMessages.enqueueEventMessage(type, eventObject);
             }
-            if(ENABLE_LOG) {
+            if (sEnableLog) {
                 SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(eventObject.toString()));
             }
         } catch (Exception e) {
@@ -3504,7 +3528,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     }
 
                     // 当前网络状况
-                    String networkType = SensorsDataUtils.networkType(mContext);
+                    String networkType = NetworkUtils.networkType(mContext);
                     sendProperties.put("$wifi", networkType.equals("WIFI"));
                     sendProperties.put("$network_type", networkType);
 
@@ -3608,6 +3632,20 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         dataObj.put("token", sendProperties.optString("$token"));
                         sendProperties.remove("$token");
                     }
+
+                    if (sendProperties.has("$time")) {
+                        try {
+                            Object timeDate = sendProperties.opt("$time");
+                            if (timeDate instanceof Date) {
+                                if (DateFormatUtils.isDateValid((Date) timeDate)) {
+                                    dataObj.put("time", ((Date) timeDate).getTime());
+                                }
+                            }
+                        } catch (Exception ex) {
+                            SALog.printStackTrace(ex);
+                        }
+                        sendProperties.remove("$time");
+                    }
                 } catch (Exception e) {
                     com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
@@ -3672,7 +3710,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 }
                 dataObj.put("properties", sendProperties);
                 mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
-                if(ENABLE_LOG) {
+                if (sEnableLog) {
                     SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(dataObj.toString()));
                 }
             } catch (JSONException e) {
@@ -3706,8 +3744,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      *
      * @return boolean 是否进行检查
      */
-    boolean isSSLCertificateChecking() {
-        return mIsSSLCertificateChecking;
+    boolean isHeatMapSSLCheckEnabled() {
+        return mHeatMapSSLCheckEnabled;
     }
 
     /**
@@ -3715,8 +3753,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      *
      * @return boolean 是否进行检查
      */
-    boolean isVisualizedAutoTrackSSLCertificateChecking() {
-        return mIsVisualizedAutoTrackSSLChecking;
+    boolean isVisualizedSSLCheckEnabled() {
+        return mVisualizedSSLCheckEnabled;
     }
 
     private boolean isFirstDay(long eventTime) {
@@ -3900,38 +3938,78 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             this.mAutoTrack = true;
         }
 
-        if (this.mDebugMode == DebugMode.DEBUG_OFF) {
-            ENABLE_LOG = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
-                    false);
+        if (mSAConfigOptions.mInvokeLog) {
+            sEnableLog = mSAConfigOptions.mLogEnabled;
         } else {
-            ENABLE_LOG = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
+            if (this.mDebugMode == DebugMode.DEBUG_OFF) {
+                sEnableLog = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
+                        false);
+            } else {
+                sEnableLog = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
+                        true);
+            }
+        }
+
+        if (mSAConfigOptions.mInvokeHeatMapEnabled) {
+            this.mHeatMapEnabled = mSAConfigOptions.mHeatMapEnabled;
+        } else {
+            this.mHeatMapEnabled = configBundle.getBoolean("com.sensorsdata.analytics.android.HeatMap",
+                    false);
+        }
+
+        if (mSAConfigOptions.mInvokeHeatMapConfirmDialog) {
+            this.mHeatMapConfirmDialogEnabled = mSAConfigOptions.mHeatMapConfirmDialogEnabled;
+        } else {
+            this.mHeatMapConfirmDialogEnabled = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableHeatMapConfirmDialog",
                     true);
         }
+
+        if (mSAConfigOptions.mInvokeHeatMapSSLCheck) {
+            this.mHeatMapSSLCheckEnabled = mSAConfigOptions.mHeatMapSSLChecked;
+        } else {
+            this.mHeatMapSSLCheckEnabled = configBundle.getBoolean("com.sensorsdata.analytics.android.HeatMapSSLCertificateCheck",
+                    true);
+        }
+
+        if (mSAConfigOptions.mInvokeVisualizedEnabled) {
+            this.mVisualizedEnabled = mSAConfigOptions.mVisualizedEnabled;
+        } else {
+            this.mVisualizedEnabled = configBundle.getBoolean("com.sensorsdata.analytics.android.VisualizedAutoTrack",
+                    false);
+        }
+
+        if (mSAConfigOptions.mInvokeVisualizedConfirmDialog) {
+            this.mVisualizedConfirmDialogEnabled = mSAConfigOptions.mVisualizedConfirmDialogEnabled;
+        } else {
+            this.mVisualizedConfirmDialogEnabled = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableVisualizedAutoTrackConfirmDialog",
+                    true);
+        }
+
+        if (mSAConfigOptions.mInvokeVisualizedSSLCheck) {
+            this.mVisualizedSSLCheckEnabled = mSAConfigOptions.mVisualizedSSLChecked;
+        } else {
+            this.mVisualizedSSLCheckEnabled = configBundle.getBoolean("com.sensorsdata.analytics.android.VisualizedAutoTrackSSLCertificateCheck",
+                    true);
+        }
+
+        this.mRNAutoTrackEnabled = mSAConfigOptions.mRNAutoTrackEnabled;
+        this.mFlushNetworkPolicy = mSAConfigOptions.mNetworkTypePolicy;
+        enableTrackScreenOrientation(mSAConfigOptions.mTrackScreenOrientationEnabled);
+        if (!TextUtils.isEmpty(mSAConfigOptions.mDistinctId)) {
+            identify(mSAConfigOptions.mDistinctId);
+        }
+
         SHOW_DEBUG_INFO_VIEW = configBundle.getBoolean("com.sensorsdata.analytics.android.ShowDebugInfoView",
                 true);
-        this.mHeatMapEnabled = configBundle.getBoolean("com.sensorsdata.analytics.android.HeatMap",
-                false);
-        this.mVisualizedAutoTrackEnabled = configBundle.getBoolean("com.sensorsdata.analytics.android.VisualizedAutoTrack",
-                false);
         this.mDisableDefaultRemoteConfig = configBundle.getBoolean("com.sensorsdata.analytics.android.DisableDefaultRemoteConfig",
                 false);
         this.mEnableButterknifeOnClick = configBundle.getBoolean("com.sensorsdata.analytics.android.ButterknifeOnClick",
                 false);
-        this.mFlushInBackground = configBundle.getBoolean("com.sensorsdata.analytics.android.FlushInBackground",
-                true);
-        this.mIsSSLCertificateChecking = configBundle.getBoolean("com.sensorsdata.analytics.android.HeatMapSSLCertificateCheck",
-                true);
-        this.mIsVisualizedAutoTrackSSLChecking = configBundle.getBoolean("com.sensorsdata.analytics.android.VisualizedAutoTrackSSLCertificateCheck",
-                true);
         this.mMainProcessName = SensorsDataUtils.getMainProcessName(mContext);
         if (TextUtils.isEmpty(this.mMainProcessName)) {
             this.mMainProcessName = configBundle.getString("com.sensorsdata.analytics.android.MainProcessName");
         }
         mIsMainProcess = SensorsDataUtils.isMainProcess(mContext, mMainProcessName);
-        this.mEnableAppHeatMapConfirmDialog = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableHeatMapConfirmDialog",
-                true);
-        this.mEnableVisualizedAutoTrackConfirmDialog = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableVisualizedAutoTrackConfirmDialog",
-                true);
         this.mDisableTrackDeviceId = configBundle.getBoolean("com.sensorsdata.analytics.android.DisableTrackDeviceId",
                 false);
         mSAConfigOptions.mFlushCacheSize = configBundle.getInt("com.sensorsdata.analytics.android.FlushCacheSize", 5);
@@ -3957,6 +4035,41 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         if (mSAConfigOptions.mAutoTrackEventType != 0) {
             this.mAutoTrackEventType = mSAConfigOptions.mAutoTrackEventType;
             this.mAutoTrack = true;
+        }
+
+        if (mSAConfigOptions.mInvokeLog) {
+            sEnableLog = mSAConfigOptions.mLogEnabled;
+        }
+
+        if (mSAConfigOptions.mInvokeHeatMapEnabled) {
+            this.mHeatMapEnabled = mSAConfigOptions.mHeatMapEnabled;
+        }
+
+        if (mSAConfigOptions.mInvokeHeatMapConfirmDialog) {
+            this.mHeatMapConfirmDialogEnabled = mSAConfigOptions.mHeatMapConfirmDialogEnabled;
+        }
+
+        if (mSAConfigOptions.mInvokeHeatMapSSLCheck) {
+            this.mHeatMapSSLCheckEnabled = mSAConfigOptions.mHeatMapSSLChecked;
+        }
+
+        if (mSAConfigOptions.mInvokeVisualizedEnabled) {
+            this.mVisualizedEnabled = mSAConfigOptions.mVisualizedEnabled;
+        }
+
+        if (mSAConfigOptions.mInvokeVisualizedConfirmDialog) {
+            this.mVisualizedConfirmDialogEnabled = mSAConfigOptions.mVisualizedConfirmDialogEnabled;
+        }
+
+        if (mSAConfigOptions.mInvokeVisualizedSSLCheck) {
+            this.mVisualizedSSLCheckEnabled = mSAConfigOptions.mVisualizedSSLChecked;
+        }
+
+        this.mRNAutoTrackEnabled = mSAConfigOptions.mRNAutoTrackEnabled;
+        this.mFlushNetworkPolicy = mSAConfigOptions.mNetworkTypePolicy;
+        enableTrackScreenOrientation(mSAConfigOptions.mTrackScreenOrientationEnabled);
+        if (!TextUtils.isEmpty(mSAConfigOptions.mDistinctId)) {
+            identify(mSAConfigOptions.mDistinctId);
         }
     }
 
@@ -4018,23 +4131,21 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     @Override
     public void setSSLSocketFactory(SSLSocketFactory sf) {
-        mSSLSocketFactory = sf ;
+        mSSLSocketFactory = sf;
     }
 
     // 可视化埋点功能最低API版本
     static final int VTRACK_SUPPORTED_MIN_API = 16;
 
     // SDK版本
-    static final String VERSION = "3.1.4";
+    static final String VERSION = "3.1.5";
     // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
     static final String MIN_PLUGIN_VERSION = "3.0.0";
 
-    /**
-     * AndroidID
-     */
+    /* AndroidID */
     private String mAndroidId = null;
     static boolean mIsMainProcess = false;
-    static boolean ENABLE_LOG = false;
+    static boolean sEnableLog = false;
     static boolean SHOW_DEBUG_INFO_VIEW = true;
     private static final Pattern KEY_PATTERN = Pattern.compile(
             "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
@@ -4062,31 +4173,29 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     /* SDK 自动采集事件 */
     private boolean mAutoTrack;
     private boolean mHeatMapEnabled;
-    private boolean mVisualizedAutoTrackEnabled;
+    private boolean mHeatMapConfirmDialogEnabled = true;
+    /* 点击图 HTTPS 是否进行 SSL 检查 */
+    private boolean mHeatMapSSLCheckEnabled = true;
+    private boolean mVisualizedEnabled;
+    private boolean mVisualizedConfirmDialogEnabled = true;
+    private boolean mVisualizedSSLCheckEnabled = true;
+
     /* 上个页面的Url*/
     private String mLastScreenUrl;
     private JSONObject mLastScreenTrackProperties;
     private boolean mEnableButterknifeOnClick;
     /* $AppViewScreen 事件是否支持 Fragment*/
     private boolean mTrackFragmentAppViewScreen;
-    private boolean mEnableReactNativeAutoTrack;
+    private boolean mRNAutoTrackEnabled;
     private boolean mClearReferrerWhenAppEnd = false;
-    private boolean mEnableVisualizedAutoTrackConfirmDialog = true;
-    private boolean mEnableAppHeatMapConfirmDialog = true;
     private boolean mDisableDefaultRemoteConfig = false;
     private boolean mDisableTrackDeviceId = false;
-    /*进入后台是否上传数据*/
-    private boolean mFlushInBackground = true;
-
-    /**
-     * 点击图 HTTPS 是否进行 SSL 检查
-     */
-    private boolean mIsSSLCertificateChecking = true;
-    private boolean mIsVisualizedAutoTrackSSLChecking = true;
+    /* 是否请求网络 */
+    private boolean mEnableNetworkRequest = true;
     private final Context mContext;
     private final AnalyticsMessages mMessages;
+    private final Object mLoginIdLock = new Object();
     private final PersistentDistinctId mDistinctId;
-    private final PersistentLoginId mLoginId;
     private final PersistentSuperProperties mSuperProperties;
     private final PersistentFirstStart mFirstStart;
     private final PersistentFirstDay mFirstDay;
@@ -4099,10 +4208,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private List<Integer> mHeatMapActivities;
     private Set<Integer> mAutoTrackFragments;
     private List<Integer> mVisualizedAutoTrackActivities;
-    private int mFlushNetworkPolicy = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI | NetworkType.TYPE_5G;
-    /**
-     * 主进程名称
-     */
+    int mFlushNetworkPolicy = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI | NetworkType.TYPE_5G;
+    /* 主进程名称 */
     private String mMainProcessName;
     private int mAutoTrackEventType;
     private long mMaxCacheSize = 32 * 1024 * 1024; //default 32MB

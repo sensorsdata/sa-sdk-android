@@ -14,18 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import android.content.SharedPreferences;
 
 import com.sensorsdata.analytics.android.sdk.data.DbParams;
+import com.sensorsdata.analytics.android.sdk.data.PersistentLoader;
 
 import java.util.concurrent.Future;
 
 public class PersistentSessionIntervalTime extends PersistentIdentity<Integer> {
     public PersistentSessionIntervalTime(Future<SharedPreferences> loadStoredPreferences) {
-        super(loadStoredPreferences, DbParams.TABLE_SESSIONINTERVALTIME, new PersistentSerializer<Integer>() {
+        super(loadStoredPreferences, PersistentLoader.PersistentName.APP_SESSION_TIME, new PersistentSerializer<Integer>() {
             @Override
             public Integer load(String value) {
                 return Integer.valueOf(value);

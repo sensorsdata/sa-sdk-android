@@ -1,5 +1,5 @@
-![logo](docs/logo.jpg)
-
+![logo](docs/logo.png)
+<br><br>
 [![License](https://img.shields.io/github/license/sensorsdata/sa-sdk-android.svg)](https://github.com/sensorsdata/sa-sdk-android/blob/master/LICENSE)
 [![GitHub release](https://img.shields.io/github/tag/sensorsdata/sa-sdk-android.svg?label=release)](https://github.com/sensorsdata/sa-sdk-android/releases)
 [![GitHub release date](https://img.shields.io/github/release-date/sensorsdata/sa-sdk-android.svg)](https://github.com/sensorsdata/sa-sdk-android/releases)
@@ -36,7 +36,7 @@ SensorsAnalytics SDK 是国内第一家，也是目前唯一的开源商用版�
 
 | 《数据驱动：从方法到实践》 | 《Android 全埋点解决方案》 |
 | ------ | ------ |
-| [![《Android 全埋点解决方案》](docs/data_driven_book.jpg)](https://u.jd.com/dWkE2x) | [![《Android 全埋点解决方案》](docs/android_autotrack_book.jpg)](https://u.jd.com/2JFaeG) |
+| [![《数据驱动：从方法到实践》](docs/data_driven_book.jpg)](https://u.jd.com/dWkE2x) | [![《Android 全埋点解决方案》](docs/android_autotrack_book.jpg)](https://u.jd.com/2JFaeG) |
 
 
 ## 感谢

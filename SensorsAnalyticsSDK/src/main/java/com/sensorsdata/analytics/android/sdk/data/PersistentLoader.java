@@ -19,6 +19,7 @@ package com.sensorsdata.analytics.android.sdk.data;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndData;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndEventState;
@@ -48,14 +49,7 @@ public class PersistentLoader {
         this.context = context;
         final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
         final String prefsName = "com.sensorsdata.analytics.android.sdk.SensorsDataAPI";
-        final SharedPreferencesLoader.OnPrefsLoadedListener listener =
-                        new SharedPreferencesLoader.OnPrefsLoadedListener() {
-                            @Override
-                            public void onPrefsLoaded(SharedPreferences preferences) {
-                            }
-                        };
-        storedPreferences =
-                sPrefsLoader.loadPreferences(context, prefsName, listener);
+        storedPreferences = sPrefsLoader.loadPreferences(context, prefsName);
     }
 
     public static PersistentLoader initLoader(Context context) {
@@ -66,6 +60,12 @@ public class PersistentLoader {
     }
 
     public static PersistentIdentity loadPersistent(String persistentKey) {
+        if (instance == null) {
+            throw new RuntimeException("you should call 'PersistentLoader.initLoader(Context)' first");
+        }
+        if (TextUtils.isEmpty(persistentKey)) {
+            return null;
+        }
         switch (persistentKey) {
             case PersistentName.APP_END_DATA:
                 return new PersistentAppEndData(storedPreferences);
@@ -95,24 +95,25 @@ public class PersistentLoader {
                 return new PersistentRemoteSDKConfig(storedPreferences);
             case PersistentName.SUPER_PROPERTIES:
                 return new PersistentSuperProperties(storedPreferences);
+            default:
+                return null;
         }
-        return null;
     }
 
-    public static class PersistentName {
-        static final String APP_END_DATA = DbParams.TABLE_APPENDDATA;
-        static final String APP_END_STATE = DbParams.TABLE_APPENDSTATE;
-        static final String APP_PAUSED_TIME = DbParams.TABLE_APPPAUSEDTIME;
-        static final String APP_START_STATE = DbParams.TABLE_APPSTARTED;
-        static final String APP_START_TIME = DbParams.TABLE_APPSTARTTIME;
-        static final String APP_SESSION_TIME = DbParams.TABLE_SESSIONINTERVALTIME;
-        public static final String DISTINCT_ID = "events_distinct_id";
-        public static final String FIRST_DAY = "first_day";
-        public static final String FIRST_START = "first_start";
-        public static final String FIRST_INSTALL = "first_track_installation";
-        public static final String FIRST_INSTALL_CALLBACK = "first_track_installation_with_callback";
-        public static final String LOGIN_ID = "events_login_id";
-        public static final String REMOTE_CONFIG = "sensorsdata_sdk_configuration";
-        public static final String SUPER_PROPERTIES = "super_properties";
+    public interface PersistentName {
+        String APP_END_DATA = DbParams.TABLE_APP_END_DATA;
+        String APP_END_STATE = DbParams.TABLE_APP_END_STATE;
+        String APP_PAUSED_TIME = DbParams.TABLE_APP_PAUSED_TIME;
+        String APP_START_STATE = DbParams.TABLE_APP_STARTED;
+        String APP_START_TIME = DbParams.TABLE_APP_START_TIME;
+        String APP_SESSION_TIME = DbParams.TABLE_SESSION_INTERVAL_TIME;
+        String DISTINCT_ID = "events_distinct_id";
+        String FIRST_DAY = "first_day";
+        String FIRST_START = "first_start";
+        String FIRST_INSTALL = "first_track_installation";
+        String FIRST_INSTALL_CALLBACK = "first_track_installation_with_callback";
+        String LOGIN_ID = "events_login_id";
+        String REMOTE_CONFIG = "sensorsdata_sdk_configuration";
+        String SUPER_PROPERTIES = "super_properties";
     }
 }

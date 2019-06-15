@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.google.android.flexbox.FlexboxLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:alignContent="flex_start"
+        app:alignItems="flex_start"
+        app:dividerDrawable="@drawable/shape_divider"
+        app:flexDirection="row"
+        app:flexWrap="wrap"
+        app:justifyContent="flex_start"
+        app:showDivider="beginning|middle|end">
+
+        <ImageButton
+            android:id="@+id/imageButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@mipmap/ic_launcher" />
+
+        <Button
+            android:id="@+id/setOnClickBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="setonclicklistener"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/xmOnClickBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="doOnClick"
+            android:text="xmlOnClick"
+            android:textAllCaps="false" />
+
+
+        <ImageView
+            android:id="@+id/imageViewClick"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:onClick="doOnClick"
+            android:src="@mipmap/ic_launcher" />
+
+
+        <TextView
+            android:id="@+id/textViewClick"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:onClick="doOnClick"
+            android:text="Click TestView" />
+
+        <include layout="@layout/line" />
+
+        <Button
+            android:id="@+id/changeCheckedBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="doOnClick"
+            android:text="Change Checked Status"
+            android:textAllCaps="false"
+            app:layout_wrapBefore="true" />
+
+        <CheckBox
+            android:id="@+id/checkbox1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="checkbox1"
+            app:layout_wrapBefore="true" />
+
+        <CheckBox
+            android:id="@+id/checkbox2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="checkbox2" />
+
+        <CheckedTextView
+            android:id="@+id/checkedTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checkMark="?android:attr/listChoiceIndicatorMultiple"
+            android:gravity="center"
+            android:onClick="doOnClick"
+            android:text="checkedTextView" />
+
+        <include layout="@layout/line" />
+
+
+        <Button
+            android:id="@+id/changeRadioBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="doOnClick"
+            android:text="Change Radio Status"
+            android:textAllCaps="false"
+            app:layout_wrapBefore="true" />
+
+        <RadioGroup
+            android:id="@+id/radioGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/radio1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:gravity="center"
+                android:text="Radio1" />
+
+            <RadioButton
+                android:id="@+id/radio2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Radio2" />
+
+            <RadioButton
+                android:id="@+id/radio3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Radio3" />
+        </RadioGroup>
+
+        <include layout="@layout/line" />
+
+        <Button
+            android:id="@+id/changeRatingBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="doOnClick"
+            android:text="Change RatingBar Size"
+            android:textAllCaps="false"
+            app:layout_wrapBefore="true" />
+
+        <androidx.appcompat.widget.AppCompatRatingBar
+            android:id="@+id/compatRatingBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:numStars="6"
+            android:rating="2.5" />
+
+        <RatingBar
+            android:id="@+id/ratingBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:numStars="3"
+            android:rating="1.5" />
+
+        <include layout="@layout/line" />
+
+        <Button
+            android:id="@+id/changeSeekBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="doOnClick"
+            android:text="Change SeekBar Size"
+            android:textAllCaps="false"
+            app:layout_wrapBefore="true" />
+
+        <SeekBar
+            android:id="@+id/seekBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100"
+            android:progress="30" />
+
+        <androidx.appcompat.widget.AppCompatSeekBar
+            android:id="@+id/compatSeekBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="50"
+            android:progress="15" />
+
+        <Spinner
+            android:id="@+id/spinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:entries="@array/spinner_test"
+            android:spinnerMode="dropdown" />
+
+        <androidx.appcompat.widget.AppCompatSpinner
+            android:id="@+id/compatSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:entries="@array/spinner_test"
+            android:spinnerMode="dialog" />
+
+        <include layout="@layout/line" />
+
+
+        <Button
+            android:id="@+id/changSwitchBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="doOnClick"
+            android:text="Change Switch Status"
+            android:textAllCaps="false"
+            app:layout_wrapBefore="true" />
+
+        <Switch
+            android:id="@+id/switch1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textOff="close"
+            android:textOn="open"
+            app:layout_wrapBefore="true" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchCompat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:textOff="close_compat"
+            android:textOn="open_compat" />
+
+        <include layout="@layout/line" />
+
+
+        <Button
+            android:id="@+id/changeToggleBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="doOnClick"
+            android:text="Change Toggle Status"
+            android:textAllCaps="false"
+            app:layout_wrapBefore="true" />
+
+        <ToggleButton
+            android:id="@+id/toggleButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textOff="open"
+            android:textOn="close"
+            app:layout_wrapBefore="true" />
+
+    </com.google.android.flexbox.FlexboxLayout>
+
+</ScrollView>

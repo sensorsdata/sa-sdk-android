@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import android.os.SystemClock;
@@ -38,7 +38,11 @@ class EventTimer {
     }
 
     String duration() {
-        endTime = endTime < 0 ? SystemClock.elapsedRealtime() : endTime;
+        if (isPause) {
+            endTime = startTime;
+        } else {
+            endTime = endTime < 0 ? SystemClock.elapsedRealtime() : endTime;
+        }
         long duration = endTime - startTime + eventAccumulatedDuration;
         try {
             if (duration < 0 || duration > 24 * 60 * 60 * 1000) {
@@ -67,6 +71,10 @@ class EventTimer {
         return startTime;
     }
 
+    public long getEndTime() {
+        return endTime;
+    }
+
     public long getEventAccumulatedDuration() {
         return eventAccumulatedDuration;
     }
@@ -79,8 +87,21 @@ class EventTimer {
         this.eventAccumulatedDuration = eventAccumulatedDuration;
     }
 
+    void setTimerState(boolean isPause) {
+        this.isPause = isPause;
+        if (isPause) {
+            eventAccumulatedDuration = eventAccumulatedDuration + SystemClock.elapsedRealtime() - startTime;
+        }
+        startTime = SystemClock.elapsedRealtime();
+    }
+
+    boolean isPause() {
+        return isPause;
+    }
+
     private final TimeUnit timeUnit;
     private long startTime;
     private long endTime;
     private long eventAccumulatedDuration;
+    private boolean isPause = false;
 }

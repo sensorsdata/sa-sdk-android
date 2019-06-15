@@ -17,15 +17,16 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
+import com.sensorsdata.analytics.android.sdk.util.DateFormatUtils;
+
 import org.json.JSONObject;
 
+import java.util.Date;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 
 public final class PropertyBuilder {
-
     private static final String TAG = "PropertyBuilder";
     private final LinkedHashMap<String, Object> innerPropertyMap;
 
@@ -36,7 +37,6 @@ public final class PropertyBuilder {
     public static PropertyBuilder newInstance() {
         return new PropertyBuilder();
     }
-
 
     /**
      * 添加 key - value 对
@@ -58,7 +58,7 @@ public final class PropertyBuilder {
      */
     public PropertyBuilder append(Map<String, Object> propertyMap) {
         if (propertyMap != null && !propertyMap.isEmpty()) {
-            this.innerPropertyMap.putAll(propertyMap);
+            innerPropertyMap.putAll(propertyMap);
         }
         return this;
     }
@@ -85,7 +85,7 @@ public final class PropertyBuilder {
             }
             Object valueObj = keyValuePairs[index];
             if (keyObj instanceof String) {
-                this.innerPropertyMap.put((String) keyObj, valueObj);
+                innerPropertyMap.put((String) keyObj, valueObj);
             } else {
                 SALog.i(TAG, "this element key[index= " + index + "] is not a String," +
                         " the method will ignore the element and the next element. ");
@@ -93,26 +93,6 @@ public final class PropertyBuilder {
         }
         return this;
     }
-
-    /**
-     * 添加键值对 List，如果长度不一致，将忽略所有数据
-     *
-     * @param keyList key list
-     * @param valueList value list
-     * @return PropertyBuilder
-     */
-    public PropertyBuilder append(List<String> keyList, List<Object> valueList) {
-        if (keyList == null || keyList.isEmpty() || valueList == null
-                || valueList.isEmpty() || keyList.size() != valueList.size()) {
-            SALog.i(TAG, "either the key or the value list is empty or their size is not equal, ignore the params");
-            return this;
-        }
-        for (int index = 0; index < keyList.size(); index++) {
-            this.innerPropertyMap.put(keyList.get(index), valueList.get(index));
-        }
-        return this;
-    }
-
 
     /**
      * 获取 JSONObject 对象
@@ -124,11 +104,20 @@ public final class PropertyBuilder {
         if (innerPropertyMap.isEmpty()) {
             return null;
         }
-        return new JSONObject(innerPropertyMap);
+
+        JSONObject jsonObject = new JSONObject();
+        for (String key : innerPropertyMap.keySet()) {
+            try {
+                jsonObject.put(key, innerPropertyMap.get(key));
+            } catch (Exception ex) {
+                SALog.printStackTrace(ex);
+            }
+        }
+        return jsonObject;
     }
 
     /**
-     * 计算数据量长度
+     * 获取属性个数
      *
      * @return size
      */
@@ -137,10 +126,10 @@ public final class PropertyBuilder {
     }
 
     /**
-     * 根据 key 值，删除对应的 value
+     * 删除指定属性
      *
      * @param key key
-     * @return 删除成功返回 key 对应的 value，否则返回 null
+     * @return 删除成功返回 key 对应的 value，否则返回 null (假如 key 对应的 value 是 null，那么返回的值也是 null)
      */
     public Object remove(String key) {
         return innerPropertyMap.remove(key);
@@ -152,5 +141,4 @@ public final class PropertyBuilder {
     public void clear() {
         innerPropertyMap.clear();
     }
-
 }

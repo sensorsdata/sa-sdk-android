@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.flexbox.FlexboxLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:alignContent="flex_start"
+    app:alignItems="flex_start"
+    app:dividerDrawable="@drawable/shape_divider"
+    app:flexDirection="row"
+    app:flexWrap="wrap"
+    app:justifyContent="flex_start"
+    app:showDivider="beginning|middle|end">
+
+    <Button
+        android:id="@+id/track_a_event"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="doOnClick"
+        android:text="track a event"
+        android:textAllCaps="false" />
+
+    <Button
+        android:id="@+id/track_installation"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="doOnClick"
+        android:text="track installation"
+        android:textAllCaps="false" />
+
+    <Button
+        android:id="@+id/login_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="doOnClick"
+        android:text="login"
+        android:textAllCaps="false" />
+
+
+    <Button
+        android:id="@+id/profile_set_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="doOnClick"
+        android:text="ProfileSet"
+        android:textAllCaps="false" />
+
+
+    <Button
+        android:id="@+id/profile_increment_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="doOnClick"
+        android:text="Profile Increment"
+        android:textAllCaps="false" />
+
+    <Button
+        android:id="@+id/profile_delete"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="doOnClick"
+        android:text="Profile Delete"
+        android:textAllCaps="false" />
+
+    <Button
+        android:id="@+id/other_test"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="doOnClick"
+        android:text="Other Test"
+        android:textAllCaps="false" />
+
+    <Button
+        android:id="@+id/profile_append"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="doOnClick"
+        android:text="Profile Append"
+        android:textAllCaps="false" />
+
+
+    <Button
+        android:id="@+id/unset_test"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="doOnClick"
+        android:text="Unset Test"
+        android:textAllCaps="false" />
+
+
+</com.google.android.flexbox.FlexboxLayout>

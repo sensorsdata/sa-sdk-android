@@ -14,16 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import android.content.SharedPreferences;
+
+import com.sensorsdata.analytics.android.sdk.data.PersistentLoader;
 
 import java.util.concurrent.Future;
 
 public class PersistentLoginId extends PersistentIdentity<String> {
     public PersistentLoginId(Future<SharedPreferences> loadStoredPreferences) {
-        super(loadStoredPreferences, "events_login_id", new PersistentSerializer<String>() {
+        super(loadStoredPreferences, PersistentLoader.PersistentName.LOGIN_ID, new PersistentSerializer<String>() {
             @Override
             public String load(String value) {
                 return value;

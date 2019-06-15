@@ -24,11 +24,12 @@ import android.webkit.WebView;
 
 import org.json.JSONObject;
 
-import javax.net.ssl.SSLSocketFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.SSLSocketFactory;
 
 public interface ISensorsDataAPI {
     /**
@@ -67,18 +68,18 @@ public interface ISensorsDataAPI {
     boolean isDebugMode();
 
     /**
-     * 返回是否允许后台上传数据，默认是true
+     * 是否请求网络，默认是 true
      *
-     * @return 是否允许后台上传数据
+     * @return 是否请求网络
      */
-    boolean isFlushInBackground();
+    boolean isNetworkRequestEnable();
 
     /**
-     * 设置是否允许后台上传数据，默认是 true
+     * 设置是否允许请求网络，默认是 true
      *
-     * @param isFlush boolean
+     * @param isRequest boolean
      */
-    void setFlushInBackground(boolean isFlush);
+    void enableNetworkRequest(boolean isRequest);
 
     /**
      * 设置本地缓存上限值，单位 byte，默认为 32MB：32 * 1024 * 1024
@@ -942,6 +943,20 @@ public interface ISensorsDataAPI {
      * @param eventName 事件的名称
      */
     void trackTimerStart(final String eventName);
+
+    /**
+     * 暂停事件计时器，计时单位为秒。
+     *
+     * @param eventName 事件的名称
+     */
+    void trackTimerPause(final String eventName);
+
+    /**
+     * 恢复事件计时器，计时单位为秒。
+     *
+     * @param eventName 事件的名称
+     */
+    void trackTimerResume(final String eventName);
 
     /**
      * 设置 Cookie，flush 的时候会设置 HTTP 的 cookie

@@ -75,4 +75,59 @@ abstract class AbstractSAConfigOptions {
      * 数据内存缓存条数
      */
     int mFlushCacheSize;
+
+    /**
+     * 点击图是否可用
+     */
+    boolean mHeatMapEnabled;
+
+    /**
+     * 点击图对话框是否可用
+     */
+    boolean mHeatMapConfirmDialogEnabled;
+
+    /**
+     * 点击图证书检查
+     */
+    boolean mHeatMapSSLChecked;
+
+    /**
+     * 可视化全埋点是否可用
+     */
+    boolean mVisualizedEnabled;
+
+    /**
+     * 可视化全埋点对话框是否可用
+     */
+    boolean mVisualizedConfirmDialogEnabled;
+
+    /**
+     * 可视化全埋点证书检查
+     */
+    boolean mVisualizedSSLChecked;
+
+    /**
+     * 是否开启打印日志
+     */
+    boolean mLogEnabled;
+
+    /**
+     * 开启 RN 采集
+     */
+    boolean mRNAutoTrackEnabled;
+
+    /**
+     * 采集屏幕方向
+     */
+    boolean mTrackScreenOrientationEnabled;
+
+    /**
+     * 网络上传策略
+     */
+    int mNetworkTypePolicy = SensorsNetworkType.TYPE_3G | SensorsNetworkType.TYPE_4G | SensorsNetworkType.TYPE_WIFI | SensorsNetworkType.TYPE_5G;
+
+    /**
+     * DistinctId
+     */
+    String mDistinctId;
 }

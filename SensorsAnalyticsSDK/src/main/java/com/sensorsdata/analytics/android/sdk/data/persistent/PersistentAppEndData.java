@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import android.content.SharedPreferences;
 
-import com.sensorsdata.analytics.android.sdk.data.DbParams;
+import com.sensorsdata.analytics.android.sdk.data.PersistentLoader;
 
 import java.util.concurrent.Future;
 
 public class PersistentAppEndData extends PersistentIdentity<String> {
     public PersistentAppEndData(Future<SharedPreferences> loadStoredPreferences) {
-        super(loadStoredPreferences, DbParams.TABLE_APPENDDATA, new PersistentSerializer<String>() {
+        super(loadStoredPreferences, PersistentLoader.PersistentName.APP_END_DATA, new PersistentSerializer<String>() {
             @Override
             public String load(String value) {
                 return value;
@@ -33,7 +33,7 @@ public class PersistentAppEndData extends PersistentIdentity<String> {
 
             @Override
             public String save(String item) {
-                return item;
+                return item == null ? create() : item;
             }
 
             @Override

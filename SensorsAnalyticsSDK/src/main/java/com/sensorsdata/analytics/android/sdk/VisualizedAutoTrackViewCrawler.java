@@ -292,12 +292,12 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
                 OutputStream out2;
                 BufferedOutputStream bout;
                 HttpURLConnection connection;
-                if (mPostUrl.startsWith("https://") && !SensorsDataAPI.sharedInstance().isVisualizedAutoTrackSSLCertificateChecking()) {
+                if (mPostUrl.startsWith("https://") && !SensorsDataAPI.sharedInstance().isVisualizedSSLCheckEnabled()) {
                     disableSSLCertificateChecking();
                 }
                 final URL url = new URL(mPostUrl);
                 connection = (HttpURLConnection) url.openConnection();
-                if (SensorsDataAPI.sharedInstance().getSSLSocketFactory() != null && connection instanceof HttpsURLConnection && SensorsDataAPI.sharedInstance().isVisualizedAutoTrackSSLCertificateChecking()) {
+                if (SensorsDataAPI.sharedInstance().getSSLSocketFactory() != null && connection instanceof HttpsURLConnection && SensorsDataAPI.sharedInstance().isVisualizedSSLCheckEnabled()) {
                     ((HttpsURLConnection) connection).setSSLSocketFactory(SensorsDataAPI.sharedInstance().getSSLSocketFactory());
                 }
                 connection.setDoOutput(true);

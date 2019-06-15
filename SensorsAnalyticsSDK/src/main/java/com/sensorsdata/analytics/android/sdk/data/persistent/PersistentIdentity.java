@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import android.annotation.SuppressLint;
@@ -87,13 +87,11 @@ public abstract class PersistentIdentity<T> {
             }
 
             final SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString(persistentKey, serializer.save(this.item));
-
-            if (Build.VERSION.SDK_INT >= 9) {
-                editor.apply();
-            } else {
-                editor.commit();
+            if (this.item == null) {
+                this.item = (T) serializer.create();
             }
+            editor.putString(persistentKey, serializer.save(this.item));
+            editor.apply();
         }
     }
 

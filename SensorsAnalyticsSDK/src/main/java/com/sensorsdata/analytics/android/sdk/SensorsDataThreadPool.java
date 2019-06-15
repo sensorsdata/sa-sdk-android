@@ -23,6 +23,7 @@ public class SensorsDataThreadPool {
     private static SensorsDataThreadPool singleton;
     private static ExecutorService executorService;
     private static final int POOL_SIZE = 3;
+
     public synchronized static SensorsDataThreadPool getInstance() {
         if (singleton == null || executorService == null ||
                 executorService.isShutdown() || executorService.isTerminated()) {

@@ -43,6 +43,7 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.DateFormatUtils;
+import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataTimer;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
@@ -254,7 +255,6 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                     SALog.i(TAG, e);
                 }
             }
-
             SensorsDataTimer.getInstance().timer(timer, 0, mSensorsDataInstance.getFlushInterval());
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
@@ -435,7 +435,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                     //如果当前的调试模式不是 DebugOff ,则发送匿名或登录 ID 给服务端
                     String serverUrl = mSensorsDataInstance.getServerUrl();
                     SensorsDataAPI.DebugMode mCurrentDebugMode = mSensorsDataInstance.getDebugMode();
-                    if (!TextUtils.isEmpty(serverUrl) && !TextUtils.isEmpty(infoId) && mCurrentDebugMode != SensorsDataAPI.DebugMode.DEBUG_OFF) {
+                    if (mSensorsDataInstance.isNetworkRequestEnable() && !TextUtils.isEmpty(serverUrl) && !TextUtils.isEmpty(infoId) && mCurrentDebugMode != SensorsDataAPI.DebugMode.DEBUG_OFF) {
                         new SendDebugIdThread(serverUrl, mSensorsDataInstance.getDistinctId(), infoId).start();
                     }
                     String currentDebugToastMsg = "";
@@ -458,6 +458,10 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
     private void showOpenHeatMapDialog(final Activity context, final String featureCode, final String postUrl) {
         try {
+            if (!SensorsDataAPI.sharedInstance().isNetworkRequestEnable()) {
+                showNotRequestNetworkDialog(context, "已关闭网络请求（NetworkRequest），无法使用 App 点击分析，请开启后再试！");
+                return;
+            }
             if (!SensorsDataAPI.sharedInstance().isAppHeatMapConfirmDialogEnabled()) {
                 HeatMapService.getInstance().start(context, featureCode, postUrl);
                 return;
@@ -465,7 +469,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
             boolean isWifi = false;
             try {
-                String networkType = SensorsDataUtils.networkType(context);
+                String networkType = NetworkUtils.networkType(context);
                 if (networkType.equals("WIFI")) {
                     isWifi = true;
                 }
@@ -634,8 +638,19 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         }
     }
 
+    private void showNotRequestNetworkDialog(Context context, String message) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle("提示")
+                .setMessage(message)
+                .setPositiveButton("确定", null).show();
+    }
+
     private void showOpenVisualizedAutoTrackDialog(final Activity context, final String featureCode, final String postUrl) {
         try {
+            if (!SensorsDataAPI.sharedInstance().isNetworkRequestEnable()) {
+                showNotRequestNetworkDialog(context, "已关闭网络请求（NetworkRequest），无法使用 App 可视化全埋点，请开启后再试！");
+                return;
+            }
             if (!SensorsDataAPI.sharedInstance().isVisualizedAutoTrackConfirmDialogEnabled()) {
                 VisualizedAutoTrackService.getInstance().start(context, featureCode, postUrl);
                 return;
@@ -643,7 +658,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
             boolean isWifi = false;
             try {
-                String networkType = SensorsDataUtils.networkType(context);
+                String networkType = NetworkUtils.networkType(context);
                 if (networkType.equals("WIFI")) {
                     isWifi = true;
                 }

@@ -1,0 +1,220 @@
+<!--
+  ~ Created by zhangwei on 2019/05/16.
+  ~ Copyright 2015－2019 Sensors Data Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~       http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta content="charset=UTF-8" http-equiv="Content-Type">
+
+    <title>H5打通</title>
+    <script>
+  var abc="文字文字——测试2";
+(function(para) {
+  var p = para.sdk_url, n = para.name, w = window, d = document, s = 'script',x = null,y = null;
+  if(typeof(w['sensorsDataAnalytic201505']) !== 'undefined') {
+      return false;
+  }
+  w['sensorsDataAnalytic201505'] = n;
+  sa = function(a) {return function() {(w[n]._q = w[n]._q || []).push([a, arguments]);}};
+  var ifs = ['track','quick','register','registerPage','registerOnce','trackSignup', 'trackAbtest', 'setProfile','setOnceProfile','appendProfile', 'incrementProfile', 'deleteProfile', 'unsetProfile', 'identify','login','logout','trackLink','clearAllRegister','getAppStatus'];
+  for (var i = 0; i < ifs.length; i++) {
+    sa[ifs[i]] = sa.call(null, ifs[i]);
+  }
+  if (!w[n]._t) {
+    x = d.createElement(s), y = d.getElementsByTagName(s)[0];
+    x.async = 1;
+    x.src = p;
+    x.setAttribute('charset','UTF-8');
+    y.parentNode.insertBefore(x, y);
+    w[n].para = para;
+  }
+})({
+  sdk_url: 'https://static.sensorsdata.cn/sdk/1.12.2/sensorsdata.min.js',
+  //sdk_url: 'https://static.sensorsdata.cn/sdk/1.9.8/sensorsdata.min.js',
+
+  heatmap_url: 'https://static.sensorsdata.cn/sdk/1.12.5/heatmap.min.js',
+  name: 'sa',
+  show_log:true,
+  server_url: 'https://sdkdebugtest.datasink.sensorsdata.cn/sa?project=default&token=cfb8b60e42e0ae9b',
+  //send_type:"ajax",
+  use_client_time: true,
+  use_app_track: true,
+  heatmap:{
+    /*collect_url: function(){
+
+        //如果只采集首页
+       if(location.href === 'http://www.jww.com:8080/index.html?&lixiang=hahaha' || location.href === 'http://www.jww.com/'){
+        console.log(123);
+           return false;
+       }
+    },*/
+    
+    // collect_element:function( element_target ){
+    //        //data=test 不采集
+    //        if(element_target.getAttribute('data') === 'test'){
+    //            return false;
+    //        }else{
+    //            return true;
+    //        }
+    //    },
+    custom_property:function( element_target ){
+           // 比如您需要给有 data2=test2 属性的标签的点击事件增加属性 $element_content:'大家好' ，则代码如下
+           if(element_target.getAttribute('data2') === 'test2'){
+            console.log(123);
+               return {
+                   $element_content:'大家好'
+               }
+           }
+       },
+    //  clickmap:'not_collect',
+    collect_input:function(element_target){
+        //例如如果元素的id是a，就采集这个元素里的内容
+        if(element_target.id === 'tianxie'){
+            return true;
+        }
+    },
+    scroll_delay_time: 4000
+  } ,
+/*  scrollmap: {
+    //返回真会采集当前页面的数据，返回假表示不采集当前页面,设置这个函数后，内容为空的话，是返回假的。不设置函数默认是采集所有页面
+    collect_url: function(){
+        //如果只采集首页
+        if(location.href === 'xhttp://www.jww.com:8080/index.html?&lixiang=hahaha' || location.href === 'http://www.jww.com/'){
+            return false;
+        }
+    },
+    },*/
+  //source_channel:['cmpid'],
+  source_channel:['lixiang','kkkkk','jjjj'],
+  //debug_mode: true,  //false 关闭， true 开启，默认 false 关闭
+  //debug_mode_upload: false, //false 不入库， true 数据入库，默认 false 不入库
+});
+
+//sa.para.openid_url
+//sa.track('clickNav',{$lib_detail:'##clickNavFunc##nav.js##28'});
+
+ sa.registerPage({
+   viewProduct:"ssssDDDD"
+ });
+
+
+
+//sa.login('user20181205');
+
+//sa.quick('autoTrack',{$lib_detail:'##clickNavFunc##nav.js##28'});
+sa.quick('autoTrack',{detail:'123456'});
+// sa.logout();
+//sa.setOnceProfile({email:['jww@qq.com','jww@baidu.com']});
+//sa.appendProfile({email: ['jww@360.com']});  
+
+
+    </script>
+
+
+</head>
+
+<body>
+<input id="keyWord" placeholder="输入搜索关键词" type="text"/>
+<button data="test" id="sosuo" type="button">搜索</button>
+
+<div id="div">我是DIV2</div>
+<script>
+document.getElementById("div").onclick = function(){
+  console.log("t123")
+        sa.track('ViewDIV', {}, function() {console.log("wsxedc")});
+}
+
+
+
+</script>
+<!--  <script>
+  document.getElementById("div").onclick = function(){
+     sa.quick('trackHeatMap',this); 
+   }
+   
+   document.getElementById("sosuo").onclick = function(){
+     //event.stopPropagation();
+   }
+ </script> -->
+
+<script>
+
+</script>
+
+
+<button id="tijiao">提交</button>
+<!-- <script>
+document.getElementById("tijiao").onclick = function(){
+        sa.track('ViewHello', {
+                name: '123456'
+            });
+}
+
+</script> -->
+<script>
+document.getElementById("tijiao").onclick = function(){
+        sa.track('ViewHello', {
+                name: ['123456','234567']
+            });
+}
+
+
+
+</script>
+<!-- <script>
+$(function(){
+        sa.track('ViewJww', {
+                name: '123456'
+            });
+})
+
+</script> -->
+
+<input id="tianxie" type="text" value="填写内容"/>填写
+
+<select id="shengfen" name="省份">
+    <option value="0">北京</option>
+    <option value="1">上海</option>
+    <option value="2">合肥</option>
+</select>
+
+<script>
+document.getElementById("shengfen").onchange = function(){
+  console.log("@@@@@@@@@")
+        sa.quick('trackHeatMap',this); 
+}
+
+
+
+</script>
+<button id="testTime">测试 $Time</button>
+<script>
+document.getElementById("testTime").onclick = function(){
+    sa.track('TestTime', {
+        $time: '123456461',
+        ProductCatalog: "Laptop Computer",
+        ProductName: "MacBook Pro",
+        ProductPrice: 123.45
+    });
+}
+</script>
+
+<p style="height:1000px"></p>
+</body>
+
+</html> 

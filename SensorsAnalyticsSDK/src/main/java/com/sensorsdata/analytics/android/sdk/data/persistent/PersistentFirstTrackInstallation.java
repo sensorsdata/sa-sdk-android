@@ -14,16 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import android.content.SharedPreferences;
+
+import com.sensorsdata.analytics.android.sdk.data.PersistentLoader;
 
 import java.util.concurrent.Future;
 
 public class PersistentFirstTrackInstallation extends PersistentIdentity<Boolean> {
     public PersistentFirstTrackInstallation(Future<SharedPreferences> loadStoredPreferences) {
-        super(loadStoredPreferences, "first_track_installation", new PersistentSerializer<Boolean>() {
+        super(loadStoredPreferences, PersistentLoader.PersistentName.FIRST_INSTALL, new PersistentSerializer<Boolean>() {
             @Override
             public Boolean load(String value) {
                 return false;
@@ -31,7 +33,7 @@ public class PersistentFirstTrackInstallation extends PersistentIdentity<Boolean
 
             @Override
             public String save(Boolean item) {
-                return String.valueOf(true);
+                return item == null ? create().toString() : String.valueOf(true);
             }
 
             @Override

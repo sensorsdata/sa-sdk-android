@@ -1199,16 +1199,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
-    public boolean isFlushInBackground() {
-        return true;
-    }
-
-    @Override
-    public void setFlushInBackground(boolean isUploadData) {
-
-    }
-
-    @Override
     public void setCookie(String cookie, boolean encode) {
 
     }
@@ -1311,4 +1301,10 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     @Override
     public void itemDelete(String itemType, String itemId) {
     }
+
+    @Override
+    public void enableNetworkRequest(boolean isRequest){
+
+    }
+
 }
