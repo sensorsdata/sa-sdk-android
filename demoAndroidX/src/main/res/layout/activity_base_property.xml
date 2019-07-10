@@ -6,17 +6,19 @@
     android:orientation="vertical"
     android:padding="10dp">
 
-    <Button
+    <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/removeSuperPropertyBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:textAllCaps="false"
         android:text="Remove all super properties" />
 
-    <TextView
+    <androidx.appcompat.widget.AppCompatTextView
         android:id="@+id/basePropertyTV"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="15dp"
+        android:textSize="18sp"
         android:padding="5dp"
         tools:text="Hello" />
 

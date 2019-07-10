@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import android.net.Uri;
@@ -81,16 +81,10 @@ public class ServerUrl {
     public boolean check(ServerUrl serverUrl) {
         try {
             if (serverUrl != null) {
-//                if (!TextUtils.isEmpty(serverUrl.getToken()) && !TextUtils.isEmpty(getToken())) {
-//                    if (serverUrl.getToken().equals(getToken())) {
-//                        return true;
-//                    }
-//                } else {
-                    if (getHost().equals(serverUrl.getHost()) &&
-                            getProject().equals(serverUrl.getProject())) {
-                        return true;
-                    }
-//                }
+                if (getHost().equals(serverUrl.getHost()) &&
+                        getProject().equals(serverUrl.getProject())) {
+                    return true;
+                }
             }
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);

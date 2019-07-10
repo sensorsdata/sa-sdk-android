@@ -36,13 +36,6 @@ import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
@@ -57,6 +50,12 @@ import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.zip.GZIPOutputStream;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
 
@@ -64,6 +63,16 @@ import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF
 @TargetApi(16)
 public class HeatMapViewCrawler implements VTrack {
 
+    private static final int MESSAGE_SEND_STATE_FOR_EDITING = 1;
+    private static final String TAG = "SA.HeatMapViewCrawler";
+    private final Activity mActivity;
+    private final LifecycleCallbacks mLifecycleCallbacks;
+    private final EditState mEditState;
+    private final ViewCrawlerHandler mMessageThreadHandler;
+    private JSONObject mMessageObject;
+    private String mFeatureCode;
+    private String mPostUrl;
+    private String mAppVersion;
     public HeatMapViewCrawler(Activity activity, String resourcePackageName, String featureCode, String postUrl) {
         mActivity = activity;
         mFeatureCode = featureCode;
@@ -163,8 +172,12 @@ public class HeatMapViewCrawler implements VTrack {
         }
     }
 
-
     private class ViewCrawlerHandler extends Handler {
+
+        private final EditProtocol mProtocol;
+        private ViewSnapshot mSnapshot;
+        // 是否启用 GZip 压缩
+        private boolean mUseGzip;
 
         public ViewCrawlerHandler(Context context, Looper looper, String resourcePackageName) {
             super(looper);
@@ -286,7 +299,6 @@ public class HeatMapViewCrawler implements VTrack {
 
             postSnapshot(out);
         }
-
 
         private void postSnapshot(ByteArrayOutputStream out) {
             boolean rePostSnapshot = true;
@@ -420,24 +432,5 @@ public class HeatMapViewCrawler implements VTrack {
                 return true;
             }
         }
-
-        private ViewSnapshot mSnapshot;
-        private final EditProtocol mProtocol;
-
-        // 是否启用 GZip 压缩
-        private boolean mUseGzip;
     }
-
-    private final Activity mActivity;
-    private final LifecycleCallbacks mLifecycleCallbacks;
-    private final EditState mEditState;
-    private final ViewCrawlerHandler mMessageThreadHandler;
-    private JSONObject mMessageObject;
-    private String mFeatureCode;
-    private String mPostUrl;
-    private String mAppVersion;
-
-    private static final int MESSAGE_SEND_STATE_FOR_EDITING = 1;
-
-    private static final String TAG = "SA.HeatMapViewCrawler";
 }

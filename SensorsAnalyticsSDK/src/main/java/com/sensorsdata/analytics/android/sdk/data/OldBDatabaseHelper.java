@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk.data;
 
 import android.content.Context;
@@ -27,7 +27,7 @@ import org.json.JSONObject;
 
 
 public class OldBDatabaseHelper extends SQLiteOpenHelper {
-    public OldBDatabaseHelper(Context context, String dbName) {
+    OldBDatabaseHelper(Context context, String dbName) {
         super(context, dbName, null, 4);
     }
 
@@ -41,13 +41,12 @@ public class OldBDatabaseHelper extends SQLiteOpenHelper {
 
     }
 
-    public JSONArray getAllEvents() {
+    JSONArray getAllEvents() {
         final JSONArray arr = new JSONArray();
         Cursor c = null;
         try {
             final SQLiteDatabase db = getReadableDatabase();
-            c = db.rawQuery("SELECT * FROM " + DbParams.TABLE_EVENTS +
-                    " ORDER BY " + DbParams.KEY_CREATED_AT, null);
+            c = db.rawQuery(String.format("SELECT * FROM %s ORDER BY %s", DbParams.TABLE_EVENTS, DbParams.KEY_CREATED_AT), null);
             while (c.moveToNext()) {
                 JSONObject jsonObject = new JSONObject();
                 jsonObject.put("created_at", c.getString(c.getColumnIndex("created_at")));

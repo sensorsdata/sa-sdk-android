@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import android.app.Activity;
@@ -34,11 +34,15 @@ import java.util.Set;
 /**
  * Handles applying and managing the life cycle of edits in an application. Clients
  * can replace all of the edits in an app with}.
- *
  * Some client is responsible for informing the EditState about the presence or absence
  * of Activities, by calling {@link EditState#add(android.app.Activity)} and {@link EditState#remove(android.app.Activity)}
  */
 public class EditState extends UIThreadSet<Activity> {
+
+    private static final String LOGTAG = "SA.EditState";
+    private final Handler mUiThreadHandler;
+    private final Map<String, List<ViewVisitor>> mIntendedEdits;
+    private final Map<Activity, Set<EditBinding>> mCurrentEdits;
 
     public EditState() {
         mUiThreadHandler = new Handler(Looper.getMainLooper());
@@ -117,9 +121,14 @@ public class EditState extends UIThreadSet<Activity> {
         }
     }
 
-
     /* The binding between a bunch of edits and a view. Should be instantiated and live on the UI thread */
     private static class EditBinding implements ViewTreeObserver.OnGlobalLayoutListener, Runnable {
+
+        private final WeakReference<View> mViewRoot;
+        private final ViewVisitor mEdit;
+        private final Handler mHandler;
+        private volatile boolean mDying;
+        private boolean mAlive;
 
         public EditBinding(View viewRoot, ViewVisitor edit, Handler uiThreadHandler) {
             mEdit = edit;
@@ -181,18 +190,5 @@ public class EditState extends UIThreadSet<Activity> {
             }
             mAlive = false;
         }
-
-        private volatile boolean mDying;
-        private boolean mAlive;
-        private final WeakReference<View> mViewRoot;
-        private final ViewVisitor mEdit;
-        private final Handler mHandler;
     }
-
-
-    private final Handler mUiThreadHandler;
-    private final Map<String, List<ViewVisitor>> mIntendedEdits;
-    private final Map<Activity, Set<EditBinding>> mCurrentEdits;
-
-    private static final String LOGTAG = "SA.EditState";
 }

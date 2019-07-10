@@ -29,10 +29,6 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
-import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
-import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
@@ -66,6 +62,54 @@ import java.util.Random;
 import java.util.UUID;
 
 public final class SensorsDataUtils {
+
+    private static final String marshmallowMacAddress = "02:00:00:00:00:00";
+    private static final String fileAddressMac = "/sys/class/net/wlan0/address";
+    private static final String SHARED_PREF_EDITS_FILE = "sensorsdata";
+    private static final String SHARED_PREF_DEVICE_ID_KEY = "sensorsdata.device.id";
+    private static final String SHARED_PREF_USER_AGENT_KEY = "sensorsdata.user.agent";
+    private static final String SHARED_PREF_REQUEST_TIME = "sensorsdata.request.time";
+    private static final String SHARED_PREF_REQUEST_TIME_RANDOM = "sensorsdata.request.time.random";
+    private static final Map<String, String> sCarrierMap = new HashMap<String, String>() {
+        {
+            //中国移动
+            put("46000", "中国移动");
+            put("46002", "中国移动");
+            put("46007", "中国移动");
+            put("46008", "中国移动");
+
+            //中国联通
+            put("46001", "中国联通");
+            put("46006", "中国联通");
+            put("46009", "中国联通");
+
+            //中国电信
+            put("46003", "中国电信");
+            put("46005", "中国电信");
+            put("46011", "中国电信");
+
+            //中国卫通
+            put("46004", "中国卫通");
+
+            //中国铁通
+            put("46020", "中国铁通");
+
+        }
+    };
+    private static final List<String> sManufacturer = new ArrayList<String>() {
+        {
+            add("HUAWEI");
+            add("OPPO");
+            add("vivo");
+        }
+    };
+    private static final List<String> mInvalidAndroidId = new ArrayList<String>() {
+        {
+            add("9774d56d682e549c");
+            add("0123456789abcdef");
+        }
+    };
+    private static final String TAG = "SA.SensorsDataUtils";
 
     /**
      * 将 json 格式的字符串转成 SensorsDataSDKRemoteConfig 对象，并处理默认值
@@ -253,10 +297,8 @@ public final class SensorsDataUtils {
                         PackageManager packageManager = activity.getPackageManager();
                         if (packageManager != null) {
                             ActivityInfo activityInfo = packageManager.getActivityInfo(activity.getComponentName(), 0);
-                            if (activityInfo != null) {
-                                if (!TextUtils.isEmpty(activityInfo.loadLabel(packageManager))) {
-                                    activityTitle = activityInfo.loadLabel(packageManager).toString();
-                                }
+                            if (!TextUtils.isEmpty(activityInfo.loadLabel(packageManager))) {
+                                activityTitle = activityInfo.loadLabel(packageManager).toString();
                             }
                         }
                     }
@@ -292,14 +334,13 @@ public final class SensorsDataUtils {
         return mainProcessName;
     }
 
-
     /**
      * 获得当前进程的名字
      *
      * @param context Context
      * @return 进程名称
      */
-    public static String getCurrentProcessName(Context context) {
+    private static String getCurrentProcessName(Context context) {
 
         try {
             int pid = android.os.Process.myPid();
@@ -336,11 +377,8 @@ public final class SensorsDataUtils {
         }
 
         String currentProcess = getCurrentProcessName(context.getApplicationContext());
-        if (TextUtils.isEmpty(currentProcess) || mainProcessName.equals(currentProcess)) {
-            return true;
-        }
+        return TextUtils.isEmpty(currentProcess) || mainProcessName.equals(currentProcess);
 
-        return false;
     }
 
     /**
@@ -389,7 +427,7 @@ public final class SensorsDataUtils {
     }
 
     @TargetApi(11)
-    public static String getToolbarTitle(Activity activity) {
+    static String getToolbarTitle(Activity activity) {
         try {
             if ("com.tencent.connect.common.AssistActivity".equals(activity.getClass().getCanonicalName())) {
                 if (!TextUtils.isEmpty(activity.getTitle())) {
@@ -397,7 +435,6 @@ public final class SensorsDataUtils {
                 }
                 return null;
             }
-
             ActionBar actionBar = activity.getActionBar();
             if (actionBar != null) {
                 if (!TextUtils.isEmpty(actionBar.getTitle())) {
@@ -405,28 +442,15 @@ public final class SensorsDataUtils {
                 }
             } else {
                 try {
-                    Class<?> appCompatActivityClass = null;
-                    try {
-                        appCompatActivityClass = Class.forName("android.support.v7.app.AppCompatActivity");
-                        if (appCompatActivityClass == null) {
-                            appCompatActivityClass = Class.forName("androidx.appcompat.app.AppCompatActivity");
-                        }
-                    } catch (Exception e) {
-                        //ignored
-                    }
-
+                    Class<?> appCompatActivityClass = compatActivity();
                     if (appCompatActivityClass != null && appCompatActivityClass.isInstance(activity)) {
                         Method method = activity.getClass().getMethod("getSupportActionBar");
-                        if (method != null) {
-                            Object supportActionBar = method.invoke(activity);
-                            if (supportActionBar != null) {
-                                method = supportActionBar.getClass().getMethod("getTitle");
-                                if (method != null) {
-                                    CharSequence charSequence = (CharSequence) method.invoke(supportActionBar);
-                                    if (charSequence != null) {
-                                        return charSequence.toString();
-                                    }
-                                }
+                        Object supportActionBar = method.invoke(activity);
+                        if (supportActionBar != null) {
+                            method = supportActionBar.getClass().getMethod("getTitle");
+                            CharSequence charSequence = (CharSequence) method.invoke(supportActionBar);
+                            if (charSequence != null) {
+                                return charSequence.toString();
                             }
                         }
                     }
@@ -438,6 +462,23 @@ public final class SensorsDataUtils {
             SALog.printStackTrace(e);
         }
         return null;
+    }
+
+    private static Class<?> compatActivity() {
+        Class<?> appCompatActivityClass = null;
+        try {
+            appCompatActivityClass = Class.forName("android.support.v7.app.AppCompatActivity");
+        } catch (Exception e) {
+            //ignored
+        }
+        if (appCompatActivityClass == null) {
+            try {
+                appCompatActivityClass = Class.forName("androidx.appcompat.app.AppCompatActivity");
+            } catch (Exception e) {
+                //ignored
+            }
+        }
+        return appCompatActivityClass;
     }
 
     /**
@@ -470,9 +511,7 @@ public final class SensorsDataUtils {
                 PackageManager packageManager = activity.getPackageManager();
                 if (packageManager != null) {
                     ActivityInfo activityInfo = packageManager.getActivityInfo(activity.getComponentName(), 0);
-                    if (activityInfo != null) {
-                        activityTitle = activityInfo.loadLabel(packageManager).toString();
-                    }
+                    activityTitle = activityInfo.loadLabel(packageManager).toString();
                 }
             }
             if (!TextUtils.isEmpty(activityTitle)) {
@@ -526,7 +565,7 @@ public final class SensorsDataUtils {
                 Iterator<String> destPropertiesIterator = dest.keys();
                 while (destPropertiesIterator.hasNext()) {
                     String destKey = destPropertiesIterator.next();
-                    if (!TextUtils.isEmpty(key) && key.toLowerCase().equals(destKey.toLowerCase())) {
+                    if (!TextUtils.isEmpty(key) && key.toLowerCase(Locale.getDefault()).equals(destKey.toLowerCase(Locale.getDefault()))) {
                         dest.remove(destKey);
                         break;
                     }
@@ -627,7 +666,7 @@ public final class SensorsDataUtils {
                 return true;
             }
 
-            Method checkSelfPermissionMethod = contextCompat.getMethod("checkSelfPermission", new Class[]{Context.class, String.class});
+            Method checkSelfPermissionMethod = contextCompat.getMethod("checkSelfPermission", Context.class, String.class);
             int result = (int) checkSelfPermissionMethod.invoke(null, new Object[]{context, permission});
             if (result != PackageManager.PERMISSION_GRANTED) {
                 SALog.i(TAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n"
@@ -650,7 +689,7 @@ public final class SensorsDataUtils {
      * @param mContext Context
      * @return IMEI
      */
-    @SuppressLint("MissingPermission")
+    @SuppressLint({"MissingPermission", "HardwareIds"})
     public static String getIMEI(Context mContext) {
         String imei = "";
         try {
@@ -686,6 +725,7 @@ public final class SensorsDataUtils {
      * @param mContext Context
      * @return androidID
      */
+    @SuppressLint("HardwareIds")
     public static String getAndroidID(Context mContext) {
         String androidID = "";
         try {
@@ -735,7 +775,7 @@ public final class SensorsDataUtils {
         try {
             List<NetworkInterface> all = Collections.list(NetworkInterface.getNetworkInterfaces());
             for (NetworkInterface nif : all) {
-                if (nif.getName().equalsIgnoreCase("wlan0")) {
+                if ("wlan0".equalsIgnoreCase(nif.getName())) {
                     byte[] macBytes = nif.getHardwareAddress();
                     if (macBytes == null) {
                         return "";
@@ -759,9 +799,6 @@ public final class SensorsDataUtils {
         return null;
     }
 
-    private static final String marshmallowMacAddress = "02:00:00:00:00:00";
-    private static final String fileAddressMac = "/sys/class/net/wlan0/address";
-
     /**
      * 此方法谨慎修改
      * 插件配置 disableMacAddress 会修改此方法
@@ -770,16 +807,22 @@ public final class SensorsDataUtils {
      * @param context Context
      * @return String 当前手机的 Mac 地址
      */
+    @SuppressLint("HardwareIds")
     public static String getMacAddress(Context context) {
         try {
             if (!checkHasPermission(context, Manifest.permission.ACCESS_WIFI_STATE)) {
                 return "";
             }
+
             WifiManager wifiMan = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            if (wifiMan == null) {
+                return "";
+            }
+
             WifiInfo wifiInfo = wifiMan.getConnectionInfo();
 
             if (wifiInfo != null && marshmallowMacAddress.equals(wifiInfo.getMacAddress())) {
-                String result = null;
+                String result;
                 try {
                     result = getMacAddressByInterface();
                     if (result != null) {
@@ -807,11 +850,7 @@ public final class SensorsDataUtils {
             return false;
         }
 
-        if (mInvalidAndroidId.contains(androidId.toLowerCase())) {
-            return false;
-        }
-
-        return true;
+        return !mInvalidAndroidId.contains(androidId.toLowerCase(Locale.getDefault()));
     }
 
     public static boolean isRequestValid(Context context, int minRequestHourInterval, int maxRequestHourInterval) {
@@ -838,63 +877,15 @@ public final class SensorsDataUtils {
 
     public static boolean hasUtmProperties(JSONObject properties) {
         if (properties == null) {
-            return false;
+            return true;
         }
 
-        return properties.has("$utm_source") ||
-                properties.has("$utm_medium") ||
-                properties.has("$utm_term") ||
-                properties.has("$utm_content") ||
-                properties.has("$utm_campaign");
+        return !properties.has("$utm_source") &&
+                !properties.has("$utm_medium") &&
+                !properties.has("$utm_term") &&
+                !properties.has("$utm_content") &&
+                !properties.has("$utm_campaign");
     }
-
-    private static final String SHARED_PREF_EDITS_FILE = "sensorsdata";
-    private static final String SHARED_PREF_DEVICE_ID_KEY = "sensorsdata.device.id";
-    private static final String SHARED_PREF_USER_AGENT_KEY = "sensorsdata.user.agent";
-    private static final String SHARED_PREF_REQUEST_TIME = "sensorsdata.request.time";
-    private static final String SHARED_PREF_REQUEST_TIME_RANDOM = "sensorsdata.request.time.random";
-
-    private static final Map<String, String> sCarrierMap = new HashMap<String, String>() {
-        {
-            //中国移动
-            put("46000", "中国移动");
-            put("46002", "中国移动");
-            put("46007", "中国移动");
-            put("46008", "中国移动");
-
-            //中国联通
-            put("46001", "中国联通");
-            put("46006", "中国联通");
-            put("46009", "中国联通");
-
-            //中国电信
-            put("46003", "中国电信");
-            put("46005", "中国电信");
-            put("46011", "中国电信");
-
-            //中国卫通
-            put("46004", "中国卫通");
-
-            //中国铁通
-            put("46020", "中国铁通");
-
-        }
-    };
-
-    private static final List<String> sManufacturer = new ArrayList<String>() {
-        {
-            add("HUAWEI");
-            add("OPPO");
-            add("vivo");
-        }
-    };
-
-    private static final List<String> mInvalidAndroidId = new ArrayList<String>() {
-        {
-            add("9774d56d682e549c");
-            add("0123456789abcdef");
-        }
-    };
 
     /**
      * 根据设备 rotation，判断屏幕方向，获取自然方向宽
@@ -921,6 +912,4 @@ public final class SensorsDataUtils {
         return rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 ?
                 height : width;
     }
-
-    private static final String TAG = "SA.SensorsDataUtils";
 }

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import android.content.Context;
@@ -68,9 +68,9 @@ import org.json.JSONObject;
     }
 
     @JavascriptInterface
-    public boolean sensorsdata_verify(String event){
+    public boolean sensorsdata_verify(String event) {
         try {
-            if(!enableVerify) {
+            if (!enableVerify) {
                 sensorsdata_track(event);
                 return true;
             }

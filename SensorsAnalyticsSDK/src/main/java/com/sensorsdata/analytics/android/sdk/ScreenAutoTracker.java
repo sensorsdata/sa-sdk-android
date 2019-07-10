@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import org.json.JSONException;
@@ -24,6 +24,7 @@ public interface ScreenAutoTracker {
     /**
      * 返回当前页面的Url
      * 用作下个页面的referrer
+     *
      * @return String
      */
     String getScreenUrl();

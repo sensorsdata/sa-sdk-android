@@ -14,9 +14,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity
-            android:name=".TestMainActivity"
-            android:theme="@style/AppThemeCompat">
+        <activity android:name=".TestMainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -35,41 +33,23 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".BasePropertyActivity"
-            android:theme="@style/AppThemeCompat" />
+        <activity android:name=".BasePropertyActivity" />
 
-        <activity
-            android:name=".TrackProfileSettingsActivity"
-            android:theme="@style/AppThemeCompat" />
+        <activity android:name=".TrackProfileSettingsActivity" />
 
-        <activity
-            android:name=".H5Activity"
-            android:theme="@style/AppThemeCompat" />
+        <activity android:name=".H5Activity" />
 
-        <activity
-            android:name=".WidgetTestActivity"
-            android:theme="@style/AppThemeCompat" />
+        <activity android:name=".WidgetTestActivity" />
 
-        <activity
-            android:name=".DataBindingLambdaActivity"
-            android:theme="@style/AppThemeCompat" />
+        <activity android:name=".DataBindingLambdaActivity" />
 
-        <activity
-            android:name=".ViewPagerTestActivity"
-            android:theme="@style/AppThemeCompat" />
+        <activity android:name=".ViewPagerTestActivity" />
 
-        <activity
-            android:name=".ViewScreenActivity"
-            android:theme="@style/AppThemeCompat" />
+        <activity android:name=".ViewScreenActivity" />
 
-        <activity
-            android:name=".ViewScreenIgnoreActivity"
-            android:theme="@style/AppThemeCompat" />
+        <activity android:name=".ViewScreenIgnoreActivity" />
 
-        <activity
-            android:name=".ListViewTestActivity"
-            android:theme="@style/AppThemeCompat" />
+        <activity android:name=".ListViewTestActivity" />
 
         <meta-data
             android:name="com.sensorsdata.analytics.android.EnableLogging"

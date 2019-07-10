@@ -67,11 +67,12 @@ import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF
 @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
     private static final String TAG = "SA.LifecycleCallbacks";
-    private Context mContext;
-    private boolean resumeFromBackground = false;
+    private static final String EVENT_TIMER = "event_timer";
     private final SensorsDataAPI mSensorsDataInstance;
     private final PersistentFirstStart mFirstStart;
     private final PersistentFirstDay mFirstDay;
+    private Context mContext;
+    private boolean resumeFromBackground = false;
     private CountDownTimer mCountDownTimer;
     private DbAdapter mDbAdapter;
     private JSONObject activityProperty = new JSONObject();
@@ -79,7 +80,18 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private boolean isAutoTrackEnabled;
     private boolean isAutoTrackAppEnd;
     private boolean isPaused = false;
-    private static final String EVENT_TIMER = "event_timer";
+    /**
+     * 打点时间间隔：2000 毫秒
+     */
+    private static final int TIME_INTERVAL = 2000;
+    private Runnable timer = new Runnable() {
+        @Override
+        public void run() {
+            if (isAutoTrackAppEnd && !isPaused) {
+                generateAppEndData();
+            }
+        }
+    };
 
     SensorsDataActivityLifecycleCallbacks(SensorsDataAPI instance, PersistentFirstStart firstStart,
                                           PersistentFirstDay firstDay, Context context) {
@@ -151,7 +163,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
             SensorsDataUtils.mergeJSONObject(activityProperty, endDataProperty);
             boolean sessionTimeOut = isSessionTimeOut();
             if (sessionTimeOut && !mDbAdapter.getAppEndState()) {
-                trackAppEnd();
+                trackAppEnd(TIME_INTERVAL);
             }
 
             if (sessionTimeOut || mDbAdapter.getAppEndState()) {
@@ -255,22 +267,11 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                     SALog.i(TAG, e);
                 }
             }
-            SensorsDataTimer.getInstance().timer(timer, 0, mSensorsDataInstance.getFlushInterval());
+            SensorsDataTimer.getInstance().timer(timer, 0, TIME_INTERVAL);
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
-
-    private Runnable timer = new Runnable() {
-        @Override
-        public void run() {
-            if (isAutoTrackAppEnd && !isPaused) {
-                generateAppEndData();
-            }
-            // 定时进行 flush 数据
-            mSensorsDataInstance.flush();
-        }
-    };
 
     @Override
     public void onActivityPaused(Activity activity) {
@@ -301,8 +302,11 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
     /**
      * 发送 $AppEnd 事件
+     *
+     * @param timeInterval 为了防止在打点的时间间隔时出现 Crash 导致事件序列不对，所以
+     * 补发的 $AppEnd 事件的结束时间增加 timeInterval（默认 2s）
      */
-    private void trackAppEnd() {
+    private void trackAppEnd(int timeInterval) {
         if (mDbAdapter.getAppEndState()) {
             return;
         }
@@ -337,7 +341,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                 }
 
                 mSensorsDataInstance.clearLastScreenUrl();
-                properties.put("event_time", mDbAdapter.getAppPausedTime());
+                properties.put("event_time", mDbAdapter.getAppPausedTime() + timeInterval);
                 mSensorsDataInstance.track("$AppEnd", properties);
             } catch (Exception e) {
                 SALog.i(TAG, e);
@@ -390,7 +394,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
             @Override
             public void onFinish() {
                 SALog.d(TAG, "timeFinish");
-                trackAppEnd();
+                trackAppEnd(0);
                 resumeFromBackground = true;
                 mSensorsDataInstance.stopTrackTaskThread();
                 SensorsDataTimer.getInstance().shutdownTimerTask();
@@ -470,7 +474,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
             boolean isWifi = false;
             try {
                 String networkType = NetworkUtils.networkType(context);
-                if (networkType.equals("WIFI")) {
+                if ("WIFI".equals(networkType)) {
                     isWifi = true;
                 }
             } catch (Exception e) {
@@ -509,6 +513,68 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
+    }
+
+    private void showOpenVisualizedAutoTrackDialog(final Activity context, final String featureCode, final String postUrl) {
+        try {
+            if (!SensorsDataAPI.sharedInstance().isNetworkRequestEnable()) {
+                showNotRequestNetworkDialog(context, "已关闭网络请求（NetworkRequest），无法使用 App 可视化全埋点，请开启后再试！");
+                return;
+            }
+            if (!SensorsDataAPI.sharedInstance().isVisualizedAutoTrackConfirmDialogEnabled()) {
+                VisualizedAutoTrackService.getInstance().start(context, featureCode, postUrl);
+                return;
+            }
+
+            boolean isWifi = false;
+            try {
+                String networkType = NetworkUtils.networkType(context);
+                if ("WIFI".equals(networkType)) {
+                    isWifi = true;
+                }
+            } catch (Exception e) {
+                // ignore
+            }
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(context);
+            builder.setTitle("提示");
+            if (isWifi) {
+                builder.setMessage("正在连接 App 可视化全埋点");
+            } else {
+                builder.setMessage("正在连接 App 可视化全埋点，建议在 WiFi 环境下使用");
+            }
+            builder.setCancelable(false);
+            builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+
+                }
+            });
+            builder.setPositiveButton("继续", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    VisualizedAutoTrackService.getInstance().start(context, featureCode, postUrl);
+                }
+            });
+            AlertDialog dialog = builder.create();
+            dialog.show();
+
+            try {
+                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.BLACK);
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.RED);
+            } catch (Exception e) {
+                SALog.printStackTrace(e);
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
+    private void showNotRequestNetworkDialog(Context context, String message) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle("提示")
+                .setMessage(message)
+                .setPositiveButton("确定", null).show();
     }
 
     private class SensorsActivityStateObserver extends ContentObserver {
@@ -635,68 +701,6 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                     SALog.printStackTrace(e);
                 }
             }
-        }
-    }
-
-    private void showNotRequestNetworkDialog(Context context, String message) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle("提示")
-                .setMessage(message)
-                .setPositiveButton("确定", null).show();
-    }
-
-    private void showOpenVisualizedAutoTrackDialog(final Activity context, final String featureCode, final String postUrl) {
-        try {
-            if (!SensorsDataAPI.sharedInstance().isNetworkRequestEnable()) {
-                showNotRequestNetworkDialog(context, "已关闭网络请求（NetworkRequest），无法使用 App 可视化全埋点，请开启后再试！");
-                return;
-            }
-            if (!SensorsDataAPI.sharedInstance().isVisualizedAutoTrackConfirmDialogEnabled()) {
-                VisualizedAutoTrackService.getInstance().start(context, featureCode, postUrl);
-                return;
-            }
-
-            boolean isWifi = false;
-            try {
-                String networkType = NetworkUtils.networkType(context);
-                if (networkType.equals("WIFI")) {
-                    isWifi = true;
-                }
-            } catch (Exception e) {
-
-            }
-
-            AlertDialog.Builder builder = new AlertDialog.Builder(context);
-            builder.setTitle("提示");
-            if (isWifi) {
-                builder.setMessage("正在连接 App 可视化全埋点");
-            } else {
-                builder.setMessage("正在连接 App 可视化全埋点，建议在 WiFi 环境下使用");
-            }
-            builder.setCancelable(false);
-            builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-
-                }
-            });
-            builder.setPositiveButton("继续", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    VisualizedAutoTrackService.getInstance().start(context, featureCode, postUrl);
-                }
-            });
-            AlertDialog dialog = builder.create();
-            dialog.show();
-
-            try {
-                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.BLACK);
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.RED);
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
         }
     }
 }

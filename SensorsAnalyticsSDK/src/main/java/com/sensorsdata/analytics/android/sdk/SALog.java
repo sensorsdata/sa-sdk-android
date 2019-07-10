@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import android.util.Log;
@@ -33,7 +33,7 @@ public class SALog {
 
     public static void d(String tag, String msg) {
         if (mSensorsDataAPI.isDebugMode()) {
-            info(tag, msg,null);
+            info(tag, msg, null);
         }
     }
 
@@ -46,25 +46,26 @@ public class SALog {
 
     public static void i(String tag, String msg) {
         if (SensorsDataAPI.sEnableLog) {
-            info(tag, msg,null);
+            info(tag, msg, null);
         }
     }
 
     public static void i(String tag, Throwable tr) {
         if (SensorsDataAPI.sEnableLog) {
-            info(tag,"",tr);
+            info(tag, "", tr);
         }
     }
 
     public static void i(String tag, String msg, Throwable tr) {
         if (SensorsDataAPI.sEnableLog) {
-            info(tag,msg,tr);
+            info(tag, msg, tr);
         }
     }
 
     /**
      * 此方法谨慎修改
      * 插件配置 disableLog 会修改此方法
+     *
      * @param tag String
      * @param msg String
      * @param tr Throwable
@@ -80,6 +81,7 @@ public class SALog {
     /**
      * 此方法谨慎修改
      * 插件配置 disableLog 会修改此方法
+     *
      * @param e Exception
      */
     public static void printStackTrace(Exception e) {

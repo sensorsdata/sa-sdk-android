@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import android.annotation.TargetApi;
@@ -25,10 +25,14 @@ import java.util.List;
 @TargetApi(SensorsDataAPI.VTRACK_SUPPORTED_MIN_API)
 public abstract class ViewVisitor implements Pathfinder.Accumulator {
 
+    private static final String TAG = "SA.ViewVisitor";
     private final List<Pathfinder.PathElement> mPath;
     private final Pathfinder mPathfinder;
 
-    private static final String TAG = "SA.ViewVisitor";
+    protected ViewVisitor(List<Pathfinder.PathElement> path) {
+        mPath = path;
+        mPathfinder = new Pathfinder();
+    }
 
     public void visit(View rootView) {
         mPathfinder.findTargetsInRoot(rootView, mPath, this);
@@ -38,11 +42,6 @@ public abstract class ViewVisitor implements Pathfinder.Accumulator {
      * 清除所有事件监听，调用后ViewVisitor将失效
      */
     public abstract void cleanup();
-
-    protected ViewVisitor(List<Pathfinder.PathElement> path) {
-        mPath = path;
-        mPathfinder = new Pathfinder();
-    }
 
     protected abstract String name();
 }

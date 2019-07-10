@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk.exceptions;
 
 /**
- * Debug模式下的异常，用于指出Debug模式下的各种问题，程序不应该捕获该异常，以免屏蔽错误信息
+ * Debug 模式下的异常，用于指出 Debug 模式下的各种问题，程序不应该捕获该异常，以免屏蔽错误信息
  */
 public class DebugModeException extends RuntimeException {
 

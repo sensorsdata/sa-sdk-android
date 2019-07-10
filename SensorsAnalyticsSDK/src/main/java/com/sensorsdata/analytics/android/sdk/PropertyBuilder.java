@@ -17,11 +17,8 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
-import com.sensorsdata.analytics.android.sdk.util.DateFormatUtils;
-
 import org.json.JSONObject;
 
-import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 

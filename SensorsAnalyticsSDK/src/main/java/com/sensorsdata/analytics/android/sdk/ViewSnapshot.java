@@ -64,6 +64,15 @@ import java.util.concurrent.TimeoutException;
 @TargetApi(SensorsDataAPI.VTRACK_SUPPORTED_MIN_API)
 public class ViewSnapshot {
 
+    private static final int MAX_CLASS_NAME_CACHE_SIZE = 255;
+    private static final String TAG = "SA.Snapshot";
+    private final RootViewFinder mRootViewFinder;
+    private final List<PropertyDescription> mProperties;
+    private final ClassNameCache mClassnameCache;
+    private final Handler mMainThreadHandler;
+    private final ResourceIds mResourceIds;
+    private String[] mLastImageHashArray = null;
+
     public ViewSnapshot(List<PropertyDescription> properties, ResourceIds resourceIds) {
         mProperties = properties;
         mResourceIds = resourceIds;
@@ -79,7 +88,7 @@ public class ViewSnapshot {
         mMainThreadHandler.post(infoFuture);
 
         final OutputStreamWriter writer = new OutputStreamWriter(out);
-        List<RootViewInfo> infoList = Collections.<RootViewInfo>emptyList();
+        List<RootViewInfo> infoList = Collections.emptyList();
         writer.write("[");
 
         try {
@@ -294,16 +303,12 @@ public class ViewSnapshot {
         }
     }
 
-
     private boolean isForbiddenClick(View v) {
         if (v instanceof ListView || v instanceof Spinner || v instanceof EditText || isNavigationMenuItemView(v)) {
             return true;
         }
 
-        if (isOtherForbiddenClick(v)) {
-            return true;
-        }
-        return false;
+        return isOtherForbiddenClick(v);
     }
 
     private boolean isNavigationMenuItemView(View view) {
@@ -321,10 +326,7 @@ public class ViewSnapshot {
     private boolean isOtherForbiddenClick(View v) {
         if (isAssignableFromClass(v, "android.support.v7.widget.Toolbar")) {
             return true;
-        } else if (isAssignableFromClass(v, "android.support.design.widget.TabLayout")) {
-            return true;
-        }
-        return false;
+        } else return isAssignableFromClass(v, "android.support.design.widget.TabLayout");
     }
 
     private boolean isAssignableFromClass(View v, String className) {
@@ -423,8 +425,14 @@ public class ViewSnapshot {
         }
     }
 
-
     private static class RootViewFinder implements Callable<List<RootViewInfo>> {
+
+        private final List<RootViewInfo> mRootViews;
+        private final DisplayMetrics mDisplayMetrics;
+        private final CachedBitmap mCachedBitmap;
+        private final int mClientDensity = DisplayMetrics.DENSITY_DEFAULT;
+        private UIThreadSet<Activity> mLiveActivities;
+
 
         public RootViewFinder() {
             mDisplayMetrics = new DisplayMetrics();
@@ -503,18 +511,13 @@ public class ViewSnapshot {
             info.scale = scale;
             info.screenshot = mCachedBitmap;
         }
-
-
-        private UIThreadSet<Activity> mLiveActivities;
-        private final List<RootViewInfo> mRootViews;
-        private final DisplayMetrics mDisplayMetrics;
-        private final CachedBitmap mCachedBitmap;
-
-        private final int mClientDensity = DisplayMetrics.DENSITY_DEFAULT;
     }
 
-
     private static class CachedBitmap {
+
+        private final Paint mPaint;
+        private Bitmap mCached;
+        private String mImageHash = "";
 
         public CachedBitmap() {
             mPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
@@ -578,35 +581,19 @@ public class ViewSnapshot {
             }
             return ret;
         }
-
-        private Bitmap mCached;
-        private final Paint mPaint;
-        private String mImageHash = "";
     }
 
-
     private static class RootViewInfo {
+        public final String activityName;
+        public final View rootView;
+        public CachedBitmap screenshot;
+        public float scale;
+
         public RootViewInfo(String activityName, View rootView) {
             this.activityName = activityName;
             this.rootView = rootView;
             this.screenshot = null;
             this.scale = 1.0f;
         }
-
-        public final String activityName;
-        public final View rootView;
-        public CachedBitmap screenshot;
-        public float scale;
     }
-
-
-    private final RootViewFinder mRootViewFinder;
-    private final List<PropertyDescription> mProperties;
-    private final ClassNameCache mClassnameCache;
-    private final Handler mMainThreadHandler;
-    private final ResourceIds mResourceIds;
-    private String[] mLastImageHashArray = null;
-    private static final int MAX_CLASS_NAME_CACHE_SIZE = 255;
-
-    private static final String TAG = "SA.Snapshot";
 }

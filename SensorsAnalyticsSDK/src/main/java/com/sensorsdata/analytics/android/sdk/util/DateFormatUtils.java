@@ -36,9 +36,9 @@ import java.util.Map;
  * @author : chenru
  */
 public class DateFormatUtils {
-    private static Map<String, ThreadLocal<SimpleDateFormat>> formatMaps = new HashMap<>();
     public static final String YYYY_MM_DD = "yyyy-MM-dd";
     public static final String YYYY_MM_DD_HH_MM_SS_SSS = "yyyy-MM-dd HH:mm:ss.SSS";
+    private static Map<String, ThreadLocal<SimpleDateFormat>> formatMaps = new HashMap<>();
 
     private synchronized static SimpleDateFormat getDateFormat(final String patten, final Locale locale) {
         ThreadLocal<SimpleDateFormat> dateFormatThreadLocal = formatMaps.get(patten);

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import android.os.Looper;
@@ -27,6 +27,8 @@ import java.util.Set;
  * Wrapper around a set that will throw RuntimeErrors if accessed in a thread that is not the main thread.
  */
 public class UIThreadSet<T> {
+    private Set<T> mSet;
+
     public UIThreadSet() {
         mSet = new HashSet<T>();
     }
@@ -58,6 +60,4 @@ public class UIThreadSet<T> {
         }
         return mSet.isEmpty();
     }
-
-    private Set<T> mSet;
 }

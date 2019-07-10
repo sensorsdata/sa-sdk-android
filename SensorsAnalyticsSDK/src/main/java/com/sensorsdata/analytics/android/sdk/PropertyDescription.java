@@ -14,10 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 /* package */ class PropertyDescription {
+
+    public final String name;
+    public final Class<?> targetClass;
+    public final Caller accessor;
+    private final String mMutatorName;
 
     public PropertyDescription(String name, Class<?> targetClass, Caller accessor,
                                String mutatorName) {
@@ -33,10 +38,4 @@ package com.sensorsdata.analytics.android.sdk;
         return "[PropertyDescription " + name + "," + targetClass + ", " + accessor + "/" + mMutatorName
                 + "]";
     }
-
-    public final String name;
-    public final Class<?> targetClass;
-    public final Caller accessor;
-
-    private final String mMutatorName;
 }

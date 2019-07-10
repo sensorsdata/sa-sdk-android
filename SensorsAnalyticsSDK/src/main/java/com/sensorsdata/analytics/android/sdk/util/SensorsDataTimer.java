@@ -25,14 +25,14 @@ public class SensorsDataTimer {
     private static SensorsDataTimer instance;
     private ScheduledExecutorService mScheduledExecutorService;
 
+    private SensorsDataTimer() {
+    }
+
     public static SensorsDataTimer getInstance() {
         if (instance == null) {
             instance = new SensorsDataTimer();
         }
         return instance;
-    }
-
-    private SensorsDataTimer() {
     }
 
     /**
@@ -60,6 +60,7 @@ public class SensorsDataTimer {
 
     /**
      * 当前线程池是否可用
+     *
      * @return Boolean 返回当前线程池状态 true : 不可用 false : 可用
      */
     private boolean isShutdown() {

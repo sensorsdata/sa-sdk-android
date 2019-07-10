@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk.data;
 
 import android.content.Context;
@@ -26,12 +26,9 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 class SensorsDataDBHelper extends SQLiteOpenHelper {
     private static final String TAG = "SA.SQLiteOpenHelper";
     private static final String CREATE_EVENTS_TABLE =
-            "CREATE TABLE " + DbParams.TABLE_EVENTS + " (_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    DbParams.KEY_DATA + " STRING NOT NULL, " +
-                    DbParams.KEY_CREATED_AT + " INTEGER NOT NULL);";
+            String.format("CREATE TABLE %s (_id INTEGER PRIMARY KEY AUTOINCREMENT, %s TEXT NOT NULL, %s INTEGER NOT NULL);", DbParams.TABLE_EVENTS, DbParams.KEY_DATA, DbParams.KEY_CREATED_AT);
     private static final String EVENTS_TIME_INDEX =
-            "CREATE INDEX IF NOT EXISTS time_idx ON " + DbParams.TABLE_EVENTS +
-                    " (" + DbParams.KEY_CREATED_AT + ");";
+            String.format("CREATE INDEX IF NOT EXISTS time_idx ON %s (%s);", DbParams.TABLE_EVENTS, DbParams.KEY_CREATED_AT);
 
     SensorsDataDBHelper(Context context) {
         super(context, DbParams.DATABASE_NAME, null, DbParams.DATABASE_VERSION);
@@ -49,7 +46,7 @@ class SensorsDataDBHelper extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         SALog.i(TAG, "Upgrading app, replacing Sensors Analytics DB");
 
-        db.execSQL("DROP TABLE IF EXISTS " + DbParams.TABLE_EVENTS);
+        db.execSQL(String.format("DROP TABLE IF EXISTS %s", DbParams.TABLE_EVENTS));
         db.execSQL(CREATE_EVENTS_TABLE);
         db.execSQL(EVENTS_TIME_INDEX);
     }

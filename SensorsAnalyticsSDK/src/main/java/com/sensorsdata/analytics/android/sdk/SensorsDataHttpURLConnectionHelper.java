@@ -25,12 +25,12 @@ import java.net.URL;
 
 class SensorsDataHttpURLConnectionHelper {
     /**
-     * Numeric status code, 307
+     * HTTP 状态码 307
      */
     private static final int HTTP_307 = 307;
 
     static boolean needRedirects(int responseCode) {
-         return responseCode == HttpURLConnection.HTTP_MOVED_PERM || responseCode == HttpURLConnection.HTTP_MOVED_TEMP || responseCode == HTTP_307;
+        return responseCode == HttpURLConnection.HTTP_MOVED_PERM || responseCode == HttpURLConnection.HTTP_MOVED_TEMP || responseCode == HTTP_307;
     }
 
     static String getLocation(HttpURLConnection connection, String path) throws MalformedURLException {

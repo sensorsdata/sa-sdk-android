@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import android.content.Context;
@@ -30,68 +30,16 @@ import java.util.Map;
  */
 public abstract class ResourceReader implements ResourceIds {
 
-    public static class Ids extends ResourceReader {
-
-        public Ids(String resourcePackageName, Context context) {
-            super(context);
-            mResourcePackageName = resourcePackageName;
-            initialize();
-        }
-
-        @Override
-        protected Class<?> getSystemClass() {
-            return android.R.id.class;
-        }
-
-        @Override
-        protected String getLocalClassName(Context context) {
-            return mResourcePackageName + ".R$id";
-        }
-
-        private final String mResourcePackageName;
-    }
-
     @SuppressWarnings("unused")
-    public static class Drawables extends ResourceReader {
-
-        protected Drawables(String resourcePackageName, Context context) {
-            super(context);
-            mResourcePackageName = resourcePackageName;
-            initialize();
-        }
-
-        @Override
-        protected Class<?> getSystemClass() {
-            return android.R.drawable.class;
-        }
-
-        @Override
-        protected String getLocalClassName(Context context) {
-            return mResourcePackageName + ".R$drawable";
-        }
-
-        private final String mResourcePackageName;
-    }
+    private static final String TAG = "SA.ResourceReader";
+    private final Context mContext;
+    private final Map<String, Integer> mIdNameToId;
+    private final SparseArray<String> mIdToIdName;
 
     protected ResourceReader(Context context) {
         mContext = context;
         mIdNameToId = new HashMap<String, Integer>();
         mIdToIdName = new SparseArray<String>();
-    }
-
-    @Override
-    public boolean knownIdName(String name) {
-        return mIdNameToId.containsKey(name);
-    }
-
-    @Override
-    public int idFromName(String name) {
-        return mIdNameToId.get(name);
-    }
-
-    @Override
-    public String nameForId(int id) {
-        return mIdToIdName.get(id);
     }
 
     private static void readClassIds(Class<?> platformIdClass, String namespace,
@@ -119,6 +67,21 @@ public abstract class ResourceReader implements ResourceIds {
         } catch (IllegalAccessException e) {
             SALog.i(TAG, "Can't read built-in id names from " + platformIdClass.getName(), e);
         }
+    }
+
+    @Override
+    public boolean knownIdName(String name) {
+        return mIdNameToId.containsKey(name);
+    }
+
+    @Override
+    public int idFromName(String name) {
+        return mIdNameToId.get(name);
+    }
+
+    @Override
+    public String nameForId(int id) {
+        return mIdToIdName.get(id);
     }
 
     protected abstract Class<?> getSystemClass();
@@ -165,10 +128,46 @@ public abstract class ResourceReader implements ResourceIds {
         }
     }
 
-    @SuppressWarnings("unused")
-    private static final String TAG = "SA.ResourceReader";
+    public static class Ids extends ResourceReader {
 
-    private final Context mContext;
-    private final Map<String, Integer> mIdNameToId;
-    private final SparseArray<String> mIdToIdName;
+        private final String mResourcePackageName;
+
+        public Ids(String resourcePackageName, Context context) {
+            super(context);
+            mResourcePackageName = resourcePackageName;
+            initialize();
+        }
+
+        @Override
+        protected Class<?> getSystemClass() {
+            return android.R.id.class;
+        }
+
+        @Override
+        protected String getLocalClassName(Context context) {
+            return mResourcePackageName + ".R$id";
+        }
+    }
+
+    @SuppressWarnings("unused")
+    public static class Drawables extends ResourceReader {
+
+        private final String mResourcePackageName;
+
+        protected Drawables(String resourcePackageName, Context context) {
+            super(context);
+            mResourcePackageName = resourcePackageName;
+            initialize();
+        }
+
+        @Override
+        protected Class<?> getSystemClass() {
+            return android.R.drawable.class;
+        }
+
+        @Override
+        protected String getLocalClassName(Context context) {
+            return mResourcePackageName + ".R$drawable";
+        }
+    }
 }

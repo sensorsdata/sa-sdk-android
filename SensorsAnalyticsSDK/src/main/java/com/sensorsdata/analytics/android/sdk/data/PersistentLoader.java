@@ -46,7 +46,7 @@ public class PersistentLoader {
     private static Future<SharedPreferences> storedPreferences;
 
     private PersistentLoader(Context context) {
-        this.context = context;
+        PersistentLoader.context = context.getApplicationContext();
         final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
         final String prefsName = "com.sensorsdata.analytics.android.sdk.SensorsDataAPI";
         storedPreferences = sPrefsLoader.loadPreferences(context, prefsName);

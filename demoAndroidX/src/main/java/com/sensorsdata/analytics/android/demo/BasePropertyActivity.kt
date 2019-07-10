@@ -56,8 +56,6 @@ class BasePropertyActivity : BaseActivity() {
                 .append("superkey", "supervalue" + Random().nextInt())
                 .append("superkey2", "supervalue2" + Random().nextInt()).toJSONObject())
         SensorsDataAPI.sharedInstance().trackFragmentAppViewScreen()
-        //忽略某个页面或某些页面的事件
-        SensorsDataAPI.sharedInstance().ignoreAutoTrackActivity(MainActivity::class.java)
 
         showData()
     }

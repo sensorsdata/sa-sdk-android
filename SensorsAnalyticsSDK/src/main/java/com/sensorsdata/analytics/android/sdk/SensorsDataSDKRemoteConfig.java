@@ -14,35 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import org.json.JSONObject;
 
 public class SensorsDataSDKRemoteConfig {
+    static final int REMOTE_EVENT_TYPE_NO_USE = -1;
     /**
      * config 版本号
      */
     private String v;
-
     /**
      * 是否关闭 debug 模式
      */
     private boolean disableDebugMode;
-
     /**
      * 是否关闭 AutoTrack
      */
     private int autoTrackMode;
-
     /**
      * 是否关闭 SDK
      */
     private boolean disableSDK;
-
     private int mAutoTrackEventType;
-
-    static final int REMOTE_EVENT_TYPE_NO_USE = -1;
 
     public SensorsDataSDKRemoteConfig() {
         this.disableDebugMode = false;
@@ -78,22 +73,6 @@ public class SensorsDataSDKRemoteConfig {
         return autoTrackMode;
     }
 
-    int getAutoTrackEventType() {
-        return mAutoTrackEventType;
-    }
-
-    boolean isAutoTrackEventTypeIgnored(int eventType) {
-        if (autoTrackMode == REMOTE_EVENT_TYPE_NO_USE) {
-            return false;
-        }
-
-        if (autoTrackMode == 0) {
-            return true;
-        }
-
-        return (mAutoTrackEventType | eventType) != mAutoTrackEventType;
-    }
-
     public void setAutoTrackMode(int autoTrackMode) {
         this.autoTrackMode = autoTrackMode;
 
@@ -117,6 +96,22 @@ public class SensorsDataSDKRemoteConfig {
         if ((this.autoTrackMode & SensorsAnalyticsAutoTrackEventType.APP_VIEW_SCREEN) == SensorsAnalyticsAutoTrackEventType.APP_VIEW_SCREEN) {
             this.mAutoTrackEventType |= SensorsAnalyticsAutoTrackEventType.APP_VIEW_SCREEN;
         }
+    }
+
+    int getAutoTrackEventType() {
+        return mAutoTrackEventType;
+    }
+
+    boolean isAutoTrackEventTypeIgnored(int eventType) {
+        if (autoTrackMode == REMOTE_EVENT_TYPE_NO_USE) {
+            return false;
+        }
+
+        if (autoTrackMode == 0) {
+            return true;
+        }
+
+        return (mAutoTrackEventType | eventType) != mAutoTrackEventType;
     }
 
     JSONObject toJson() {

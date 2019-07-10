@@ -71,7 +71,7 @@ public class SensorsDataContentProvider extends ContentProvider {
         Context context = getContext();
         if (context != null) {
             //这里是为了使用 ProviderTestRule
-            String packageName = null;
+            String packageName;
             try {
                 packageName = context.getApplicationContext().getPackageName();
             } catch (UnsupportedOperationException e) {
@@ -89,9 +89,7 @@ public class SensorsDataContentProvider extends ContentProvider {
             uriMatcher.addURI(authority, DbParams.TABLE_LOGIN_ID, LOGIN_ID);
             dbHelper = new SensorsDataDBHelper(context);
 
-            /**
-             * 迁移数据，并删除老的数据库
-             */
+            /* 迁移数据，并删除老的数据库 */
             try {
                 File oldDatabase = context.getDatabasePath(packageName);
                 if (oldDatabase.exists()) {

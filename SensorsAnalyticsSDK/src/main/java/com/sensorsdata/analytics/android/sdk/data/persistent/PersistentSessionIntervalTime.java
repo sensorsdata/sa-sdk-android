@@ -19,7 +19,6 @@ package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import android.content.SharedPreferences;
 
-import com.sensorsdata.analytics.android.sdk.data.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.PersistentLoader;
 
 import java.util.concurrent.Future;

@@ -36,12 +36,6 @@ import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
@@ -56,12 +50,29 @@ import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.zip.GZIPOutputStream;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
 import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
 
 
 @TargetApi(16)
 class VisualizedAutoTrackViewCrawler implements VTrack {
 
+    private static final int MESSAGE_SEND_STATE_FOR_EDITING = 1;
+    private static final String TAG = "SA.VisualizedAutoTrackViewCrawler";
+    private final Activity mActivity;
+    private final LifecycleCallbacks mLifecycleCallbacks;
+    private final EditState mEditState;
+    private final ViewCrawlerHandler mMessageThreadHandler;
+    private JSONObject mMessageObject;
+    private String mFeatureCode;
+    private String mPostUrl;
+    private String mAppVersion;
     VisualizedAutoTrackViewCrawler(Activity activity, String resourcePackageName, String featureCode, String postUrl) {
         mActivity = activity;
         mFeatureCode = featureCode;
@@ -161,8 +172,12 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
         }
     }
 
-
     private class ViewCrawlerHandler extends Handler {
+
+        private final EditProtocol mProtocol;
+        private ViewSnapshot mSnapshot;
+        // 是否启用 GZip 压缩
+        private boolean mUseGzip;
 
         private ViewCrawlerHandler(Context context, Looper looper, String resourcePackageName) {
             super(looper);
@@ -281,7 +296,6 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
             postSnapshot(out);
         }
 
-
         private void postSnapshot(ByteArrayOutputStream out) {
             boolean rePostSnapshot = true;
             if (TextUtils.isEmpty(mFeatureCode) || TextUtils.isEmpty(mPostUrl)) {
@@ -392,24 +406,5 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
                 return true;
             }
         }
-
-        private ViewSnapshot mSnapshot;
-        private final EditProtocol mProtocol;
-
-        // 是否启用 GZip 压缩
-        private boolean mUseGzip;
     }
-
-    private final Activity mActivity;
-    private final LifecycleCallbacks mLifecycleCallbacks;
-    private final EditState mEditState;
-    private final ViewCrawlerHandler mMessageThreadHandler;
-    private JSONObject mMessageObject;
-    private String mFeatureCode;
-    private String mPostUrl;
-    private String mAppVersion;
-
-    private static final int MESSAGE_SEND_STATE_FOR_EDITING = 1;
-
-    private static final String TAG = "SA.VisualizedAutoTrackViewCrawler";
 }

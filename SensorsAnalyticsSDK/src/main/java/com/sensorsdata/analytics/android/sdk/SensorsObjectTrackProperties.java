@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import org.json.JSONException;
@@ -23,6 +23,7 @@ import org.json.JSONObject;
 public interface SensorsObjectTrackProperties {
     /**
      * Object 扩展属性
+     *
      * @return JSONObject
      * @throws JSONException JSONException
      */

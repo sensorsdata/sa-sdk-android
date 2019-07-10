@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import java.util.concurrent.ExecutorService;
@@ -22,11 +22,6 @@ import java.util.concurrent.Executors;
 
 
 public class TrackTaskManagerThread implements Runnable {
-    private TrackTaskManager mTrackTaskManager;
-    /**
-     * 创建一个可重用固定线程数的线程池
-     */
-    private ExecutorService mPool;
     /**
      * 创建一个可重用固定线程数的线程池
      */
@@ -35,6 +30,11 @@ public class TrackTaskManagerThread implements Runnable {
      * 轮询时间，单位：毫秒
      */
     private static final int SLEEP_TIME = 300;
+    private TrackTaskManager mTrackTaskManager;
+    /**
+     * 创建一个可重用固定线程数的线程池
+     */
+    private ExecutorService mPool;
     /**
      * 是否停止
      */

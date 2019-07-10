@@ -95,101 +95,93 @@ import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF
  */
 public class SensorsDataAPI implements ISensorsDataAPI {
 
+    // 可视化埋点功能最低 API 版本
+    static final int VTRACK_SUPPORTED_MIN_API = 16;
+    // SDK版本
+    static final String VERSION = "3.2.0";
+    // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
+    static final String MIN_PLUGIN_VERSION = "3.0.0";
+    private static final Pattern KEY_PATTERN = Pattern.compile(
+            "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
+            Pattern.CASE_INSENSITIVE);
+    // Maps each token to a singleton SensorsDataAPI instance
+    private static final Map<Context, SensorsDataAPI> sInstanceMap = new HashMap<>();
+    private static final String TAG = "SA.SensorsDataAPI";
+    static boolean mIsMainProcess = false;
+    static boolean sEnableLog = false;
+    static boolean SHOW_DEBUG_INFO_VIEW = true;
+    private static SensorsDataSDKRemoteConfig mSDKRemoteConfig;
+    private static SensorsDataGPSLocation mGPSLocation;
+    /* 远程配置 */
+    private static SAConfigOptions mSAConfigOptions;
+    private final Context mContext;
+    private final AnalyticsMessages mMessages;
+    private final PersistentDistinctId mDistinctId;
+    private final PersistentSuperProperties mSuperProperties;
+    private final PersistentFirstStart mFirstStart;
+    private final PersistentFirstDay mFirstDay;
+    private final PersistentFirstTrackInstallation mFirstTrackInstallation;
+    private final PersistentFirstTrackInstallationWithCallback mFirstTrackInstallationWithCallback;
+    private final PersistentRemoteSDKConfig mPersistentRemoteSDKConfig;
+    private final Map<String, Object> mDeviceInfo;
+    private final Map<String, EventTimer> mTrackTimer;
+    private final Object mLoginIdLock = new Object();
+    int mFlushNetworkPolicy = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI | NetworkType.TYPE_5G;
     /**
-     * Debug 模式，用于检验数据导入是否正确。该模式下，事件会逐条实时发送到 Sensors Analytics，并根据返回值检查
-     * 数据导入是否正确。
-     * Debug 模式的具体使用方式，请参考:
-     * http://www.sensorsdata.cn/manual/debug_mode.html
-     * Debug 模式有三种：
-     * DEBUG_OFF - 关闭DEBUG模式
-     * DEBUG_ONLY - 打开DEBUG模式，但该模式下发送的数据仅用于调试，不进行数据导入
-     * DEBUG_AND_TRACK - 打开DEBUG模式，并将数据导入到SensorsAnalytics中
+     * 每次启动 App 时，最多尝试三次
      */
-    public enum DebugMode {
-        DEBUG_OFF(false, false),
-        DEBUG_ONLY(true, false),
-        DEBUG_AND_TRACK(true, true);
-
-        private final boolean debugMode;
-        private final boolean debugWriteData;
-
-        DebugMode(boolean debugMode, boolean debugWriteData) {
-            this.debugMode = debugMode;
-            this.debugWriteData = debugWriteData;
-        }
-
-        boolean isDebugMode() {
-            return debugMode;
-        }
-
-        boolean isDebugWriteData() {
-            return debugWriteData;
-        }
-    }
-
-    /**
-     * 网络类型
-     */
-    public final class NetworkType {
-        public static final int TYPE_NONE = 0;//NULL
-        public static final int TYPE_2G = 1;//2G
-        public static final int TYPE_3G = 1 << 1;//3G
-        public static final int TYPE_4G = 1 << 2;//4G
-        public static final int TYPE_WIFI = 1 << 3;//WIFI
-        public static final int TYPE_5G = 1 << 4;//5G
-        public static final int TYPE_ALL = 0xFF;//ALL
-    }
-
-    /**
-     * AutoTrack 默认采集的事件类型
-     */
-    public enum AutoTrackEventType {
-        APP_START(1),
-        APP_END(1 << 1),
-        APP_CLICK(1 << 2),
-        APP_VIEW_SCREEN(1 << 3);
-        private final int eventValue;
-
-        static AutoTrackEventType autoTrackEventTypeFromEventName(String eventName) {
-            if (TextUtils.isEmpty(eventName)) {
-                return null;
-            }
-
-            switch (eventName) {
-                case "$AppStart":
-                    return APP_START;
-                case "$AppEnd":
-                    return APP_END;
-                case "$AppClick":
-                    return APP_CLICK;
-                case "$AppViewScreen":
-                    return APP_VIEW_SCREEN;
-            }
-
-            return null;
-        }
-
-        AutoTrackEventType(int eventValue) {
-            this.eventValue = eventValue;
-        }
-
-        static boolean isAutoTrackType(String eventName) {
-            if (!TextUtils.isEmpty(eventName)) {
-                switch (eventName) {
-                    case "$AppStart":
-                    case "$AppEnd":
-                    case "$AppClick":
-                    case "$AppViewScreen":
-                        return true;
-                }
-            }
-            return false;
-        }
-
-        int getEventValue() {
-            return eventValue;
-        }
-    }
+    private CountDownTimer mPullSDKConfigCountDownTimer;
+    private List<Class> mIgnoredViewTypeList = new ArrayList<>();
+    /* AndroidID */
+    private String mAndroidId = null;
+    /* SensorsAnalytics 地址 */
+    private String mServerUrl;
+    private String mOriginServerUrl;
+    /* SDK 配置是否初始化 */
+    private boolean mSDKConfigInit;
+    /* Debug 模式选项 */
+    private DebugMode mDebugMode = DebugMode.DEBUG_OFF;
+    /* Flush 时间间隔 */
+    private int mFlushInterval;
+    /* Flush 数据量阈值 */
+    private int mFlushBulkSize;
+    /* SDK 自动采集事件 */
+    private boolean mAutoTrack;
+    private boolean mHeatMapEnabled;
+    /* 上个页面的 Url*/
+    private String mLastScreenUrl;
+    private JSONObject mLastScreenTrackProperties;
+    /* $AppViewScreen 事件是否支持 Fragment*/
+    private boolean mTrackFragmentAppViewScreen;
+    private boolean mHeatMapConfirmDialogEnabled = true;
+    /* 点击图 HTTPS 是否进行 SSL 检查 */
+    private boolean mHeatMapSSLCheckEnabled = true;
+    private boolean mVisualizedEnabled;
+    private boolean mVisualizedConfirmDialogEnabled = true;
+    private boolean mVisualizedSSLCheckEnabled = true;
+    private boolean mRNAutoTrackEnabled;
+    /* 是否请求网络 */
+    private boolean mEnableNetworkRequest = true;
+    private boolean mClearReferrerWhenAppEnd = false;
+    private boolean mDisableDefaultRemoteConfig = false;
+    private boolean mDisableTrackDeviceId = false;
+    private List<Integer> mAutoTrackIgnoredActivities;
+    private List<Integer> mHeatMapActivities;
+    private Set<Integer> mAutoTrackFragments;
+    private List<Integer> mVisualizedAutoTrackActivities;
+    /* 主进程名称 */
+    private String mMainProcessName;
+    private int mAutoTrackEventType;
+    private long mMaxCacheSize = 32 * 1024 * 1024; //default 32MB
+    private String mCookie;
+    private TrackTaskManager mTrackTaskManager;
+    private TrackTaskManagerThread mTrackTaskManagerThread;
+    private SensorsDataScreenOrientationDetector mOrientationDetector;
+    private SensorsDataDynamicSuperProperties mDynamicSuperProperties;
+    private SimpleDateFormat mIsFirstDayDateFormat;
+    private SSLSocketFactory mSSLSocketFactory;
+    private SensorsDataTrackEventCallBack mTrackEventCallBack;
+    private HashSet<String> mFilterEventProperties = null;
 
     //private
     SensorsDataAPI() {
@@ -233,20 +225,17 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
         mTrackTaskManager = TrackTaskManager.getInstance();
         mTrackTaskManagerThread = new TrackTaskManagerThread();
-        mTrackDBTaskManagerThread = new TrackDBTaskManagerThread();
-        sensorsDataThreadPool = SensorsDataThreadPool.getInstance();
-        sensorsDataThreadPool.execute(mTrackTaskManagerThread);
-        sensorsDataThreadPool.execute(mTrackDBTaskManagerThread);
+        new Thread(mTrackTaskManagerThread).start();
 
         initSAConfig(serverURL, packageName);
         DbAdapter.getInstance(context, packageName);
-        mMessages = AnalyticsMessages.getInstance(mContext, mSAConfigOptions.mFlushCacheSize);
+        mMessages = AnalyticsMessages.getInstance(mContext);
         mAndroidId = SensorsDataUtils.getAndroidID(mContext);
 
         //先从缓存中读取 SDKConfig
         applySDKConfigFromCache();
 
-        //打开debug模式，弹出提示
+        //打开 debug 模式，弹出提示
         if (mDebugMode != DebugMode.DEBUG_OFF && mIsMainProcess) {
             if (SHOW_DEBUG_INFO_VIEW) {
                 if (!isSDKDisabled()) {
@@ -279,72 +268,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     /**
-     * 获取并配置 App 的一些基本属性
-     */
-    private Map<String, Object> setupDeviceInfo() {
-        final Map<String, Object> deviceInfo = new HashMap<>();
-        deviceInfo.put("$lib", "Android");
-        deviceInfo.put("$lib_version", VERSION);
-        deviceInfo.put("$os", "Android");
-        deviceInfo.put("$os_version", Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE);
-        deviceInfo.put("$manufacturer", SensorsDataUtils.getManufacturer());
-        if (TextUtils.isEmpty(Build.MODEL)) {
-            deviceInfo.put("$model", "UNKNOWN");
-        } else {
-            deviceInfo.put("$model", Build.MODEL.trim());
-        }
-        try {
-            final PackageManager manager = mContext.getPackageManager();
-            final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
-            deviceInfo.put("$app_version", info.versionName);
-        } catch (final Exception e) {
-            SALog.i(TAG, "Exception getting app version name", e);
-        }
-        //context.getResources().getDisplayMetrics()这种方式获取屏幕高度不包括底部虚拟导航栏
-        final DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
-        int screenWidth = displayMetrics.widthPixels;
-        int screenHeight = displayMetrics.heightPixels;
-
-        try {
-            WindowManager windowManager = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
-            Display display = windowManager.getDefaultDisplay();
-            int rotation = display.getRotation();
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                Point point = new Point();
-                display.getRealSize(point);
-                screenWidth = point.x;
-                screenHeight = point.y;
-            }
-            deviceInfo.put("$screen_width", SensorsDataUtils.getNaturalWidth(rotation, screenWidth, screenHeight));
-            deviceInfo.put("$screen_height", SensorsDataUtils.getNaturalHeight(rotation, screenWidth, screenHeight));
-        } catch (Exception e) {
-            deviceInfo.put("$screen_width", screenWidth);
-            deviceInfo.put("$screen_height", screenHeight);
-        }
-
-        String carrier = SensorsDataUtils.getCarrier(mContext);
-        if (!TextUtils.isEmpty(carrier)) {
-            deviceInfo.put("$carrier", carrier);
-        }
-
-        if (!mDisableTrackDeviceId) {
-            if (!TextUtils.isEmpty(mAndroidId)) {
-                deviceInfo.put("$device_id", mAndroidId);
-            }
-        }
-
-        Integer zone_offset = SensorsDataUtils.getZoneOffset();
-        if (zone_offset != null) {
-            //deviceInfo.put("$timezone_offset", zone_offset);
-        }
-        return Collections.unmodifiableMap(deviceInfo);
-    }
-
-    /**
-     * 获取SensorsDataAPI单例
+     * 获取 SensorsDataAPI 单例
      *
      * @param context App的Context
-     * @return SensorsDataAPI单例
+     * @return SensorsDataAPI 单例
      */
     public static SensorsDataAPI sharedInstance(Context context) {
         if (isSDKDisabled()) {
@@ -367,15 +294,14 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-
     /**
-     * 初始化并获取SensorsDataAPI单例
+     * 初始化并获取 SensorsDataAPI 单例
      *
      * @param context App 的 Context
      * @param serverURL 用于收集事件的服务地址
-     * @param debugMode Debug模式,
+     * @param debugMode Debug 模式,
      * {@link com.sensorsdata.analytics.android.sdk.SensorsDataAPI.DebugMode}
-     * @return SensorsDataAPI单例
+     * @return SensorsDataAPI 单例
      */
     @Deprecated
     public static SensorsDataAPI sharedInstance(Context context, String serverURL, DebugMode debugMode) {
@@ -383,11 +309,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     /**
-     * 初始化并获取SensorsDataAPI单例
+     * 初始化并获取 SensorsDataAPI 单例
      *
      * @param context App 的 Context
      * @param serverURL 用于收集事件的服务地址
-     * @return SensorsDataAPI单例
+     * @return SensorsDataAPI 单例
      */
     public static SensorsDataAPI sharedInstance(Context context, String serverURL) {
         return getInstance(context, serverURL, DebugMode.DEBUG_OFF);
@@ -454,6 +380,77 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
 
         return mSDKRemoteConfig.isDisableSDK();
+    }
+
+    /* package */
+    static void allInstances(InstanceProcessor processor) {
+        synchronized (sInstanceMap) {
+            for (final SensorsDataAPI instance : sInstanceMap.values()) {
+                processor.process(instance);
+            }
+        }
+    }
+
+    /**
+     * 获取并配置 App 的一些基本属性
+     */
+    private Map<String, Object> setupDeviceInfo() {
+        final Map<String, Object> deviceInfo = new HashMap<>();
+        deviceInfo.put("$lib", "Android");
+        deviceInfo.put("$lib_version", VERSION);
+        deviceInfo.put("$os", "Android");
+        deviceInfo.put("$os_version", Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE);
+        deviceInfo.put("$manufacturer", SensorsDataUtils.getManufacturer());
+        if (TextUtils.isEmpty(Build.MODEL)) {
+            deviceInfo.put("$model", "UNKNOWN");
+        } else {
+            deviceInfo.put("$model", Build.MODEL.trim());
+        }
+        try {
+            final PackageManager manager = mContext.getPackageManager();
+            final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
+            deviceInfo.put("$app_version", info.versionName);
+        } catch (final Exception e) {
+            SALog.i(TAG, "Exception getting app version name", e);
+        }
+        //context.getResources().getDisplayMetrics()这种方式获取屏幕高度不包括底部虚拟导航栏
+        final DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
+        int screenWidth = displayMetrics.widthPixels;
+        int screenHeight = displayMetrics.heightPixels;
+
+        try {
+            WindowManager windowManager = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
+            Display display = windowManager.getDefaultDisplay();
+            int rotation = display.getRotation();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                Point point = new Point();
+                display.getRealSize(point);
+                screenWidth = point.x;
+                screenHeight = point.y;
+            }
+            deviceInfo.put("$screen_width", SensorsDataUtils.getNaturalWidth(rotation, screenWidth, screenHeight));
+            deviceInfo.put("$screen_height", SensorsDataUtils.getNaturalHeight(rotation, screenWidth, screenHeight));
+        } catch (Exception e) {
+            deviceInfo.put("$screen_width", screenWidth);
+            deviceInfo.put("$screen_height", screenHeight);
+        }
+
+        String carrier = SensorsDataUtils.getCarrier(mContext);
+        if (!TextUtils.isEmpty(carrier)) {
+            deviceInfo.put("$carrier", carrier);
+        }
+
+        if (!mDisableTrackDeviceId) {
+            if (!TextUtils.isEmpty(mAndroidId)) {
+                deviceInfo.put("$device_id", mAndroidId);
+            }
+        }
+
+        Integer zone_offset = SensorsDataUtils.getZoneOffset();
+        if (zone_offset != null) {
+            //deviceInfo.put("$timezone_offset", zone_offset);
+        }
+        return Collections.unmodifiableMap(deviceInfo);
     }
 
     /**
@@ -594,11 +591,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mPullSDKConfigCountDownTimer.start();
     }
 
-    /**
-     * 每次启动 App 时，最多尝试三次
-     */
-    private CountDownTimer mPullSDKConfigCountDownTimer;
-
     void resetPullSDKConfigTimer() {
         try {
             if (mPullSDKConfigCountDownTimer != null) {
@@ -665,7 +657,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             properties.put("$screen_height", mDeviceInfo.get("$screen_height"));
             properties.put("$screen_width", mDeviceInfo.get("$screen_width"));
             String networkType = NetworkUtils.networkType(mContext);
-            properties.put("$wifi", networkType.equals("WIFI"));
+            properties.put("$wifi", "WIFI".equals(networkType));
             properties.put("$network_type", networkType);
             properties.put("$carrier", mDeviceInfo.get("$carrier"));
             properties.put("$is_first_day", isFirstDay(System.currentTimeMillis()));
@@ -678,55 +670,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return properties;
     }
 
-    /**
-     * 设置当前 serverUrl
-     *
-     * @param serverUrl 当前 serverUrl
-     */
-    @Override
-    public void setServerUrl(String serverUrl) {
-        try {
-            mOriginServerUrl = serverUrl;
-            if (TextUtils.isEmpty(serverUrl)) {
-                mServerUrl = serverUrl;
-                return;
-            }
-
-            Uri serverURI = Uri.parse(serverUrl);
-            String hostServer = serverURI.getHost();
-            if (!TextUtils.isEmpty(hostServer) && hostServer.contains("_")) {
-                SALog.i(TAG, "Server url " + serverUrl + " contains '_' is not recommend，" +
-                        "see details: https://en.wikipedia.org/wiki/Hostname");
-            }
-
-            if (mDebugMode != DebugMode.DEBUG_OFF) {
-                String uriPath = serverURI.getPath();
-                if (TextUtils.isEmpty(uriPath)) {
-                    return;
-                }
-
-                int pathPrefix = uriPath.lastIndexOf('/');
-                if (pathPrefix != -1) {
-                    String newPath = uriPath.substring(0, pathPrefix) + "/debug";
-                    // 将 URI Path 中末尾的部分替换成 '/debug'
-                    mServerUrl = serverURI.buildUpon().path(newPath).build().toString();
-                }
-            } else {
-                mServerUrl = serverUrl;
-            }
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
-    }
-
-    /**
-     * 设置是否开启 log
-     *
-     * @param enable boolean
-     */
     @Override
     public void enableLog(boolean enable) {
-        this.sEnableLog = enable;
+        sEnableLog = enable;
     }
 
     @Override
@@ -734,11 +680,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return mMaxCacheSize;
     }
 
-    /**
-     * 设置本地缓存上限值，单位 byte，默认为 32MB：32 * 1024 * 1024
-     *
-     * @param maxCacheSize 单位 byte
-     */
     @Override
     public void setMaxCacheSize(long maxCacheSize) {
         if (maxCacheSize > 0) {
@@ -747,77 +688,41 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 设置 flush 时网络发送策略，默认 3G、4G、WI-FI、5G 环境下都会尝试 flush
-     *
-     * @param networkType int 网络类型
-     */
     @Override
     public void setFlushNetworkPolicy(int networkType) {
         mFlushNetworkPolicy = networkType;
     }
 
-    /**
-     * 两次数据发送的最小时间间隔，单位毫秒
-     * 默认值为15 * 1000毫秒
-     * 在每次调用track、signUp以及profileSet等接口的时候，都会检查如下条件，以判断是否向服务器上传数据:
-     * 1. 是否是WIFI/3G/4G网络条件
-     * 2. 是否满足发送条件之一:
-     * 1) 与上次发送的时间间隔是否大于 flushInterval
-     * 2) 本地缓存日志数目是否大于 flushBulkSize
-     * 如果满足这两个条件，则向服务器发送一次数据；如果不满足，则把数据加入到队列中，等待下次检查时把整个队列的内
-     * 容一并发送。需要注意的是，为了避免占用过多存储，队列最多只缓存20MB数据。
-     *
-     * @return 返回时间间隔，单位毫秒
-     */
     @Override
     public int getFlushInterval() {
         return mFlushInterval;
     }
 
-    /**
-     * 设置两次数据发送的最小时间间隔
-     *
-     * @param flushInterval 时间间隔，单位毫秒
-     */
     @Override
     public void setFlushInterval(int flushInterval) {
         mFlushInterval = Math.max(5 * 1000, flushInterval);
     }
 
-    /**
-     * 返回本地缓存日志的最大条目数
-     * 默认值为100条
-     * 在每次调用track、signUp以及profileSet等接口的时候，都会检查如下条件，以判断是否向服务器上传数据:
-     * 1. 是否是WIFI/3G/4G网络条件
-     * 2. 是否满足发送条件之一:
-     * 1) 与上次发送的时间间隔是否大于 flushInterval
-     * 2) 本地缓存日志数目是否大于 flushBulkSize
-     * 如果满足这两个条件，则向服务器发送一次数据；如果不满足，则把数据加入到队列中，等待下次检查时把整个队列的内
-     * 容一并发送。需要注意的是，为了避免占用过多存储，队列最多只缓存32MB数据。
-     *
-     * @return 返回本地缓存日志的最大条目数
-     */
     @Override
     public int getFlushBulkSize() {
         return mFlushBulkSize;
     }
 
-    /**
-     * 设置本地缓存日志的最大条目数
-     *
-     * @param flushBulkSize 缓存数目
-     */
     @Override
     public void setFlushBulkSize(int flushBulkSize) {
         mFlushBulkSize = Math.max(50, flushBulkSize);
     }
 
-    /**
-     * 设置 App 切换到后台与下次事件的事件间隔
-     * 默认值为 30*1000 毫秒
-     * 若 App 在后台超过设定事件，则认为当前 Session 结束，发送 $AppEnd 事件
-     */
+    @Override
+    public int getSessionIntervalTime() {
+        if (DbAdapter.getInstance() == null) {
+            SALog.i(TAG, "The static method sharedInstance(context, serverURL, debugMode) should be called before calling sharedInstance()");
+            return 30 * 1000;
+        }
+
+        return DbAdapter.getInstance().getSessionIntervalTime();
+    }
+
     @Override
     public void setSessionIntervalTime(int sessionIntervalTime) {
         if (DbAdapter.getInstance() == null) {
@@ -833,29 +738,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         DbAdapter.getInstance().commitSessionIntervalTime(sessionIntervalTime);
     }
 
-    /**
-     * 设置 App 切换到后台与下次事件的事件间隔
-     * 默认值为 30*1000 毫秒
-     * 若 App 在后台超过设定事件，则认为当前 Session 结束，发送 $AppEnd 事件
-     *
-     * @return 返回设置的 SessionIntervalTime ，默认是 30 * 1000 毫秒
-     */
-    @Override
-    public int getSessionIntervalTime() {
-        if (DbAdapter.getInstance() == null) {
-            SALog.i(TAG, "The static method sharedInstance(context, serverURL, debugMode) should be called before calling sharedInstance()");
-            return 30 * 1000;
-        }
-
-        return DbAdapter.getInstance().getSessionIntervalTime();
-    }
-
-    /**
-     * 更新 GPS 位置信息
-     *
-     * @param latitude 纬度
-     * @param longitude 经度
-     */
     @Override
     public void setGPSLocation(double latitude, double longitude) {
         try {
@@ -870,9 +752,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 清楚 GPS 位置信息
-     */
     @Override
     public void clearGPSLocation() {
         mGPSLocation = null;
@@ -959,13 +838,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     }
 
-    /**
-     * 打开 SDK 自动追踪
-     * 该功能自动追踪 App 的一些行为，例如 SDK 初始化、App 启动（$AppStart） / 关闭（$AppEnd）、
-     * 进入页面（$AppViewScreen）等等，具体信息请参考文档:
-     * https://sensorsdata.cn/manual/android_sdk.html
-     * 该功能仅在 API 14 及以上版本中生效，默认关闭
-     */
     @Deprecated
     @Override
     public void enableAutoTrack() {
@@ -976,14 +848,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         enableAutoTrack(eventTypeList);
     }
 
-    /**
-     * 打开 SDK 自动追踪
-     * 该功能自动追踪 App 的一些行为，指定哪些 AutoTrack 事件被追踪，具体信息请参考文档:
-     * https://sensorsdata.cn/manual/android_sdk.html
-     * 该功能仅在 API 14 及以上版本中生效，默认关闭
-     *
-     * @param eventTypeList 开启 AutoTrack 的事件列表
-     */
     @Override
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
         try {
@@ -1012,54 +876,21 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 关闭 AutoTrack 中的部分事件
-     *
-     * @param eventTypeList AutoTrackEventType 类型 List
-     */
     @Override
     public void disableAutoTrack(List<AutoTrackEventType> eventTypeList) {
         ignoreAutoTrackEventType(eventTypeList);
     }
 
-    /**
-     * 关闭 AutoTrack 中的某个事件
-     *
-     * @param autoTrackEventType AutoTrackEventType 类型
-     */
     @Override
     public void disableAutoTrack(AutoTrackEventType autoTrackEventType) {
         ignoreAutoTrackEventType(autoTrackEventType);
     }
 
-    /**
-     * 自动收集 App Crash 日志，该功能默认是关闭的
-     */
     @Override
     public void trackAppCrash() {
         SensorsDataExceptionHandler.init();
     }
 
-    // Package-level access. Used (at least) by GCMReceiver
-    // when OS-level events occur.
-    /* package */ interface InstanceProcessor {
-        public void process(SensorsDataAPI m);
-    }
-
-    /* package */
-    static void allInstances(InstanceProcessor processor) {
-        synchronized (sInstanceMap) {
-            for (final SensorsDataAPI instance : sInstanceMap.values()) {
-                processor.process(instance);
-            }
-        }
-    }
-
-    /**
-     * 是否开启 AutoTrack
-     *
-     * @return true: 开启 AutoTrack; false：没有开启 AutoTrack
-     */
     @Override
     public boolean isAutoTrackEnabled() {
         if (isSDKDisabled()) {
@@ -1078,15 +909,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     @Override
-    public boolean isButterknifeOnClickEnabled() {
-        return mEnableButterknifeOnClick;
-    }
-
-    /**
-     * 是否开启自动追踪 Fragment 的 $AppViewScreen 事件
-     * 默认不开启
-     */
-    @Override
     public void trackFragmentAppViewScreen() {
         this.mTrackFragmentAppViewScreen = true;
     }
@@ -1096,9 +918,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return this.mTrackFragmentAppViewScreen;
     }
 
-    /**
-     * 开启 AutoTrack 支持 React Native
-     */
     @Override
     public void enableReactNativeAutoTrack() {
         this.mRNAutoTrackEnabled = true;
@@ -1109,13 +928,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return this.mRNAutoTrackEnabled;
     }
 
-    /**
-     * 向WebView注入本地方法, 将distinctId传递给当前的WebView
-     *
-     * @param webView 当前WebView
-     * @param isSupportJellyBean 是否支持API level 16及以下的版本。
-     * 因为API level 16及以下的版本, addJavascriptInterface有安全漏洞,请谨慎使用
-     */
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     @Override
     public void showUpWebView(WebView webView, boolean isSupportJellyBean) {
@@ -1128,10 +940,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         showUpWebView(webView, null, isSupportJellyBean, enableVerify);
     }
 
-    /**
-     * 此方法谨慎修改
-     * 插件配置 disableJsInterface 会修改此方法
-     */
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     @Override
     public void showUpWebView(WebView webView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify) {
@@ -1147,11 +955,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     /**
-     * 向WebView注入本地方法, 将distinctId传递给当前的WebView
+     * 向 WebView 注入本地方法, 将 distinctId 传递给当前的 WebView
      *
-     * @param webView 当前WebView
-     * @param isSupportJellyBean 是否支持API level 16及以下的版本。
-     * 因为API level 16及以下的版本, addJavascriptInterface有安全漏洞,请谨慎使用
+     * @param webView 当前 WebView
+     * @param isSupportJellyBean 是否支持 API level 16 及以下的版本。
+     * 因为 API level 16 及以下的版本, addJavascriptInterface 有安全漏洞,请谨慎使用
      * @param properties 用户自定义属性
      */
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
@@ -1216,12 +1024,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         showUpX5WebView(x5WebView, false);
     }
 
-    /**
-     * 指定哪些 activity 不被AutoTrack
-     * 指定activity的格式为：activity.getClass().getCanonicalName()
-     *
-     * @param activitiesList activity列表
-     */
     @Override
     public void ignoreAutoTrackActivities(List<Class<?>> activitiesList) {
         if (activitiesList == null || activitiesList.size() == 0) {
@@ -1243,11 +1045,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 恢复不被 AutoTrack 的 activity
-     *
-     * @param activitiesList List
-     */
     @Override
     public void resumeAutoTrackActivities(List<Class<?>> activitiesList) {
         if (activitiesList == null || activitiesList.size() == 0) {
@@ -1273,11 +1070,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 指定某个 activity 不被 AutoTrack
-     *
-     * @param activity Activity
-     */
     @Override
     public void ignoreAutoTrackActivity(Class<?> activity) {
         if (activity == null) {
@@ -1298,11 +1090,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 恢复不被 AutoTrack 的 activity
-     *
-     * @param activity Class
-     */
     @Override
     public void resumeAutoTrackActivity(Class<?> activity) {
         if (activity == null) {
@@ -1323,11 +1110,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 指定 fragment 被 AutoTrack 采集
-     *
-     * @param fragment Fragment
-     */
     @Override
     public void enableAutoTrackFragment(Class<?> fragment) {
         if (fragment == null) {
@@ -1346,11 +1128,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 指定 fragments 被 AutoTrack 采集
-     *
-     * @param fragmentsList Fragment 集合
-     */
     @Override
     public void enableAutoTrackFragments(List<Class<?>> fragmentsList) {
         if (fragmentsList == null || fragmentsList.size() == 0) {
@@ -1371,11 +1148,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 指定 fragment 被 AutoTrack 采集
-     *
-     * @param fragmentName,Fragment 名称，使用 包名 + 类名，建议直接通过 Class.getCanonicalName 获取
-     */
     @Override
     public void enableAutoTrackFragment(String fragmentName) {
         if (TextUtils.isEmpty(fragmentName)) {
@@ -1393,13 +1165,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 判断 AutoTrack 时，某个 Activity 的 $AppViewScreen 是否被过滤
-     * 如果过滤的话，会过滤掉 Activity 的 $AppViewScreen 事件
-     *
-     * @param activity Activity
-     * @return Activity 是否被过滤
-     */
     @Override
     public boolean isActivityAutoTrackAppViewScreenIgnored(Class<?> activity) {
         if (activity == null) {
@@ -1414,19 +1179,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             return true;
         }
 
-        if (activity.getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class) != null) {
-            return true;
-        }
+        return activity.getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class) != null;
 
-        return false;
     }
 
-    /**
-     * 判断 AutoTrack 时，某个 Activity 的 $AppViewScreen 是否被采集
-     *
-     * @param fragment Fragment
-     * @return 某个 Activity 的 $AppViewScreen 是否被采集
-     */
     @Override
     public boolean isFragmentAutoTrackAppViewScreen(Class<?> fragment) {
         if (fragment == null) {
@@ -1434,15 +1190,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
         try {
             if (mAutoTrackFragments != null && mAutoTrackFragments.size() > 0) {
-                if (mAutoTrackFragments.contains(fragment.hashCode())
-                        || mAutoTrackFragments.contains(fragment.getCanonicalName().hashCode())) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return mAutoTrackFragments.contains(fragment.hashCode())
+                        || mAutoTrackFragments.contains(fragment.getCanonicalName().hashCode());
             }
 
-            if (fragment.getClass().getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class) != null) {
+            if (fragment.getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class) != null) {
                 return false;
             }
         } catch (Exception e) {
@@ -1452,13 +1204,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return true;
     }
 
-    /**
-     * 判断 AutoTrack 时，某个 Activity 的 $AppClick 是否被过滤
-     * 如果过滤的话，会过滤掉 Activity 的 $AppClick 事件
-     *
-     * @param activity Activity
-     * @return Activity 是否被过滤
-     */
     @Override
     public boolean isActivityAutoTrackAppClickIgnored(Class<?> activity) {
         if (activity == null) {
@@ -1473,18 +1218,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             return true;
         }
 
-        if (activity.getAnnotation(SensorsDataIgnoreTrackAppClick.class) != null) {
-            return true;
-        }
+        return activity.getAnnotation(SensorsDataIgnoreTrackAppClick.class) != null;
 
-        return false;
     }
 
-    /**
-     * 过滤掉 AutoTrack 的某个事件类型
-     *
-     * @param autoTrackEventType AutoTrackEventType
-     */
     @Deprecated
     @Override
     public void ignoreAutoTrackEventType(AutoTrackEventType autoTrackEventType) {
@@ -1508,11 +1245,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 过滤掉 AutoTrack 的某些事件类型
-     *
-     * @param eventTypeList AutoTrackEventType List
-     */
     @Deprecated
     @Override
     public void ignoreAutoTrackEventType(List<AutoTrackEventType> eventTypeList) {
@@ -1535,12 +1267,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 判断 某个 AutoTrackEventType 是否被忽略
-     *
-     * @param eventType AutoTrackEventType
-     * @return true 被忽略; false 没有被忽略
-     */
     @Override
     public boolean isAutoTrackEventTypeIgnored(AutoTrackEventType eventType) {
         return isAutoTrackEventTypeIgnored(eventType.eventValue);
@@ -1560,12 +1286,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return (mAutoTrackEventType | autoTrackEventType) != mAutoTrackEventType;
     }
 
-    /**
-     * 设置界面元素ID
-     *
-     * @param view 要设置的View
-     * @param viewID String 给这个View的ID
-     */
     @Override
     public void setViewID(View view, String viewID) {
         if (view != null && !TextUtils.isEmpty(viewID)) {
@@ -1573,12 +1293,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 设置界面元素ID
-     *
-     * @param view 要设置的View
-     * @param viewID String 给这个View的ID
-     */
     @Override
     public void setViewID(android.app.Dialog view, String viewID) {
         try {
@@ -1592,12 +1306,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 设置界面元素ID
-     *
-     * @param alertDialog 要设置的View
-     * @param viewID String 给这个View的ID
-     */
     @Override
     public void setViewID(Object alertDialog, String viewID) {
         try {
@@ -1608,7 +1316,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
             Class<?> supportAlertDialogClass = null;
             Class<?> androidXAlertDialogClass = null;
-            Class<?> currentAlertDialogClass = null;
+            Class<?> currentAlertDialogClass;
             try {
                 supportAlertDialogClass = Class.forName("android.support.v7.app.AlertDialog");
             } catch (Exception e) {
@@ -1651,12 +1359,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 设置 View 所属 Activity
-     *
-     * @param view 要设置的View
-     * @param activity Activity View 所属 Activity
-     */
     @Override
     public void setViewActivity(View view, Activity activity) {
         try {
@@ -1669,12 +1371,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 设置 View 所属 Fragment 名称
-     *
-     * @param view 要设置的View
-     * @param fragmentName String View 所属 Fragment 名称
-     */
     @Override
     public void setViewFragmentName(View view, String fragmentName) {
         try {
@@ -1687,11 +1383,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 忽略View
-     *
-     * @param view 要忽略的View
-     */
     @Override
     public void ignoreView(View view) {
         if (view != null) {
@@ -1706,12 +1397,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 设置View属性
-     *
-     * @param view 要设置的View
-     * @param properties 要设置的View的属性
-     */
     @Override
     public void setViewProperties(View view, JSONObject properties) {
         if (view == null || properties == null) {
@@ -1720,8 +1405,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
         view.setTag(R.id.sensors_analytics_tag_view_properties, properties);
     }
-
-    private List<Class> mIgnoredViewTypeList = new ArrayList<>();
 
     @Override
     public List<Class> getIgnoredViewTypeList() {
@@ -1732,21 +1415,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return mIgnoredViewTypeList;
     }
 
-    /**
-     * 返回设置 AutoTrack 的 Fragments 集合，如果没有设置则返回 null.
-     *
-     * @return Set
-     */
     @Override
     public Set<Integer> getAutoTrackFragments() {
         return mAutoTrackFragments;
     }
 
-    /**
-     * 忽略某一类型的 View
-     *
-     * @param viewType Class
-     */
     @Override
     public void ignoreViewType(Class viewType) {
         if (viewType == null) {
@@ -1762,12 +1435,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * activity 是否开启了可视化全埋点
-     *
-     * @param activity activity 类的对象
-     * @return true 代表 activity 开启了可视化全埋点，false 代表 activity 关闭了可视化全埋点
-     */
     @Override
     public boolean isVisualizedAutoTrackActivity(Class<?> activity) {
         try {
@@ -1784,11 +1451,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return false;
     }
 
-    /**
-     * 开启某个 activity 的可视化全埋点
-     *
-     * @param activity activity 类的对象
-     */
     @Override
     public void addVisualizedAutoTrackActivity(Class<?> activity) {
         try {
@@ -1801,11 +1463,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 开启多个 activity 的可视化全埋点
-     *
-     * @param activitiesList activity 类的对象集合
-     */
     @Override
     public void addVisualizedAutoTrackActivities(List<Class<?>> activitiesList) {
         try {
@@ -1826,49 +1483,25 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 是否开启可视化全埋点
-     *
-     * @return true 代表开启了可视化全埋点， false 代表关闭了可视化全埋点
-     */
     @Override
     public boolean isVisualizedAutoTrackEnabled() {
         return mVisualizedEnabled;
     }
 
-    /**
-     * 是否开启可视化全埋点的提示框
-     *
-     * @return true 代表开启了可视化全埋点的提示框， false 代表关闭了可视化全埋点的提示框
-     */
     boolean isVisualizedAutoTrackConfirmDialogEnabled() {
         return mVisualizedConfirmDialogEnabled;
     }
 
-    /**
-     * 是否开启可视化全埋点的提示框
-     *
-     * @param enable true 代表开启了可视化全埋点的提示框， false 代表关闭了可视化全埋点的提示框
-     */
     @Override
     public void enableVisualizedAutoTrackConfirmDialog(boolean enable) {
         this.mVisualizedConfirmDialogEnabled = enable;
     }
 
-    /**
-     * 开启可视化全埋点，$AppClick 事件将会采集控件的 viewPath
-     */
     @Override
     public void enableVisualizedAutoTrack() {
         this.mVisualizedEnabled = true;
     }
 
-    /**
-     * activity 是否开启了点击图
-     *
-     * @param activity activity 类的对象
-     * @return true 代表开启了，false 代表关闭了
-     */
     @Override
     public boolean isHeatMapActivity(Class<?> activity) {
         try {
@@ -1885,11 +1518,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return false;
     }
 
-    /**
-     * 开启某个 activity 的点击图
-     *
-     * @param activity activity 类的对象
-     */
     @Override
     public void addHeatMapActivity(Class<?> activity) {
         try {
@@ -1903,11 +1531,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 开启多个 activity 的点击图
-     *
-     * @param activitiesList activity 类的对象集合
-     */
     @Override
     public void addHeatMapActivities(List<Class<?>> activitiesList) {
         try {
@@ -1928,11 +1551,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 是否开启点击图
-     *
-     * @return true 代表开启了点击图，false 代表关闭了点击图
-     */
     @Override
     public boolean isHeatMapEnabled() {
         return mHeatMapEnabled;
@@ -1947,29 +1565,16 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return mHeatMapConfirmDialogEnabled;
     }
 
-    /**
-     * 开启点击图的提示框
-     *
-     * @param enable true 代表开启， false 代表关闭
-     */
     @Override
     public void enableAppHeatMapConfirmDialog(boolean enable) {
         this.mHeatMapConfirmDialogEnabled = enable;
     }
 
-    /**
-     * 开启 HeatMap，$AppClick 事件将会采集控件的 viewPath
-     */
     @Override
     public void enableHeatMap() {
         mHeatMapEnabled = true;
     }
 
-    /**
-     * 获取当前用户的 distinctId
-     *
-     * @return 优先返回登录 ID，登录 ID 为空时，返回匿名 ID
-     */
     @Override
     public String getDistinctId() {
         String loginId = getLoginId();
@@ -1980,13 +1585,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 获取当前用户的匿名 ID
-     * 若调用前未调用 {@link #identify(String)} 设置用户的匿名 ID，SDK 会优先调用 {@link com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils#getAndroidID(Context)}获取 Android ID，
-     * 如获取的 Android ID 非法，则调用 {@link java.util.UUID} 随机生成 UUID，作为用户的匿名 ID
-     *
-     * @return 当前用户的匿名 ID
-     */
     @Override
     public String getAnonymousId() {
         synchronized (mDistinctId) {
@@ -1994,9 +1592,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 重置默认匿名id
-     */
     @Override
     public void resetAnonymousId() {
         synchronized (mDistinctId) {
@@ -2008,24 +1603,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 获取当前用户的 loginId
-     * 若调用前未调用 {@link #login(String)} 设置用户的 loginId，会返回null
-     *
-     * @return 当前用户的 loginId
-     */
     @Override
     public String getLoginId() {
         return DbAdapter.getInstance().getLoginId();
     }
 
-    /**
-     * 设置当前用户的distinctId。一般情况下，如果是一个注册用户，则应该使用注册系统内
-     * 的user_id，如果是个未注册用户，则可以选择一个不会重复的匿名ID，如设备ID等，如果
-     * 客户没有调用identify，则使用SDK自动生成的匿名ID
-     *
-     * @param distinctId 当前用户的distinctId，仅接受数字、下划线和大小写字母
-     */
     @Override
     public void identify(final String distinctId) {
         try {
@@ -2048,22 +1630,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 登录，设置当前用户的 loginId
-     *
-     * @param loginId 当前用户的 loginId，不能为空，且长度不能大于255
-     */
     @Override
     public void login(final String loginId) {
         login(loginId, null);
     }
 
-    /**
-     * 登录，设置当前用户的 loginId
-     *
-     * @param loginId 当前用户的 loginId，不能为空，且长度不能大于255
-     * @param properties 用户登录属性
-     */
     @Override
     public void login(final String loginId, final JSONObject properties) {
         try {
@@ -2091,9 +1662,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 注销，清空当前用户的 loginId
-     */
     @Override
     public void logout() {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -2110,16 +1678,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 记录第一次登录行为
-     * 这个接口是一个较为复杂的功能，请在使用前先阅读相关说明:
-     * http://www.sensorsdata.cn/manual/track_signup.html
-     * 并在必要时联系我们的技术支持人员。
-     * 该方法已不推荐使用，可以具体参考 {@link #login(String)} 方法
-     *
-     * @param newDistinctId 用户完成注册后生成的注册ID
-     * @param properties 事件的属性
-     */
     @Deprecated
     @Override
     public void trackSignUp(final String newDistinctId, final JSONObject properties) {
@@ -2141,15 +1699,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 与 {@link #trackSignUp(String, org.json.JSONObject)} 类似，无事件属性
-     * 这个接口是一个较为复杂的功能，请在使用前先阅读相关说明:
-     * http://www.sensorsdata.cn/manual/track_signup.html，
-     * 并在必要时联系我们的技术支持人员。
-     * 该方法已不推荐使用，可以具体参考 {@link #login(String)} 方法
-     *
-     * @param newDistinctId 用户完成注册后生成的注册ID
-     */
     @Deprecated
     @Override
     public void trackSignUp(final String newDistinctId) {
@@ -2170,14 +1719,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
-     * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
-     *
-     * @param eventName 渠道追踪事件的名称
-     * @param properties 渠道追踪事件的属性
-     * @param disableCallback 是否关闭这次渠道匹配的回调请求
-     */
     @Override
     public void trackInstallation(final String eventName, final JSONObject properties, final boolean disableCallback) {
         //只在主进程触发 trackInstallation
@@ -2208,7 +1749,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     }
                     if (firstTrackInstallation) {
                         try {
-                            if (!SensorsDataUtils.hasUtmProperties(_properties)) {
+                            if (SensorsDataUtils.hasUtmProperties(_properties)) {
                                 Map<String, String> utmMap = new HashMap<>();
                                 utmMap.put("SENSORS_ANALYTICS_UTM_SOURCE", "$utm_source");
                                 utmMap.put("SENSORS_ANALYTICS_UTM_MEDIUM", "$utm_medium");
@@ -2226,7 +1767,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                                 }
                             }
 
-                            if (!SensorsDataUtils.hasUtmProperties(_properties)) {
+                            if (SensorsDataUtils.hasUtmProperties(_properties)) {
                                 String installSource = String.format("android_id=%s##imei=%s##mac=%s",
                                         mAndroidId,
                                         SensorsDataUtils.getIMEI(mContext),
@@ -2245,10 +1786,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         trackEvent(EventType.TRACK, eventName, _properties, null);
 
                         // 再发送 profile_set_once
-                        JSONObject profileProperties = new JSONObject();
-                        if (_properties != null) {
-                            profileProperties = new JSONObject(_properties.toString());
-                        }
+                        JSONObject profileProperties = new JSONObject(_properties.toString());
                         profileProperties.put("$first_visit_time", new java.util.Date());
                         trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null);
 
@@ -2266,35 +1804,16 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
-     * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
-     *
-     * @param eventName 渠道追踪事件的名称
-     * @param properties 渠道追踪事件的属性
-     */
     @Override
     public void trackInstallation(String eventName, JSONObject properties) {
         trackInstallation(eventName, properties, false);
     }
 
-    /**
-     * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
-     * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
-     *
-     * @param eventName 渠道追踪事件的名称
-     */
     @Override
     public void trackInstallation(String eventName) {
         trackInstallation(eventName, null, false);
     }
 
-    /**
-     * 调用track接口，追踪一个带有属性的事件
-     *
-     * @param eventName 事件的名称
-     * @param properties 事件的属性
-     */
     @Override
     public void track(final String eventName, final JSONObject properties) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -2309,11 +1828,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 与 {@link #track(String, org.json.JSONObject)} 类似，无事件属性
-     *
-     * @param eventName 事件的名称
-     */
+
     @Override
     public void track(final String eventName) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -2328,28 +1843,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 初始化事件的计时器，默认计时单位为毫秒。
-     * 详细用法请参考 trackTimer(String, TimeUnit)
-     *
-     * @param eventName 事件的名称
-     */
     @Deprecated
     @Override
     public void trackTimer(final String eventName) {
         trackTimer(eventName, TimeUnit.MILLISECONDS);
     }
 
-    /**
-     * 初始化事件的计时器。
-     * 若需要统计某个事件的持续时间，先在事件开始时调用 trackTimer("Event") 记录事件开始时间，该方法并不会真正发
-     * 送事件；随后在事件结束时，调用 track("Event", properties)，SDK 会追踪 "Event" 事件，并自动将事件持续时
-     * 间记录在事件属性 "event_duration" 中。
-     * 多次调用 trackTimer("Event") 时，事件 "Event" 的开始时间以最后一次调用时为准。
-     *
-     * @param eventName 事件的名称
-     * @param timeUnit 计时结果的时间单位
-     */
     @Deprecated
     @Override
     public void trackTimer(final String eventName, final TimeUnit timeUnit) {
@@ -2368,17 +1867,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-
-    /**
-     * 初始化事件的计时器。
-     * 若需要统计某个事件的持续时间，先在事件开始时调用 trackTimer("Event") 记录事件开始时间，该方法并不会真正发
-     * 送事件；随后在事件结束时，调用 track("Event", properties)，SDK 会追踪 "Event" 事件，并自动将事件持续时
-     * 间记录在事件属性 "event_duration" 中。
-     * 多次调用 trackTimer("Event") 时，事件 "Event" 的开始时间以最后一次调用时为准。
-     *
-     * @param eventName 事件的名称
-     * @param eventTimer 自定义事件计时器
-     */
     @Deprecated
     @Override
     public void trackTimer(final String eventName, final EventTimer eventTimer) {
@@ -2397,11 +1885,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 删除指定时间的计时器
-     *
-     * @param eventName 事件名称
-     */
     @Override
     public void removeTimer(final String eventName) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -2419,12 +1902,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-
-    /**
-     * 初始化事件的计时器，计时单位为秒。
-     *
-     * @param eventName 事件的名称
-     */
     @Override
     public void trackTimerStart(String eventName) {
         trackTimerBegin(eventName, TimeUnit.SECONDS);
@@ -2477,28 +1954,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         trackTimer(eventName);
     }
 
-    /**
-     * 初始化事件的计时器。
-     * 若需要统计某个事件的持续时间，先在事件开始时调用 trackTimerBegin("Event") 记录事件开始时间，该方法并不会真正发
-     * 送事件；随后在事件结束时，调用 track("Event", properties)，SDK 会追踪 "Event" 事件，并自动将事件持续时
-     * 间记录在事件属性 "event_duration" 中。
-     * 多次调用 trackTimerBegin("Event") 时，事件 "Event" 的开始时间以最后一次调用时为准。
-     *
-     * @param eventName 事件的名称
-     * @param timeUnit 计时结果的时间单位
-     */
     @Override
     @Deprecated
     public void trackTimerBegin(final String eventName, final TimeUnit timeUnit) {
         trackTimer(eventName, timeUnit);
     }
 
-    /**
-     * 停止事件计时器
-     *
-     * @param eventName 事件的名称
-     * @param properties 事件的属性
-     */
     @Override
     public void trackTimerEnd(final String eventName, final JSONObject properties) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -2513,11 +1974,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 停止事件计时器
-     *
-     * @param eventName 事件的名称
-     */
     @Override
     public void trackTimerEnd(final String eventName) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -2532,9 +1988,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 清除所有事件计时器
-     */
     @Override
     public void clearTrackTimer() {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -2551,19 +2004,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 获取LastScreenUrl
-     *
-     * @return String
-     */
     @Override
     public String getLastScreenUrl() {
         return mLastScreenUrl;
     }
 
-    /**
-     * App 退出或进到后台时清空 referrer，默认情况下不清空
-     */
     @Override
     public void clearReferrerWhenAppEnd() {
         mClearReferrerWhenAppEnd = true;
@@ -2582,22 +2027,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return mMainProcessName;
     }
 
-    /**
-     * 获取LastScreenTrackProperties
-     *
-     * @return JSONObject
-     */
     @Override
     public JSONObject getLastScreenTrackProperties() {
         return mLastScreenTrackProperties;
     }
 
-    /**
-     * Track 进入页面事件 ($AppViewScreen)
-     *
-     * @param url String
-     * @param properties JSONObject
-     */
     @Override
     public void trackViewScreen(final String url, final JSONObject properties) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -2626,11 +2060,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * Track Activity 进入页面事件($AppViewScreen)
-     *
-     * @param activity activity Activity，当前 Activity
-     */
     @Override
     public void trackViewScreen(final Activity activity) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -2751,11 +2180,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     /**
-     * app进入后台
-     * 遍历mTrackTimer
+     * App 进入后台，遍历 mTrackTimer
      * eventAccumulatedDuration = eventAccumulatedDuration + System.currentTimeMillis() - startTime
      */
-    protected void appEnterBackground() {
+    void appEnterBackground() {
         synchronized (mTrackTimer) {
             try {
                 Iterator iter = mTrackTimer.entrySet().iterator();
@@ -2780,11 +2208,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     /**
-     * app从后台恢复
-     * 遍历mTrackTimer
+     * App 从后台恢复，遍历 mTrackTimer
      * startTime = System.currentTimeMillis()
      */
-    protected void appBecomeActive() {
+    void appBecomeActive() {
         synchronized (mTrackTimer) {
             try {
                 Iterator iter = mTrackTimer.entrySet().iterator();
@@ -2803,9 +2230,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 将所有本地缓存的日志发送到 Sensors Analytics.
-     */
     @Override
     public void flush() {
         mMessages.flush();
@@ -2820,34 +2244,21 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mMessages.flush(timeDelayMills);
     }
 
-    /**
-     * 以阻塞形式将所有本地缓存的日志发送到 Sensors Analytics
-     */
     @Override
     public void flushSync() {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
-                mMessages.flushSync();
+                mMessages.flush();
             }
         });
     }
 
-    /**
-     * 注册事件动态公共属性
-     *
-     * @param dynamicSuperProperties 事件动态公共属性回调接口
-     */
     @Override
     public void registerDynamicSuperProperties(SensorsDataDynamicSuperProperties dynamicSuperProperties) {
         mDynamicSuperProperties = dynamicSuperProperties;
     }
 
-    /**
-     * 设置 track 事件回调
-     *
-     * @param trackEventCallBack track 事件回调接口
-     */
     @Override
     public void setTrackEventCallBack(SensorsDataTrackEventCallBack trackEventCallBack) {
         mTrackEventCallBack = trackEventCallBack;
@@ -2863,19 +2274,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 删除本地缓存的全部事件
-     */
     @Override
     public void deleteAll() {
         mMessages.deleteAll();
     }
 
-    /**
-     * 获取事件公共属性
-     *
-     * @return 当前所有Super属性
-     */
     @Override
     public JSONObject getSuperProperties() {
         synchronized (mSuperProperties) {
@@ -2883,11 +2286,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 注册所有事件都有的公共属性
-     *
-     * @param superProperties 事件公共属性
-     */
     @Override
     public void registerSuperProperties(JSONObject superProperties) {
         try {
@@ -2905,11 +2303,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 删除事件公共属性
-     *
-     * @param superPropertyName 事件属性名称
-     */
     @Override
     public void unregisterSuperProperty(String superPropertyName) {
         try {
@@ -2923,9 +2316,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 删除所有事件公共属性
-     */
     @Override
     public void clearSuperProperties() {
         synchronized (mSuperProperties) {
@@ -2933,12 +2323,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 设置用户的一个或多个Profile。
-     * Profile如果存在，则覆盖；否则，新创建。
-     *
-     * @param properties 属性列表
-     */
     @Override
     public void profileSet(final JSONObject properties) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -2953,13 +2337,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 设置用户的一个Profile，如果之前存在，则覆盖，否则，新创建
-     *
-     * @param property 属性名称
-     * @param value 属性的值，值的类型只允许为
-     * {@link java.lang.String}, {@link java.lang.Number}, {@link java.util.Date}, {@link java.util.List}
-     */
     @Override
     public void profileSet(final String property, final Object value) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -2974,12 +2351,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 首次设置用户的一个或多个Profile。
-     * 与profileSet接口不同的是，如果之前存在，则忽略，否则，新创建
-     *
-     * @param properties 属性列表
-     */
     @Override
     public void profileSetOnce(final JSONObject properties) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -2994,14 +2365,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 首次设置用户的一个Profile
-     * 与profileSet接口不同的是，如果之前存在，则忽略，否则，新创建
-     *
-     * @param property 属性名称
-     * @param value 属性的值，值的类型只允许为
-     * {@link java.lang.String}, {@link java.lang.Number}, {@link java.util.Date}, {@link java.util.List}
-     */
     @Override
     public void profileSetOnce(final String property, final Object value) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -3016,12 +2379,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 给一个或多个数值类型的Profile增加一个数值。只能对数值型属性进行操作，若该属性
-     * 未设置，则添加属性并设置默认值为0
-     *
-     * @param properties 一个或多个属性集合
-     */
     @Override
     public void profileIncrement(final Map<String, ? extends Number> properties) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -3036,13 +2393,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 给一个数值类型的Profile增加一个数值。只能对数值型属性进行操作，若该属性
-     * 未设置，则添加属性并设置默认值为0
-     *
-     * @param property 属性名称
-     * @param value 属性的值，值的类型只允许为 {@link java.lang.Number}
-     */
     @Override
     public void profileIncrement(final String property, final Number value) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -3057,12 +2407,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 给一个列表类型的Profile增加一个元素
-     *
-     * @param property 属性名称
-     * @param value 新增的元素
-     */
     @Override
     public void profileAppend(final String property, final String value) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -3081,12 +2425,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 给一个列表类型的Profile增加一个或多个元素
-     *
-     * @param property 属性名称
-     * @param values 新增的元素集合
-     */
     @Override
     public void profileAppend(final String property, final Set<String> values) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -3107,11 +2445,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 删除用户的一个Profile
-     *
-     * @param property 属性名称
-     */
     @Override
     public void profileUnset(final String property) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -3126,9 +2459,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    /**
-     * 删除用户所有Profile
-     */
     @Override
     public void profileDelete() {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -3162,6 +2492,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return mDebugMode.isDebugWriteData();
     }
 
+    DebugMode getDebugMode() {
+        return mDebugMode;
+    }
+
     void setDebugMode(DebugMode debugMode) {
         mDebugMode = debugMode;
         if (debugMode == DebugMode.DEBUG_OFF) {
@@ -3173,12 +2507,44 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    DebugMode getDebugMode() {
-        return mDebugMode;
-    }
-
     String getServerUrl() {
         return mServerUrl;
+    }
+
+    @Override
+    public void setServerUrl(String serverUrl) {
+        try {
+            mOriginServerUrl = serverUrl;
+            if (TextUtils.isEmpty(serverUrl)) {
+                mServerUrl = serverUrl;
+                return;
+            }
+
+            Uri serverURI = Uri.parse(serverUrl);
+            String hostServer = serverURI.getHost();
+            if (!TextUtils.isEmpty(hostServer) && hostServer.contains("_")) {
+                SALog.i(TAG, "Server url " + serverUrl + " contains '_' is not recommend，" +
+                        "see details: https://en.wikipedia.org/wiki/Hostname");
+            }
+
+            if (mDebugMode != DebugMode.DEBUG_OFF) {
+                String uriPath = serverURI.getPath();
+                if (TextUtils.isEmpty(uriPath)) {
+                    return;
+                }
+
+                int pathPrefix = uriPath.lastIndexOf('/');
+                if (pathPrefix != -1) {
+                    String newPath = uriPath.substring(0, pathPrefix) + "/debug";
+                    // 将 URI Path 中末尾的部分替换成 '/debug'
+                    mServerUrl = serverURI.buildUpon().path(newPath).build().toString();
+                }
+            } else {
+                mServerUrl = serverUrl;
+            }
+        } catch (Exception e) {
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+        }
     }
 
     private void showDebugModeWarning() {
@@ -3232,7 +2598,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    protected boolean _trackEventFromH5(String eventInfo) {
+    boolean _trackEventFromH5(String eventInfo) {
         try {
             if (TextUtils.isEmpty(eventInfo)) {
                 return false;
@@ -3263,7 +2629,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
             JSONObject eventObject = new JSONObject(eventInfo);
             String type = eventObject.getString("type");
-            EventType eventType = EventType.valueOf(type.toUpperCase());
+            EventType eventType = EventType.valueOf(type.toUpperCase(Locale.getDefault()));
 
             String distinctIdKey = "distinct_id";
             if (eventType == EventType.TRACK_SIGNUP) {
@@ -3319,7 +2685,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
                 // 当前网络状况
                 String networkType = NetworkUtils.networkType(mContext);
-                propertiesObject.put("$wifi", networkType.equals("WIFI"));
+                propertiesObject.put("$wifi", "WIFI".equals(networkType));
                 propertiesObject.put("$network_type", networkType);
 
                 // SuperProperties
@@ -3443,11 +2809,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             return false;
                         }
                         Object value = properties.opt(key);
-                        if (!(value instanceof String || value instanceof Number || value
+                        if (!(value instanceof CharSequence || value instanceof Number || value
                                 instanceof JSONArray || value instanceof Boolean || value instanceof Date)) {
-                            SALog.d(TAG, "The property value must be an instance of "
-                                    + "String/Number/Boolean/JSONArray. [key='" + key + "', value='" + value.toString()
-                                    + "']");
+                            SALog.d(TAG, String.format("The property value must be an instance of " +
+                                    "CharSequence/Number/Boolean/JSONArray. [key='%s', value='%s']", key, value == null ? "" : value.toString()));
                             return false;
                         }
 
@@ -3529,7 +2894,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
                     // 当前网络状况
                     String networkType = NetworkUtils.networkType(mContext);
-                    sendProperties.put("$wifi", networkType.equals("WIFI"));
+                    sendProperties.put("$wifi", "WIFI".equals(networkType));
                     sendProperties.put("$network_type", networkType);
 
 
@@ -3616,7 +2981,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     SecureRandom random = new SecureRandom();
                     dataObj.put("_track_id", random.nextInt());
                 } catch (Exception e) {
-
+                    // ignore
                 }
 
                 dataObj.put("time", eventTime);
@@ -3722,21 +3087,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     void stopTrackTaskThread() {
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                mTrackTaskManagerThread.setStop(true);
-                mTrackDBTaskManagerThread.setStop(true);
-            }
-        });
+        mTrackTaskManagerThread.setStop(true);
     }
 
     void resumeTrackTaskThread() {
         mTrackTaskManagerThread = new TrackTaskManagerThread();
-        mTrackDBTaskManagerThread = new TrackDBTaskManagerThread();
-        sensorsDataThreadPool = SensorsDataThreadPool.getInstance();
-        sensorsDataThreadPool.execute(mTrackTaskManagerThread);
-        sensorsDataThreadPool.execute(mTrackDBTaskManagerThread);
+        new Thread(mTrackTaskManagerThread).start();
     }
 
     /**
@@ -3789,10 +3145,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             try {
                 Object value = properties.get(key);
 
-                if (!(value instanceof String || value instanceof Number || value
+                if (!(value instanceof CharSequence || value instanceof Number || value
                         instanceof JSONArray || value instanceof Boolean || value instanceof Date)) {
                     throw new InvalidDataException("The property value must be an instance of "
-                            + "String/Number/Boolean/JSONArray. [key='" + key + "', value='" + value.toString()
+                            + "CharSequence/Number/Boolean/JSONArray. [key='" + key + "', value='" + value.toString()
                             + "']");
                 }
 
@@ -3995,15 +3351,13 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         this.mRNAutoTrackEnabled = mSAConfigOptions.mRNAutoTrackEnabled;
         this.mFlushNetworkPolicy = mSAConfigOptions.mNetworkTypePolicy;
         enableTrackScreenOrientation(mSAConfigOptions.mTrackScreenOrientationEnabled);
-        if (!TextUtils.isEmpty(mSAConfigOptions.mDistinctId)) {
-            identify(mSAConfigOptions.mDistinctId);
+        if (!TextUtils.isEmpty(mSAConfigOptions.mAnonymousId)) {
+            identify(mSAConfigOptions.mAnonymousId);
         }
 
         SHOW_DEBUG_INFO_VIEW = configBundle.getBoolean("com.sensorsdata.analytics.android.ShowDebugInfoView",
                 true);
         this.mDisableDefaultRemoteConfig = configBundle.getBoolean("com.sensorsdata.analytics.android.DisableDefaultRemoteConfig",
-                false);
-        this.mEnableButterknifeOnClick = configBundle.getBoolean("com.sensorsdata.analytics.android.ButterknifeOnClick",
                 false);
         this.mMainProcessName = SensorsDataUtils.getMainProcessName(mContext);
         if (TextUtils.isEmpty(this.mMainProcessName)) {
@@ -4012,7 +3366,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mIsMainProcess = SensorsDataUtils.isMainProcess(mContext, mMainProcessName);
         this.mDisableTrackDeviceId = configBundle.getBoolean("com.sensorsdata.analytics.android.DisableTrackDeviceId",
                 false);
-        mSAConfigOptions.mFlushCacheSize = configBundle.getInt("com.sensorsdata.analytics.android.FlushCacheSize", 5);
     }
 
     private void applySAConfigOptions() {
@@ -4068,18 +3421,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         this.mRNAutoTrackEnabled = mSAConfigOptions.mRNAutoTrackEnabled;
         this.mFlushNetworkPolicy = mSAConfigOptions.mNetworkTypePolicy;
         enableTrackScreenOrientation(mSAConfigOptions.mTrackScreenOrientationEnabled);
-        if (!TextUtils.isEmpty(mSAConfigOptions.mDistinctId)) {
-            identify(mSAConfigOptions.mDistinctId);
+        if (!TextUtils.isEmpty(mSAConfigOptions.mAnonymousId)) {
+            identify(mSAConfigOptions.mAnonymousId);
         }
     }
-
-    /**
-     * 保存用户推送 ID 到用户表
-     *
-     * @param propertyKey 属性名称（例如 jgId）
-     * @param pushId 推送 ID
-     * 使用 profilePushId("jgId",JPushInterface.getRegistrationID(this))
-     */
 
     @Override
     public void profilePushId(String propertyKey, String pushId) {
@@ -4134,95 +3479,109 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mSSLSocketFactory = sf;
     }
 
-    // 可视化埋点功能最低API版本
-    static final int VTRACK_SUPPORTED_MIN_API = 16;
+    /**
+     * Debug 模式，用于检验数据导入是否正确。该模式下，事件会逐条实时发送到 Sensors Analytics，并根据返回值检查
+     * 数据导入是否正确。
+     * Debug 模式的具体使用方式，请参考:
+     * http://www.sensorsdata.cn/manual/debug_mode.html
+     * Debug 模式有三种：
+     * DEBUG_OFF - 关闭DEBUG模式
+     * DEBUG_ONLY - 打开DEBUG模式，但该模式下发送的数据仅用于调试，不进行数据导入
+     * DEBUG_AND_TRACK - 打开DEBUG模式，并将数据导入到SensorsAnalytics中
+     */
+    public enum DebugMode {
+        DEBUG_OFF(false, false),
+        DEBUG_ONLY(true, false),
+        DEBUG_AND_TRACK(true, true);
 
-    // SDK版本
-    static final String VERSION = "3.1.5";
-    // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
-    static final String MIN_PLUGIN_VERSION = "3.0.0";
+        private final boolean debugMode;
+        private final boolean debugWriteData;
 
-    /* AndroidID */
-    private String mAndroidId = null;
-    static boolean mIsMainProcess = false;
-    static boolean sEnableLog = false;
-    static boolean SHOW_DEBUG_INFO_VIEW = true;
-    private static final Pattern KEY_PATTERN = Pattern.compile(
-            "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
-            Pattern.CASE_INSENSITIVE);
+        DebugMode(boolean debugMode, boolean debugWriteData) {
+            this.debugMode = debugMode;
+            this.debugWriteData = debugWriteData;
+        }
 
-    // Maps each token to a singleton SensorsDataAPI instance
-    private static final Map<Context, SensorsDataAPI> sInstanceMap = new HashMap<>();
-    private static SensorsDataSDKRemoteConfig mSDKRemoteConfig;
-    private static SensorsDataGPSLocation mGPSLocation;
+        boolean isDebugMode() {
+            return debugMode;
+        }
 
-    // Configures
-    /* SensorsAnalytics 地址 */
-    private String mServerUrl;
-    private String mOriginServerUrl;
-    /* 远程配置 */
-    private static SAConfigOptions mSAConfigOptions;
-    /* SDK 配置是否初始化 */
-    private boolean mSDKConfigInit;
-    /* Debug模式选项 */
-    private DebugMode mDebugMode = DebugMode.DEBUG_OFF;
-    /* Flush时间间隔 */
-    private int mFlushInterval;
-    /* Flush数据量阈值 */
-    private int mFlushBulkSize;
-    /* SDK 自动采集事件 */
-    private boolean mAutoTrack;
-    private boolean mHeatMapEnabled;
-    private boolean mHeatMapConfirmDialogEnabled = true;
-    /* 点击图 HTTPS 是否进行 SSL 检查 */
-    private boolean mHeatMapSSLCheckEnabled = true;
-    private boolean mVisualizedEnabled;
-    private boolean mVisualizedConfirmDialogEnabled = true;
-    private boolean mVisualizedSSLCheckEnabled = true;
+        boolean isDebugWriteData() {
+            return debugWriteData;
+        }
+    }
 
-    /* 上个页面的Url*/
-    private String mLastScreenUrl;
-    private JSONObject mLastScreenTrackProperties;
-    private boolean mEnableButterknifeOnClick;
-    /* $AppViewScreen 事件是否支持 Fragment*/
-    private boolean mTrackFragmentAppViewScreen;
-    private boolean mRNAutoTrackEnabled;
-    private boolean mClearReferrerWhenAppEnd = false;
-    private boolean mDisableDefaultRemoteConfig = false;
-    private boolean mDisableTrackDeviceId = false;
-    /* 是否请求网络 */
-    private boolean mEnableNetworkRequest = true;
-    private final Context mContext;
-    private final AnalyticsMessages mMessages;
-    private final Object mLoginIdLock = new Object();
-    private final PersistentDistinctId mDistinctId;
-    private final PersistentSuperProperties mSuperProperties;
-    private final PersistentFirstStart mFirstStart;
-    private final PersistentFirstDay mFirstDay;
-    private final PersistentFirstTrackInstallation mFirstTrackInstallation;
-    private final PersistentFirstTrackInstallationWithCallback mFirstTrackInstallationWithCallback;
-    private final PersistentRemoteSDKConfig mPersistentRemoteSDKConfig;
-    private final Map<String, Object> mDeviceInfo;
-    private final Map<String, EventTimer> mTrackTimer;
-    private List<Integer> mAutoTrackIgnoredActivities;
-    private List<Integer> mHeatMapActivities;
-    private Set<Integer> mAutoTrackFragments;
-    private List<Integer> mVisualizedAutoTrackActivities;
-    int mFlushNetworkPolicy = NetworkType.TYPE_3G | NetworkType.TYPE_4G | NetworkType.TYPE_WIFI | NetworkType.TYPE_5G;
-    /* 主进程名称 */
-    private String mMainProcessName;
-    private int mAutoTrackEventType;
-    private long mMaxCacheSize = 32 * 1024 * 1024; //default 32MB
-    private String mCookie;
-    private TrackTaskManager mTrackTaskManager;
-    private TrackTaskManagerThread mTrackTaskManagerThread;
-    private TrackDBTaskManagerThread mTrackDBTaskManagerThread;
-    private SensorsDataThreadPool sensorsDataThreadPool;
-    private SensorsDataScreenOrientationDetector mOrientationDetector;
-    private SensorsDataDynamicSuperProperties mDynamicSuperProperties;
-    private SimpleDateFormat mIsFirstDayDateFormat;
-    private SSLSocketFactory mSSLSocketFactory;
-    private SensorsDataTrackEventCallBack mTrackEventCallBack;
-    private static final String TAG = "SA.SensorsDataAPI";
-    private HashSet<String> mFilterEventProperties = null;
+    /**
+     * AutoTrack 默认采集的事件类型
+     */
+    public enum AutoTrackEventType {
+        APP_START(1),
+        APP_END(1 << 1),
+        APP_CLICK(1 << 2),
+        APP_VIEW_SCREEN(1 << 3);
+        private final int eventValue;
+
+        AutoTrackEventType(int eventValue) {
+            this.eventValue = eventValue;
+        }
+
+        static AutoTrackEventType autoTrackEventTypeFromEventName(String eventName) {
+            if (TextUtils.isEmpty(eventName)) {
+                return null;
+            }
+
+            switch (eventName) {
+                case "$AppStart":
+                    return APP_START;
+                case "$AppEnd":
+                    return APP_END;
+                case "$AppClick":
+                    return APP_CLICK;
+                case "$AppViewScreen":
+                    return APP_VIEW_SCREEN;
+                default:
+                    break;
+            }
+
+            return null;
+        }
+
+        static boolean isAutoTrackType(String eventName) {
+            if (!TextUtils.isEmpty(eventName)) {
+                switch (eventName) {
+                    case "$AppStart":
+                    case "$AppEnd":
+                    case "$AppClick":
+                    case "$AppViewScreen":
+                        return true;
+                    default:
+                        break;
+                }
+            }
+            return false;
+        }
+
+        int getEventValue() {
+            return eventValue;
+        }
+    }
+
+    // Package-level access. Used (at least) by GCMReceiver
+    // when OS-level events occur.
+    /* package */ interface InstanceProcessor {
+        void process(SensorsDataAPI m);
+    }
+
+    /**
+     * 网络类型
+     */
+    public final class NetworkType {
+        public static final int TYPE_NONE = 0;//NULL
+        public static final int TYPE_2G = 1;//2G
+        public static final int TYPE_3G = 1 << 1;//3G
+        public static final int TYPE_4G = 1 << 2;//4G
+        public static final int TYPE_WIFI = 1 << 3;//WIFI
+        public static final int TYPE_5G = 1 << 4;//5G
+        public static final int TYPE_ALL = 0xFF;//ALL
+    }
 }

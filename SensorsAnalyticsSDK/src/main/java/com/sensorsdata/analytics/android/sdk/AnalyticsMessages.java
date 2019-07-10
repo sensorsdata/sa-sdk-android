@@ -38,7 +38,6 @@ import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedOutputStream;
@@ -50,10 +49,8 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.zip.GZIPOutputStream;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -63,138 +60,44 @@ import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF
 
 /**
  * Manage communication of events with the internal database and the SensorsData servers.
- * <p/>
- * <p>This class straddles the thread boundary between user threads and
+ * This class straddles the thread boundary between user threads and
  * a logical SensorsData thread.
  */
 class AnalyticsMessages {
+    private static final String TAG = "SA.AnalyticsMessages";
+    private static final int FLUSH_QUEUE = 3;
+    private static final int DELETE_ALL = 4;
+    private static final Map<Context, AnalyticsMessages> S_INSTANCES = new HashMap<>();
+    private final Worker mWorker;
+    private final Context mContext;
+    private final DbAdapter mDbAdapter;
 
     /**
-     * Do not call directly. You should call AnalyticsMessages.getInstance()
+     * 不要直接调用，通过 getInstance 方法获取实例
      */
-    /* package */ AnalyticsMessages(final Context context) {
+    private AnalyticsMessages(final Context context) {
         mContext = context;
         mDbAdapter = DbAdapter.getInstance();
         mWorker = new Worker();
     }
 
     /**
-     * Use this to get an instance of AnalyticsMessages instead of creating one directly
-     * for yourself.
+     * 获取 AnalyticsMessages 对象
      *
-     * @param messageContext should be the Main Activity of the application
-     * associated with these messages.
+     * @param messageContext Context
      */
-    public static AnalyticsMessages getInstance(final Context messageContext, int flushCacheSize) {
-        synchronized (sInstances) {
+    public static AnalyticsMessages getInstance(final Context messageContext) {
+        synchronized (S_INSTANCES) {
             final Context appContext = messageContext.getApplicationContext();
-            mFlushSize = flushCacheSize;
             final AnalyticsMessages ret;
-            if (!sInstances.containsKey(appContext)) {
+            if (!S_INSTANCES.containsKey(appContext)) {
                 ret = new AnalyticsMessages(appContext);
-                sInstances.put(appContext, ret);
+                S_INSTANCES.put(appContext, ret);
             } else {
-                ret = sInstances.get(appContext);
+                ret = S_INSTANCES.get(appContext);
             }
             return ret;
         }
-    }
-
-    void enqueueEventMessage(final String type, final JSONObject eventJson) {
-        try {
-            synchronized (mDbAdapter) {
-                TrackTaskManager.getInstance().addEventDBTask(new Runnable() {
-                    @Override
-                    public void run() {
-                        int ret;
-                        String eventName = eventJson.optString("event", "");
-                        boolean isDebugMode = SensorsDataAPI.sharedInstance(mContext).isDebugMode();
-                        if (isDebugMode || "track_signup".equals(type) || "$AppStart".equals(eventName)
-                                || "$AppEnd".equals(eventName)) {
-                            ret = mDbAdapter.addJSON(eventJson);
-                        } else {
-                            mEventsList.add(eventJson);
-                            if (mEventsList.size() < mFlushSize && mDbAdapter.getAppStart()) return;
-                            ret = mDbAdapter.addJSON(mEventsList);
-                            if (ret >= 0) {
-                                mEventsList.clear();
-                            }
-                        }
-                        if (ret < 0) {
-                            String error = "Failed to enqueue the event: " + eventJson;
-                            if (isDebugMode) {
-                                throw new DebugModeException(error);
-                            } else {
-                                SALog.i(TAG, error);
-                            }
-                        }
-
-                        final Message m = Message.obtain();
-                        m.what = FLUSH_QUEUE;
-
-                        if (isDebugMode || ret == DbParams.DB_OUT_OF_MEMORY_ERROR) {
-                            mWorker.runMessage(m);
-                        } else {
-                            // track_signup 立即发送
-                            if (type.equals("track_signup") || ret > SensorsDataAPI.sharedInstance(mContext)
-                                    .getFlushBulkSize()) {
-                                mWorker.runMessage(m);
-                            } else {
-                                final int interval = SensorsDataAPI.sharedInstance(mContext).getFlushInterval();
-                                mWorker.runMessageOnce(m, interval);
-                            }
-                        }
-                    }
-                });
-            }
-        } catch (Exception e) {
-            SALog.i(TAG, "enqueueEventMessage error:" + e);
-        }
-    }
-
-    void flush() {
-        syncData();
-        final Message m = Message.obtain();
-        m.what = FLUSH_QUEUE;
-
-        mWorker.runMessage(m);
-    }
-
-    void flush(long timeDelayMills) {
-        syncData();
-        final Message m = Message.obtain();
-        m.what = FLUSH_QUEUE;
-
-        mWorker.runMessageOnce(m, timeDelayMills);
-    }
-
-    void flushSync() {
-        TrackTaskManager.getInstance().addEventDBTask(new Runnable() {
-            @Override
-            public void run() {
-                syncData();
-                sendData();
-            }
-        });
-    }
-
-    private void syncData() {
-        try {
-            if (mEventsList.size() > 0) {
-                if (mDbAdapter.addJSON(mEventsList) >= 0) {
-                    mEventsList.clear();
-                }
-            }
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
-    }
-
-    void deleteAll() {
-        final Message m = Message.obtain();
-        m.what = DELETE_ALL;
-
-        mWorker.runMessage(m);
     }
 
     private static byte[] slurp(final InputStream inputStream)
@@ -212,7 +115,63 @@ class AnalyticsMessages {
         return buffer.toByteArray();
     }
 
-    void sendData() {
+    void enqueueEventMessage(final String type, final JSONObject eventJson) {
+        try {
+            synchronized (mDbAdapter) {
+                int ret = mDbAdapter.addJSON(eventJson);
+                if (ret < 0) {
+                    String error = "Failed to enqueue the event: " + eventJson;
+                    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+                        throw new DebugModeException(error);
+                    } else {
+                        SALog.i(TAG, error);
+                    }
+                }
+
+                final Message m = Message.obtain();
+                m.what = FLUSH_QUEUE;
+
+                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() || ret ==
+                        DbParams.DB_OUT_OF_MEMORY_ERROR) {
+                    mWorker.runMessage(m);
+                } else {
+                    // track_signup 立即发送
+                    if (type.equals("track_signup") || ret > SensorsDataAPI.sharedInstance(mContext)
+                            .getFlushBulkSize()) {
+                        mWorker.runMessage(m);
+                    } else {
+                        final int interval = SensorsDataAPI.sharedInstance(mContext).getFlushInterval();
+                        mWorker.runMessageOnce(m, interval);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            SALog.i(TAG, "enqueueEventMessage error:" + e);
+        }
+    }
+
+    void flush() {
+        final Message m = Message.obtain();
+        m.what = FLUSH_QUEUE;
+
+        mWorker.runMessage(m);
+    }
+
+    void flush(long timeDelayMills) {
+        final Message m = Message.obtain();
+        m.what = FLUSH_QUEUE;
+
+        mWorker.runMessageOnce(m, timeDelayMills);
+    }
+
+    void deleteAll() {
+        final Message m = Message.obtain();
+        m.what = DELETE_ALL;
+
+        mWorker.runMessage(m);
+    }
+
+    private void sendData() {
         try {
             if (!SensorsDataAPI.sharedInstance(mContext).isNetworkRequestEnable()) {
                 SALog.i(TAG, "NetworkRequest 已关闭，不发送数据！");
@@ -247,7 +206,7 @@ class AnalyticsMessages {
             String[] eventsData;
             synchronized (mDbAdapter) {
                 if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
-                    /** debug 模式下服务器只允许接收 1 条数据 */
+                    /* debug 模式下服务器只允许接收 1 条数据 */
                     eventsData = mDbAdapter.generateDataString(DbParams.TABLE_EVENTS, 1);
                 } else {
                     eventsData = mDbAdapter.generateDataString(DbParams.TABLE_EVENTS, 50);
@@ -287,7 +246,7 @@ class AnalyticsMessages {
                         SALog.i(TAG, errorMessage);
                         if (isDebugMode && SensorsDataAPI.SHOW_DEBUG_INFO_VIEW) {
                             try {
-                                /**
+                                /*
                                  * 问题：https://www.jianshu.com/p/1445e330114b
                                  * 目前没有比较好的解决方案，暂时规避，只对开启 debug 模式下有影响
                                  */
@@ -463,6 +422,9 @@ class AnalyticsMessages {
     // XXX: Worker class is unnecessary, should be just a subclass of HandlerThread
     private class Worker {
 
+        private final Object mHandlerLock = new Object();
+        private Handler mHandler;
+
         Worker() {
             final HandlerThread thread =
                     new HandlerThread("com.sensorsdata.analytics.android.sdk.AnalyticsMessages.Worker",
@@ -473,8 +435,8 @@ class AnalyticsMessages {
 
         void runMessage(Message msg) {
             synchronized (mHandlerLock) {
+                // We died under suspicious circumstances. Don't try to send any more events.
                 if (mHandler == null) {
-                    // We died under suspicious circumstances. Don't try to send any more events.
                     SALog.i(TAG, "Dead worker dropping a message: " + msg.what);
                 } else {
                     mHandler.sendMessage(msg);
@@ -484,8 +446,8 @@ class AnalyticsMessages {
 
         void runMessageOnce(Message msg, long delay) {
             synchronized (mHandlerLock) {
+                // We died under suspicious circumstances. Don't try to send any more events.
                 if (mHandler == null) {
-                    // We died under suspicious circumstances. Don't try to send any more events.
                     SALog.i(TAG, "Dead worker dropping a message: " + msg.what);
                 } else {
                     if (!mHandler.hasMessages(msg.what)) {
@@ -520,24 +482,5 @@ class AnalyticsMessages {
                 }
             }
         }
-
-        private final Object mHandlerLock = new Object();
-        private Handler mHandler;
     }
-
-    // Used across thread boundaries
-    private final Worker mWorker;
-    private final Context mContext;
-    private final DbAdapter mDbAdapter;
-    private List<JSONObject> mEventsList = new CopyOnWriteArrayList<>();
-    private static int mFlushSize;
-    // Messages for our thread
-    private static final int FLUSH_QUEUE = 3;
-    private static final int DELETE_ALL = 4;
-
-    private static final String TAG = "SA.AnalyticsMessages";
-
-    private static final Map<Context, AnalyticsMessages> sInstances =
-            new HashMap<>();
-
 }

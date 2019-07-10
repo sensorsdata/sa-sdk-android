@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import java.lang.annotation.ElementType;
@@ -26,5 +26,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface SensorsDataTrackEvent {
     String eventName() default "";
+
     String properties() default "{}";
 }

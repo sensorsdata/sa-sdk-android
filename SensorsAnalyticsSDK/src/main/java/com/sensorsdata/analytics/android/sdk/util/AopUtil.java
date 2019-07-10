@@ -56,19 +56,31 @@ import java.util.Locale;
 
 public class AopUtil {
 
+    // 采集 viewType 忽略以下包内 view 直接返回对应的基础控件 viewType
+    private static ArrayList<String> sOSViewPackage = new ArrayList<String>() {{
+        add("android##widget");
+        add("android##support##v7##widget");
+        add("android##support##design##widget");
+        add("android##support##text##emoji##widget");
+        add("androidx##appcompat##widget");
+        add("androidx##emoji##widget");
+        add("androidx##cardview##widget");
+        add("com##google##android##material");
+    }};
+
     private static int getChildIndex(ViewParent parent, View child) {
         try {
             if (!(parent instanceof ViewGroup)) {
                 return -1;
             }
 
-            ViewGroup _parent = (ViewGroup) parent;
+            ViewGroup viewParent = (ViewGroup) parent;
             final String childIdName = AopUtil.getViewId(child);
 
             String childClassName = child.getClass().getCanonicalName();
             int index = 0;
-            for (int i = 0; i < _parent.getChildCount(); i++) {
-                View brother = _parent.getChildAt(i);
+            for (int i = 0; i < viewParent.getChildCount(); i++) {
+                View brother = viewParent.getChildAt(i);
 
                 if (!Pathfinder.hasClassName(brother, childClassName)) {
                     continue;
@@ -181,7 +193,7 @@ public class AopUtil {
             return stringBuilder.toString();
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-            return stringBuilder.toString();
+            return stringBuilder != null ? stringBuilder.toString() : "";
         }
     }
 
@@ -471,20 +483,74 @@ public class AopUtil {
         if (TextUtils.isEmpty(defaultTypeName)) {
             return viewName;
         }
-        try {
-            //将包名和类名按照 . 拆分
-            String[] lineNames = viewName.split("\\.");
-            if (lineNames.length > 0) {
-                if (TextUtils.equals(lineNames[lineNames.length - 1], defaultTypeName)) {
-                    return defaultTypeName;
-                } else {
-                    return viewName;
-                }
-            }
-        } catch (Exception e) {
-            //ignore
+
+        if (isOSViewByPackage(viewName)) {
+            return defaultTypeName;
         }
+
         return viewName;
+    }
+
+    /**
+     * 通过反射判断类的类型
+     *
+     * @param view 判断类型的 viewGroup
+     * @return viewType
+     */
+    public static String getViewGroupTypeByReflect(View view) {
+        Class<?> compatClass;
+        String viewType = view.getClass().getCanonicalName();
+        compatClass = getClassByName("android.support.v7.widget.CardView");
+        if (compatClass != null && compatClass.isInstance(view)) {
+            return getViewType(viewType, "CardView");
+        }
+        compatClass = getClassByName("androidx.cardview.widget.CardView");
+        if (compatClass != null && compatClass.isInstance(view)) {
+            return getViewType(viewType, "CardView");
+        }
+        compatClass = getClassByName("android.support.design.widget.NavigationView");
+        if (compatClass != null && compatClass.isInstance(view)) {
+            return getViewType(viewType, "NavigationView");
+        }
+        compatClass = getClassByName("com.google.android.material.navigation.NavigationView");
+        if (compatClass != null && compatClass.isInstance(view)) {
+            return getViewType(viewType, "NavigationView");
+        }
+        return viewType;
+    }
+
+    /**
+     * 通过反射判断类的类型
+     *
+     * @param view 判断类型的 view
+     * @return viewType
+     */
+    public static String getViewTypeByReflect(View view) {
+        Class<?> compatClass;
+        String viewType = view.getClass().getCanonicalName();
+        compatClass = getClassByName("android.widget.Switch");
+        if (compatClass != null && compatClass.isInstance(view)) {
+            return getViewType(viewType, "Switch");
+        }
+        compatClass = getClassByName("android.support.v7.widget.SwitchCompat");
+        if (compatClass != null && compatClass.isInstance(view)) {
+            return getViewType(viewType, "SwitchCompat");
+        }
+        compatClass = getClassByName("androidx.appcompat.widget.SwitchCompat");
+        if (compatClass != null && compatClass.isInstance(view)) {
+            return getViewType(viewType, "SwitchCompat");
+        }
+        return viewType;
+    }
+
+    private static Class<?> getClassByName(String name) {
+        Class<?> compatClass;
+        try {
+            compatClass = Class.forName(name);
+        } catch (ClassNotFoundException e) {
+            return null;
+        }
+        return compatClass;
     }
 
     /**
@@ -551,7 +617,7 @@ public class AopUtil {
      * @param activity Activity
      * @return Activity 的 title
      */
-    public static String getActivityTitle(Activity activity) {
+    private static String getActivityTitle(Activity activity) {
         try {
             if (activity != null) {
                 try {
@@ -571,10 +637,8 @@ public class AopUtil {
                         PackageManager packageManager = activity.getPackageManager();
                         if (packageManager != null) {
                             ActivityInfo activityInfo = packageManager.getActivityInfo(activity.getComponentName(), 0);
-                            if (activityInfo != null) {
-                                if (!TextUtils.isEmpty(activityInfo.loadLabel(packageManager))) {
-                                    activityTitle = activityInfo.loadLabel(packageManager).toString();
-                                }
+                            if (!TextUtils.isEmpty(activityInfo.loadLabel(packageManager))) {
+                                activityTitle = activityInfo.loadLabel(packageManager).toString();
                             }
                         }
                     }
@@ -612,5 +676,24 @@ public class AopUtil {
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
+    }
+
+    /**
+     * 判断是否是系统 view
+     *
+     * @param viewName view 的名称（包含包名）
+     * @return 是否是系统 view  true:是  false: 否
+     */
+    private static boolean isOSViewByPackage(String viewName) {
+        if (TextUtils.isEmpty(viewName)) {
+            return false;
+        }
+        String viewNameTemp = viewName.replace(".", "##");
+        for (String OSViewPackage : sOSViewPackage) {
+            if (viewNameTemp.startsWith(OSViewPackage)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -72,11 +72,6 @@ abstract class AbstractSAConfigOptions {
     long mMaxCacheSize;
 
     /**
-     * 数据内存缓存条数
-     */
-    int mFlushCacheSize;
-
-    /**
      * 点击图是否可用
      */
     boolean mHeatMapEnabled;
@@ -127,7 +122,7 @@ abstract class AbstractSAConfigOptions {
     int mNetworkTypePolicy = SensorsNetworkType.TYPE_3G | SensorsNetworkType.TYPE_4G | SensorsNetworkType.TYPE_WIFI | SensorsNetworkType.TYPE_5G;
 
     /**
-     * DistinctId
+     * AnonymousId，匿名 ID
      */
-    String mDistinctId;
+    String mAnonymousId;
 }

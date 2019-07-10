@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import android.view.View;
@@ -23,6 +23,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 class Caller {
+
+    private static final String TAG = "SA.Caller";
+    private final String mMethodName;
+    private final Object[] mMethodArgs;
+    private final Class<?> mMethodResultType;
+    private final Class<?> mTargetClass;
+    private final Method mTargetMethod;
 
     public Caller(Class<?> targetClass, String methodName, Object[] methodArgs, Class<?> resultType)
             throws NoSuchMethodException {
@@ -41,6 +48,34 @@ class Caller {
         }
 
         mTargetClass = mTargetMethod.getDeclaringClass();
+    }
+
+    private static Class<?> assignableArgType(Class<?> type) {
+        // a.isAssignableFrom(b) only tests if b is a
+        // subclass of a. It does not handle the autoboxing case,
+        // i.e. when a is an int and b is an Integer, so we have
+        // to make the Object types primitive types. When the
+        // function is finally invoked, autoboxing will take
+        // care of the the cast.
+        if (type == Byte.class) {
+            type = byte.class;
+        } else if (type == Short.class) {
+            type = short.class;
+        } else if (type == Integer.class) {
+            type = int.class;
+        } else if (type == Long.class) {
+            type = long.class;
+        } else if (type == Float.class) {
+            type = float.class;
+        } else if (type == Double.class) {
+            type = double.class;
+        } else if (type == Boolean.class) {
+            type = boolean.class;
+        } else if (type == Character.class) {
+            type = char.class;
+        }
+
+        return type;
     }
 
     @Override
@@ -104,34 +139,6 @@ class Caller {
         return true;
     }
 
-    private static Class<?> assignableArgType(Class<?> type) {
-        // a.isAssignableFrom(b) only tests if b is a
-        // subclass of a. It does not handle the autoboxing case,
-        // i.e. when a is an int and b is an Integer, so we have
-        // to make the Object types primitive types. When the
-        // function is finally invoked, autoboxing will take
-        // care of the the cast.
-        if (type == Byte.class) {
-            type = byte.class;
-        } else if (type == Short.class) {
-            type = short.class;
-        } else if (type == Integer.class) {
-            type = int.class;
-        } else if (type == Long.class) {
-            type = long.class;
-        } else if (type == Float.class) {
-            type = float.class;
-        } else if (type == Double.class) {
-            type = double.class;
-        } else if (type == Boolean.class) {
-            type = boolean.class;
-        } else if (type == Character.class) {
-            type = char.class;
-        }
-
-        return type;
-    }
-
     private Method pickMethod(Class<?> klass) {
         final Class<?>[] argumentTypes = new Class[mMethodArgs.length];
         for (int i = 0; i < mMethodArgs.length; i++) {
@@ -168,12 +175,4 @@ class Caller {
 
         return null;
     }
-
-    private final String mMethodName;
-    private final Object[] mMethodArgs;
-    private final Class<?> mMethodResultType;
-    private final Class<?> mTargetClass;
-    private final Method mTargetMethod;
-
-    private static final String TAG = "SA.Caller";
 }

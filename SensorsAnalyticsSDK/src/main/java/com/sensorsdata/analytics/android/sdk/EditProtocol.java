@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import org.json.JSONArray;
@@ -26,17 +26,9 @@ import java.util.List;
 
 public class EditProtocol {
 
-    public static class BadInstructionsException extends Exception {
-        private static final long serialVersionUID = -4062004792184145311L;
-
-        public BadInstructionsException(String message) {
-            super(message);
-        }
-
-        public BadInstructionsException(String message, Throwable e) {
-            super(message, e);
-        }
-    }
+    private static final Class<?>[] NO_PARAMS = new Class[0];
+    private static final String TAG = "SA.EProtocol";
+    private final ResourceIds mResourceIds;
 
     public EditProtocol(ResourceIds resourceIds) {
         mResourceIds = resourceIds;
@@ -102,9 +94,15 @@ public class EditProtocol {
         }
     }
 
-    private final ResourceIds mResourceIds;
+    public static class BadInstructionsException extends Exception {
+        private static final long serialVersionUID = -4062004792184145311L;
 
-    private static final Class<?>[] NO_PARAMS = new Class[0];
+        public BadInstructionsException(String message) {
+            super(message);
+        }
 
-    private static final String TAG = "SA.EProtocol";
+        public BadInstructionsException(String message, Throwable e) {
+            super(message, e);
+        }
+    }
 } // EditProtocol

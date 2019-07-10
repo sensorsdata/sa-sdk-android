@@ -61,6 +61,13 @@ public interface ISensorsDataAPI {
     long getMaxCacheSize();
 
     /**
+     * 设置本地缓存上限值，单位 byte，默认为 32MB：32 * 1024 * 1024
+     *
+     * @param maxCacheSize 单位 byte
+     */
+    void setMaxCacheSize(long maxCacheSize);
+
+    /**
      * 返回档期是否是开启 debug 模式
      *
      * @return true：是，false：不是
@@ -82,13 +89,6 @@ public interface ISensorsDataAPI {
     void enableNetworkRequest(boolean isRequest);
 
     /**
-     * 设置本地缓存上限值，单位 byte，默认为 32MB：32 * 1024 * 1024
-     *
-     * @param maxCacheSize 单位 byte
-     */
-    void setMaxCacheSize(long maxCacheSize);
-
-    /**
      * 设置 flush 时网络发送策略，默认 3G、4G、WI-FI 环境下都会尝试 flush
      *
      * @param networkType int 网络类型
@@ -97,14 +97,14 @@ public interface ISensorsDataAPI {
 
     /**
      * 两次数据发送的最小时间间隔，单位毫秒
-     * 默认值为15 * 1000毫秒
-     * 在每次调用track、signUp以及profileSet等接口的时候，都会检查如下条件，以判断是否向服务器上传数据:
-     * 1. 是否是WIFI/3G/4G网络条件
+     * 默认值为 15 * 1000 毫秒
+     * 在每次调用 track、signUp 以及 profileSet 等接口的时候，都会检查如下条件，以判断是否向服务器上传数据:
+     * 1. 是否是 WIFI/3G/4G 网络条件
      * 2. 是否满足发送条件之一:
      * 1) 与上次发送的时间间隔是否大于 flushInterval
      * 2) 本地缓存日志数目是否大于 flushBulkSize
      * 如果满足这两个条件，则向服务器发送一次数据；如果不满足，则把数据加入到队列中，等待下次检查时把整个队列的内
-     * 容一并发送。需要注意的是，为了避免占用过多存储，队列最多只缓存20MB数据。
+     * 容一并发送。需要注意的是，为了避免占用过多存储，队列最多只缓存 20MB 数据。
      *
      * @return 返回时间间隔，单位毫秒
      */
@@ -119,8 +119,16 @@ public interface ISensorsDataAPI {
 
     /**
      * 返回本地缓存日志的最大条目数
+     * 默认值为 100 条
+     * 在每次调用 track、signUp 以及 profileSet 等接口的时候，都会检查如下条件，以判断是否向服务器上传数据:
+     * 1. 是否是 WIFI/3G/4G 网络条件
+     * 2. 是否满足发送条件之一:
+     * 1) 与上次发送的时间间隔是否大于 flushInterval
+     * 2) 本地缓存日志数目是否大于 flushBulkSize
+     * 如果满足这两个条件，则向服务器发送一次数据；如果不满足，则把数据加入到队列中，等待下次检查时把整个队列的内
+     * 容一并发送。需要注意的是，为了避免占用过多存储，队列最多只缓存 32MB 数据。
      *
-     * @return 条数
+     * @return 返回本地缓存日志的最大条目数
      */
     int getFlushBulkSize();
 
@@ -136,18 +144,18 @@ public interface ISensorsDataAPI {
      * 默认值为 30*1000 毫秒
      * 若 App 在后台超过设定事件，则认为当前 Session 结束，发送 $AppEnd 事件
      *
-     * @param sessionIntervalTime int
+     * @return 返回设置的 SessionIntervalTime ，默认是 30s
      */
-    void setSessionIntervalTime(int sessionIntervalTime);
+    int getSessionIntervalTime();
 
     /**
      * 设置 App 切换到后台与下次事件的事件间隔
      * 默认值为 30*1000 毫秒
      * 若 App 在后台超过设定事件，则认为当前 Session 结束，发送 $AppEnd 事件
      *
-     * @return 返回设置的 SessionIntervalTime ，默认是 30s
+     * @param sessionIntervalTime int
      */
-    int getSessionIntervalTime();
+    void setSessionIntervalTime(int sessionIntervalTime);
 
     /**
      * 打开 SDK 自动追踪
@@ -196,18 +204,16 @@ public interface ISensorsDataAPI {
     boolean isAutoTrackEnabled();
 
     /**
-     * 是否开启了支持 Butterknife
-     *
-     * @return true：支持，false：不支持
-     */
-    boolean isButterknifeOnClickEnabled();
-
-    /**
      * 是否开启自动追踪 Fragment 的 $AppViewScreen 事件
      * 默认不开启
      */
     void trackFragmentAppViewScreen();
 
+    /**
+     * 是否开启 Fragment 页面浏览
+     *
+     * @return true：开启，false：关闭
+     */
     boolean isTrackFragmentAppViewScreenEnabled();
 
     /**
@@ -215,30 +221,53 @@ public interface ISensorsDataAPI {
      */
     void enableReactNativeAutoTrack();
 
+    /**
+     * 是否开启 React Native 采集
+     *
+     * @return true：开启，false：关闭
+     */
     boolean isReactNativeAutoTrackEnabled();
 
     /**
-     * 向WebView注入本地方法, 将distinctId传递给当前的WebView
+     * 向 WebView 注入本地方法, 将 distinctId 传递给当前的 WebView
      *
-     * @param webView 当前WebView
-     * @param isSupportJellyBean 是否支持API level 16及以下的版本。
-     * 因为API level 16及以下的版本, addJavascriptInterface有安全漏洞,请谨慎使用
+     * @param webView 当前 WebView
+     * @param isSupportJellyBean 是否支持 API level 16 及以下的版本。
+     * 因为 API level 16 及以下的版本, addJavascriptInterface 有安全漏洞,请谨慎使用
      */
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     void showUpWebView(WebView webView, boolean isSupportJellyBean);
 
+    /**
+     * 向 WebView 注入本地方法, 将 distinctId 传递给当前的 WebView
+     *
+     * @param webView 当前 WebView
+     * @param isSupportJellyBean 是否支持 API level 16 及以下的版本。
+     * @param enableVerify 是否开启认证
+     * 因为 API level 16 及以下的版本, addJavascriptInterface 有安全漏洞,请谨慎使用
+     */
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     void showUpWebView(WebView webView, boolean isSupportJellyBean, boolean enableVerify);
 
+    /**
+     * 向 WebView 注入本地方法, 将 distinctId 传递给当前的 WebView
+     *
+     * @param webView 当前 WebView
+     * @param properties 属性
+     * @param isSupportJellyBean 是否支持 API level 16 及以下的版本。
+     * @param enableVerify 是否开启认证
+     * 因为 API level 16 及以下的版本, addJavascriptInterface 有安全漏洞,请谨慎使用。
+     * 此方法谨慎修改，插件配置 disableJsInterface 会修改此方法。
+     */
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     void showUpWebView(WebView webView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify);
 
     /**
-     * 向WebView注入本地方法, 将distinctId传递给当前的WebView
+     * 向 WebView 注入本地方法, 将 distinctId 传递给当前的 WebView
      *
-     * @param webView 当前WebView
-     * @param isSupportJellyBean 是否支持API level 16及以下的版本。
-     * 因为API level 16及以下的版本, addJavascriptInterface有安全漏洞,请谨慎使用
+     * @param webView 当前 WebView
+     * @param isSupportJellyBean 是否支持 API level 16 及以下的版本。
+     * 因为 API level 16 及以下的版本, addJavascriptInterface 有安全漏洞,请谨慎使用
      * @param properties 用户自定义属性
      */
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
@@ -251,10 +280,10 @@ public interface ISensorsDataAPI {
     void showUpX5WebView(Object x5WebView);
 
     /**
-     * 指定哪些 activity 不被AutoTrack
-     * 指定activity的格式为：activity.getClass().getCanonicalName()
+     * 指定哪些 activity 不被 AutoTrack
+     * 指定 activity 的格式为：activity.getClass().getCanonicalName()
      *
-     * @param activitiesList activity列表
+     * @param activitiesList activity 列表
      */
     void ignoreAutoTrackActivities(List<Class<?>> activitiesList);
 
@@ -359,33 +388,33 @@ public interface ISensorsDataAPI {
     boolean isAutoTrackEventTypeIgnored(int autoTrackEventType);
 
     /**
-     * 设置界面元素ID
+     * 设置界面元素 ID
      *
-     * @param view 要设置的View
-     * @param viewID String 给这个View的ID
+     * @param view 要设置的 View
+     * @param viewID String 给这个 View 的 ID
      */
     void setViewID(View view, String viewID);
 
     /**
-     * 设置界面元素ID
+     * 设置界面元素 ID
      *
-     * @param view 要设置的View
-     * @param viewID String 给这个View的ID
+     * @param view 要设置的 View
+     * @param viewID String 给这个 View 的 ID
      */
     void setViewID(android.app.Dialog view, String viewID);
 
     /**
-     * 设置界面元素ID
+     * 设置界面元素 ID
      *
-     * @param view 要设置的View
-     * @param viewID String 给这个View的ID
+     * @param view 要设置的 View
+     * @param viewID String 给这个 View 的 ID
      */
     void setViewID(Object view, String viewID);
 
     /**
      * 设置 View 所属 Activity
      *
-     * @param view 要设置的View
+     * @param view 要设置的 View
      * @param activity Activity View 所属 Activity
      */
     void setViewActivity(View view, Activity activity);
@@ -393,15 +422,15 @@ public interface ISensorsDataAPI {
     /**
      * 设置 View 所属 Fragment 名称
      *
-     * @param view 要设置的View
+     * @param view 要设置的 View
      * @param fragmentName String View 所属 Fragment 名称
      */
     void setViewFragmentName(View view, String fragmentName);
 
     /**
-     * 忽略View
+     * 忽略 View
      *
-     * @param view 要忽略的View
+     * @param view 要忽略的 View
      */
     void ignoreView(View view);
 
@@ -416,11 +445,16 @@ public interface ISensorsDataAPI {
     /**
      * 设置View属性
      *
-     * @param view 要设置的View
-     * @param properties 要设置的View的属性
+     * @param view 要设置的 View
+     * @param properties 要设置的 View 的属性
      */
     void setViewProperties(View view, JSONObject properties);
 
+    /**
+     * 获取忽略采集 View 的集合
+     *
+     * @return 忽略采集的 View 集合
+     */
     List<Class> getIgnoredViewTypeList();
 
     /**
@@ -542,32 +576,32 @@ public interface ISensorsDataAPI {
 
     /**
      * 获取当前用户的 loginId
-     * 若调用前未调用 {@link #login(String)} 设置用户的 loginId，会返回null
+     * 若调用前未调用 {@link #login(String)} 设置用户的 loginId，会返回 null
      *
      * @return 当前用户的 loginId
      */
     String getLoginId();
 
     /**
-     * 设置当前用户的distinctId。一般情况下，如果是一个注册用户，则应该使用注册系统内
-     * 的user_id，如果是个未注册用户，则可以选择一个不会重复的匿名ID，如设备ID等，如果
-     * 客户没有调用identify，则使用SDK自动生成的匿名ID
+     * 设置当前用户的 distinctId。一般情况下，如果是一个注册用户，则应该使用注册系统内
+     * 的 user_id，如果是个未注册用户，则可以选择一个不会重复的匿名 ID，如设备 ID 等，如果
+     * 客户没有调用 identify，则使用SDK自动生成的匿名 ID
      *
-     * @param distinctId 当前用户的distinctId，仅接受数字、下划线和大小写字母
+     * @param distinctId 当前用户的 distinctId，仅接受数字、下划线和大小写字母
      */
     void identify(String distinctId);
 
     /**
      * 登录，设置当前用户的 loginId
      *
-     * @param loginId 当前用户的 loginId，不能为空，且长度不能大于255
+     * @param loginId 当前用户的 loginId，不能为空，且长度不能大于 255
      */
     void login(String loginId);
 
     /**
      * 登录，设置当前用户的 loginId
      *
-     * @param loginId 当前用户的 loginId，不能为空，且长度不能大于255
+     * @param loginId 当前用户的 loginId，不能为空，且长度不能大于 255
      * @param properties 用户登录属性
      */
     void login(final String loginId, final JSONObject properties);
@@ -584,7 +618,7 @@ public interface ISensorsDataAPI {
      * 并在必要时联系我们的技术支持人员。
      * 该方法已不推荐使用，可以具体参考 {@link #login(String)} 方法
      *
-     * @param newDistinctId 用户完成注册后生成的注册ID
+     * @param newDistinctId 用户完成注册后生成的注册 ID
      * @param properties 事件的属性
      */
     @Deprecated
@@ -630,7 +664,7 @@ public interface ISensorsDataAPI {
     void trackInstallation(String eventName);
 
     /**
-     * 调用track接口，追踪一个带有属性的事件
+     * 调用 track 接口，追踪一个带有属性的事件
      *
      * @param eventName 事件的名称
      * @param properties 事件的属性
@@ -727,7 +761,7 @@ public interface ISensorsDataAPI {
     void clearTrackTimer();
 
     /**
-     * 获取LastScreenUrl
+     * 获取 LastScreenUrl
      *
      * @return String
      */
@@ -738,12 +772,15 @@ public interface ISensorsDataAPI {
      */
     void clearReferrerWhenAppEnd();
 
+    /**
+     * 清除 LastScreenUrl
+     */
     void clearLastScreenUrl();
 
     String getMainProcessName();
 
     /**
-     * 获取LastScreenTrackProperties
+     * 获取 LastScreenTrackProperties
      *
      * @return JSONObject
      */
@@ -764,6 +801,11 @@ public interface ISensorsDataAPI {
      */
     void trackViewScreen(Activity activity);
 
+    /**
+     * Track  Fragment 进入页面事件 ($AppViewScreen)
+     *
+     * @param fragment Fragment
+     */
     void trackViewScreen(Object fragment);
 
     /**
@@ -793,7 +835,7 @@ public interface ISensorsDataAPI {
     /**
      * 获取事件公共属性
      *
-     * @return 当前所有Super属性
+     * @return 当前所有 Super 属性
      */
     JSONObject getSuperProperties();
 
@@ -817,7 +859,7 @@ public interface ISensorsDataAPI {
     void clearSuperProperties();
 
     /**
-     * 设置用户的一个或多个Profile。
+     * 设置用户的一个或多个 Profile。
      * Profile如果存在，则覆盖；否则，新创建。
      *
      * @param properties 属性列表
@@ -825,7 +867,7 @@ public interface ISensorsDataAPI {
     void profileSet(JSONObject properties);
 
     /**
-     * 设置用户的一个Profile，如果之前存在，则覆盖，否则，新创建
+     * 设置用户的一个 Profile，如果之前存在，则覆盖，否则，新创建
      *
      * @param property 属性名称
      * @param value 属性的值，值的类型只允许为
@@ -834,7 +876,7 @@ public interface ISensorsDataAPI {
     void profileSet(String property, Object value);
 
     /**
-     * 首次设置用户的一个或多个Profile。
+     * 首次设置用户的一个或多个 Profile。
      * 与profileSet接口不同的是，如果之前存在，则忽略，否则，新创建
      *
      * @param properties 属性列表
@@ -842,7 +884,7 @@ public interface ISensorsDataAPI {
     void profileSetOnce(JSONObject properties);
 
     /**
-     * 首次设置用户的一个Profile
+     * 首次设置用户的一个 Profile
      * 与profileSet接口不同的是，如果之前存在，则忽略，否则，新创建
      *
      * @param property 属性名称
@@ -852,16 +894,16 @@ public interface ISensorsDataAPI {
     void profileSetOnce(String property, Object value);
 
     /**
-     * 给一个或多个数值类型的Profile增加一个数值。只能对数值型属性进行操作，若该属性
-     * 未设置，则添加属性并设置默认值为0
+     * 给一个或多个数值类型的 Profile 增加一个数值。只能对数值型属性进行操作，若该属性
+     * 未设置，则添加属性并设置默认值为 0
      *
      * @param properties 一个或多个属性集合
      */
     void profileIncrement(Map<String, ? extends Number> properties);
 
     /**
-     * 给一个数值类型的Profile增加一个数值。只能对数值型属性进行操作，若该属性
-     * 未设置，则添加属性并设置默认值为0
+     * 给一个数值类型的 Profile 增加一个数值。只能对数值型属性进行操作，若该属性
+     * 未设置，则添加属性并设置默认值为 0
      *
      * @param property 属性名称
      * @param value 属性的值，值的类型只允许为 {@link Number}
@@ -869,7 +911,7 @@ public interface ISensorsDataAPI {
     void profileIncrement(String property, Number value);
 
     /**
-     * 给一个列表类型的Profile增加一个元素
+     * 给一个列表类型的 Profile 增加一个元素
      *
      * @param property 属性名称
      * @param value 新增的元素
@@ -877,7 +919,7 @@ public interface ISensorsDataAPI {
     void profileAppend(String property, String value);
 
     /**
-     * 给一个列表类型的Profile增加一个或多个元素
+     * 给一个列表类型的 Profile 增加一个或多个元素
      *
      * @param property 属性名称
      * @param values 新增的元素集合
@@ -885,19 +927,30 @@ public interface ISensorsDataAPI {
     void profileAppend(String property, Set<String> values);
 
     /**
-     * 删除用户的一个Profile
+     * 删除用户的一个 Profile
      *
      * @param property 属性名称
      */
     void profileUnset(String property);
 
     /**
-     * 删除用户所有Profile
+     * 删除用户所有 Profile
      */
     void profileDelete();
 
+    /**
+     * 采集 H5 页面
+     *
+     * @param eventInfo，事件信息
+     * @param enableVerify，是否验证
+     */
     void trackEventFromH5(String eventInfo, boolean enableVerify);
 
+    /**
+     * 采集 H5 页面
+     *
+     * @param eventInfo，事件信息
+     */
     void trackEventFromH5(String eventInfo);
 
     /**

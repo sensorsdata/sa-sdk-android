@@ -45,7 +45,10 @@ class WidgetTestActivity : BaseActivity(), CompoundButton.OnCheckedChangeListene
 
         checkbox1.setOnCheckedChangeListener(this)
         checkbox2.setOnCheckedChangeListener(this)
+        checkbox3.setOnClickListener {  }
+        radio1.setOnCheckedChangeListener(this)
         radio2.setOnCheckedChangeListener(this)
+        radio3.setOnClickListener {  }
         radioGroup.setOnCheckedChangeListener(this)
         compatRatingBar.onRatingBarChangeListener = this
         ratingBar.onRatingBarChangeListener = this
@@ -58,6 +61,17 @@ class WidgetTestActivity : BaseActivity(), CompoundButton.OnCheckedChangeListene
         switch1.setOnCheckedChangeListener(this)
         switchCompat.setOnCheckedChangeListener(this)
         toggleButton.setOnCheckedChangeListener(this)
+        mycardview.setOnClickListener{
+
+        }
+        cardview.setOnClickListener{
+
+        }
+        material_cardview.setOnClickListener{
+
+        }
+        linearlayout.setOnClickListener {  }
+        mylinearlayout.setOnClickListener {  }
     }
 
     @SensorsDataTrackViewOnClick

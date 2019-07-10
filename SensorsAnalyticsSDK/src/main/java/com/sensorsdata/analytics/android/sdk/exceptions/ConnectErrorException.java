@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk.exceptions;
 
 /**
  * 网络连接错误
  */
 public class ConnectErrorException extends Exception {
+
+    private int mRetryAfter;
 
     public ConnectErrorException(String message) {
         super(message);
@@ -43,7 +45,5 @@ public class ConnectErrorException extends Exception {
     public int getRetryAfter() {
         return mRetryAfter;
     }
-
-    private int mRetryAfter;
 
 }

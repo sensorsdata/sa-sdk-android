@@ -33,12 +33,12 @@ public class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHand
     private static SensorsDataExceptionHandler sInstance;
     private final Thread.UncaughtExceptionHandler mDefaultExceptionHandler;
 
-    SensorsDataExceptionHandler() {
+    private SensorsDataExceptionHandler() {
         mDefaultExceptionHandler = Thread.getDefaultUncaughtExceptionHandler();
         Thread.setDefaultUncaughtExceptionHandler(this);
     }
 
-    public synchronized static void init() {
+    synchronized static void init() {
         if (sInstance == null) {
             sInstance = new SensorsDataExceptionHandler();
         }

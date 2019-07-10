@@ -16,20 +16,20 @@
         app:justifyContent="flex_start"
         app:showDivider="beginning|middle|end">
 
-        <ImageButton
+        <androidx.appcompat.widget.AppCompatImageButton
             android:id="@+id/imageButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@mipmap/ic_launcher" />
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/setOnClickBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="setonclicklistener"
+            android:text="setOnClickListener"
             android:textAllCaps="false" />
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/xmOnClickBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -38,7 +38,7 @@
             android:textAllCaps="false" />
 
 
-        <ImageView
+        <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/imageViewClick"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -47,7 +47,7 @@
             android:src="@mipmap/ic_launcher" />
 
 
-        <TextView
+        <androidx.appcompat.widget.AppCompatTextView
             android:id="@+id/textViewClick"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -57,7 +57,7 @@
 
         <include layout="@layout/line" />
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/changeCheckedBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -66,7 +66,7 @@
             android:textAllCaps="false"
             app:layout_wrapBefore="true" />
 
-        <CheckBox
+        <androidx.appcompat.widget.AppCompatCheckBox
             android:id="@+id/checkbox1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -74,13 +74,19 @@
             android:text="checkbox1"
             app:layout_wrapBefore="true" />
 
-        <CheckBox
+        <androidx.appcompat.widget.AppCompatCheckBox
             android:id="@+id/checkbox2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="checkbox2" />
+            android:text="Androidx_checkbox" />
 
-        <CheckedTextView
+        <com.sensorsdata.analytics.android.demo.MyCheckBox
+            android:id="@+id/checkbox3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="extend_Androidx_checkbox" />
+
+        <androidx.appcompat.widget.AppCompatCheckedTextView
             android:id="@+id/checkedTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -92,7 +98,7 @@
         <include layout="@layout/line" />
 
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/changeRadioBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -107,7 +113,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
-            <RadioButton
+            <androidx.appcompat.widget.AppCompatRadioButton
                 android:id="@+id/radio1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -115,24 +121,24 @@
                 android:gravity="center"
                 android:text="Radio1" />
 
-            <RadioButton
+            <androidx.appcompat.widget.AppCompatRadioButton
                 android:id="@+id/radio2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:text="Radio2" />
+                android:text="androidx_radio2" />
 
-            <RadioButton
+            <com.sensorsdata.analytics.android.demo.MyRadioButton
                 android:id="@+id/radio3"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:text="Radio3" />
+                android:text="extend_androidx_radio3" />
         </RadioGroup>
 
         <include layout="@layout/line" />
 
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/changeRatingBar"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -148,7 +154,7 @@
             android:numStars="6"
             android:rating="2.5" />
 
-        <RatingBar
+        <androidx.appcompat.widget.AppCompatRatingBar
             android:id="@+id/ratingBar"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -241,6 +247,73 @@
             android:textOff="open"
             android:textOn="close"
             app:layout_wrapBefore="true" />
+
+        <include layout="@layout/line" />
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardview"
+            android:layout_width="wrap_content"
+            android:layout_height="50dip">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="CardView" />
+        </androidx.cardview.widget.CardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/material_cardview"
+            android:layout_width="wrap_content"
+            android:layout_height="50dip">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="MaterialCardView" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.sensorsdata.analytics.android.demo.MyCardView
+            android:id="@+id/mycardview"
+            android:layout_width="wrap_content"
+            android:layout_height="50dip">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="MyCardView" />
+        </com.sensorsdata.analytics.android.demo.MyCardView>
+
+        <include layout="@layout/line" />
+
+        <LinearLayout
+            android:id="@+id/linearlayout"
+            android:layout_width="wrap_content"
+            android:layout_height="50dip"
+            android:background="@color/colorAccent">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="LinearLayout" />
+        </LinearLayout>
+
+        <com.sensorsdata.analytics.android.demo.MyLinearLayout
+            android:id="@+id/mylinearlayout"
+            android:layout_width="wrap_content"
+            android:layout_height="50dip"
+            android:background="@color/colorPrimary">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="MyLinearLayout" />
+
+        </com.sensorsdata.analytics.android.demo.MyLinearLayout >
 
     </com.google.android.flexbox.FlexboxLayout>
 

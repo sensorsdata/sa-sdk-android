@@ -20,15 +20,13 @@ package com.sensorsdata.analytics.android.sdk.data;
 import android.net.Uri;
 
 public class DbParams {
-    private static DbParams instance;
-    private final Uri mUri, mAppStartUri, mAppStartTimeUri, mAppPausedUri, mAppEndStateUri,
-            mAppEndDataUri, mSessionTimeUri, mLoginIdUri;
+    /* 数据库中的表名 */
+    public static final String TABLE_EVENTS = "events";
+    public static final int DB_OUT_OF_MEMORY_ERROR = -2;
     /* 数据库名称 */
     static final String DATABASE_NAME = "sensorsdata";
     /* 数据库版本号 */
     static final int DATABASE_VERSION = 4;
-    /* 数据库中的表名 */
-    public static final String TABLE_EVENTS = "events";
     static final String TABLE_APP_STARTED = "app_started";
     static final String TABLE_APP_START_TIME = "app_start_time";
     static final String TABLE_APP_PAUSED_TIME = "app_paused_time";
@@ -36,14 +34,25 @@ public class DbParams {
     static final String TABLE_APP_END_DATA = "app_end_data";
     static final String TABLE_SESSION_INTERVAL_TIME = "session_interval_time";
     static final String TABLE_LOGIN_ID = "events_login_id";
-
     /* Event 表字段 */
     static final String KEY_DATA = "data";
     static final String KEY_CREATED_AT = "created_at";
-
     /* 数据库状态 */
     static final int DB_UPDATE_ERROR = -1;
-    public static final int DB_OUT_OF_MEMORY_ERROR = -2;
+    private static DbParams instance;
+    private final Uri mUri, mAppStartUri, mAppStartTimeUri, mAppPausedUri, mAppEndStateUri,
+            mAppEndDataUri, mSessionTimeUri, mLoginIdUri;
+
+    private DbParams(String packageName) {
+        mUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_EVENTS);
+        mAppStartUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_STARTED);
+        mAppStartTimeUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_START_TIME);
+        mAppEndStateUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_END_STATE);
+        mAppEndDataUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_END_DATA);
+        mAppPausedUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_PAUSED_TIME);
+        mSessionTimeUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_SESSION_INTERVAL_TIME);
+        mLoginIdUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_LOGIN_ID);
+    }
 
     public static DbParams getInstance(String packageName) {
         if (instance == null) {
@@ -59,19 +68,9 @@ public class DbParams {
         return instance;
     }
 
-    private DbParams(String packageName) {
-        mUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_EVENTS);
-        mAppStartUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_STARTED);
-        mAppStartTimeUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_START_TIME);
-        mAppEndStateUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_END_STATE);
-        mAppEndDataUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_END_DATA);
-        mAppPausedUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_PAUSED_TIME);
-        mSessionTimeUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_SESSION_INTERVAL_TIME);
-        mLoginIdUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_LOGIN_ID);
-    }
-
     /**
      * 获取 Event Uri
+     *
      * @return Uri
      */
     Uri getEventUri() {
@@ -80,6 +79,7 @@ public class DbParams {
 
     /**
      * 获取 AppStart Uri
+     *
      * @return Uri
      */
     public Uri getAppStartUri() {
@@ -88,6 +88,7 @@ public class DbParams {
 
     /**
      * 获取 AppStartTime Uri
+     *
      * @return Uri
      */
     Uri getAppStartTimeUri() {
@@ -96,6 +97,7 @@ public class DbParams {
 
     /**
      * 获取 AppPausedTime Uri
+     *
      * @return uri
      */
     Uri getAppPausedUri() {
@@ -104,6 +106,7 @@ public class DbParams {
 
     /**
      * 获取 AppEndState Uri
+     *
      * @return Uri
      */
     Uri getAppEndStateUri() {
@@ -112,6 +115,7 @@ public class DbParams {
 
     /**
      * 获取 AppEndData Uri
+     *
      * @return Uri
      */
     Uri getAppEndDataUri() {
@@ -120,6 +124,7 @@ public class DbParams {
 
     /**
      * 获取 SessionTime Uri
+     *
      * @return Uri
      */
     public Uri getSessionTimeUri() {
@@ -128,6 +133,7 @@ public class DbParams {
 
     /**
      * 获取 LoginId 的 Uri
+     *
      * @return Uri
      */
     Uri getLoginIdUri() {

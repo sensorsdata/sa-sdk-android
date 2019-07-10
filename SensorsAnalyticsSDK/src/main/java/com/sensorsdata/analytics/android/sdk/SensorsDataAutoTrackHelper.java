@@ -835,7 +835,7 @@ public class SensorsDataAutoTrackHelper {
                             view = (View) field.get(tab);
                         }
 
-                        if (view.getId() != View.NO_ID) {
+                        if (view != null && view.getId() != View.NO_ID) {
                             String resourceId = activity.getResources().getResourceEntryName(view.getId());
                             if (!TextUtils.isEmpty(resourceId)) {
                                 properties.put(AopConstants.ELEMENT_ID, resourceId);
@@ -987,13 +987,18 @@ public class SensorsDataAutoTrackHelper {
                 SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
-            properties.put(AopConstants.ELEMENT_TYPE, "RadioButton");
+            View childView = view.findViewById(checkedId);
+            String viewType = "RadioButton";
+            if (childView != null) {
+                viewType = AopUtil.getViewType(childView.getClass().getCanonicalName(), "RadioButton");
+            }
+            properties.put(AopConstants.ELEMENT_TYPE, viewType);
 
             //获取变更后的选中项的ID
             int checkedRadioButtonId = view.getCheckedRadioButtonId();
             if (activity != null) {
                 try {
-                    RadioButton radioButton = (RadioButton) activity.findViewById(checkedRadioButtonId);
+                    RadioButton radioButton = activity.findViewById(checkedRadioButtonId);
                     if (radioButton != null) {
                         if (!TextUtils.isEmpty(radioButton.getText())) {
                             String viewText = radioButton.getText().toString();
@@ -1092,7 +1097,7 @@ public class SensorsDataAutoTrackHelper {
 
             Class<?> supportAlertDialogClass = null;
             Class<?> androidXAlertDialogClass = null;
-            Class<?> currentAlertDialogClass = null;
+            Class<?> currentAlertDialogClass;
             try {
                 supportAlertDialogClass = Class.forName("android.support.v7.app.AlertDialog");
             } catch (Exception e) {
@@ -1138,7 +1143,7 @@ public class SensorsDataAutoTrackHelper {
             } else if (currentAlertDialogClass.isInstance(dialog)) {
                 Button button = null;
                 try {
-                    Method getButtonMethod = dialog.getClass().getMethod("getButton", new Class[]{int.class});
+                    Method getButtonMethod = dialog.getClass().getMethod("getButton", int.class);
                     if (getButtonMethod != null) {
                         button = (Button) getButtonMethod.invoke(dialog, whichButton);
                     }
@@ -1382,35 +1387,6 @@ public class SensorsDataAutoTrackHelper {
             }
 
             String viewType = view.getClass().getCanonicalName();
-            Class<?> androidSwitchClass = null;
-            Class<?> supportSwitchCompatClass = null;
-            Class<?> androidXSwitchCompatClass = null;
-            Class<?> currentSwitchCompatClass = null;
-
-            try {
-                androidSwitchClass = Class.forName("android.widget.Switch");
-            } catch (Exception e) {
-                //ignore
-            }
-
-            try {
-                supportSwitchCompatClass = Class.forName("android.support.v7.widget.SwitchCompat");
-            } catch (Exception e) {
-                //ignored
-            }
-
-            try {
-                androidXSwitchCompatClass = Class.forName("androidx.appcompat.widget.SwitchCompat");
-            } catch (Exception e) {
-                //ignored
-            }
-
-            if (supportSwitchCompatClass != null) {
-                currentSwitchCompatClass = supportSwitchCompatClass;
-            } else {
-                currentSwitchCompatClass = androidXSwitchCompatClass;
-            }
-
             CharSequence viewText = null;
             if (view instanceof CheckBox) { // CheckBox
                 if (!view.isPressed()) {
@@ -1419,19 +1395,6 @@ public class SensorsDataAutoTrackHelper {
                 viewType = AopUtil.getViewType(viewType, "CheckBox");
                 CheckBox checkBox = (CheckBox) view;
                 viewText = checkBox.getText();
-
-            } else if (androidSwitchClass != null && androidSwitchClass.isInstance(view)) {
-                if (!view.isPressed()) {
-                    return;
-                }
-                viewType = AopUtil.getViewType(viewType, "Switch");
-                viewText = AopUtil.getCompoundButtonText(view);
-            } else if (currentSwitchCompatClass != null && currentSwitchCompatClass.isInstance(view)) {
-                if (!view.isPressed()) {
-                    return;
-                }
-                viewType = AopUtil.getViewType(viewType, "SwitchCompat");
-                viewText = AopUtil.getCompoundButtonText(view);
             } else if (view instanceof RadioButton) { // RadioButton
                 if (!view.isPressed()) {
                     return;
@@ -1444,6 +1407,12 @@ public class SensorsDataAutoTrackHelper {
                     return;
                 }
                 viewType = AopUtil.getViewType(viewType, "ToggleButton");
+                viewText = AopUtil.getCompoundButtonText(view);
+            } else if (view instanceof CompoundButton) {
+                if (!view.isPressed()) {
+                    return;
+                }
+                viewType  = AopUtil.getViewTypeByReflect(view);
                 viewText = AopUtil.getCompoundButtonText(view);
             } else if (view instanceof Button) { // Button
                 viewType = AopUtil.getViewType(viewType, "Button");
@@ -1486,6 +1455,7 @@ public class SensorsDataAutoTrackHelper {
                     SALog.printStackTrace(e);
                 }
             } else if (view instanceof ViewGroup) {
+                viewType = AopUtil.getViewGroupTypeByReflect(view);
                 viewText = view.getContentDescription();
                 if (TextUtils.isEmpty(viewText)) {
                     try {

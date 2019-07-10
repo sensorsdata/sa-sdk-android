@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 
@@ -23,6 +23,8 @@ package com.sensorsdata.analytics.android.sdk;
  **/
 public interface VTrack {
 
-    // 获取 VTrack 配置
+    /**
+     * 获取 VTrack 配置
+     */
     void startUpdates();
 }

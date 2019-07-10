@@ -33,6 +33,7 @@ public class NetworkUtils {
 
     /**
      * 获取网络类型
+     *
      * @param context Context
      * @return 网络类型
      */
@@ -103,6 +104,7 @@ public class NetworkUtils {
 
     /**
      * 是否有可用网络
+     *
      * @param context Context
      * @return true：网络可用，false：网络不可用
      */
@@ -139,11 +141,12 @@ public class NetworkUtils {
 
     /**
      * 判断指定网络类型是否可以上传数据
+     *
      * @param networkType 网络类型
      * @param flushNetworkPolicy 上传策略
      * @return true：可以上传，false：不可以上传
      */
-    public static boolean isShouldFlush(String networkType, int flushNetworkPolicy ) {
+    public static boolean isShouldFlush(String networkType, int flushNetworkPolicy) {
         return (toNetworkType(networkType) & flushNetworkPolicy) != 0;
     }
 

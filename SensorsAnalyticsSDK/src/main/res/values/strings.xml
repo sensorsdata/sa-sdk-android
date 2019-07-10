@@ -1,10 +1,10 @@
 <resources>
-    <item type="id" name="sensors_analytics_tag_view_value"/>
-    <item type="id" name="sensors_analytics_tag_view_id"/>
-    <item type="id" name="sensors_analytics_tag_view_ignored"/>
-    <item type="id" name="sensors_analytics_tag_view_properties"/>
-    <item type="id" name="sensors_analytics_tag_view_onclick_timestamp"/>
-    <item type="id" name="sensors_analytics_tag_view_fragment_name"/>
-    <item type="id" name="sensors_analytics_tag_view_fragment_name2"/>
-    <item type="id" name="sensors_analytics_tag_view_activity"/>
+    <item name="sensors_analytics_tag_view_value" type="id" />
+    <item name="sensors_analytics_tag_view_id" type="id" />
+    <item name="sensors_analytics_tag_view_ignored" type="id" />
+    <item name="sensors_analytics_tag_view_properties" type="id" />
+    <item name="sensors_analytics_tag_view_onclick_timestamp" type="id" />
+    <item name="sensors_analytics_tag_view_fragment_name" type="id" />
+    <item name="sensors_analytics_tag_view_fragment_name2" type="id" />
+    <item name="sensors_analytics_tag_view_activity" type="id" />
 </resources>

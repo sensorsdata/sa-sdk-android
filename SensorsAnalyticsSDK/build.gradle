@@ -3,16 +3,16 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 
-version = "3.1.5"
+version = "3.2.0"
 
 android {
-    compileSdkVersion 'android-Q'
+    compileSdkVersion 29
 
     resourcePrefix "sensors_analytics_"
 
     defaultConfig {
         minSdkVersion 9
-        targetSdkVersion 28
+        targetSdkVersion 29
         versionCode 1
         versionName "1.0"
         consumerProguardFiles 'proguard-rules.pro'

@@ -37,6 +37,7 @@ public class DbAdapter {
     private static DbAdapter instance;
     private final File mDatabaseFile;
     private final DbParams mDbParams;
+    private final Context mContext;
     /* Session 时长间隔 */
     private int mSessionTime = 30 * 1000, mSavedSessionTime = 0;
     /* AppPaused 的时间戳 */
@@ -46,8 +47,13 @@ public class DbAdapter {
     /* App 是否启动到 onResume */
     private boolean mAppStart = false;
     private ContentResolver contentResolver;
-    private final Context mContext;
 
+    private DbAdapter(Context context, String packageName) {
+        mContext = context.getApplicationContext();
+        contentResolver = mContext.getContentResolver();
+        mDatabaseFile = context.getDatabasePath(DbParams.DATABASE_NAME);
+        mDbParams = DbParams.getInstance(packageName);
+    }
 
     public static DbAdapter getInstance(Context context, String packageName) {
         if (instance == null) {
@@ -80,13 +86,6 @@ public class DbAdapter {
             ) < mDatabaseFile.length();
         }
         return false;
-    }
-
-    private DbAdapter(Context context, String packageName) {
-        mContext = context.getApplicationContext();
-        contentResolver = mContext.getContentResolver();
-        mDatabaseFile = context.getDatabasePath(DbParams.DATABASE_NAME);
-        mDbParams = DbParams.getInstance(packageName);
     }
 
     /**
@@ -221,17 +220,17 @@ public class DbAdapter {
                 if (c != null) {
                     c.close();
                 }
-            } finally {
-
+            } catch (Exception ex){
+                // ignore
             }
         }
         return count;
     }
 
     /**
-     * 保存 Activity 的状态
+     * 设置 Activity Start 的状态
      *
-     * @param appStart Activity 的状态
+     * @param appStart Activity Start 的状态
      */
     public void commitAppStart(boolean appStart) {
         ContentValues contentValues = new ContentValues();
@@ -241,18 +240,18 @@ public class DbAdapter {
     }
 
     /**
-     * 返回 Activity 的状态
+     * 获取 Activity Start 的状态
      *
-     * @return Activity 的状态
+     * @return Activity Start 的状态
      */
     public boolean getAppStart() {
         return mAppStart;
     }
 
     /**
-     * 保存 Activity 启动时间戳
+     * 设置 Activity Start 的时间戳
      *
-     * @param appStartTime Activity 启动时间戳
+     * @param appStartTime Activity Start 的时间戳
      */
     public void commitAppStartTime(long appStartTime) {
         ContentValues contentValues = new ContentValues();
@@ -261,9 +260,9 @@ public class DbAdapter {
     }
 
     /**
-     * 获取 Activity 启动时间
+     * 获取 Activity Start 的时间戳
      *
-     * @return Activity 启动时间戳
+     * @return Activity Start 的时间戳
      */
     public long getAppStartTime() {
         long startTime = 0;
@@ -282,9 +281,9 @@ public class DbAdapter {
     }
 
     /**
-     * 保存 Activity 暂停时间戳
+     * 设置 Activity Pause 的时间戳
      *
-     * @param appPausedTime Activity 暂停时间戳
+     * @param appPausedTime Activity Pause 的时间戳
      */
     public void commitAppPausedTime(long appPausedTime) {
         try {
@@ -298,9 +297,9 @@ public class DbAdapter {
     }
 
     /**
-     * 获取 Activity 暂停时间戳
+     * 获取 Activity Pause 的时间戳
      *
-     * @return Activity 暂停时间戳
+     * @return Activity Pause 的时间戳
      */
     public long getAppPausedTime() {
         if (System.currentTimeMillis() - mAppPausedTime > mSessionTime) {
@@ -324,12 +323,14 @@ public class DbAdapter {
     }
 
     /**
-     * 保存 $AppEnd 事件状态
+     * 设置 Activity End 的状态
      *
-     * @param appEndState $AppEnd 事件状态
+     * @param appEndState Activity End 的状态
      */
     public void commitAppEndState(boolean appEndState) {
-        if (appEndState == mAppEndState) return;
+        if (appEndState == mAppEndState) {
+            return;
+        }
         try {
             ContentValues contentValues = new ContentValues();
             contentValues.put(DbParams.TABLE_APP_END_STATE, appEndState);
@@ -342,9 +343,9 @@ public class DbAdapter {
     }
 
     /**
-     * 获取 $AppEnd 事件状态
+     * 获取 Activity End 的状态
      *
-     * @return $AppEnd 事件状态
+     * @return Activity End 的状态
      */
     public boolean getAppEndState() {
         Cursor cursor = null;
@@ -370,9 +371,9 @@ public class DbAdapter {
     }
 
     /**
-     * 获取 $AppEnd 事件数据
+     * 设置 Activity End 的信息
      *
-     * @param appEndData $AppEnd 事件数据
+     * @param appEndData Activity End 的信息
      */
     public void commitAppEndData(String appEndData) {
         ContentValues contentValues = new ContentValues();
@@ -381,9 +382,9 @@ public class DbAdapter {
     }
 
     /**
-     * 获取 $AppEnd 事件数据
+     * 获取 Activity End 的信息
      *
-     * @return $AppEnd 事件数据
+     * @return Activity End 的信息
      */
     public String getAppEndData() {
         String data = "";
@@ -434,12 +435,14 @@ public class DbAdapter {
     }
 
     /**
-     * 存储 $AppEnd 触发 Session 时长
+     * 设置 Session 的时长
      *
-     * @param sessionIntervalTime $AppEnd 触发 Session 时长
+     * @param sessionIntervalTime Session 的时长
      */
     public void commitSessionIntervalTime(int sessionIntervalTime) {
-        if (sessionIntervalTime == mSavedSessionTime) return;
+        if (sessionIntervalTime == mSavedSessionTime) {
+            return;
+        }
         try {
             ContentValues contentValues = new ContentValues();
             contentValues.put(DbParams.TABLE_SESSION_INTERVAL_TIME, sessionIntervalTime);
@@ -451,9 +454,9 @@ public class DbAdapter {
     }
 
     /**
-     * 返回 $AppEnd 触发 Session 时长
+     * 获取 Session 的时长
      *
-     * @return $AppEnd 触发 Session 时长
+     * @return Session 的时长
      */
     public int getSessionIntervalTime() {
         if (mSessionTime != mSavedSessionTime) {
@@ -478,12 +481,19 @@ public class DbAdapter {
         return mSessionTime;
     }
 
+    /**
+     * 从 Event 表中读取上报数据
+     *
+     * @param tableName 表名
+     * @param limit 条数限制
+     * @return 数据
+     */
     public String[] generateDataString(String tableName, int limit) {
         Cursor c = null;
         String data = null;
         String last_id = null;
         try {
-            c = contentResolver.query(mDbParams.getEventUri(), null, null, null, DbParams.KEY_CREATED_AT + " ASC LIMIT " + String.valueOf(limit));
+            c = contentResolver.query(mDbParams.getEventUri(), null, null, null, DbParams.KEY_CREATED_AT + " ASC LIMIT " + limit);
 
             if (c != null) {
                 StringBuilder dataBuilder = new StringBuilder();

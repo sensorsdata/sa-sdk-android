@@ -19,7 +19,6 @@ package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
-import android.os.Build;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 
@@ -29,13 +28,11 @@ import java.util.concurrent.Future;
 @SuppressLint("CommitPrefEdits")
 public abstract class PersistentIdentity<T> {
 
-    interface PersistentSerializer<T> {
-        T load(final String value);
-
-        String save(T item);
-
-        T create();
-    }
+    private static final String TAG = "SA.PersistentIdentity";
+    private final Future<SharedPreferences> loadStoredPreferences;
+    private final PersistentSerializer serializer;
+    private final String persistentKey;
+    private T item;
 
     PersistentIdentity(final Future<SharedPreferences> loadStoredPreferences, final String
             persistentKey, final PersistentSerializer<T> serializer) {
@@ -44,6 +41,12 @@ public abstract class PersistentIdentity<T> {
         this.persistentKey = persistentKey;
     }
 
+    /**
+     * 获取存储的值
+     *
+     * @return 存储的值
+     */
+    @SuppressWarnings("unchecked")
     public T get() {
         if (this.item == null) {
             String data = null;
@@ -54,9 +57,9 @@ public abstract class PersistentIdentity<T> {
                         data = sharedPreferences.getString(persistentKey, null);
                     }
                 } catch (final ExecutionException e) {
-                    SALog.d(LOGTAG, "Cannot read distinct ids from sharedPreferences.", e.getCause());
+                    SALog.d(TAG, "Cannot read distinct ids from sharedPreferences.", e.getCause());
                 } catch (final InterruptedException e) {
-                    SALog.d(LOGTAG, "Cannot read distinct ids from sharedPreferences.", e);
+                    SALog.d(TAG, "Cannot read distinct ids from sharedPreferences.", e);
                 }
 
                 if (data == null) {
@@ -69,6 +72,12 @@ public abstract class PersistentIdentity<T> {
         return this.item;
     }
 
+    /**
+     * 保存数据值
+     *
+     * @param item 数据值
+     */
+    @SuppressWarnings("unchecked")
     public void commit(T item) {
         this.item = item;
 
@@ -77,9 +86,9 @@ public abstract class PersistentIdentity<T> {
             try {
                 sharedPreferences = loadStoredPreferences.get();
             } catch (final ExecutionException e) {
-                SALog.d(LOGTAG, "Cannot read distinct ids from sharedPreferences.", e.getCause());
+                SALog.d(TAG, "Cannot read distinct ids from sharedPreferences.", e.getCause());
             } catch (final InterruptedException e) {
-                SALog.d(LOGTAG, "Cannot read distinct ids from sharedPreferences.", e);
+                SALog.d(TAG, "Cannot read distinct ids from sharedPreferences.", e);
             }
 
             if (sharedPreferences == null) {
@@ -95,11 +104,33 @@ public abstract class PersistentIdentity<T> {
         }
     }
 
-    private static final String LOGTAG = "SA.PersistentIdentity";
+    /**
+     * Persistent 序列化接口
+     *
+     * @param <T> 数据类型
+     */
+    interface PersistentSerializer<T> {
+        /**
+         * 读取数据
+         *
+         * @param value，Value 值
+         * @return 返回值
+         */
+        T load(final String value);
 
-    private final Future<SharedPreferences> loadStoredPreferences;
-    private final PersistentSerializer serializer;
-    private final String persistentKey;
+        /**
+         * 保存数据
+         *
+         * @param item 数据值
+         * @return 返回存储的值
+         */
+        String save(T item);
 
-    private T item;
+        /**
+         * 创建默认值
+         *
+         * @return 默认值
+         */
+        T create();
+    }
 }

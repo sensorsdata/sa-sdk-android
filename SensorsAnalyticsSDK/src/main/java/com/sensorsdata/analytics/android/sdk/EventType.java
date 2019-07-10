@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 enum EventType {
@@ -29,6 +29,10 @@ enum EventType {
     REGISTER_SUPER_PROPERTIES("register_super_properties", false, false),
     ITEM_SET("item_set", false, false),
     ITEM_DELETE("item_delete", false, false);
+
+    private String eventType;
+    private boolean track;
+    private boolean profile;
 
     EventType(String eventType, boolean isTrack, boolean isProfile) {
         this.eventType = eventType;
@@ -47,8 +51,4 @@ enum EventType {
     public boolean isProfile() {
         return profile;
     }
-
-    private String eventType;
-    private boolean track;
-    private boolean profile;
 }

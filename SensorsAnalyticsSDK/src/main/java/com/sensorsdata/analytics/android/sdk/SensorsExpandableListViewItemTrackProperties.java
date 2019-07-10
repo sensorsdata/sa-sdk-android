@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import org.json.JSONException;
@@ -23,6 +23,7 @@ import org.json.JSONObject;
 public interface SensorsExpandableListViewItemTrackProperties {
     /**
      * 点击 groupPosition、childPosition 处 item 的扩展属性
+     *
      * @param groupPosition int
      * @param childPosition int
      * @return JSONObject
@@ -32,6 +33,7 @@ public interface SensorsExpandableListViewItemTrackProperties {
 
     /**
      * 点击 groupPosition 处 item 的扩展属性
+     *
      * @param groupPosition int
      * @return JSONObject
      * @throws JSONException JSONException

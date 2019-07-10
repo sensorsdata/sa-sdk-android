@@ -294,12 +294,13 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
     }
 
     /**
-     * 设置 DistinctId
-     * @param distinctId DistinctId
+     * 设置匿名 ID
+     *
+     * @param anonymousId 匿名 ID
      * @return SAOptionsConfig
      */
-    public SAConfigOptions setDistinctId(String distinctId) {
-        this.mDistinctId = distinctId;
+    public SAConfigOptions setAnonymousId(String anonymousId) {
+        this.mAnonymousId = anonymousId;
         return this;
     }
 }

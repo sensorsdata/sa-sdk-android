@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package com.sensorsdata.analytics.android.sdk;
 
 import org.json.JSONException;
@@ -26,6 +26,7 @@ import org.json.JSONObject;
 public interface SensorsAdapterViewItemTrackProperties {
     /**
      * 点击 position 处 item 的扩展属性
+     *
      * @param position 当前 item 所在位置
      * @return JSONObject
      * @throws JSONException JSON 异常

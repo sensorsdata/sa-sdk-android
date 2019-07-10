@@ -23,6 +23,12 @@ import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 class EventTimer {
+    private final TimeUnit timeUnit;
+    private long startTime;
+    private long endTime;
+    private long eventAccumulatedDuration;
+    private boolean isPause = false;
+
     EventTimer(TimeUnit timeUnit) {
         this.startTime = SystemClock.elapsedRealtime();
         this.timeUnit = timeUnit;
@@ -71,16 +77,16 @@ class EventTimer {
         return startTime;
     }
 
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
+    }
+
     public long getEndTime() {
         return endTime;
     }
 
     public long getEventAccumulatedDuration() {
         return eventAccumulatedDuration;
-    }
-
-    public void setStartTime(long startTime) {
-        this.startTime = startTime;
     }
 
     public void setEventAccumulatedDuration(long eventAccumulatedDuration) {
@@ -98,10 +104,4 @@ class EventTimer {
     boolean isPause() {
         return isPause;
     }
-
-    private final TimeUnit timeUnit;
-    private long startTime;
-    private long endTime;
-    private long eventAccumulatedDuration;
-    private boolean isPause = false;
 }

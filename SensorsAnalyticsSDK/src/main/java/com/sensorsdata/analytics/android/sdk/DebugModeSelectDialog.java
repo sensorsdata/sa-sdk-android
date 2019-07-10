@@ -39,11 +39,6 @@ class DebugModeSelectDialog extends Dialog implements View.OnClickListener {
         currentDebugMode = debugMode;
     }
 
-    interface OnDebugModeViewClickListener {
-        void onCancel(Dialog dialog);
-        void setDebugMode(Dialog dialog, SensorsDataAPI.DebugMode debugMode);
-    }
-
     void setOnDebugModeDialogClickListener(OnDebugModeViewClickListener onDebugModeDialogClickListener) {
         this.onDebugModeDialogClickListener = onDebugModeDialogClickListener;
     }
@@ -64,28 +59,28 @@ class DebugModeSelectDialog extends Dialog implements View.OnClickListener {
             GradientDrawable bg = new GradientDrawable();
             bg.setShape(GradientDrawable.RECTANGLE);
             bg.setColor(Color.WHITE);
-            bg.setCornerRadius(dip2px(getContext(),7));
+            bg.setCornerRadius(dip2px(getContext(), 7));
             window.setBackgroundDrawable(bg);
         }
     }
 
     private void initView() {
         //标题:SDK 调试模式选择
-        TextView debugModeTitle = (TextView) findViewById(R.id.sensors_analytics_debug_mode_title);
+        TextView debugModeTitle = findViewById(R.id.sensors_analytics_debug_mode_title);
         debugModeTitle.setText("SDK 调试模式选择");
 
         //取消
-        TextView debugModeCancel = (TextView) findViewById(R.id.sensors_analytics_debug_mode_cancel);
+        TextView debugModeCancel = findViewById(R.id.sensors_analytics_debug_mode_cancel);
         debugModeCancel.setText("取消");
         debugModeCancel.setOnClickListener(this);
 
         //开启调试模式(不导入数据)
-        TextView debugModeOnly = (TextView) findViewById(R.id.sensors_analytics_debug_mode_only);
+        TextView debugModeOnly = findViewById(R.id.sensors_analytics_debug_mode_only);
         debugModeOnly.setText("开启调试模式（不导入数据）");
         debugModeOnly.setOnClickListener(this);
 
         //"开启调试模式(导入数据)"
-        TextView debugModeTrack = (TextView) findViewById(R.id.sensors_analytics_debug_mode_track);
+        TextView debugModeTrack = findViewById(R.id.sensors_analytics_debug_mode_track);
         debugModeTrack.setText("开启调试模式（导入数据）");
         debugModeTrack.setOnClickListener(this);
 
@@ -95,7 +90,7 @@ class DebugModeSelectDialog extends Dialog implements View.OnClickListener {
         } else if (currentDebugMode == SensorsDataAPI.DebugMode.DEBUG_AND_TRACK) {
             msg = "当前为 测试模式（导入数据）";
         }
-        TextView debugModeMessage = (TextView) findViewById(R.id.sensors_analytics_debug_mode_message);
+        TextView debugModeMessage = findViewById(R.id.sensors_analytics_debug_mode_message);
         debugModeMessage.setText(msg);
 
         //设置按钮点击效果
@@ -143,5 +138,11 @@ class DebugModeSelectDialog extends Dialog implements View.OnClickListener {
         } else if (id == R.id.sensors_analytics_debug_mode_cancel) {
             onDebugModeDialogClickListener.onCancel(this);
         }
+    }
+
+    interface OnDebugModeViewClickListener {
+        void onCancel(Dialog dialog);
+
+        void setDebugMode(Dialog dialog, SensorsDataAPI.DebugMode debugMode);
     }
 }
