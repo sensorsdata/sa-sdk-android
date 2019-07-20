@@ -871,7 +871,7 @@ public interface ISensorsDataAPI {
      *
      * @param property 属性名称
      * @param value 属性的值，值的类型只允许为
-     * {@link String}, {@link Number}, {@link java.util.Date}, {@link List}
+     * {@link String}, {@link Number}, {@link java.util.Date}, {@link Boolean}, {@link org.json.JSONArray}
      */
     void profileSet(String property, Object value);
 
@@ -889,7 +889,7 @@ public interface ISensorsDataAPI {
      *
      * @param property 属性名称
      * @param value 属性的值，值的类型只允许为
-     * {@link String}, {@link Number}, {@link java.util.Date}, {@link List}
+     * {@link String}, {@link Number}, {@link java.util.Date}, {@link Boolean}, {@link org.json.JSONArray}
      */
     void profileSetOnce(String property, Object value);
 

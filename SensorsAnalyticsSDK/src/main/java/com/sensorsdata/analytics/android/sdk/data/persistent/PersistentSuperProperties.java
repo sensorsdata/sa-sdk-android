@@ -36,7 +36,7 @@ public class PersistentSuperProperties extends PersistentIdentity<JSONObject> {
                     return new JSONObject(value);
                 } catch (JSONException e) {
                     SALog.d("Persistent", "failed to load SuperProperties from SharedPreferences.", e);
-                    return null;
+                    return new JSONObject();
                 }
             }
 

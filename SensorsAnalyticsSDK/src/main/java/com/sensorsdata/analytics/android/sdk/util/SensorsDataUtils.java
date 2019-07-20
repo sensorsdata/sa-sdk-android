@@ -912,4 +912,28 @@ public final class SensorsDataUtils {
         return rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 ?
                 height : width;
     }
+
+    /**
+     * 获取应用名称
+     *
+     * @param context Context
+     * @return 应用名称
+     */
+    public static CharSequence getAppName(Context context) {
+        if (context == null) {
+            return "";
+        }
+        try {
+            PackageManager packageManager = context.getPackageManager();
+            if (packageManager == null) {
+                return "";
+            }
+            ApplicationInfo appInfo = packageManager.getApplicationInfo(context.getPackageName(),
+                    PackageManager.GET_META_DATA);
+            return appInfo.loadLabel(packageManager);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return "";
+    }
 }

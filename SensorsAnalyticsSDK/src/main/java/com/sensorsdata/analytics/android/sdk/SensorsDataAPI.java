@@ -98,7 +98,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     // 可视化埋点功能最低 API 版本
     static final int VTRACK_SUPPORTED_MIN_API = 16;
     // SDK版本
-    static final String VERSION = "3.2.0";
+    static final String VERSION = "3.2.1";
     // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
     static final String MIN_PLUGIN_VERSION = "3.0.0";
     private static final Pattern KEY_PATTERN = Pattern.compile(
@@ -477,8 +477,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     void pullSDKConfigFromServer() {
-        if (!isNetworkRequestEnable() && mSAConfigOptions != null && !SensorsDataUtils.isRequestValid(mContext,
-                mSAConfigOptions.mMinRequestInterval, mSAConfigOptions.mMaxRequestInterval)) {
+        if (!isNetworkRequestEnable()) {
+            return;
+        }
+
+        if(mSAConfigOptions != null && !SensorsDataUtils.isRequestValid(mContext,
+                mSAConfigOptions.mMinRequestInterval, mSAConfigOptions.mMaxRequestInterval)){
             return;
         }
 
@@ -597,7 +601,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 mPullSDKConfigCountDownTimer.cancel();
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         } finally {
             mPullSDKConfigCountDownTimer = null;
         }
@@ -2282,7 +2286,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public JSONObject getSuperProperties() {
         synchronized (mSuperProperties) {
-            return mSuperProperties.get();
+            try {
+                return new JSONObject(mSuperProperties.get().toString());
+            } catch (JSONException e) {
+                SALog.printStackTrace(e);
+                return new JSONObject();
+            }
         }
     }
 
@@ -2564,6 +2573,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         info = "现在您打开了 SensorsData SDK 的 'DEBUG_ONLY' 模式，此模式下只校验数据但不导入数据，数据出错时会以 Toast 的方式提示开发者，请上线前一定使用 DEBUG_OFF 模式。";
                     } else if (mDebugMode == DebugMode.DEBUG_AND_TRACK) {
                         info = "现在您打开了神策 SensorsData SDK 的 'DEBUG_AND_TRACK' 模式，此模式下校验数据并且导入数据，数据出错时会以 Toast 的方式提示开发者，请上线前一定使用 DEBUG_OFF 模式。";
+                    }
+                    CharSequence appName = SensorsDataUtils.getAppName(mContext);
+                    if (!TextUtils.isEmpty(appName)) {
+                        info = String.format(Locale.CHINA, "%s：%s", appName, info);
                     }
                     Toast.makeText(mContext, info, Toast.LENGTH_LONG).show();
                 }
