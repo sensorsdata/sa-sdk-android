@@ -98,7 +98,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     // 可视化埋点功能最低 API 版本
     static final int VTRACK_SUPPORTED_MIN_API = 16;
     // SDK版本
-    static final String VERSION = "3.2.1";
+    static final String VERSION = "3.2.2";
     // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
     static final String MIN_PLUGIN_VERSION = "3.0.0";
     private static final Pattern KEY_PATTERN = Pattern.compile(
@@ -481,8 +481,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             return;
         }
 
-        if(mSAConfigOptions != null && !SensorsDataUtils.isRequestValid(mContext,
-                mSAConfigOptions.mMinRequestInterval, mSAConfigOptions.mMaxRequestInterval)){
+        if (mSAConfigOptions != null && !SensorsDataUtils.isRequestValid(mContext,
+                mSAConfigOptions.mMinRequestInterval, mSAConfigOptions.mMaxRequestInterval)) {
             return;
         }
 
@@ -1776,7 +1776,14 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                                         mAndroidId,
                                         SensorsDataUtils.getIMEI(mContext),
                                         SensorsDataUtils.getMacAddress(mContext));
+                                if (_properties.has("$gaid")) {
+                                    installSource = String.format("%s##gaid=%s", installSource, _properties.optString("$gaid"));
+                                }
                                 _properties.put("$ios_install_source", installSource);
+                            }
+
+                            if (_properties.has("$gaid")) {
+                                _properties.remove("$gaid");
                             }
 
                             if (disableCallback) {
@@ -2641,6 +2648,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             }
 
             JSONObject eventObject = new JSONObject(eventInfo);
+            eventObject.put("_hybrid_h5", true);
             String type = eventObject.getString("type");
             EventType eventType = EventType.valueOf(type.toUpperCase(Locale.getDefault()));
 

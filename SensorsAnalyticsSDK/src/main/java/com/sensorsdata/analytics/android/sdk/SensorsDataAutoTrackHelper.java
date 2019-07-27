@@ -1210,8 +1210,8 @@ public class SensorsDataAutoTrackHelper {
                 }
             }
 
-            //View Type 被忽略
-            if (AopUtil.isViewIgnored(adapterView.getClass())) {
+            //View 被忽略
+            if (AopUtil.isViewIgnored(adapterView)) {
                 return;
             }
 
