@@ -3,7 +3,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 
-version = "3.2.2"
+version = "3.2.2-pre"
 
 android {
     compileSdkVersion 29
@@ -77,7 +77,7 @@ dependencies {
 def siteUrl = 'https://github.com/sensorsdata/sa-sdk-android'
 def gitUrl = 'https://github.com/sensorsdata/sa-sdk-android.git'
 group = "com.sensorsdata.analytics.android"
-project.archivesBaseName = "SensorsAnalyticsSDK"
+project.archivesBaseName = "SensorsAnalyticsSDK-pre"
 
 install {
     repositories.mavenInstaller {
@@ -163,8 +163,8 @@ bintray {
     configurations = ['archives']
     pkg {
         repo = "maven"
-        name = "SensorsAnalyticsSDK"
-        desc = 'The official Android SDK for Sensors Analytics.'
+        name = "SensorsAnalyticsSDK-pre"
+        desc = 'The official Android SDK PRE for Sensors Analytics.'
         websiteUrl = siteUrl
         vcsUrl = gitUrl
         licenses = ["Apache-2.0"]

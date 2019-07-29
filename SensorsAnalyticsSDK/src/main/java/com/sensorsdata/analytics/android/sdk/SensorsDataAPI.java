@@ -98,7 +98,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     // 可视化埋点功能最低 API 版本
     static final int VTRACK_SUPPORTED_MIN_API = 16;
     // SDK版本
-    static final String VERSION = "3.2.2";
+    static final String VERSION = "3.2.2-pre";
     // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
     static final String MIN_PLUGIN_VERSION = "3.0.0";
     private static final Pattern KEY_PATTERN = Pattern.compile(
