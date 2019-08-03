@@ -98,9 +98,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     // 可视化埋点功能最低 API 版本
     static final int VTRACK_SUPPORTED_MIN_API = 16;
     // SDK版本
-    static final String VERSION = "3.2.2";
+    static final String VERSION = BuildConfig.SDK_VERSION;
     // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
-    static final String MIN_PLUGIN_VERSION = "3.0.0";
+    static final String MIN_PLUGIN_VERSION = BuildConfig.MIN_PLUGIN_VERSION;
     private static final Pattern KEY_PATTERN = Pattern.compile(
             "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
             Pattern.CASE_INSENSITIVE);
@@ -1797,7 +1797,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         trackEvent(EventType.TRACK, eventName, _properties, null);
 
                         // 再发送 profile_set_once
-                        JSONObject profileProperties = new JSONObject(_properties.toString());
+                        JSONObject profileProperties = new JSONObject();
+                        SensorsDataUtils.mergeJSONObject(_properties, profileProperties);
                         profileProperties.put("$first_visit_time", new java.util.Date());
                         trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null);
 
@@ -3254,7 +3255,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             eventProperties.put("item_id", itemId);
             eventProperties.put("type", eventType);
             eventProperties.put("time", System.currentTimeMillis());
-            eventProperties.put("properties", properties);
+            eventProperties.put("properties", DateFormatUtils.formatDate(properties));
             eventProperties.put("lib", libProperties);
 
             if (!TextUtils.isEmpty(eventProject)) {

@@ -21,10 +21,14 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 
@@ -193,5 +197,30 @@ public class DateFormatUtils {
         }
 
         return false;
+    }
+
+    /**
+     * 将 JSONObject 中的 Date 类型数据格式化
+     *
+     * @param jsonObject JSONObject
+     * @return JSONObject
+     */
+    public static JSONObject formatDate(JSONObject jsonObject) {
+        if (jsonObject == null) {
+            return new JSONObject();
+        }
+        try {
+            Iterator<String> iterator = jsonObject.keys();
+            while (iterator.hasNext()) {
+                String key = iterator.next();
+                Object value = jsonObject.get(key);
+                if (value instanceof Date) {
+                    jsonObject.put(key, formatDate((Date) value, Locale.CHINA));
+                }
+            }
+        } catch (JSONException e) {
+            SALog.printStackTrace(e);
+        }
+        return jsonObject;
     }
 }
