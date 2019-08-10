@@ -235,6 +235,7 @@ class AnalyticsMessages {
             } catch (InvalidDataException e) {
                 errorMessage = "Invalid data: " + e.getMessage();
             } catch (ResponseErrorException e) {
+                deleteEvents = isDeleteEventsByCode(e.getHttpCode());
                 errorMessage = "ResponseErrorException: " + e.getMessage();
             } catch (Exception e) {
                 deleteEvents = false;
@@ -300,8 +301,7 @@ class AnalyticsMessages {
             } catch (Exception e) {
                 SALog.printStackTrace(e);
             }
-            if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() && !SensorsDataAPI.sharedInstance
-                    (mContext).isDebugWriteData()) {
+            if (SensorsDataAPI.sharedInstance(mContext).getDebugMode() == SensorsDataAPI.DebugMode.DEBUG_ONLY) {
                 connection.addRequestProperty("Dry-Run", "true");
             }
 
@@ -362,15 +362,31 @@ class AnalyticsMessages {
                 }
             }
             if (responseCode < HttpURLConnection.HTTP_OK || responseCode >= HttpURLConnection.HTTP_MULT_CHOICE) {
-                // 校验错误，直接将数据删除
-                throw new ResponseErrorException(String.format("flush failure with response '%s'",
-                        response));
+                // 校验错误
+                throw new ResponseErrorException(String.format("flush failure with response '%s', the response code is '%d'",
+                        response, responseCode), responseCode);
             }
         } catch (IOException e) {
             throw new ConnectErrorException(e);
         } finally {
             closeStream(bout, out, in, connection);
         }
+    }
+
+    /**
+     * 在服务器正常返回状态码的情况下，目前只有 (>= 500 && < 600) || 404 || 403 才不删数据
+     *
+     * @param httpCode 状态码
+     * @return true: 删除数据，false: 不删数据
+     */
+    private boolean isDeleteEventsByCode(int httpCode) {
+        boolean shouldDelete = true;
+        if (httpCode == HttpURLConnection.HTTP_NOT_FOUND ||
+                httpCode == HttpURLConnection.HTTP_FORBIDDEN ||
+                (httpCode >= HttpURLConnection.HTTP_INTERNAL_ERROR && httpCode < 600)) {
+            shouldDelete = false;
+        }
+        return shouldDelete;
     }
 
     private void closeStream(BufferedOutputStream bout, OutputStream out, InputStream in, HttpURLConnection connection) {

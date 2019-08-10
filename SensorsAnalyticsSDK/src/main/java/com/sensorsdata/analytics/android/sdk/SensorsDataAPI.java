@@ -3400,7 +3400,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
 
         if (mSAConfigOptions.mFlushBulkSize != 0) {
-            this.mFlushBulkSize = mSAConfigOptions.mFlushInterval;
+            this.mFlushBulkSize = mSAConfigOptions.mFlushBulkSize;
         }
 
         if (mSAConfigOptions.mMaxCacheSize != 0) {
