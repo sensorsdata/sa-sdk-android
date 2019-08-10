@@ -833,6 +833,13 @@ public interface ISensorsDataAPI {
     void setTrackEventCallBack(SensorsDataTrackEventCallBack trackEventCallBack);
 
     /**
+     * 加密秘钥外置存储回调接口
+     *
+     * @param persistentSecretKey 回调接口
+     */
+    void persistentSecretKey(SensorsDataEncrypt.PersistentSecretKey persistentSecretKey);
+
+    /**
      * 获取事件公共属性
      *
      * @return 当前所有 Super 属性
@@ -1067,4 +1074,18 @@ public interface ISensorsDataAPI {
      * @param itemId item ID
      */
     void itemDelete(String itemType, String itemId);
+
+    /**
+     * 设置是否开启加密
+     *
+     * @param enableEncrypt，true 开启加密，false，不开启加密
+     */
+    void enableEncrypt(boolean enableEncrypt);
+
+    /**
+     * 是否开启加密
+     *
+     * @return true 开启加密，false，不开启加密
+     */
+    boolean isEncryptEnabled();
 }

@@ -183,7 +183,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                     //先从缓存中读取 SDKConfig
                     mSensorsDataInstance.applySDKConfigFromCache();
                     mSensorsDataInstance.resumeTrackScreenOrientation();
-                    mSensorsDataInstance.resumeTrackTaskThread();
+//                    mSensorsDataInstance.resumeTrackTaskThread();
                     isAutoTrackEnabled = mSensorsDataInstance.isAutoTrackEnabled();
                 }
                 //每次启动 App，重新拉取最新的配置信息
@@ -396,7 +396,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                 SALog.d(TAG, "timeFinish");
                 trackAppEnd(0);
                 resumeFromBackground = true;
-                mSensorsDataInstance.stopTrackTaskThread();
+//                mSensorsDataInstance.stopTrackTaskThread();
                 SensorsDataTimer.getInstance().shutdownTimerTask();
             }
         };

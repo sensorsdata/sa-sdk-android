@@ -98,9 +98,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     // 可视化埋点功能最低 API 版本
     static final int VTRACK_SUPPORTED_MIN_API = 16;
     // SDK版本
-    static final String VERSION = "3.2.2-pre";
+    static final String VERSION = BuildConfig.SDK_VERSION;
     // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
-    static final String MIN_PLUGIN_VERSION = "3.0.0";
+    static final String MIN_PLUGIN_VERSION = BuildConfig.MIN_PLUGIN_VERSION;
     private static final Pattern KEY_PATTERN = Pattern.compile(
             "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
             Pattern.CASE_INSENSITIVE);
@@ -112,6 +112,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static boolean SHOW_DEBUG_INFO_VIEW = true;
     private static SensorsDataSDKRemoteConfig mSDKRemoteConfig;
     private static SensorsDataGPSLocation mGPSLocation;
+    private SensorsDataEncrypt.PersistentSecretKey mPersistentSecretKey;
+    private boolean mEnableEncrypt = false;
     /* 远程配置 */
     private static SAConfigOptions mSAConfigOptions;
     private final Context mContext;
@@ -197,6 +199,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mDeviceInfo = null;
         mTrackTimer = null;
         mMainProcessName = null;
+        mPersistentSecretKey = null;
     }
 
     SensorsDataAPI(Context context, String serverURL, DebugMode debugMode) {
@@ -481,8 +484,18 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             return;
         }
 
-        if (mSAConfigOptions != null && !SensorsDataUtils.isRequestValid(mContext,
-                mSAConfigOptions.mMinRequestInterval, mSAConfigOptions.mMaxRequestInterval)) {
+        boolean enableConfigV = true;
+        // 如果是开启加密的情况下，则判断密钥是否为空或是否是版本升级
+        if (isEncryptEnabled()) {
+            if (SensorsDataUtils.checkVersionIsNew(mContext, VERSION)) {
+                enableConfigV = false;
+            } else if (TextUtils.isEmpty(getRsaPublicKey())) {
+                enableConfigV = false;
+            }
+        }
+
+        if(enableConfigV && mSAConfigOptions != null && !SensorsDataUtils.isRequestValid(mContext,
+                mSAConfigOptions.mMinRequestInterval, mSAConfigOptions.mMaxRequestInterval)){
             return;
         }
 
@@ -495,6 +508,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             mPullSDKConfigCountDownTimer = null;
         }
 
+        final boolean finalEnableConfigV = enableConfigV;
         mPullSDKConfigCountDownTimer = new CountDownTimer(120 * 1000, 30 * 1000) {
             @Override
             public void onTick(long l) {
@@ -520,7 +534,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                                 }
                             }
 
-                            if (!TextUtils.isEmpty(configUrl)) {
+                            if (!TextUtils.isEmpty(configUrl) && finalEnableConfigV) {
                                 String configVersion = null;
                                 if (mSDKRemoteConfig != null) {
                                     configVersion = mSDKRemoteConfig.getV();
@@ -566,6 +580,15 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                                 data = result.toString();
                                 if (!TextUtils.isEmpty(data)) {
                                     SensorsDataSDKRemoteConfig sdkRemoteConfig = SensorsDataUtils.toSDKRemoteConfig(data);
+                                    try {
+                                        if (mPersistentSecretKey != null) {
+                                            mPersistentSecretKey.saveSecretKey(new SensorsDataEncrypt.
+                                                    SecreteKey(sdkRemoteConfig.getRsaPublicKey(), sdkRemoteConfig.getPkv()));
+                                        }
+                                    } catch (Exception e) {
+                                        SALog.printStackTrace(e);
+                                    }
+
                                     setSDKRemoteConfig(sdkRemoteConfig, false);
                                 }
                             }
@@ -1797,7 +1820,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         trackEvent(EventType.TRACK, eventName, _properties, null);
 
                         // 再发送 profile_set_once
-                        JSONObject profileProperties = new JSONObject(_properties.toString());
+                        JSONObject profileProperties = new JSONObject();
+                        SensorsDataUtils.mergeJSONObject(_properties, profileProperties);
                         profileProperties.put("$first_visit_time", new java.util.Date());
                         trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null);
 
@@ -2283,6 +2307,24 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             mFilterEventProperties.add(AopConstants.ELEMENT_CONTENT);
             mFilterEventProperties.add(AopConstants.ELEMENT_TYPE);
         }
+    }
+
+    @Override
+    public void persistentSecretKey(SensorsDataEncrypt.PersistentSecretKey persistentSecretKey) {
+        if (persistentSecretKey == null) {
+            SALog.d(TAG, "PersistentSecretKey can not be null.");
+        }
+        mPersistentSecretKey = persistentSecretKey;
+    }
+
+    @Override
+    public void enableEncrypt(boolean enableEncrypt) {
+        this.mEnableEncrypt = enableEncrypt;
+    }
+
+    @Override
+    public boolean isEncryptEnabled() {
+        return mEnableEncrypt;
     }
 
     @Override
@@ -3117,6 +3159,57 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     /**
+     * 获取 RSA 公钥
+     * @return RSA 公钥
+     */
+    String getRsaPublicKey() {
+        String rsaPublicKey = null;
+        try {
+            try {
+                if (mPersistentSecretKey != null) {
+                    SensorsDataEncrypt.SecreteKey rsaPublicKeyVersion = mPersistentSecretKey.loadSecretKey();
+                    if (rsaPublicKeyVersion != null) {
+                        rsaPublicKey = rsaPublicKeyVersion.key;
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            if (TextUtils.isEmpty(rsaPublicKey) && mSDKRemoteConfig != null) {
+                rsaPublicKey = mSDKRemoteConfig.getRsaPublicKey();
+            }
+
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return rsaPublicKey;
+    }
+
+    /**
+     * 获取 RSA 公钥版本号
+     * @return 公钥版本
+     */
+    int getPkv() {
+        try {
+            if (mPersistentSecretKey != null) {
+                SensorsDataEncrypt.SecreteKey rsaPublicKeyVersion = mPersistentSecretKey.loadSecretKey();
+                if (rsaPublicKeyVersion != null) {
+                    return rsaPublicKeyVersion.version;
+                }
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+
+        if (mSDKRemoteConfig != null) {
+            return mSDKRemoteConfig.getPkv();
+        }
+
+        return 0;
+    }
+
+    /**
      * 点击图是否进行检查 SSL
      *
      * @return boolean 是否进行检查
@@ -3254,7 +3347,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             eventProperties.put("item_id", itemId);
             eventProperties.put("type", eventType);
             eventProperties.put("time", System.currentTimeMillis());
-            eventProperties.put("properties", properties);
+            eventProperties.put("properties", DateFormatUtils.formatDate(properties));
             eventProperties.put("lib", libProperties);
 
             if (!TextUtils.isEmpty(eventProject)) {
@@ -3399,7 +3492,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
 
         if (mSAConfigOptions.mFlushBulkSize != 0) {
-            this.mFlushBulkSize = mSAConfigOptions.mFlushInterval;
+            this.mFlushBulkSize = mSAConfigOptions.mFlushBulkSize;
         }
 
         if (mSAConfigOptions.mMaxCacheSize != 0) {

@@ -3,7 +3,8 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 
-version = "3.2.2-pre"
+version = "3.2.4-pre"
+def min_plugin_version = "3.0.0"
 
 android {
     compileSdkVersion 29
@@ -22,6 +23,13 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField("String", "SDK_VERSION", "\"${version}\"")
+            buildConfigField("String", "MIN_PLUGIN_VERSION", "\"${min_plugin_version}\"")
+        }
+
+        debug {
+            buildConfigField("String", "SDK_VERSION", "\"${version}\"")
+            buildConfigField("String", "MIN_PLUGIN_VERSION", "\"${min_plugin_version}\"")
         }
     }
 

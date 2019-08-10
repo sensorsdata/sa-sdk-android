@@ -21,13 +21,19 @@ package com.sensorsdata.analytics.android.sdk.exceptions;
  * Sensors Analytics 返回数据收集异常
  */
 public class ResponseErrorException extends Exception {
+    private int httpCode;
 
-    public ResponseErrorException(String error) {
+    public ResponseErrorException(String error, int httpCode) {
         super(error);
+        this.httpCode = httpCode;
     }
 
-    public ResponseErrorException(Throwable throwable) {
+    public ResponseErrorException(Throwable throwable, int httpCode) {
         super(throwable);
+        this.httpCode = httpCode;
     }
 
+    public int getHttpCode() {
+        return this.httpCode;
+    }
 }

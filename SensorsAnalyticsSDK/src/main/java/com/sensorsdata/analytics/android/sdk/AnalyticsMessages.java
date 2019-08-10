@@ -221,20 +221,28 @@ class AnalyticsMessages {
             String errorMessage = null;
 
             try {
-                String data;
-                try {
-                    data = encodeData(rawMessage);
-                } catch (IOException e) {
-                    // 格式错误，直接将数据删除
-                    throw new InvalidDataException(e);
+                String data, gzip;
+                if (SensorsDataAPI.sharedInstance().isEncryptEnabled()) {
+                    data = rawMessage;
+                    gzip = "9";
+                } else {
+                    try {
+                        data = encodeData(rawMessage);
+                        gzip = "1";
+                    } catch (IOException e) {
+                        // 格式错误，直接将数据删除
+                        throw new InvalidDataException(e);
+                    }
                 }
-                sendHttpRequest(SensorsDataAPI.sharedInstance(mContext).getServerUrl(), data, rawMessage, false);
+
+                sendHttpRequest(SensorsDataAPI.sharedInstance(mContext).getServerUrl(), data, gzip, rawMessage, false);
             } catch (ConnectErrorException e) {
                 deleteEvents = false;
                 errorMessage = "Connection error: " + e.getMessage();
             } catch (InvalidDataException e) {
                 errorMessage = "Invalid data: " + e.getMessage();
             } catch (ResponseErrorException e) {
+                deleteEvents = isDeleteEventsByCode(e.getHttpCode());
                 errorMessage = "ResponseErrorException: " + e.getMessage();
             } catch (Exception e) {
                 deleteEvents = false;
@@ -275,7 +283,7 @@ class AnalyticsMessages {
         }
     }
 
-    private void sendHttpRequest(String path, String data, String rawMessage, boolean isRedirects) throws ConnectErrorException, ResponseErrorException {
+    private void sendHttpRequest(String path, String data, String gzip, String rawMessage, boolean isRedirects) throws ConnectErrorException, ResponseErrorException {
         HttpURLConnection connection = null;
         InputStream in = null;
         OutputStream out = null;
@@ -300,8 +308,7 @@ class AnalyticsMessages {
             } catch (Exception e) {
                 SALog.printStackTrace(e);
             }
-            if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() && !SensorsDataAPI.sharedInstance
-                    (mContext).isDebugWriteData()) {
+            if (SensorsDataAPI.sharedInstance(mContext).getDebugMode() == SensorsDataAPI.DebugMode.DEBUG_ONLY) {
                 connection.addRequestProperty("Dry-Run", "true");
             }
 
@@ -313,7 +320,7 @@ class AnalyticsMessages {
                 builder.appendQueryParameter("crc", String.valueOf(data.hashCode()));
             }
 
-            builder.appendQueryParameter("gzip", "1");
+            builder.appendQueryParameter("gzip", gzip);
             builder.appendQueryParameter("data_list", data);
 
             String query = builder.build().getEncodedQuery();
@@ -335,7 +342,7 @@ class AnalyticsMessages {
                 String location = SensorsDataHttpURLConnectionHelper.getLocation(connection, path);
                 if (!TextUtils.isEmpty(location)) {
                     closeStream(bout, out, null, connection);
-                    sendHttpRequest(location, data, rawMessage, true);
+                    sendHttpRequest(location, data, gzip, rawMessage, true);
                     return;
                 }
             }
@@ -362,15 +369,31 @@ class AnalyticsMessages {
                 }
             }
             if (responseCode < HttpURLConnection.HTTP_OK || responseCode >= HttpURLConnection.HTTP_MULT_CHOICE) {
-                // 校验错误，直接将数据删除
-                throw new ResponseErrorException(String.format("flush failure with response '%s'",
-                        response));
+                // 校验错误
+                throw new ResponseErrorException(String.format("flush failure with response '%s', the response code is '%d'",
+                        response, responseCode), responseCode);
             }
         } catch (IOException e) {
             throw new ConnectErrorException(e);
         } finally {
             closeStream(bout, out, in, connection);
         }
+    }
+
+    /**
+     * 在服务器正常返回状态码的情况下，目前只有 (>= 500 && < 600) || 404 || 403 才不删数据
+     *
+     * @param httpCode 状态码
+     * @return true: 删除数据，false: 不删数据
+     */
+    private boolean isDeleteEventsByCode(int httpCode) {
+        boolean shouldDelete = true;
+        if (httpCode == HttpURLConnection.HTTP_NOT_FOUND ||
+                httpCode == HttpURLConnection.HTTP_FORBIDDEN ||
+                (httpCode >= HttpURLConnection.HTTP_INTERNAL_ERROR && httpCode < 600)) {
+            shouldDelete = false;
+        }
+        return shouldDelete;
     }
 
     private void closeStream(BufferedOutputStream bout, OutputStream out, InputStream in, HttpURLConnection connection) {

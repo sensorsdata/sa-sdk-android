@@ -26,11 +26,15 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.SensorsDataEncrypt;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class DbAdapter {
     private static final String TAG = "SA.DbAdapter";
@@ -47,6 +51,18 @@ public class DbAdapter {
     /* App 是否启动到 onResume */
     private boolean mAppStart = false;
     private ContentResolver contentResolver;
+    /**
+     * AES 秘钥加密
+     */
+    private final String EKEY = "ekey";
+    /**
+     * RSA 公钥名称
+     */
+    private final String KEY_VER = "pkv";
+    /**
+     * 加密后的数据
+     */
+    private final String PAYLOADS = "payloads";
 
     private DbAdapter(Context context, String packageName) {
         mContext = context.getApplicationContext();
@@ -115,6 +131,10 @@ public class DbAdapter {
                 }
             }
 
+            if (SensorsDataAPI.sharedInstance().isEncryptEnabled()) {
+                j = SensorsDataEncrypt.encryptTrackData(j);
+            }
+
             final ContentValues cv = new ContentValues();
             cv.put(DbParams.KEY_DATA, j.toString() + "\t" + j.toString().hashCode());
             cv.put(DbParams.KEY_CREATED_AT, System.currentTimeMillis());
@@ -162,6 +182,9 @@ public class DbAdapter {
             ContentValues cv;
             int index = 0;
             for (JSONObject j : eventsList) {
+                if (SensorsDataAPI.sharedInstance().isEncryptEnabled()) {
+                    j = SensorsDataEncrypt.encryptTrackData(j);
+                }
                 cv = new ContentValues();
                 cv.put(DbParams.KEY_DATA, j.toString() + "\t" + j.toString().hashCode());
                 cv.put(DbParams.KEY_CREATED_AT, System.currentTimeMillis());
@@ -493,6 +516,8 @@ public class DbAdapter {
         String data = null;
         String last_id = null;
         try {
+            boolean isEncryptEnabled = SensorsDataAPI.sharedInstance().isEncryptEnabled();
+            Map<String, JSONArray> dataMap = new HashMap<>();
             c = contentResolver.query(mDbParams.getEventUri(), null, null, null, DbParams.KEY_CREATED_AT + " ASC LIMIT " + limit);
 
             if (c != null) {
@@ -501,6 +526,7 @@ public class DbAdapter {
                 String suffix = ",";
                 dataBuilder.append("[");
                 String keyData, crc, content;
+                JSONObject jsonObject;
                 while (c.moveToNext()) {
                     if (c.isLast()) {
                         suffix = "]";
@@ -519,16 +545,59 @@ public class DbAdapter {
                                 }
                                 keyData = content;
                             }
-                            dataBuilder.append(keyData, 0, keyData.length() - 1)
-                                    .append(flush_time)
-                                    .append(System.currentTimeMillis())
-                                    .append("}").append(suffix);
+
+                            jsonObject = new JSONObject(keyData);
+                            boolean isHasEkey = jsonObject.has(EKEY);
+                            if (isEncryptEnabled) { //如果开启加密
+                                if (!isHasEkey) { // 如果没有包含 Ekey 字段，则重新进行加密
+                                    jsonObject = SensorsDataEncrypt.encryptTrackData(jsonObject);
+                                }
+
+                                if (jsonObject.has(EKEY)) {
+                                    String key = jsonObject.getString(EKEY) + "$" + jsonObject.getInt(KEY_VER);
+                                    if (dataMap.containsKey(key)) {
+                                        dataMap.get(key).put(jsonObject.getString(PAYLOADS));
+                                    } else {
+                                        JSONArray jsonArray = new JSONArray();
+                                        jsonArray.put(jsonObject.getString(PAYLOADS));
+                                        dataMap.put(key, jsonArray);
+                                    }
+                                }
+                            } else {
+                                if (!isHasEkey) {
+                                    dataBuilder.append(keyData, 0, keyData.length() - 1)
+                                            .append(flush_time)
+                                            .append(System.currentTimeMillis())
+                                            .append("}").append(suffix);
+                                }
+                            }
                         }
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
                     }
                 }
-                data = dataBuilder.toString();
+
+                if (isEncryptEnabled) {
+                    try {
+                        JSONArray arr = new JSONArray();
+                        for (String key : dataMap.keySet()) {
+                            jsonObject = new JSONObject();
+                            jsonObject.put(EKEY, key.substring(0, key.indexOf("$")));
+                            jsonObject.put(KEY_VER, Integer.valueOf(key.substring(key.indexOf("$") + 1)));
+                            jsonObject.put(PAYLOADS, dataMap.get(key));
+                            jsonObject.put("flush_time", System.currentTimeMillis());
+                            arr.put(jsonObject);
+                        }
+
+                        if (arr.length() > 0) {
+                            data = arr.toString();
+                        }
+                    } catch (Exception e) {
+                        SALog.printStackTrace(e);
+                    }
+                } else {
+                    data = dataBuilder.toString();
+                }
             }
         } catch (final SQLiteException e) {
             SALog.i(TAG, "Could not pull records for SensorsData out of database " + tableName

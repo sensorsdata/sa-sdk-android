@@ -70,6 +70,7 @@ public final class SensorsDataUtils {
     private static final String SHARED_PREF_USER_AGENT_KEY = "sensorsdata.user.agent";
     private static final String SHARED_PREF_REQUEST_TIME = "sensorsdata.request.time";
     private static final String SHARED_PREF_REQUEST_TIME_RANDOM = "sensorsdata.request.time.random";
+    private static final String SHARED_PREF_APP_VERSION = "sensorsdata.app.version";
     private static final Map<String, String> sCarrierMap = new HashMap<String, String>() {
         {
             //中国移动
@@ -129,11 +130,18 @@ public final class SensorsDataUtils {
                     sdkRemoteConfig.setDisableDebugMode(configObject.optBoolean("disableDebugMode", false));
                     sdkRemoteConfig.setDisableSDK(configObject.optBoolean("disableSDK", false));
                     sdkRemoteConfig.setAutoTrackMode(configObject.optInt("autoTrackMode", -1));
+                    JSONObject keyObject = configObject.optJSONObject("key");
+                    if (keyObject != null) {
+                        sdkRemoteConfig.setRsaPublicKey(keyObject.optString("public_key"));
+                        sdkRemoteConfig.setPkv(keyObject.optInt("pkv"));
+                    }
                 } else {
                     //默认配置
                     sdkRemoteConfig.setDisableDebugMode(false);
                     sdkRemoteConfig.setDisableSDK(false);
                     sdkRemoteConfig.setAutoTrackMode(-1);
+                    sdkRemoteConfig.setRsaPublicKey("");
+                    sdkRemoteConfig.setPkv(-1);
                 }
                 return sdkRemoteConfig;
             }
@@ -874,6 +882,47 @@ public final class SensorsDataUtils {
         }
         return isRequestValid;
     }
+
+    /**
+     * 检查版本是否经过升级
+     * @param context context
+     * @param currVersion 当前 SDK 版本
+     * @return true，老版本升级到新版本。false，当前已是最新版本
+     */
+    public static boolean checkVersionIsNew(Context context, String currVersion) {
+        try {
+            SharedPreferences appVersionPref = getSharedPreferences(context);
+            String localVersion = appVersionPref.getString(SHARED_PREF_APP_VERSION, "");
+
+            if (TextUtils.isEmpty(localVersion)) {
+                appVersionPref.edit().putString(SHARED_PREF_APP_VERSION, currVersion).apply();
+                return true;
+            }
+
+            if (!currVersion.equals(localVersion)) {
+                appVersionPref.edit().putString(SHARED_PREF_APP_VERSION, currVersion).apply();
+            }
+
+            String[] currArray = currVersion.split("\\.");
+            String[] localArray = localVersion.split("\\.");
+            int length = currArray.length > localArray.length ? localArray.length:currArray.length;
+            int currVer,localVer;
+            for (int index = 0; index < length; index++) {
+                currVer = Integer.parseInt(currArray[index]);
+                localVer = Integer.parseInt(localArray[index]);
+                if (currVer > localVer) {
+                    return true;
+                } else if (currVer < localVer) {
+                    return false;
+                }
+            }
+            return false;
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+        return false;
+    }
+
 
     public static boolean hasUtmProperties(JSONObject properties) {
         if (properties == null) {

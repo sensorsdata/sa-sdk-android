@@ -220,6 +220,20 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
+    public void enableEncrypt(boolean enableEncrypt) {
+    }
+
+    @Override
+    public boolean isEncryptEnabled() {
+        return false;
+    }
+
+    @Override
+    public void persistentSecretKey(SensorsDataEncrypt.PersistentSecretKey persistentSecretKey) {
+
+    }
+
+    @Override
     public void resumeAutoTrackActivities(List<Class<?>> activitiesList) {
 
     }
