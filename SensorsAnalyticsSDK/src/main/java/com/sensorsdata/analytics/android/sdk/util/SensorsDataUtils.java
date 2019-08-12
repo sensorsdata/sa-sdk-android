@@ -894,31 +894,13 @@ public final class SensorsDataUtils {
             SharedPreferences appVersionPref = getSharedPreferences(context);
             String localVersion = appVersionPref.getString(SHARED_PREF_APP_VERSION, "");
 
-            if (TextUtils.isEmpty(localVersion)) {
+            if (!TextUtils.isEmpty(currVersion) && !currVersion.equals(localVersion)) {
                 appVersionPref.edit().putString(SHARED_PREF_APP_VERSION, currVersion).apply();
                 return true;
             }
-
-            if (!currVersion.equals(localVersion)) {
-                appVersionPref.edit().putString(SHARED_PREF_APP_VERSION, currVersion).apply();
-            }
-
-            String[] currArray = currVersion.split("\\.");
-            String[] localArray = localVersion.split("\\.");
-            int length = currArray.length > localArray.length ? localArray.length:currArray.length;
-            int currVer,localVer;
-            for (int index = 0; index < length; index++) {
-                currVer = Integer.parseInt(currArray[index]);
-                localVer = Integer.parseInt(localArray[index]);
-                if (currVer > localVer) {
-                    return true;
-                } else if (currVer < localVer) {
-                    return false;
-                }
-            }
-            return false;
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
+            return true;
         }
         return false;
     }
