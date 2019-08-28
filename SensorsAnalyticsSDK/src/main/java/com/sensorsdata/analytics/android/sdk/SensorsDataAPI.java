@@ -102,7 +102,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
     static final String MIN_PLUGIN_VERSION = BuildConfig.MIN_PLUGIN_VERSION;
     private static final Pattern KEY_PATTERN = Pattern.compile(
-            "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
+            "^((?!^distinct_id$|^original_id$|^device_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
             Pattern.CASE_INSENSITIVE);
     // Maps each token to a singleton SensorsDataAPI instance
     private static final Map<Context, SensorsDataAPI> sInstanceMap = new HashMap<>();
@@ -206,14 +206,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mAutoTrackIgnoredActivities = new ArrayList<>();
         mHeatMapActivities = new ArrayList<>();
         mVisualizedAutoTrackActivities = new ArrayList<>();
-        try {
-            SensorsDataUtils.cleanUserAgent(mContext);
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
-
         SALog.init(this);
-
         PersistentLoader.initLoader(context);
         mDistinctId = (PersistentDistinctId) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.DISTINCT_ID);
         mSuperProperties = (PersistentSuperProperties) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.SUPER_PROPERTIES);
@@ -226,7 +219,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mTrackTaskManager = TrackTaskManager.getInstance();
         mTrackTaskManagerThread = new TrackTaskManagerThread();
         new Thread(mTrackTaskManagerThread).start();
-
+        SensorsDataExceptionHandler.init();
         initSAConfig(serverURL, packageName);
         DbAdapter.getInstance(context, packageName);
         mMessages = AnalyticsMessages.getInstance(mContext);
@@ -251,10 +244,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             app.registerActivityLifecycleCallbacks(lifecycleCallbacks);
         }
 
-        if (debugMode != DebugMode.DEBUG_OFF) {
-            SALog.i(TAG, String.format(Locale.CHINA, "Initialized the instance of Sensors Analytics SDK with server"
-                    + " url '%s', flush interval %d ms, debugMode: %s", mServerUrl, mFlushInterval, debugMode));
-        }
+        SALog.i(TAG, String.format(Locale.CHINA, "Initialized the instance of Sensors Analytics SDK with server"
+                + " url '%s', flush interval %d ms, debugMode: %s", mServerUrl, mFlushInterval, debugMode));
+
         mDeviceInfo = setupDeviceInfo();
 
         ArrayList<String> autoTrackFragments = SensorsDataUtils.getAutoTrackFragments(context);
@@ -315,6 +307,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param serverURL 用于收集事件的服务地址
      * @return SensorsDataAPI 单例
      */
+    @Deprecated
     public static SensorsDataAPI sharedInstance(Context context, String serverURL) {
         return getInstance(context, serverURL, DebugMode.DEBUG_OFF);
     }
@@ -326,6 +319,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param saConfigOptions SDK 的配置项
      * @return SensorsDataAPI 单例
      */
+    @Deprecated
     public static SensorsDataAPI sharedInstance(Context context, SAConfigOptions saConfigOptions) {
         mSAConfigOptions = saConfigOptions;
         SensorsDataAPI sensorsDataAPI = getInstance(context, saConfigOptions.mServerUrl, DebugMode.DEBUG_OFF);
@@ -333,6 +327,23 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             sensorsDataAPI.applySAConfigOptions();
         }
         return sensorsDataAPI;
+    }
+
+    /**
+     * 初始化神策 SDK
+     *
+     * @param context App 的 Context
+     * @param saConfigOptions SDK 的配置项
+     */
+    public static void startWithConfiguration(Context context, SAConfigOptions saConfigOptions) {
+        if (context == null || saConfigOptions == null) {
+            throw new NullPointerException("Context、SAConfigOptions 不可以为 null");
+        }
+        mSAConfigOptions = saConfigOptions;
+        SensorsDataAPI sensorsDataAPI = getInstance(context, saConfigOptions.mServerUrl, DebugMode.DEBUG_OFF);
+        if (!sensorsDataAPI.mSDKConfigInit) {
+            sensorsDataAPI.applySAConfigOptions();
+        }
     }
 
     private static SensorsDataAPI getInstance(Context context, String serverURL, DebugMode debugMode) {
@@ -892,7 +903,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     @Override
     public void trackAppCrash() {
-        SensorsDataExceptionHandler.init();
+        SensorsDataExceptionHandler.enableAppCrash();
     }
 
     @Override
@@ -3289,10 +3300,17 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             this.mSDKConfigInit = true;
         }
 
+        if (mSAConfigOptions.mInvokeLog) {
+            sEnableLog = mSAConfigOptions.mLogEnabled;
+        } else {
+            sEnableLog = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
+                    this.mDebugMode != DebugMode.DEBUG_OFF);
+        }
+
         setServerUrl(serverURL);
 
         if (mSAConfigOptions.mEnableTrackAppCrash) {
-            trackAppCrash();
+            SensorsDataExceptionHandler.enableAppCrash();
         }
 
         if ((this.mFlushInterval = mSAConfigOptions.mFlushInterval) == 0) {
@@ -3314,18 +3332,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         if (mSAConfigOptions.mAutoTrackEventType != 0) {
             this.mAutoTrackEventType = mSAConfigOptions.mAutoTrackEventType;
             this.mAutoTrack = true;
-        }
-
-        if (mSAConfigOptions.mInvokeLog) {
-            sEnableLog = mSAConfigOptions.mLogEnabled;
-        } else {
-            if (this.mDebugMode == DebugMode.DEBUG_OFF) {
-                sEnableLog = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
-                        false);
-            } else {
-                sEnableLog = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
-                        true);
-            }
         }
 
         if (mSAConfigOptions.mInvokeHeatMapEnabled) {
@@ -3392,7 +3398,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     private void applySAConfigOptions() {
         if (mSAConfigOptions.mEnableTrackAppCrash) {
-            trackAppCrash();
+            SensorsDataExceptionHandler.enableAppCrash();
         }
 
         if (mSAConfigOptions.mFlushInterval != 0) {
@@ -3449,27 +3455,52 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     @Override
-    public void profilePushId(String propertyKey, String pushId) {
-        try {
-            assertKey(propertyKey);
-            if (TextUtils.isEmpty(pushId)) {
-                SALog.d(TAG, "pushId is empty");
-                return;
+    public void profilePushId(final String pushTypeKey, final String pushId) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    assertKey(pushTypeKey);
+                    if (TextUtils.isEmpty(pushId)) {
+                        SALog.d(TAG, "pushId is empty");
+                        return;
+                    }
+                    String distinctId = getDistinctId();
+                    String distinctPushId = distinctId + pushId;
+                    SharedPreferences sp = SensorsDataUtils.getSharedPreferences(mContext);
+                    String spDistinctPushId = sp.getString("distinctId_" + pushTypeKey, "");
+                    if (!spDistinctPushId.equals(distinctPushId)) {
+                        profileSet(pushTypeKey, pushId);
+                        sp.edit().putString("distinctId_" + pushTypeKey, distinctPushId).apply();
+                    }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
             }
-            String distinctId = getLoginId();
-            if (TextUtils.isEmpty(distinctId)) {
-                distinctId = getAnonymousId();
+        });
+    }
+
+    @Override
+    public void profileUnsetPushId(final String pushTypeKey) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    assertKey(pushTypeKey);
+                    String distinctId = getDistinctId();
+                    SharedPreferences sp = SensorsDataUtils.getSharedPreferences(mContext);
+                    String key = "distinctId_" + pushTypeKey;
+                    String spDistinctPushId = sp.getString(key, "");
+
+                    if (spDistinctPushId.startsWith(distinctId)) {
+                        profileUnset(pushTypeKey);
+                        sp.edit().remove(key).apply();
+                    }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
             }
-            String distinctPushId = distinctId + pushId;
-            SharedPreferences sp = SensorsDataUtils.getSharedPreferences(mContext);
-            String spDistinctPushId = sp.getString("distinctId_" + propertyKey, "");
-            if (!spDistinctPushId.equals(distinctPushId)) {
-                profileSet(propertyKey, pushId);
-                sp.edit().putString("distinctId_" + propertyKey, distinctPushId).apply();
-            }
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
+        });
     }
 
     @Override

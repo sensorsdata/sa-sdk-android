@@ -449,8 +449,11 @@ public class ViewSnapshot {
             mRootViews.clear();
             final Set<Activity> liveActivities = mLiveActivities.getAll();
             for (final Activity a : liveActivities) {
-                final String activityName = a.getClass().getCanonicalName();
                 final View rootView = a.getWindow().getDecorView().getRootView();
+                if (rootView.getWidth() == 0 || rootView.getHeight() == 0) {
+                    continue;
+                }
+                final String activityName = a.getClass().getCanonicalName();
                 a.getWindowManager().getDefaultDisplay().getMetrics(mDisplayMetrics);
                 final RootViewInfo info = new RootViewInfo(activityName, rootView);
                 mRootViews.add(info);

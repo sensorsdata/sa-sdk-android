@@ -589,6 +589,7 @@ public final class SensorsDataUtils {
      * @param context Context
      * @return 当前 UA 值
      */
+    @Deprecated
     public static String getUserAgent(Context context) {
         try {
             final SharedPreferences preferences = getSharedPreferences(context);

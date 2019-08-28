@@ -1037,12 +1037,19 @@ public interface ISensorsDataAPI {
     /**
      * 保存用户推送 ID 到用户表
      *
-     * @param propertyKey 属性名称（例如 jgId）
+     * @param pushTypeKey 属性名称（例如 jgId）
      * @param pushId 推送 ID
      * 使用 profilePushId("jgId",JPushInterface.getRegistrationID(this))
      */
 
-    void profilePushId(String propertyKey, String pushId);
+    void profilePushId(String pushTypeKey, String pushId);
+
+    /**
+     * 删除用户设置的 pushId
+     *
+     * @param pushTypeKey 属性名称（例如 jgId）
+     */
+    void profileUnsetPushId(String pushTypeKey);
 
     /**
      * 设置 SSLSocketFactory，HTTPS 请求连接时需要使用

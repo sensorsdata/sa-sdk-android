@@ -656,7 +656,12 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
-    public void profilePushId(String propertyKey, String pushId) {
+    public void profilePushId(String pushTypeKey, String pushId) {
+
+    }
+
+    @Override
+    public void profileUnsetPushId(String pushTypeKey) {
 
     }
 

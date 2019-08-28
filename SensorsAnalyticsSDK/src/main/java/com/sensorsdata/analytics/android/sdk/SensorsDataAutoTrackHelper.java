@@ -32,6 +32,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CheckedTextView;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
 import android.widget.GridView;
@@ -199,7 +200,7 @@ public class SensorsDataAutoTrackHelper {
                         }
                         if (view instanceof TextView) {
                             TextView textView = (TextView) view;
-                            if (!TextUtils.isEmpty(textView.getText())) {
+                            if (!(view instanceof EditText) && !TextUtils.isEmpty(textView.getText())) {
                                 properties.put(AopConstants.ELEMENT_CONTENT, textView.getText().toString());
                             }
                         } else if (view instanceof ViewGroup) {
@@ -1412,7 +1413,7 @@ public class SensorsDataAutoTrackHelper {
                 if (!view.isPressed()) {
                     return;
                 }
-                viewType  = AopUtil.getViewTypeByReflect(view);
+                viewType = AopUtil.getViewTypeByReflect(view);
                 viewText = AopUtil.getCompoundButtonText(view);
             } else if (view instanceof Button) { // Button
                 viewType = AopUtil.getViewType(viewType, "Button");
@@ -1469,8 +1470,17 @@ public class SensorsDataAutoTrackHelper {
                     }
                 }
             }
+
+            if (TextUtils.isEmpty(viewText) && view instanceof TextView) {
+                viewText = ((TextView) view).getHint();
+            }
+
             if (TextUtils.isEmpty(viewText)) {
                 viewText = view.getContentDescription();
+            }
+
+            if (view instanceof EditText) {
+                viewText = "";
             }
 
             //$element_content

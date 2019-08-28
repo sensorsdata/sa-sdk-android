@@ -52,12 +52,25 @@ public class NetworkUtils {
                     Network network = manager.getActiveNetwork();
                     if (network != null) {
                         NetworkCapabilities capabilities = manager.getNetworkCapabilities(network);
-                        if (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                            return "WIFI";
+                        if (capabilities != null) {
+                            if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                                return "WIFI";
+                            } else if (!capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+                                    && !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+                                    && !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+                                return "NULL";
+                            }
                         }
+                    } else {
+                        return "NULL";
                     }
                 } else {
-                    NetworkInfo networkInfo = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+                    NetworkInfo networkInfo = manager.getActiveNetworkInfo();
+                    if (networkInfo == null || !networkInfo.isConnected()) {
+                        return "NULL";
+                    }
+
+                    networkInfo = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
                     if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
                         return "WIFI";
                     }
