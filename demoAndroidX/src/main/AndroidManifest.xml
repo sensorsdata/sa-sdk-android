@@ -51,6 +51,10 @@
 
         <activity android:name=".ListViewTestActivity" />
 
+        <activity android:name=".HintTestActivity" />
+
+        <activity android:name=".CrashTestActivity" />
+
         <meta-data
             android:name="com.sensorsdata.analytics.android.EnableLogging"
             android:value="true" />

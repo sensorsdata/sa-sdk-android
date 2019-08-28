@@ -31,6 +31,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CheckedTextView;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.TextView;
@@ -198,6 +199,9 @@ public class AopUtil {
     }
 
     public static String getViewText(View child) {
+        if (child instanceof EditText) {
+            return "";
+        }
         try {
             Class<?> switchCompatClass = null;
             try {
@@ -215,6 +219,7 @@ public class AopUtil {
             }
 
             CharSequence viewText = null;
+
             if (child instanceof CheckBox) {
                 CheckBox checkBox = (CheckBox) child;
                 viewText = checkBox.getText();
@@ -254,6 +259,9 @@ public class AopUtil {
                 }
             } else {
                 viewText = child.getContentDescription();
+            }
+            if (TextUtils.isEmpty(viewText) && child instanceof TextView) {
+                viewText = ((TextView) child).getHint();
             }
             if (!TextUtils.isEmpty(viewText)) {
                 return viewText.toString();

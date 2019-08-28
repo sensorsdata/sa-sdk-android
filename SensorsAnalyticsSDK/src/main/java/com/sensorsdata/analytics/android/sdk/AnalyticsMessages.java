@@ -36,7 +36,6 @@ import com.sensorsdata.analytics.android.sdk.exceptions.ResponseErrorException;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONObject;
 
@@ -299,15 +298,6 @@ class AnalyticsMessages {
                 ((HttpsURLConnection) connection).setSSLSocketFactory(SensorsDataAPI.sharedInstance().getSSLSocketFactory());
             }
             connection.setInstanceFollowRedirects(false);
-            try {
-                String ua = SensorsDataUtils.getUserAgent(mContext);
-                if (TextUtils.isEmpty(ua)) {
-                    ua = "SensorsAnalytics Android SDK";
-                }
-                connection.addRequestProperty("User-Agent", ua);
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
-            }
             if (SensorsDataAPI.sharedInstance(mContext).getDebugMode() == SensorsDataAPI.DebugMode.DEBUG_ONLY) {
                 connection.addRequestProperty("Dry-Run", "true");
             }

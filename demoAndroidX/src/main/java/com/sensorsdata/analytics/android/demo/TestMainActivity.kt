@@ -38,6 +38,8 @@ class TestMainActivity : AppCompatActivity() {
                 DataEntity("ViewPager & Fragment 测试", ViewPagerTestActivity::class.java, true),
                 DataEntity("ViewScreen", ViewScreenActivity::class.java, true),
                 DataEntity("ListView & ExpandableListView", ListViewTestActivity::class.java, true),
+                DataEntity("hint 采集",  HintTestActivity::class.java, true),
+                DataEntity("Crash 测试", CrashTestActivity::class.java, true),
                 DataEntity("Dialog", BaseActivity::class.java, false),
                 DataEntity("黑名单白名单", BaseActivity::class.java, false),
                 DataEntity("Debug 模式", BaseActivity::class.java, false),
