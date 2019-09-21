@@ -46,10 +46,6 @@ public class DbAdapter {
     private int mSessionTime = 30 * 1000, mSavedSessionTime = 0;
     /* AppPaused 的时间戳 */
     private long mAppPausedTime = 0;
-    /* AppEnd 事件是否发送，true 发送、false 未发送 */
-    private boolean mAppEndState = true;
-    /* App 是否启动到 onResume */
-    private boolean mAppStart = false;
     private ContentResolver contentResolver;
     /**
      * AES 秘钥加密
@@ -251,24 +247,32 @@ public class DbAdapter {
     }
 
     /**
-     * 设置 Activity Start 的状态
-     *
-     * @param appStart Activity Start 的状态
+     * 保存启动的页面个数
+     * @param activityCount 页面个数
      */
-    public void commitAppStart(boolean appStart) {
+    public void commitActivityCount(int activityCount) {
         ContentValues contentValues = new ContentValues();
-        contentValues.put(DbParams.TABLE_APP_STARTED, appStart);
-        contentResolver.insert(mDbParams.getAppStartUri(), contentValues);
-        mAppStart = appStart;
+        contentValues.put(DbParams.TABLE_ACTIVITY_START_COUNT, activityCount);
+        contentResolver.insert(mDbParams.getActivityStartCountUri(), contentValues);
     }
 
     /**
-     * 获取 Activity Start 的状态
-     *
-     * @return Activity Start 的状态
+     * 获取存储的页面个数
+     * @return 存储的页面个数
      */
-    public boolean getAppStart() {
-        return mAppStart;
+    public int getActivityCount() {
+        int activityCount = 0;
+        Cursor cursor = contentResolver.query(mDbParams.getActivityStartCountUri(), null, null, null, null);
+        if (cursor != null && cursor.getCount() > 0) {
+            while (cursor.moveToNext()) {
+                activityCount = cursor.getInt(0);
+            }
+        }
+
+        if (cursor != null) {
+            cursor.close();
+        }
+        return activityCount;
     }
 
     /**
@@ -343,54 +347,6 @@ public class DbAdapter {
             }
         }
         return mAppPausedTime;
-    }
-
-    /**
-     * 设置 Activity End 的状态
-     *
-     * @param appEndState Activity End 的状态
-     */
-    public void commitAppEndState(boolean appEndState) {
-        if (appEndState == mAppEndState) {
-            return;
-        }
-        try {
-            ContentValues contentValues = new ContentValues();
-            contentValues.put(DbParams.TABLE_APP_END_STATE, appEndState);
-            contentResolver.insert(mDbParams.getAppEndStateUri(), contentValues);
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
-
-        mAppEndState = appEndState;
-    }
-
-    /**
-     * 获取 Activity End 的状态
-     *
-     * @return Activity End 的状态
-     */
-    public boolean getAppEndState() {
-        Cursor cursor = null;
-        if (mAppEndState) {
-            try {
-                cursor = contentResolver.query(mDbParams.getAppEndStateUri(), null, null, null, null);
-                if (cursor != null && cursor.getCount() > 0) {
-                    while (cursor.moveToNext()) {
-                        mAppEndState = cursor.getInt(0) > 0;
-                    }
-                }
-            } catch (Exception e) {
-                com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-            } finally {
-                if (cursor != null) {
-                    cursor.close();
-                }
-            }
-        }
-
-        SALog.d(TAG, "getAppEndState:" + mAppEndState);
-        return mAppEndState;
     }
 
     /**

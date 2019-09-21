@@ -29,25 +29,19 @@ import android.view.ViewGroup;
 import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.CheckedTextView;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
 import android.widget.GridView;
 import android.widget.HeaderViewListAdapter;
-import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
-import android.widget.RatingBar;
-import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TabHost;
 import android.widget.TextView;
-import android.widget.ToggleButton;
 
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
@@ -59,7 +53,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Locale;
-import java.util.Set;
 
 @SuppressWarnings("unused")
 public class SensorsDataAutoTrackHelper {
@@ -222,6 +215,10 @@ public class SensorsDataAutoTrackHelper {
 
     private static void trackFragmentAppViewScreen(Object fragment) {
         try {
+            if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
+                return;
+            }
+
             if (!SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
                 return;
             }
@@ -230,14 +227,8 @@ public class SensorsDataAutoTrackHelper {
                 return;
             }
 
-            Set<Integer> fragmentsSets = SensorsDataAPI.sharedInstance().getAutoTrackFragments();
             boolean isAutoTrackFragment = SensorsDataAPI.sharedInstance().isFragmentAutoTrackAppViewScreen(fragment.getClass());
             if (!isAutoTrackFragment) {
-                return;
-            }
-
-            if (fragment.getClass().getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class) != null
-                    && fragmentsSets == null) {
                 return;
             }
 
@@ -271,6 +262,10 @@ public class SensorsDataAutoTrackHelper {
     }
 
     public static void trackFragmentResume(Object object) {
+        if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
+            return;
+        }
+
         if (!SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
             return;
         }
@@ -323,6 +318,10 @@ public class SensorsDataAutoTrackHelper {
     }
 
     public static void trackFragmentSetUserVisibleHint(Object object, boolean isVisibleToUser) {
+        if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
+            return;
+        }
+
         if (!SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
             return;
         }
@@ -373,6 +372,10 @@ public class SensorsDataAutoTrackHelper {
     }
 
     public static void trackOnHiddenChanged(Object object, boolean hidden) {
+        if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
+            return;
+        }
+
         if (!SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
             return;
         }
@@ -1185,6 +1188,10 @@ public class SensorsDataAutoTrackHelper {
 
     public static void trackListView(AdapterView<?> adapterView, View view, int position) {
         try {
+            //防止 Spinner 恢复数据时造成的空指针问题.
+            if (view == null) {
+                return;
+            }
             //闭 AutoTrack
             if (!SensorsDataAPI.sharedInstance().isAutoTrackEnabled()) {
                 return;
@@ -1330,6 +1337,10 @@ public class SensorsDataAutoTrackHelper {
     }
 
     public static void trackViewOnClick(View view) {
+        trackViewOnClick(view, view.isPressed());
+    }
+
+    public static void trackViewOnClick(View view, boolean isFromUser) {
         try {
             //关闭 AutoTrack
             if (!SensorsDataAPI.sharedInstance().isAutoTrackEnabled()) {
@@ -1358,149 +1369,15 @@ public class SensorsDataAutoTrackHelper {
                 return;
             }
 
-            long currentOnClickTimestamp = System.currentTimeMillis();
-            String tag = (String) view.getTag(R.id.sensors_analytics_tag_view_onclick_timestamp);
-            if (!TextUtils.isEmpty(tag)) {
-                try {
-                    long lastOnClickTimestamp = Long.parseLong(tag);
-                    if ((currentOnClickTimestamp - lastOnClickTimestamp) < 500) {
-                        return;
-                    }
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
-                }
+            if (SensorsDataUtils.isDoubleClick(view)) {
+                return;
             }
-            view.setTag(R.id.sensors_analytics_tag_view_onclick_timestamp, String.valueOf(currentOnClickTimestamp));
 
             JSONObject properties = new JSONObject();
 
-            AopUtil.addViewPathProperties(activity, view, properties);
-
-            //ViewId
-            String idString = AopUtil.getViewId(view);
-            if (!TextUtils.isEmpty(idString)) {
-                properties.put(AopConstants.ELEMENT_ID, idString);
+            if (AopUtil.injectClickInfo(view, properties, isFromUser)) {
+                SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
             }
-
-            //$screen_name & $title
-            if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
-            }
-
-            String viewType = view.getClass().getCanonicalName();
-            CharSequence viewText = null;
-            if (view instanceof CheckBox) { // CheckBox
-                if (!view.isPressed()) {
-                    return;
-                }
-                viewType = AopUtil.getViewType(viewType, "CheckBox");
-                CheckBox checkBox = (CheckBox) view;
-                viewText = checkBox.getText();
-            } else if (view instanceof RadioButton) { // RadioButton
-                if (!view.isPressed()) {
-                    return;
-                }
-                viewType = AopUtil.getViewType(viewType, "RadioButton");
-                RadioButton radioButton = (RadioButton) view;
-                viewText = radioButton.getText();
-            } else if (view instanceof ToggleButton) { // ToggleButton
-                if (!view.isPressed()) {
-                    return;
-                }
-                viewType = AopUtil.getViewType(viewType, "ToggleButton");
-                viewText = AopUtil.getCompoundButtonText(view);
-            } else if (view instanceof CompoundButton) {
-                if (!view.isPressed()) {
-                    return;
-                }
-                viewType = AopUtil.getViewTypeByReflect(view);
-                viewText = AopUtil.getCompoundButtonText(view);
-            } else if (view instanceof Button) { // Button
-                viewType = AopUtil.getViewType(viewType, "Button");
-                Button button = (Button) view;
-                viewText = button.getText();
-            } else if (view instanceof CheckedTextView) { // CheckedTextView
-                viewType = AopUtil.getViewType(viewType, "CheckedTextView");
-                CheckedTextView textView = (CheckedTextView) view;
-                viewText = textView.getText();
-            } else if (view instanceof TextView) { // TextView
-                viewType = AopUtil.getViewType(viewType, "TextView");
-                TextView textView = (TextView) view;
-                viewText = textView.getText();
-            } else if (view instanceof ImageView) { // ImageView
-                viewType = AopUtil.getViewType(viewType, "ImageView");
-                ImageView imageView = (ImageView) view;
-                if (!TextUtils.isEmpty(imageView.getContentDescription())) {
-                    viewText = imageView.getContentDescription().toString();
-                }
-            } else if (view instanceof RatingBar) {
-                if (!view.isPressed()) {
-                    return;
-                }
-                viewType = AopUtil.getViewType(viewType, "RatingBar");
-                RatingBar ratingBar = (RatingBar) view;
-                viewText = String.valueOf(ratingBar.getRating());
-            } else if (view instanceof SeekBar) {
-                viewType = AopUtil.getViewType(viewType, "SeekBar");
-                SeekBar seekBar = (SeekBar) view;
-                viewText = String.valueOf(seekBar.getProgress());
-            } else if (view instanceof Spinner) {
-                viewType = AopUtil.getViewType(viewType, "Spinner");
-                try {
-                    StringBuilder stringBuilder = new StringBuilder();
-                    viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
-                    if (!TextUtils.isEmpty(viewText)) {
-                        viewText = viewText.toString().substring(0, viewText.length() - 1);
-                    }
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
-                }
-            } else if (view instanceof ViewGroup) {
-                viewType = AopUtil.getViewGroupTypeByReflect(view);
-                viewText = view.getContentDescription();
-                if (TextUtils.isEmpty(viewText)) {
-                    try {
-                        StringBuilder stringBuilder = new StringBuilder();
-                        viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
-                        if (!TextUtils.isEmpty(viewText)) {
-                            viewText = viewText.toString().substring(0, viewText.length() - 1);
-                        }
-                    } catch (Exception e) {
-                        SALog.printStackTrace(e);
-                    }
-                }
-            }
-
-            if (TextUtils.isEmpty(viewText) && view instanceof TextView) {
-                viewText = ((TextView) view).getHint();
-            }
-
-            if (TextUtils.isEmpty(viewText)) {
-                viewText = view.getContentDescription();
-            }
-
-            if (view instanceof EditText) {
-                viewText = "";
-            }
-
-            //$element_content
-            if (!TextUtils.isEmpty(viewText)) {
-                properties.put(AopConstants.ELEMENT_CONTENT, viewText.toString());
-            }
-
-            //$element_type
-            properties.put(AopConstants.ELEMENT_TYPE, viewType);
-
-            //fragmentName
-            AopUtil.getFragmentNameFromView(view, properties, activity);
-
-            //获取 View 自定义属性
-            JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
-            if (p != null) {
-                AopUtil.mergeJSONObject(p, properties);
-            }
-
-            SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }

@@ -37,8 +37,10 @@ import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.view.Surface;
+import android.view.View;
 import android.webkit.WebSettings;
 
+import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataSDKRemoteConfig;
 
@@ -886,6 +888,7 @@ public final class SensorsDataUtils {
 
     /**
      * 检查版本是否经过升级
+     *
      * @param context context
      * @param currVersion 当前 SDK 版本
      * @return true，老版本升级到新版本。false，当前已是最新版本
@@ -967,5 +970,32 @@ public final class SensorsDataUtils {
             SALog.printStackTrace(e);
         }
         return "";
+    }
+
+    /**
+     * 是否是连续点击
+     *
+     * @param view view
+     * @return Boolean
+     */
+    public static boolean isDoubleClick(View view) {
+        if (view == null) {
+            return false;
+        }
+        try {
+            long currentOnClickTimestamp = System.currentTimeMillis();
+            String tag = (String) view.getTag(R.id.sensors_analytics_tag_view_onclick_timestamp);
+            if (!TextUtils.isEmpty(tag)) {
+
+                long lastOnClickTimestamp = Long.parseLong(tag);
+                if ((currentOnClickTimestamp - lastOnClickTimestamp) < 500) {
+                    return true;
+                }
+            }
+            view.setTag(R.id.sensors_analytics_tag_view_onclick_timestamp, String.valueOf(currentOnClickTimestamp));
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return false;
     }
 }

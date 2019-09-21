@@ -34,6 +34,9 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RadioButton;
+import android.widget.RatingBar;
+import android.widget.SeekBar;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
@@ -45,6 +48,7 @@ import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataFragmentTitle;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Method;
@@ -701,6 +705,157 @@ public class AopUtil {
             if (viewNameTemp.startsWith(OSViewPackage)) {
                 return true;
             }
+        }
+        return false;
+    }
+
+    /**
+     * properties 注入点击事件信息
+     *
+     * @param view 点击的 view
+     * @param properties 事件属性
+     * @param isFromUser 是否由用户触发
+     * @return isTrackEvent 是否发送事件
+     */
+    public static boolean injectClickInfo(View view, JSONObject properties, boolean isFromUser) {
+        if (view == null || properties == null) {
+            return false;
+        }
+        try {
+            //获取所在的 Context
+            Context context = view.getContext();
+
+            //将 Context 转成 Activity
+            Activity activity = AopUtil.getActivityFromContext(context, view);
+
+            AopUtil.addViewPathProperties(activity, view, properties);
+
+            //ViewId
+            String idString = AopUtil.getViewId(view);
+            if (!TextUtils.isEmpty(idString)) {
+                properties.put(AopConstants.ELEMENT_ID, idString);
+            }
+
+            //$screen_name & $title
+            if (activity != null) {
+                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
+            }
+
+            String viewType = view.getClass().getCanonicalName();
+            CharSequence viewText = null;
+            if (view instanceof CheckBox) { // CheckBox
+                if (!isFromUser) {
+                    return false;
+                }
+                viewType = AopUtil.getViewType(viewType, "CheckBox");
+                CheckBox checkBox = (CheckBox) view;
+                viewText = checkBox.getText();
+            } else if (view instanceof RadioButton) { // RadioButton
+                if (!isFromUser) {
+                    return false;
+                }
+                viewType = AopUtil.getViewType(viewType, "RadioButton");
+                RadioButton radioButton = (RadioButton) view;
+                viewText = radioButton.getText();
+            } else if (view instanceof ToggleButton) { // ToggleButton
+                if (!isFromUser) {
+                    return false;
+                }
+                viewType = AopUtil.getViewType(viewType, "ToggleButton");
+                viewText = AopUtil.getCompoundButtonText(view);
+            } else if (view instanceof CompoundButton) {
+                if (!isFromUser) {
+                    return false;
+                }
+                viewType = AopUtil.getViewTypeByReflect(view);
+                viewText = AopUtil.getCompoundButtonText(view);
+            } else if (view instanceof Button) { // Button
+                viewType = AopUtil.getViewType(viewType, "Button");
+                Button button = (Button) view;
+                viewText = button.getText();
+            } else if (view instanceof CheckedTextView) { // CheckedTextView
+                viewType = AopUtil.getViewType(viewType, "CheckedTextView");
+                CheckedTextView textView = (CheckedTextView) view;
+                viewText = textView.getText();
+            } else if (view instanceof TextView) { // TextView
+                viewType = AopUtil.getViewType(viewType, "TextView");
+                TextView textView = (TextView) view;
+                viewText = textView.getText();
+            } else if (view instanceof ImageView) { // ImageView
+                viewType = AopUtil.getViewType(viewType, "ImageView");
+                ImageView imageView = (ImageView) view;
+                if (!TextUtils.isEmpty(imageView.getContentDescription())) {
+                    viewText = imageView.getContentDescription().toString();
+                }
+            } else if (view instanceof RatingBar) {
+                if (!isFromUser) {
+                    return false;
+                }
+                viewType = AopUtil.getViewType(viewType, "RatingBar");
+                RatingBar ratingBar = (RatingBar) view;
+                viewText = String.valueOf(ratingBar.getRating());
+            } else if (view instanceof SeekBar) {
+                viewType = AopUtil.getViewType(viewType, "SeekBar");
+                SeekBar seekBar = (SeekBar) view;
+                viewText = String.valueOf(seekBar.getProgress());
+            } else if (view instanceof Spinner) {
+                viewType = AopUtil.getViewType(viewType, "Spinner");
+                try {
+                    StringBuilder stringBuilder = new StringBuilder();
+                    viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
+                    if (!TextUtils.isEmpty(viewText)) {
+                        viewText = viewText.toString().substring(0, viewText.length() - 1);
+                    }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
+            } else if (view instanceof ViewGroup) {
+                viewType = AopUtil.getViewGroupTypeByReflect(view);
+                viewText = view.getContentDescription();
+                if (TextUtils.isEmpty(viewText)) {
+                    try {
+                        StringBuilder stringBuilder = new StringBuilder();
+                        viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
+                        if (!TextUtils.isEmpty(viewText)) {
+                            viewText = viewText.toString().substring(0, viewText.length() - 1);
+                        }
+                    } catch (Exception e) {
+                        SALog.printStackTrace(e);
+                    }
+                }
+            }
+
+            if (TextUtils.isEmpty(viewText) && view instanceof TextView) {
+                viewText = ((TextView) view).getHint();
+            }
+
+            if (TextUtils.isEmpty(viewText)) {
+                viewText = view.getContentDescription();
+            }
+
+            if (view instanceof EditText) {
+                viewText = "";
+            }
+
+            //$element_content
+            if (!TextUtils.isEmpty(viewText)) {
+                properties.put(AopConstants.ELEMENT_CONTENT, viewText.toString());
+            }
+
+            //$element_type
+            properties.put(AopConstants.ELEMENT_TYPE, viewType);
+
+            //fragmentName
+            AopUtil.getFragmentNameFromView(view, properties, activity);
+
+            //获取 View 自定义属性
+            JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
+            if (p != null) {
+                AopUtil.mergeJSONObject(p, properties);
+            }
+            return true;
+        } catch (JSONException e) {
+            SALog.printStackTrace(e);
         }
         return false;
     }

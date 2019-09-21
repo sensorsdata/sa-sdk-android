@@ -179,9 +179,9 @@ public class SensorsDataContentProviderTest {
         {
             //app start test
             ContentValues contentValues = new ContentValues();
-            contentValues.put(DbParams.TABLE_APP_STARTED, true);
-            Uri uri = resolver.insert(dbParams.getAppStartUri(), contentValues);
-            assertEquals(uri, dbParams.getAppStartUri());
+            contentValues.put(DbParams.TABLE_ACTIVITY_START_COUNT, true);
+            Uri uri = resolver.insert(dbParams.getActivityStartCountUri(), contentValues);
+            assertEquals(uri, dbParams.getActivityStartCountUri());
             Cursor cursor = resolver.query(uri, null, null, null, null);
             assertNotNull(cursor);
             assertTrue(cursor.moveToNext());
@@ -189,14 +189,14 @@ public class SensorsDataContentProviderTest {
             assertEquals(1, tmp);
             cursor.close();
 
-            int deleteResult = resolver.delete(dbParams.getAppStartUri(), null, null);
+            int deleteResult = resolver.delete(dbParams.getActivityStartCountUri(), null, null);
             assertEquals(0, deleteResult);
 
             //测试空 ContentValues
             contentValues = new ContentValues();
-            contentValues.put(DbParams.TABLE_APP_STARTED, false);
-            uri = resolver.insert(dbParams.getAppStartUri(), contentValues);
-            assertEquals(uri, dbParams.getAppStartUri());
+            contentValues.put(DbParams.TABLE_ACTIVITY_START_COUNT, false);
+            uri = resolver.insert(dbParams.getActivityStartCountUri(), contentValues);
+            assertEquals(uri, dbParams.getActivityStartCountUri());
             cursor = resolver.query(uri, null, null, null, null);
             assertNotNull(cursor);
             assertTrue(cursor.moveToNext());
@@ -205,8 +205,8 @@ public class SensorsDataContentProviderTest {
             cursor.close();
 
             //测试 null 值
-            uri = resolver.insert(dbParams.getAppStartUri(), null);
-            assertEquals(uri, dbParams.getAppStartUri());
+            uri = resolver.insert(dbParams.getActivityStartCountUri(), null);
+            assertEquals(uri, dbParams.getActivityStartCountUri());
             cursor = resolver.query(uri, null, null, null, null);
             assertNotNull(cursor);
             assertTrue(cursor.moveToNext());
@@ -249,55 +249,6 @@ public class SensorsDataContentProviderTest {
             assertTrue(cursor.moveToNext());
             tmp = cursor.getString(0);
             assertEquals("foobar", tmp);
-            cursor.close();
-        }
-
-        {
-            //app end state test
-            //设置 true
-            ContentValues contentValues = new ContentValues();
-            contentValues.put(DbParams.TABLE_APP_END_STATE, true);
-            Uri uri = resolver.insert(dbParams.getAppEndStateUri(), contentValues);
-            assertEquals(uri, dbParams.getAppEndStateUri());
-            Cursor cursor = resolver.query(uri, null, null, null, null);
-            assertNotNull(cursor);
-            assertTrue(cursor.moveToNext());
-            int tmp = cursor.getInt(0);
-            assertEquals(1, tmp);
-            cursor.close();
-
-            //设置 false
-            contentValues.put(DbParams.TABLE_APP_END_STATE, false);
-            uri = resolver.insert(dbParams.getAppEndStateUri(), contentValues);
-            assertEquals(uri, dbParams.getAppEndStateUri());
-            cursor = resolver.query(uri, null, null, null, null);
-            assertNotNull(cursor);
-            assertTrue(cursor.moveToNext());
-            tmp = cursor.getInt(0);
-            assertEquals(0, tmp);
-            cursor.close();
-
-            int deleteResult = resolver.delete(dbParams.getAppEndDataUri(), null, null);
-            assertEquals(0, deleteResult);
-
-            //测试空 ContentValues
-            contentValues = new ContentValues();
-            uri = resolver.insert(dbParams.getAppEndStateUri(), contentValues);
-            assertEquals(uri, dbParams.getAppEndStateUri());
-            cursor = resolver.query(uri, null, null, null, null);
-            assertNotNull(cursor);
-            assertTrue(cursor.moveToNext());
-            tmp = cursor.getInt(0);
-            assertEquals(0, tmp);
-            cursor.close();
-
-            //测试 null 值
-            uri = resolver.insert(dbParams.getAppEndStateUri(), null);
-            cursor = resolver.query(uri, null, null, null, null);
-            assertNotNull(cursor);
-            assertTrue(cursor.moveToNext());
-            tmp = cursor.getInt(0);
-            assertEquals(0, tmp);
             cursor.close();
         }
 

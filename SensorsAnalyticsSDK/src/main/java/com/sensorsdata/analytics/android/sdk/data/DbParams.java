@@ -27,10 +27,9 @@ public class DbParams {
     static final String DATABASE_NAME = "sensorsdata";
     /* 数据库版本号 */
     static final int DATABASE_VERSION = 4;
-    static final String TABLE_APP_STARTED = "app_started";
+    static final String TABLE_ACTIVITY_START_COUNT = "activity_started_count";
     static final String TABLE_APP_START_TIME = "app_start_time";
     static final String TABLE_APP_PAUSED_TIME = "app_paused_time";
-    static final String TABLE_APP_END_STATE = "app_end_state";
     static final String TABLE_APP_END_DATA = "app_end_data";
     static final String TABLE_SESSION_INTERVAL_TIME = "session_interval_time";
     static final String TABLE_LOGIN_ID = "events_login_id";
@@ -40,14 +39,13 @@ public class DbParams {
     /* 数据库状态 */
     static final int DB_UPDATE_ERROR = -1;
     private static DbParams instance;
-    private final Uri mUri, mAppStartUri, mAppStartTimeUri, mAppPausedUri, mAppEndStateUri,
+    private final Uri mUri, mActivityStartCountUri, mAppStartTimeUri, mAppPausedUri,
             mAppEndDataUri, mSessionTimeUri, mLoginIdUri;
 
     private DbParams(String packageName) {
         mUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_EVENTS);
-        mAppStartUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_STARTED);
+        mActivityStartCountUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_ACTIVITY_START_COUNT);
         mAppStartTimeUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_START_TIME);
-        mAppEndStateUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_END_STATE);
         mAppEndDataUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_END_DATA);
         mAppPausedUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_PAUSED_TIME);
         mSessionTimeUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_SESSION_INTERVAL_TIME);
@@ -82,8 +80,8 @@ public class DbParams {
      *
      * @return Uri
      */
-    public Uri getAppStartUri() {
-        return mAppStartUri;
+    public Uri getActivityStartCountUri() {
+        return mActivityStartCountUri;
     }
 
     /**
@@ -102,15 +100,6 @@ public class DbParams {
      */
     Uri getAppPausedUri() {
         return mAppPausedUri;
-    }
-
-    /**
-     * 获取 AppEndState Uri
-     *
-     * @return Uri
-     */
-    Uri getAppEndStateUri() {
-        return mAppEndStateUri;
     }
 
     /**

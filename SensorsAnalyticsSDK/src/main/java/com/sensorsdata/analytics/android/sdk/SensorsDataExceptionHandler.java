@@ -55,8 +55,6 @@ class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHandler {
             SensorsDataAPI.allInstances(new SensorsDataAPI.InstanceProcessor() {
                 @Override
                 public void process(SensorsDataAPI sensorsData) {
-                    SensorsDataTimer.getInstance().shutdownTimerTask();
-                    DbAdapter.getInstance().commitAppPausedTime(System.currentTimeMillis());
                     if (isTrackCrash) {
                         try {
                             final JSONObject messageProp = new JSONObject();
@@ -80,6 +78,11 @@ class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHandler {
                             SALog.printStackTrace(e);
                         }
                     }
+
+                    SensorsDataTimer.getInstance().shutdownTimerTask();
+                    DbAdapter.getInstance().commitAppPausedTime(System.currentTimeMillis());
+                    // 注意这里要重置为 0，对于跨进程的情况，如果子进程崩溃，主进程但是没崩溃，造成统计个数异常，所以要重置为 0。
+                    DbAdapter.getInstance().commitActivityCount(0);
                     sensorsData.flushSync();
                 }
             });

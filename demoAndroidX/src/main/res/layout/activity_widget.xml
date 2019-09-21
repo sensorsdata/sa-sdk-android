@@ -46,14 +46,25 @@
             android:onClick="doOnClick"
             android:src="@mipmap/ic_launcher" />
 
-
         <androidx.appcompat.widget.AppCompatTextView
             android:id="@+id/textViewClick"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:clickable="true"
             android:onClick="doOnClick"
             android:text="Click TestView" />
+
+        <EditText
+            android:id="@+id/EditText"
+            android:text="EditText 内容采集"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <androidx.appcompat.widget.AppCompatEditText
+            android:id="@+id/AppCompatEditText"
+            android:layout_width="match_parent"
+            android:text="AppCompatEditText 内容采集"
+            android:layout_height="wrap_content" />
 
         <include layout="@layout/line" />
 

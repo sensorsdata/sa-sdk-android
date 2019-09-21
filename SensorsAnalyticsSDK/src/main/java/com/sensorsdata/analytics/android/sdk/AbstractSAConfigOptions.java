@@ -125,4 +125,9 @@ abstract class AbstractSAConfigOptions {
      * AnonymousId，匿名 ID
      */
     String mAnonymousId;
+
+    /**
+     * 是否开启多进程
+     */
+    boolean enableMultiProcess = true;
 }
