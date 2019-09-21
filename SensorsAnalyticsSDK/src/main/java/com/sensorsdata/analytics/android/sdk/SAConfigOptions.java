@@ -303,4 +303,14 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
         this.mAnonymousId = anonymousId;
         return this;
     }
+
+    /**
+     * 是否开启多进程
+     * @param enableMultiProcess 是否开启多进程
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions enableMultiProcess(boolean enableMultiProcess) {
+        this.enableMultiProcess = enableMultiProcess;
+        return this;
+    }
 }

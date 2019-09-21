@@ -52,17 +52,28 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
-    public void enableAutoTrackFragment(String fragmentName) {
+    public void ignoreAutoTrackFragments(List<Class<?>> fragmentList) {
+
+    }
+
+    @Override
+    public void ignoreAutoTrackFragment(Class<?> fragment) {
+
+    }
+
+    @Override
+    public void resumeIgnoredAutoTrackFragments(List<Class<?>> fragmentList) {
+
+    }
+
+    @Override
+    public void resumeIgnoredAutoTrackFragment(Class<?> fragment) {
+
     }
 
     @Override
     public boolean isFragmentAutoTrackAppViewScreen(Class<?> fragment) {
         return false;
-    }
-
-    @Override
-    public Set<Integer> getAutoTrackFragments() {
-        return new CopyOnWriteArraySet<>();
     }
 
     @Override
@@ -441,11 +452,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
-    public void trackTimer(String eventName, EventTimer eventTimer) {
-        super.trackTimer(eventName, eventTimer);
-    }
-
-    @Override
     public void trackTimerStart(String eventName) {
 
     }
@@ -512,6 +518,16 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public void trackViewScreen(Object fragment) {
+
+    }
+
+    @Override
+    public void trackViewAppClick(View view) {
+
+    }
+
+    @Override
+    public void trackViewAppClick(View view, JSONObject properties) {
 
     }
 

@@ -21,43 +21,36 @@ import android.util.Log;
 
 
 public class SALog {
-    private static SensorsDataAPI mSensorsDataAPI;
-
-    private SALog() {
-
-    }
-
-    public static void init(SensorsDataAPI sensorsDataAPI) {
-        mSensorsDataAPI = sensorsDataAPI;
-    }
+    private static boolean debug;
+    private static boolean enableLog;
 
     public static void d(String tag, String msg) {
-        if (mSensorsDataAPI.isDebugMode()) {
+        if (debug) {
             info(tag, msg, null);
         }
     }
 
     public static void d(String tag, String msg, Throwable tr) {
-        if (mSensorsDataAPI.isDebugMode()) {
+        if (debug) {
             info(tag, msg, tr);
         }
 
     }
 
     public static void i(String tag, String msg) {
-        if (SensorsDataAPI.sEnableLog) {
+        if (enableLog) {
             info(tag, msg, null);
         }
     }
 
     public static void i(String tag, Throwable tr) {
-        if (SensorsDataAPI.sEnableLog) {
+        if (enableLog) {
             info(tag, "", tr);
         }
     }
 
     public static void i(String tag, String msg, Throwable tr) {
-        if (SensorsDataAPI.sEnableLog) {
+        if (enableLog) {
             info(tag, msg, tr);
         }
     }
@@ -88,5 +81,23 @@ public class SALog {
         if (e != null) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 设置 Debug 状态
+     *
+     * @param isDebug Debug 状态
+     */
+    static void setDebug(boolean isDebug) {
+        debug = isDebug;
+    }
+
+    /**
+     * 设置是否打印 Log
+     *
+     * @param isEnableLog Log 状态
+     */
+    static void setEnableLog(boolean isEnableLog) {
+        enableLog = isEnableLog;
     }
 }

@@ -31,9 +31,7 @@ import android.net.Uri;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndData;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndEventState;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppPaused;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppStart;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppStartTime;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSessionIntervalTime;
@@ -45,26 +43,24 @@ import java.io.File;
 
 public class SensorsDataContentProvider extends ContentProvider {
     private final static int EVENTS = 1;
-    private final static int APP_START = 2;
+    private final static int ACTIVITY_START_COUNT = 2;
     private final static int APP_START_TIME = 3;
-    private final static int APP_END_STATE = 4;
-    private final static int APP_END_DATA = 5;
-    private final static int APP_PAUSED_TIME = 6;
-    private final static int SESSION_INTERVAL_TIME = 7;
-    private final static int LOGIN_ID = 8;
+    private final static int APP_END_DATA = 4;
+    private final static int APP_PAUSED_TIME = 5;
+    private final static int SESSION_INTERVAL_TIME = 6;
+    private final static int LOGIN_ID = 7;
     private static UriMatcher uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 
     private SensorsDataDBHelper dbHelper;
     private ContentResolver contentResolver;
-    private PersistentAppStart persistentAppStart;
     private PersistentAppStartTime persistentAppStartTime;
-    private PersistentAppEndEventState persistentAppEndEventState;
     private PersistentAppEndData persistentAppEndData;
     private PersistentAppPaused persistentAppPaused;
     private PersistentSessionIntervalTime persistentSessionIntervalTime;
     private PersistentLoginId persistentLoginId;
 
     private boolean isDbWritable = true;
+    private int startActivityCount = 0;
 
     @Override
     public boolean onCreate() {
@@ -80,9 +76,8 @@ public class SensorsDataContentProvider extends ContentProvider {
             String authority = packageName + ".SensorsDataContentProvider";
             contentResolver = context.getContentResolver();
             uriMatcher.addURI(authority, DbParams.TABLE_EVENTS, EVENTS);
-            uriMatcher.addURI(authority, DbParams.TABLE_APP_STARTED, APP_START);
+            uriMatcher.addURI(authority, DbParams.TABLE_ACTIVITY_START_COUNT, ACTIVITY_START_COUNT);
             uriMatcher.addURI(authority, DbParams.TABLE_APP_START_TIME, APP_START_TIME);
-            uriMatcher.addURI(authority, DbParams.TABLE_APP_END_STATE, APP_END_STATE);
             uriMatcher.addURI(authority, DbParams.TABLE_APP_END_DATA, APP_END_DATA);
             uriMatcher.addURI(authority, DbParams.TABLE_APP_PAUSED_TIME, APP_PAUSED_TIME);
             uriMatcher.addURI(authority, DbParams.TABLE_SESSION_INTERVAL_TIME, SESSION_INTERVAL_TIME);
@@ -118,8 +113,6 @@ public class SensorsDataContentProvider extends ContentProvider {
                 SALog.printStackTrace(e);
             }
             PersistentLoader.initLoader(context);
-            persistentAppStart = (PersistentAppStart) PersistentLoader.loadPersistent(DbParams.TABLE_APP_STARTED);
-            persistentAppEndEventState = (PersistentAppEndEventState) PersistentLoader.loadPersistent(DbParams.TABLE_APP_END_STATE);
             persistentAppEndData = (PersistentAppEndData) PersistentLoader.loadPersistent(DbParams.TABLE_APP_END_DATA);
             persistentAppStartTime = (PersistentAppStartTime) PersistentLoader.loadPersistent(DbParams.TABLE_APP_START_TIME);
             persistentAppPaused = (PersistentAppPaused) PersistentLoader.loadPersistent(DbParams.TABLE_APP_PAUSED_TIME);
@@ -256,24 +249,15 @@ public class SensorsDataContentProvider extends ContentProvider {
      * @param values ContentValues
      */
     private void insert(int code, Uri uri, ContentValues values) {
-        boolean state;
         switch (code) {
-            case APP_START:
-                state = values.getAsBoolean(DbParams.TABLE_APP_STARTED);
-                persistentAppStart.commit(values.getAsBoolean(DbParams.TABLE_APP_STARTED));
-                if (state) {
-                    contentResolver.notifyChange(uri, null);
-                }
+            case ACTIVITY_START_COUNT:
+                startActivityCount = values.getAsInteger(DbParams.TABLE_ACTIVITY_START_COUNT);
                 break;
             case APP_START_TIME:
                 persistentAppStartTime.commit(values.getAsLong(DbParams.TABLE_APP_START_TIME));
                 break;
             case APP_PAUSED_TIME:
                 persistentAppPaused.commit(values.getAsLong(DbParams.TABLE_APP_PAUSED_TIME));
-                break;
-            case APP_END_STATE:
-                state = values.getAsBoolean(DbParams.TABLE_APP_END_STATE);
-                persistentAppEndEventState.commit(state);
                 break;
             case APP_END_DATA:
                 persistentAppEndData.commit(values.getAsString(DbParams.TABLE_APP_END_DATA));
@@ -300,9 +284,9 @@ public class SensorsDataContentProvider extends ContentProvider {
         String column = null;
         Object data = null;
         switch (code) {
-            case APP_START:
-                data = persistentAppStart.get() ? 1 : 0;
-                column = DbParams.TABLE_APP_STARTED;
+            case ACTIVITY_START_COUNT:
+                data = startActivityCount;
+                column = DbParams.TABLE_ACTIVITY_START_COUNT;
                 break;
             case APP_START_TIME:
                 data = persistentAppStartTime.get();
@@ -311,10 +295,6 @@ public class SensorsDataContentProvider extends ContentProvider {
             case APP_PAUSED_TIME:
                 data = persistentAppPaused.get();
                 column = DbParams.TABLE_APP_PAUSED_TIME;
-                break;
-            case APP_END_STATE:
-                data = persistentAppEndEventState.get() ? 1 : 0;
-                column = DbParams.TABLE_APP_END_STATE;
                 break;
             case APP_END_DATA:
                 data = persistentAppEndData.get();

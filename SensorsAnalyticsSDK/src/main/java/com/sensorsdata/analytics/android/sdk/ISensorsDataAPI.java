@@ -22,6 +22,8 @@ import android.content.Context;
 import android.view.View;
 import android.webkit.WebView;
 
+import com.sensorsdata.analytics.android.sdk.internal.IFragmentAPI;
+
 import org.json.JSONObject;
 
 import java.util.List;
@@ -31,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLSocketFactory;
 
-public interface ISensorsDataAPI {
+public interface ISensorsDataAPI extends IFragmentAPI {
     /**
      * 返回预置属性
      *
@@ -204,19 +206,6 @@ public interface ISensorsDataAPI {
     boolean isAutoTrackEnabled();
 
     /**
-     * 是否开启自动追踪 Fragment 的 $AppViewScreen 事件
-     * 默认不开启
-     */
-    void trackFragmentAppViewScreen();
-
-    /**
-     * 是否开启 Fragment 页面浏览
-     *
-     * @return true：开启，false：关闭
-     */
-    boolean isTrackFragmentAppViewScreenEnabled();
-
-    /**
      * 开启 AutoTrack 支持 React Native
      */
     void enableReactNativeAutoTrack();
@@ -309,27 +298,6 @@ public interface ISensorsDataAPI {
     void resumeAutoTrackActivity(Class<?> activity);
 
     /**
-     * 指定 fragment 被 AutoTrack 采集
-     *
-     * @param fragment Fragment
-     */
-    void enableAutoTrackFragment(Class<?> fragment);
-
-    /**
-     * 指定 fragments 被 AutoTrack 采集
-     *
-     * @param fragmentsList Fragment 集合
-     */
-    void enableAutoTrackFragments(List<Class<?>> fragmentsList);
-
-    /**
-     * 指定 fragment 被 AutoTrack 采集
-     *
-     * @param fragmentName String
-     */
-    void enableAutoTrackFragment(String fragmentName);
-
-    /**
      * 判断 AutoTrack 时，某个 Activity 的 $AppViewScreen 是否被过滤
      * 如果过滤的话，会过滤掉 Activity 的 $AppViewScreen 事件
      *
@@ -337,14 +305,6 @@ public interface ISensorsDataAPI {
      * @return Activity 是否被采集
      */
     boolean isActivityAutoTrackAppViewScreenIgnored(Class<?> activity);
-
-    /**
-     * 判断 AutoTrack 时，某个 Fragment 的 $AppViewScreen 是否被采集
-     *
-     * @param fragment Fragment
-     * @return Fragment 是否被采集
-     */
-    boolean isFragmentAutoTrackAppViewScreen(Class<?> fragment);
 
     /**
      * 判断 AutoTrack 时，某个 Activity 的 $AppClick 是否被过滤
@@ -456,13 +416,6 @@ public interface ISensorsDataAPI {
      * @return 忽略采集的 View 集合
      */
     List<Class> getIgnoredViewTypeList();
-
-    /**
-     * 获取需要采集的 Fragment 集合
-     *
-     * @return Set
-     */
-    Set<Integer> getAutoTrackFragments();
 
     /**
      * 忽略某一类型的 View
@@ -701,19 +654,6 @@ public interface ISensorsDataAPI {
     void trackTimer(final String eventName, final TimeUnit timeUnit);
 
     /**
-     * 初始化事件的计时器。
-     * 若需要统计某个事件的持续时间，先在事件开始时调用 trackTimer("Event") 记录事件开始时间，该方法并不会真正发
-     * 送事件；随后在事件结束时，调用 track("Event", properties)，SDK 会追踪 "Event" 事件，并自动将事件持续时
-     * 间记录在事件属性 "event_duration" 中。
-     * 多次调用 trackTimer("Event") 时，事件 "Event" 的开始时间以最后一次调用时为准。
-     *
-     * @param eventName 事件的名称
-     * @param eventTimer 事件的自定义 EventTimer
-     */
-    @Deprecated
-    void trackTimer(final String eventName, final EventTimer eventTimer);
-
-    /**
      * 删除事件的计时器
      *
      * @param eventName 事件名称
@@ -787,7 +727,7 @@ public interface ISensorsDataAPI {
     JSONObject getLastScreenTrackProperties();
 
     /**
-     * Track 进入页面事件 ($AppViewScreen)
+     * Track 进入页面事件 ($AppViewScreen)，该接口需要在 properties 中手动设置 $screen_name 和 $title 属性。
      *
      * @param url String
      * @param properties JSONObject
@@ -807,6 +747,21 @@ public interface ISensorsDataAPI {
      * @param fragment Fragment
      */
     void trackViewScreen(Object fragment);
+
+    /**
+     * Track 控件点击事件 ($AppClick)
+     *
+     * @param view View
+     */
+    void trackViewAppClick(View view);
+
+    /**
+     * Track 控件点击事件 ($AppClick)
+     *
+     * @param view View
+     * @param properties 事件属性
+     */
+    void trackViewAppClick(View view, JSONObject properties);
 
     /**
      * 将所有本地缓存的日志发送到 Sensors Analytics.

@@ -25,9 +25,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.sensorsdata.analytics.android.sdk.PropertyBuilder;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndData;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndEventState;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppPaused;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppStart;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppStartTime;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentDistinctId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
@@ -97,30 +95,6 @@ public class PersistentTest {
         SharedPreferences sharedPreferences = context.getSharedPreferences("com.sensorsdata.analytics.android.sdk.SensorsDataAPI", Context.MODE_PRIVATE);
         sharedPreferences.edit().clear().apply();
 
-        // PersistentAppStart
-        {
-            PersistentAppStart persistentAppStart = (PersistentAppStart) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.APP_START_STATE);
-            assertNotNull(persistentAppStart);
-            boolean result = persistentAppStart.get();
-            assertTrue(result);
-
-            persistentAppStart.commit(null);
-            result = persistentAppStart.get();
-            assertTrue(result);
-
-            persistentAppStart.commit(false);
-            result = persistentAppStart.get();
-            assertFalse(result);
-
-            persistentAppStart.commit(true);
-            result = persistentAppStart.get();
-            assertTrue(result);
-
-            persistentAppStart.commit(null);
-            result = persistentAppStart.get();
-            assertTrue(result);
-        }
-
         // PersistentSuperProperties
         sharedPreferences.edit().clear().apply();
         {
@@ -165,27 +139,6 @@ public class PersistentTest {
             persistentAppEndData.commit(testStr);
             String tmp = persistentAppEndData.get();
             assertThat(tmp, allOf(notNullValue(), equalTo(testStr)));
-        }
-
-        //  PersistentAppEndEventState
-        sharedPreferences.edit().clear().apply();
-        {
-            PersistentAppEndEventState persistentAppEndEventState = (PersistentAppEndEventState) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.APP_END_STATE);
-            assertNotNull(persistentAppEndEventState);
-            boolean result = persistentAppEndEventState.get();
-            assertTrue(result);
-
-            persistentAppEndEventState.commit(null);
-            result = persistentAppEndEventState.get();
-            assertTrue(result);
-
-            persistentAppEndEventState.commit(false);
-            result = persistentAppEndEventState.get();
-            assertFalse(result);
-
-            persistentAppEndEventState.commit(true);
-            result = persistentAppEndEventState.get();
-            assertTrue(result);
         }
 
         //  PersistentAppPaused

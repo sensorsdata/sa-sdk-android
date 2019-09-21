@@ -21,6 +21,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.*
 import com.sensorsdata.analytics.android.sdk.SALog
+import com.sensorsdata.analytics.android.sdk.SensorsDataAPI
 import com.sensorsdata.analytics.android.sdk.SensorsDataTrackViewOnClick
 import kotlinx.android.synthetic.main.activity_widget.*
 
@@ -43,12 +44,15 @@ class WidgetTestActivity : BaseActivity(), CompoundButton.OnCheckedChangeListene
             SALog.i(TAG, "${setOnClickBtn.text} button clicked")
         }
 
+        EditText.setOnClickListener { }
+        AppCompatEditText.setOnClickListener { }
+
         checkbox1.setOnCheckedChangeListener(this)
         checkbox2.setOnCheckedChangeListener(this)
-        checkbox3.setOnClickListener {  }
+        checkbox3.setOnClickListener { }
         radio1.setOnCheckedChangeListener(this)
         radio2.setOnCheckedChangeListener(this)
-        radio3.setOnClickListener {  }
+        radio3.setOnClickListener { }
         radioGroup.setOnCheckedChangeListener(this)
         compatRatingBar.onRatingBarChangeListener = this
         ratingBar.onRatingBarChangeListener = this
@@ -61,17 +65,23 @@ class WidgetTestActivity : BaseActivity(), CompoundButton.OnCheckedChangeListene
         switch1.setOnCheckedChangeListener(this)
         switchCompat.setOnCheckedChangeListener(this)
         toggleButton.setOnCheckedChangeListener(this)
-        mycardview.setOnClickListener{
+        mycardview.setOnClickListener {
 
         }
-        cardview.setOnClickListener{
+        cardview.setOnClickListener {
 
         }
-        material_cardview.setOnClickListener{
+        material_cardview.setOnClickListener {
 
         }
-        linearlayout.setOnClickListener {  }
-        mylinearlayout.setOnClickListener {  }
+        linearlayout.setOnClickListener { }
+        mylinearlayout.setOnClickListener { }
+        SensorsDataAPI.sharedInstance().ignoreView(changeSeekBar)
+        SensorsDataAPI.sharedInstance().ignoreView(changeRatingBar)
+        SensorsDataAPI.sharedInstance().ignoreView(changeRadioBtn)
+        SensorsDataAPI.sharedInstance().ignoreView(changSwitchBtn)
+        SensorsDataAPI.sharedInstance().ignoreView(changeCheckedBtn)
+        SensorsDataAPI.sharedInstance().ignoreView(changeToggleBtn)
     }
 
     @SensorsDataTrackViewOnClick
@@ -103,10 +113,10 @@ class WidgetTestActivity : BaseActivity(), CompoundButton.OnCheckedChangeListene
                 toggleButton.isChecked = !toggleButton.isChecked
             }
             R.id.changeSeekBar -> {
-                seekBar.progress = 50
+                seekBar.progress = 10
             }
             R.id.changeRatingBar -> {
-                ratingBar.progress = 30
+                ratingBar.rating = 2f
             }
             else -> {
 
