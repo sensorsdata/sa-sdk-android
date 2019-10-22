@@ -721,6 +721,29 @@ public final class SensorsDataUtils {
     }
 
     /**
+     * 获取设备唯一标识
+     *
+     * @param mContext Context
+     * @return 设备唯一标识
+     */
+    public static String getIMEIOld(Context mContext) {
+        String imei = "";
+        try {
+            if (!checkHasPermission(mContext, "android.permission.READ_PHONE_STATE")) {
+                return imei;
+            }
+
+            TelephonyManager tm = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
+            if (tm != null) {
+                imei = tm.getDeviceId();
+            }
+        } catch (Exception e) {
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+        }
+        return imei;
+    }
+
+    /**
      * 此方法谨慎修改
      * 插件配置 disableAndroidID 会修改此方法
      * 获取 Android ID
@@ -877,17 +900,17 @@ public final class SensorsDataUtils {
         }
         return isRequestValid;
     }
-
+    
     public static boolean hasUtmProperties(JSONObject properties) {
         if (properties == null) {
-            return true;
+            return false;
         }
 
-        return !properties.has("$utm_source") &&
-                !properties.has("$utm_medium") &&
-                !properties.has("$utm_term") &&
-                !properties.has("$utm_content") &&
-                !properties.has("$utm_campaign");
+        return properties.has("$utm_source") ||
+                properties.has("$utm_medium") ||
+                properties.has("$utm_term") ||
+                properties.has("$utm_content") ||
+                properties.has("$utm_campaign");
     }
 
     /**

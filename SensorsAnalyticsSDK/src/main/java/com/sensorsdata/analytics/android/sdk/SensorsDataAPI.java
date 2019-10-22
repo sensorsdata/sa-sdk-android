@@ -42,8 +42,6 @@ import android.view.WindowManager;
 import android.webkit.WebView;
 import android.widget.Toast;
 
-import com.sensorsdata.analytics.android.sdk.internal.FragmentAPI;
-import com.sensorsdata.analytics.android.sdk.internal.IFragmentAPI;
 import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentDistinctId;
@@ -54,10 +52,13 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrac
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProperties;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
+import com.sensorsdata.analytics.android.sdk.internal.FragmentAPI;
+import com.sensorsdata.analytics.android.sdk.internal.IFragmentAPI;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.DateFormatUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
+import com.sensorsdata.analytics.android.sdk.util.SADeviceUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONArray;
@@ -327,7 +328,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param context App 的 Context
      * @param saConfigOptions SDK 的配置项
      */
-    public static void startWithConfiguration(Context context, SAConfigOptions saConfigOptions) {
+    public static void startWithConfigOptions(Context context, SAConfigOptions saConfigOptions) {
         if (context == null || saConfigOptions == null) {
             throw new NullPointerException("Context、SAConfigOptions 不可以为 null");
         }
@@ -1718,7 +1719,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     }
                     if (firstTrackInstallation) {
                         try {
-                            if (SensorsDataUtils.hasUtmProperties(_properties)) {
+                            if (!SensorsDataUtils.hasUtmProperties(_properties)) {
                                 Map<String, String> utmMap = new HashMap<>();
                                 utmMap.put("SENSORS_ANALYTICS_UTM_SOURCE", "$utm_source");
                                 utmMap.put("SENSORS_ANALYTICS_UTM_MEDIUM", "$utm_medium");
@@ -1736,11 +1737,13 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                                 }
                             }
 
-                            if (SensorsDataUtils.hasUtmProperties(_properties)) {
-                                String installSource = String.format("android_id=%s##imei=%s##mac=%s",
+                            if (!SensorsDataUtils.hasUtmProperties(_properties)) {
+                                String installSource = String.format("android_id=%s##imei=%s##imei_old=%s##mac=%s##oaid=%s",
                                         mAndroidId,
                                         SensorsDataUtils.getIMEI(mContext),
-                                        SensorsDataUtils.getMacAddress(mContext));
+                                        SensorsDataUtils.getIMEIOld(mContext),
+                                        SensorsDataUtils.getMacAddress(mContext),
+                                        SADeviceUtils.getOAID(mContext));
                                 if (_properties.has("$gaid")) {
                                     installSource = String.format("%s##gaid=%s", installSource, _properties.optString("$gaid"));
                                 }
@@ -2899,7 +2902,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     sendProperties.put("$wifi", "WIFI".equals(networkType));
                     sendProperties.put("$network_type", networkType);
 
-
                     // GPS
                     try {
                         if (mGPSLocation != null) {
@@ -2926,6 +2928,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 }
 
                 String libDetail = null;
+                String lib_version = VERSION;
+                String app_version = mDeviceInfo.containsKey("$app_version") ? (String) mDeviceInfo.get("$app_version") : "";
                 long eventTime = System.currentTimeMillis();
                 if (null != properties) {
                     try {
@@ -2941,6 +2945,20 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         if ("$AppEnd".equals(eventName)) {
                             long appEndTime = properties.getLong("event_time");
                             eventTime = appEndTime > 0 ? appEndTime : eventTime;
+                            String appEnd_lib_version = properties.optString("$lib_version");
+                            String appEnd_app_version = properties.optString("$app_version");
+                            if (!TextUtils.isEmpty(appEnd_lib_version)) {
+                                lib_version = appEnd_lib_version;
+                            } else {
+                                properties.remove("$lib_version");
+                            }
+
+                            if (!TextUtils.isEmpty(appEnd_app_version)) {
+                                app_version = appEnd_app_version;
+                            } else {
+                                properties.remove("$app_version");
+                            }
+
                             properties.remove("event_time");
                         }
                     } catch (Exception e) {
@@ -2963,11 +2981,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
                 JSONObject libProperties = new JSONObject();
                 libProperties.put("$lib", "Android");
-                libProperties.put("$lib_version", VERSION);
-
-                if (mDeviceInfo.containsKey("$app_version")) {
-                    libProperties.put("$app_version", mDeviceInfo.get("$app_version"));
-                }
+                libProperties.put("$lib_version", lib_version);
+                libProperties.put("$app_version", app_version);
 
                 //update lib $app_version from super properties
                 JSONObject superProperties = mSuperProperties.get();
@@ -3188,7 +3203,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     private void assertValue(String value) throws InvalidDataException {
         if (TextUtils.isEmpty(value)) {
-            throw new InvalidDataException("The " + value + " is empty.");
+            throw new InvalidDataException("The value is empty.");
         }
         if (value.length() > 255) {
             throw new InvalidDataException("The " + value + " is too long, max length is 255.");

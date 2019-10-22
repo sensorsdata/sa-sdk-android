@@ -349,4 +349,17 @@ public class SensorsDataAPITest {
             ex.printStackTrace();
         }
     }
+
+    @Test
+    public void assertValueTest() {
+        try {
+            Context context = ApplicationProvider.getApplicationContext();
+            SAConfigOptions saConfigOptions = new SAConfigOptions("");
+            saConfigOptions.enableLog(true);
+            SensorsDataAPI.startWithConfigOptions(context, saConfigOptions);
+            SensorsDataAPI.sharedInstance().identify("");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
 }

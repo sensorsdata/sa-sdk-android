@@ -21,7 +21,11 @@ SensorsAnalytics SDK 是国内第一家，也是目前唯一的开源商用版�
 
 ## 贡献
 
-我们欢迎并非常感谢您的贡献。有关提交代码和贡献工作流的详细信息，可参考 [CONTRIBUTING.md](CONTRIBUTING.md)。
+* 1.  在您的 GitHub 账户下 fork sa-sdk-android 开源项目；
+* 2.  根据您的需求在本地 clone 一份 sa-sdk-android 源码；
+* 3.  您修改或者新增功能后，push 到您 fork 的远程分支；
+* 4.  创建 pull request，向 sa-sdk-android 官方开发分支提交合入请求；
+* 5.  神策 SDK 研发团队会及时 review 代码，测试通过后合入。
 
 ## 规划
 
@@ -29,7 +33,7 @@ SensorsAnalytics SDK 是国内第一家，也是目前唯一的开源商用版�
 
 ## 讨论
 
-可加入神策官方 SDK QQ 讨论群：<br><br>
+可以扫码加入神策官方 SDK QQ 讨论群：<br><br>
 ![ QQ 讨论群](docs/qrCode.jpeg)
 
 ## 新书推荐
@@ -59,5 +63,3 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
-**同时，我们禁止一切基于神策数据开源 SDK 的商业活动！**
