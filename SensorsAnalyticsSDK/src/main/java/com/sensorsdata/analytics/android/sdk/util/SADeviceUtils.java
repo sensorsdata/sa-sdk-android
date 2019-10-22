@@ -19,6 +19,7 @@ public class SADeviceUtils {
     /**
      * 获取 OAID 接口，注意该接口是同步接口，可能会导致线程阻塞，建议在子线程中使用
      *
+     * @param context Context
      * @return OAID
      */
     public static String getOAID(final Context context) {

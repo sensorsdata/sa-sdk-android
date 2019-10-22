@@ -25,6 +25,8 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.database.ContentObserver;
 import android.graphics.Color;
 import android.net.Uri;
@@ -68,6 +70,8 @@ import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF
 class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
     private static final String TAG = "SA.LifecycleCallbacks";
     private static final String EVENT_TIMER = "event_timer";
+    private static final String LIB_VERSION = "$lib_version";
+    private static final String APP_VERSION = "$app_version";
     private final SensorsDataAPI mSensorsDataInstance;
     private final PersistentFirstStart mFirstStart;
     private final PersistentFirstDay mFirstDay;
@@ -89,6 +93,10 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private final String APP_END_DATA = "app_end_data";
     // App 是否重置标记位
     private final String APP_RESET_STATE = "app_reset_state";
+    // App 版本号
+    private String app_version;
+    // SDK 版本号
+    private String lib_version;
     private Handler handler;
     /**
      * 打点时间间隔：2000 毫秒
@@ -112,6 +120,14 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         this.mDbAdapter = DbAdapter.getInstance();
         this.isMultiProcess = mSensorsDataInstance.isMultiProcess();
         this.sessionTime = mDbAdapter.getSessionIntervalTime();
+        try {
+            final PackageManager manager = mContext.getPackageManager();
+            final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
+            app_version = info.versionName;
+            lib_version = SensorsDataAPI.VERSION;
+        } catch (final Exception e) {
+            SALog.i(TAG, "Exception getting version name = ", e);
+        }
         initHandler();
     }
 
@@ -330,10 +346,13 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                         JSONObject properties = new JSONObject();
                         properties.put("$screen_name", endDataJsonObject.optString("$screen_name"));
                         properties.put("$title", endDataJsonObject.optString("$title"));
+                        properties.put(LIB_VERSION, endDataJsonObject.optString(LIB_VERSION));
+                        properties.put(APP_VERSION, endDataJsonObject.optString(APP_VERSION));
                         mSensorsDataInstance.clearLastScreenUrl();
                         properties.put("event_time", pausedTime);
                         mSensorsDataInstance.track("$AppEnd", properties);
                         mDbAdapter.commitAppEndData(""); // 保存的信息只使用一次就置空，防止后面状态错乱再次发送。
+                        mSensorsDataInstance.flushSync();
                     }
                 }
             }
@@ -348,6 +367,8 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private void generateAppEndData() {
         try {
             endDataProperty.put(EVENT_TIMER, SystemClock.elapsedRealtime());
+            endDataProperty.put(APP_VERSION, app_version);
+            endDataProperty.put(LIB_VERSION, lib_version);
             mDbAdapter.commitAppEndData(endDataProperty.toString());
             mDbAdapter.commitAppPausedTime(System.currentTimeMillis());
         } catch (Exception e) {
