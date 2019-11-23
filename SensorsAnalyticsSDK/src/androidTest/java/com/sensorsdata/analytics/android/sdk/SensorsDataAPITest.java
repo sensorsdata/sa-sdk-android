@@ -43,6 +43,9 @@ import static org.junit.Assert.assertNull;
 
 @RunWith(AndroidJUnit4.class)
 public class SensorsDataAPITest {
+
+    private static final String TAG = "SensorsDataAPITest";
+
     private static String userId;
 
     @BeforeClass
@@ -361,5 +364,72 @@ public class SensorsDataAPITest {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
+    }
+
+
+    @Test
+    public void SAConfigOptionsTest() {
+        try {
+            final boolean IS_LOG_ENABLE = true;
+            final int FLUSH_BULK_SIZE = 60;
+            final int FLUSH_INTERVAL = 6 * 1000;
+            final long MAX_CACHE_SIZE = 24 * 1024 * 1024L;
+            final int NETWORK_TYPE = SensorsNetworkType.TYPE_WIFI;
+            final int AUTO_TRACK_EVENT_TYPE = SensorsDataAPI.AutoTrackEventType.APP_CLICK.getEventValue();
+            final boolean FLAG = false;
+
+            Context context = ApplicationProvider.getApplicationContext();
+
+            SAConfigOptions saConfigOptions = new SAConfigOptions("");
+            saConfigOptions.enableLog(IS_LOG_ENABLE)
+                    .setFlushBulkSize(FLUSH_BULK_SIZE)
+                    .setFlushInterval(FLUSH_INTERVAL)
+                    .setMaxCacheSize(MAX_CACHE_SIZE)
+                    .setNetworkTypePolicy(NETWORK_TYPE)
+                    .setAutoTrackEventType(AUTO_TRACK_EVENT_TYPE)
+                    .enableReactNativeAutoTrack(FLAG)
+                    .enableVisualizedAutoTrackConfirmDialog(FLAG)
+                    .enableVisualizedAutoTrack(FLAG)
+                    .enableHeatMapConfirmDialog(FLAG)
+                    .enableHeatMapSSLCheck(FLAG)
+                    .enableTrackScreenOrientation(FLAG)
+                    .enableVisualizedAutoTrackSSLCheck(FLAG)
+                    .enableHeatMap(FLAG)
+                    .enableTrackAppCrash();
+
+            SensorsDataAPI.sharedInstance().startWithConfigOptions(context, saConfigOptions);
+
+            assertEquals(FLUSH_BULK_SIZE, SensorsDataAPI.sharedInstance().getFlushBulkSize());
+            assertEquals(FLUSH_INTERVAL, SensorsDataAPI.sharedInstance().getFlushInterval());
+            assertEquals(MAX_CACHE_SIZE, SensorsDataAPI.sharedInstance().getMaxCacheSize());
+            assertEquals(NETWORK_TYPE, SensorsDataAPI.sharedInstance().getFlushNetworkPolicy());
+
+            assertEquals(FLAG, SensorsDataAPI.sharedInstance().isReactNativeAutoTrackEnabled());
+            assertEquals(FLAG, SensorsDataAPI.sharedInstance().isVisualizedAutoTrackConfirmDialogEnabled());
+            assertEquals(FLAG, SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled());
+            assertEquals(FLAG, SensorsDataAPI.sharedInstance().isAppHeatMapConfirmDialogEnabled());
+            assertEquals(FLAG, SensorsDataAPI.sharedInstance().isHeatMapSSLCheckEnabled());
+            assertEquals(FLAG, SensorsDataAPI.sharedInstance().isHeatMapEnabled());
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+
+    @Test
+    public void maxCacheSizeTest() {
+        Context context = ApplicationProvider.getApplicationContext();
+        SensorsDataAPI.sharedInstance(context, new SAConfigOptions(""));
+        long normal = 16 * 1024 * 1024;
+        long greater = 20 * 1024 * 1024;
+        SensorsDataAPI.sharedInstance().setMaxCacheSize(greater);
+        assertEquals(greater, SensorsDataAPI.sharedInstance().getMaxCacheSize());
+        long lesser = 10 * 1024 * 1024;
+        SensorsDataAPI.sharedInstance().setMaxCacheSize(lesser);
+        assertEquals(normal, SensorsDataAPI.sharedInstance().getMaxCacheSize());
+        long negative = -1;
+        SensorsDataAPI.sharedInstance().setMaxCacheSize(negative);
+        assertEquals(normal, SensorsDataAPI.sharedInstance().getMaxCacheSize());
     }
 }

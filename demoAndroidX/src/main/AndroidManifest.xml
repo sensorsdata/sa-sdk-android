@@ -14,7 +14,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".TestMainActivity">
+        <activity android:name=".activity.TestMainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -33,27 +33,41 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".BasePropertyActivity" />
+        <activity android:name=".activity.BasePropertyActivity" />
 
-        <activity android:name=".TrackProfileSettingsActivity" />
+        <activity android:name=".activity.TrackProfileSettingsActivity" />
 
-        <activity android:name=".H5Activity" />
+        <activity android:name=".activity.H5Activity" />
 
-        <activity android:name=".WidgetTestActivity" />
+        <activity android:name=".activity.WidgetTestActivity" />
 
-        <activity android:name=".DataBindingLambdaActivity" />
+        <activity android:name=".activity.DataBindingLambdaActivity" />
 
-        <activity android:name=".ViewPagerTestActivity" />
+        <activity android:name=".activity.ViewScreenActivity" />
 
-        <activity android:name=".ViewScreenActivity" />
+        <activity android:name=".activity.ViewScreenIgnoreActivity" />
 
-        <activity android:name=".ViewScreenIgnoreActivity" />
+        <activity android:name=".activity.ListViewTestActivity" />
+        <activity android:name=".activity.FragmentActivity" />
+        <activity android:name=".activity.ClickActivity" />
+        <activity android:name=".activity.KotlinActivity" />
+        <activity android:name=".activity.TabAppFrgActivity" />
+        <activity android:name=".activity.TabFrgActivity" />
+        <activity android:name=".activity.VPAppFrgActivity" />
+        <activity android:name=".activity.VPFrgActivity" />
+        <activity android:name=".activity.VPVPFrgActivity" />
+        <activity android:name=".activity.DialogActivity" />
 
-        <activity android:name=".ListViewTestActivity" />
+        <activity android:name=".activity.MyTabHostActivity" />
+        <activity android:name=".activity.TabVPFragActivity" />
 
-        <activity android:name=".HintTestActivity" />
+        <activity android:name=".activity.NavigationViewActivity" />
 
-        <activity android:name=".CrashTestActivity" />
+        <activity android:name=".activity.HintTestActivity" />
+
+        <activity android:name=".activity.CrashTestActivity" />
+
+        <activity android:name=".PopupMenuActivity" />
 
         <meta-data
             android:name="com.sensorsdata.analytics.android.EnableLogging"

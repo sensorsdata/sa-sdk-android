@@ -100,4 +100,8 @@ public class SALog {
     static void setEnableLog(boolean isEnableLog) {
         enableLog = isEnableLog;
     }
+
+    static boolean isLogEnabled() {
+        return enableLog;
+    }
 }

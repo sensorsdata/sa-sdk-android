@@ -23,11 +23,14 @@ public class SADeviceUtilsTest {
     public GrantPermissionRule grantPermissionRule = GrantPermissionRule.grant(Manifest.permission.READ_PHONE_STATE);
 
     @Before
-    public void initSensorsDataAPI(){
+    public void initSensorsDataAPI() {
         Context context = ApplicationProvider.getApplicationContext();
         SensorsDataAPI.sharedInstance(context, new SAConfigOptions("").enableLog(true));
     }
 
+    /**
+     * 需集成 oaid 的 aar 包
+     */
     @Test
     public void getOAID() {
         try {

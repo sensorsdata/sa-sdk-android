@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/tv_frg_2"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/orange"
+        android:gravity="center"
+        android:text="Frg_2" />
+
+    <androidx.viewpager.widget.ViewPager
+        android:id="@+id/frg_2_vp"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"></androidx.viewpager.widget.ViewPager>
+
+</FrameLayout>

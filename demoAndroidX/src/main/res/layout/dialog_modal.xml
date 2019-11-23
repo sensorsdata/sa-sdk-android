@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/shape_bg_dialog_modal"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="47dp"
+        android:background="@drawable/shape_oval_f4f8fd"
+        android:gravity="center_horizontal|center_vertical">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:padding="18dp"
+            android:src="@mipmap/qr_code" />
+    </LinearLayout>
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/errorTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp"
+        android:gravity="center_horizontal"
+        android:textColor="#475669"
+        android:textSize="18dip"
+        android:textStyle="bold"
+        tools:text="登录失败" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/errorMsg"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="14dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginRight="14dp"
+        android:layout_marginBottom="36.5dp"
+        android:gravity="center_horizontal"
+        android:lineSpacingExtra="2dp"
+        android:textColor="#ff0000"
+        android:textSize="13dip"
+        tools:text="扫码超时,请重新扫码扫码超时" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dip"
+        android:layout_marginLeft="12dp"
+        android:layout_marginRight="12dp"
+        android:background="#333333" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/actionIKnow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:paddingTop="7.5dp"
+        android:paddingBottom="12dp"
+        android:text="我知道了"
+        android:textColor="#000000"
+        android:textSize="15dip" />
+</LinearLayout>

@@ -249,33 +249,16 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         try {
             if (mSensorsDataInstance.isAutoTrackEnabled() && !mSensorsDataInstance.isActivityAutoTrackAppViewScreenIgnored(activity.getClass())
                     && !mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
-                try {
-                    JSONObject properties = new JSONObject();
-                    SensorsDataUtils.mergeJSONObject(activityProperty, properties);
-                    if (activity instanceof ScreenAutoTracker) {
-                        ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
-                        String screenUrl = screenAutoTracker.getScreenUrl();
-                        JSONObject otherProperties = screenAutoTracker.getTrackProperties();
-                        if (otherProperties != null) {
-                            SensorsDataUtils.mergeJSONObject(otherProperties, properties);
-                        }
-
-                        mSensorsDataInstance.trackViewScreen(screenUrl, properties);
-                    } else {
-                        SensorsDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = activity.getClass().getAnnotation(SensorsDataAutoTrackAppViewScreenUrl.class);
-                        if (autoTrackAppViewScreenUrl != null) {
-                            String screenUrl = autoTrackAppViewScreenUrl.url();
-                            if (TextUtils.isEmpty(screenUrl)) {
-                                screenUrl = activity.getClass().getCanonicalName();
-                            }
-                            mSensorsDataInstance.trackViewScreen(screenUrl, properties);
-                        } else {
-                            mSensorsDataInstance.track("$AppViewScreen", properties);
-                        }
+                JSONObject properties = new JSONObject();
+                SensorsDataUtils.mergeJSONObject(activityProperty, properties);
+                if (activity instanceof ScreenAutoTracker) {
+                    ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
+                    JSONObject otherProperties = screenAutoTracker.getTrackProperties();
+                    if (otherProperties != null) {
+                        SensorsDataUtils.mergeJSONObject(otherProperties, properties);
                     }
-                } catch (Exception e) {
-                    SALog.i(TAG, e);
                 }
+                mSensorsDataInstance.trackViewScreen(SensorsDataUtils.getScreenUrl(activity), properties);
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -484,7 +467,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                     String serverUrl = mSensorsDataInstance.getServerUrl();
                     SensorsDataAPI.DebugMode mCurrentDebugMode = mSensorsDataInstance.getDebugMode();
                     if (mSensorsDataInstance.isNetworkRequestEnable() && !TextUtils.isEmpty(serverUrl) && !TextUtils.isEmpty(infoId) && mCurrentDebugMode != SensorsDataAPI.DebugMode.DEBUG_OFF) {
-                        new SendDebugIdThread(serverUrl, mSensorsDataInstance.getDistinctId(), infoId).start();
+                        new SendDebugIdThread(serverUrl, mSensorsDataInstance.getDistinctId(), infoId, ThreadNameConstants.THREAD_SEND_DISTINCT_ID).start();
                     }
                     String currentDebugToastMsg = "";
                     if (mCurrentDebugMode == SensorsDataAPI.DebugMode.DEBUG_OFF) {
@@ -650,7 +633,8 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         private String infoId;
         private String serverUrl;
 
-        SendDebugIdThread(String serverUrl, String distinctId, String infoId) {
+        SendDebugIdThread(String serverUrl, String distinctId, String infoId, String name) {
+            super(name);
             this.distinctId = distinctId;
             this.infoId = infoId;
             this.serverUrl = serverUrl;

@@ -84,6 +84,8 @@ public class JSONUtils {
                             addIndentBlank(sb, indent);
                         }
                         break;
+                    case '\\':
+                        break;
                     default:
                         sb.append(current);
                 }

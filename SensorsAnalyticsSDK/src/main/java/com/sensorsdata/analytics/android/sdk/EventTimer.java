@@ -27,7 +27,7 @@ class EventTimer {
     private long startTime;
     private long endTime;
     private long eventAccumulatedDuration;
-    private boolean isPause = false;
+    private boolean isPaused = false;
 
     EventTimer(TimeUnit timeUnit) {
         this.startTime = SystemClock.elapsedRealtime();
@@ -44,7 +44,7 @@ class EventTimer {
     }
 
     String duration() {
-        if (isPause) {
+        if (isPaused) {
             endTime = startTime;
         } else {
             endTime = endTime < 0 ? SystemClock.elapsedRealtime() : endTime;
@@ -93,15 +93,15 @@ class EventTimer {
         this.eventAccumulatedDuration = eventAccumulatedDuration;
     }
 
-    void setTimerState(boolean isPause) {
-        this.isPause = isPause;
-        if (isPause) {
+    void setTimerState(boolean isPaused) {
+        this.isPaused = isPaused;
+        if (isPaused) {
             eventAccumulatedDuration = eventAccumulatedDuration + SystemClock.elapsedRealtime() - startTime;
         }
         startTime = SystemClock.elapsedRealtime();
     }
 
-    boolean isPause() {
-        return isPause;
+    boolean isPaused() {
+        return isPaused;
     }
 }
