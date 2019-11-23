@@ -69,7 +69,7 @@ abstract class AbstractSAConfigOptions {
     /**
      * 本地缓存上限值，单位 byte，默认为 32MB：32 * 1024 * 1024
      */
-    long mMaxCacheSize;
+    long mMaxCacheSize = 32 * 1024 * 1024L;
 
     /**
      * 点击图是否可用

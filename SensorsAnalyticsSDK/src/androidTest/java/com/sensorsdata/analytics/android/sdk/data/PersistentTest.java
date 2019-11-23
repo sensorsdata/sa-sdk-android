@@ -330,7 +330,6 @@ public class PersistentTest {
             result = persistentSessionIntervalTime.get();
             assertEquals(session, result);
         }
-
         //finally
         sharedPreferences.edit().clear().apply();
     }

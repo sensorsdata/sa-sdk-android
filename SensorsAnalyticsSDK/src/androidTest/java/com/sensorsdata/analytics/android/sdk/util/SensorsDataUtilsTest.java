@@ -19,6 +19,7 @@ package com.sensorsdata.analytics.android.sdk.util;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.text.TextUtils;
 import android.util.Log;
@@ -44,6 +45,12 @@ public class SensorsDataUtilsTest {
     @Rule
     public GrantPermissionRule grantPermissionRule = GrantPermissionRule.grant(Manifest.permission.READ_PHONE_STATE);
     @Rule
+    public GrantPermissionRule readPermissionRule =
+            GrantPermissionRule.grant(Manifest.permission.READ_EXTERNAL_STORAGE);
+    @Rule
+    public GrantPermissionRule writePermissionRule =
+            GrantPermissionRule.grant(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+    @Rule
     public TemporaryFolder folder = new TemporaryFolder();
     private Context context;
 
@@ -66,5 +73,16 @@ public class SensorsDataUtilsTest {
             //如果是模拟器
             assertFalse("You should run this unit test on a real device, not an emulator", TextUtils.isEmpty(imei));
         }
+    }
+
+    @Ignore
+    @Test
+    public void isFirstChannelEvent() {
+        SharedPreferences sharedPreferences = context.getSharedPreferences("com.sensorsdata.analytics.android.sdk.SensorsDataAPI", Context.MODE_PRIVATE);
+        sharedPreferences.edit().clear().apply();
+        boolean isFirst = SensorsDataUtils.isFirstChannelEvent(context, "hello");
+        assertTrue(isFirst);
+        isFirst = SensorsDataUtils.isFirstChannelEvent(context, "hello");
+        assertFalse(isFirst);
     }
 }

@@ -27,6 +27,8 @@ public class SADeviceUtils {
             countDownLatch = new CountDownLatch(1);
             if (TextUtils.isEmpty(oaid)) {
                 getOAIDReflect(context, 2);
+            } else {
+                return oaid;
             }
             try {
                 countDownLatch.await();

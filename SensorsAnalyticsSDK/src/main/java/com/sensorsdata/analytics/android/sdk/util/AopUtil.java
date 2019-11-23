@@ -276,26 +276,6 @@ public class AopUtil {
         return "";
     }
 
-    public static void getFragmentNameFromView(View view, JSONObject properties, Activity activity) {
-        try {
-            if (view != null) {
-                String fragmentName = (String) view.getTag(R.id.sensors_analytics_tag_view_fragment_name);
-                String fragmentName2 = (String) view.getTag(R.id.sensors_analytics_tag_view_fragment_name2);
-                if (!TextUtils.isEmpty(fragmentName2)) {
-                    fragmentName = fragmentName2;
-                }
-                if (!TextUtils.isEmpty(fragmentName)) {
-                    Object fragment = Class.forName(fragmentName).newInstance();
-                    if (fragment != null) {
-                        getScreenNameAndTitleFromFragment(properties, fragment, activity);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
-    }
-
     public static Activity getActivityFromContext(Context context, View view) {
         Activity activity = null;
         try {
@@ -846,7 +826,10 @@ public class AopUtil {
             properties.put(AopConstants.ELEMENT_TYPE, viewType);
 
             //fragmentName
-            AopUtil.getFragmentNameFromView(view, properties, activity);
+            Object fragment = AopUtil.getFragmentFromView(view);
+            if (fragment != null) {
+                AopUtil.getScreenNameAndTitleFromFragment(properties, fragment, activity);
+            }
 
             //获取 View 自定义属性
             JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
@@ -858,5 +841,30 @@ public class AopUtil {
             SALog.printStackTrace(e);
         }
         return false;
+    }
+
+
+    /**
+     * 获取点击 view 的 fragment 对象
+     *
+     * @param view 点击的 view
+     * @return object 这里是 fragment 实例对象
+     */
+    public static Object getFragmentFromView(View view) {
+        try {
+            if (view != null) {
+                String fragmentName = (String) view.getTag(R.id.sensors_analytics_tag_view_fragment_name);
+                String fragmentName2 = (String) view.getTag(R.id.sensors_analytics_tag_view_fragment_name2);
+                if (!TextUtils.isEmpty(fragmentName2)) {
+                    fragmentName = fragmentName2;
+                }
+                if (!TextUtils.isEmpty(fragmentName)) {
+                    return Class.forName(fragmentName).newInstance();
+                }
+            }
+        } catch (Exception e) {
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+        }
+        return null;
     }
 }

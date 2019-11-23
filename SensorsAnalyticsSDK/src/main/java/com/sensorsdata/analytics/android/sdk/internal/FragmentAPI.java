@@ -21,6 +21,7 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataIgnoreTrackAppViewScreen;
+import com.sensorsdata.analytics.android.sdk.SensorsDataIgnoreTrackAppViewScreenAndAppClick;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import java.util.ArrayList;
@@ -111,6 +112,10 @@ public class FragmentAPI implements IFragmentAPI {
             }
 
             if (fragment.getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class) != null) {
+                return false;
+            }
+
+            if (fragment.getAnnotation(SensorsDataIgnoreTrackAppViewScreenAndAppClick.class) != null) {
                 return false;
             }
 

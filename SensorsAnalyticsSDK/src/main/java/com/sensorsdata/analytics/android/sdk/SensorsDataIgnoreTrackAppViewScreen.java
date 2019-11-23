@@ -22,7 +22,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target({ElementType.TYPE, ElementType.METHOD})
+/**
+ * 通过注解忽略 Activity 或 Fragment 的页面浏览事件($AppViewScreen)
+ */
+@Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface SensorsDataIgnoreTrackAppViewScreen {
 }

@@ -425,6 +425,16 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
+    public void trackChannelEvent(String eventName) {
+
+    }
+
+    @Override
+    public void trackChannelEvent(final String eventName, JSONObject properties) {
+
+    }
+
+    @Override
     public void track(String eventName, JSONObject properties) {
 
     }

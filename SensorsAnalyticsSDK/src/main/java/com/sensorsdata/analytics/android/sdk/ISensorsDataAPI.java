@@ -63,7 +63,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     long getMaxCacheSize();
 
     /**
-     * 设置本地缓存上限值，单位 byte，默认为 32MB：32 * 1024 * 1024
+     * 设置本地缓存上限值，单位 byte，默认为 32MB：32 * 1024 * 1024，最小 16MB：16 * 1024 * 1024，若小于 16MB，则按 16MB 处理。
      *
      * @param maxCacheSize 单位 byte
      */
@@ -135,7 +135,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     int getFlushBulkSize();
 
     /**
-     * 设置本地缓存日志的最大条目数
+     * 设置本地缓存日志的最大条目数，最小50条
      *
      * @param flushBulkSize 缓存数目
      */
@@ -615,6 +615,21 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * @param eventName 渠道追踪事件的名称
      */
     void trackInstallation(String eventName);
+
+    /**
+     * 调用 track 接口，并附加渠道信息.
+     *
+     * @param eventName 事件的名称
+     */
+    void trackChannelEvent(String eventName);
+
+    /**
+     * 调用 track 接口，并附加渠道信息.
+     *
+     * @param eventName 事件的名称
+     * @param properties 事件的属性
+     */
+    void trackChannelEvent(String eventName, JSONObject properties);
 
     /**
      * 调用 track 接口，追踪一个带有属性的事件

@@ -17,8 +17,11 @@
 
 package com.sensorsdata.analytics.android.sdk.util;
 
+import com.sensorsdata.analytics.android.sdk.ThreadNameConstants;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 public class SensorsDataTimer {
@@ -44,7 +47,7 @@ public class SensorsDataTimer {
      */
     public void timer(final Runnable runnable, long initialDelay, long timePeriod) {
         if (isShutdown()) {
-            mScheduledExecutorService = Executors.newScheduledThreadPool(1);
+            mScheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryWithName(ThreadNameConstants.THREAD_APP_END_DATA_SAVE_TIMER));
             mScheduledExecutorService.scheduleAtFixedRate(runnable, initialDelay, timePeriod, TimeUnit.MILLISECONDS);
         }
     }
@@ -66,4 +69,19 @@ public class SensorsDataTimer {
     private boolean isShutdown() {
         return mScheduledExecutorService == null || mScheduledExecutorService.isShutdown();
     }
+
+    static class ThreadFactoryWithName implements ThreadFactory {
+
+        private final String name;
+
+        ThreadFactoryWithName(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public Thread newThread(Runnable r) {
+            return new Thread(r, name);
+        }
+    }
+
 }

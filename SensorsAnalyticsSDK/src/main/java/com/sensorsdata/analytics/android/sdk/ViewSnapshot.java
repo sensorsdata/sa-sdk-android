@@ -27,6 +27,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Base64;
@@ -34,9 +35,11 @@ import android.util.Base64OutputStream;
 import android.util.DisplayMetrics;
 import android.util.JsonWriter;
 import android.util.LruCache;
+import android.view.PixelCopy;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.view.Window;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.RatingBar;
@@ -56,6 +59,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -81,7 +85,7 @@ public class ViewSnapshot {
         mClassnameCache = new ClassNameCache(MAX_CLASS_NAME_CACHE_SIZE);
     }
 
-    public String snapshots(UIThreadSet<Activity> liveActivities, OutputStream out) throws IOException {
+    public synchronized String snapshots(UIThreadSet<Activity> liveActivities, OutputStream out) throws IOException {
         mRootViewFinder.findInActivities(liveActivities);
         final FutureTask<List<RootViewInfo>> infoFuture =
                 new FutureTask<List<RootViewInfo>>(mRootViewFinder);
@@ -110,7 +114,7 @@ public class ViewSnapshot {
             if (i > 0) {
                 writer.write(",");
             }
-            if (isSnapShotUpdated(info.screenshot.getImageHash())) {
+            if (info != null && info.screenshot != null && isSnapShotUpdated(info.screenshot.getImageHash())) {
                 writer.write("{");
                 writer.write("\"activity\":");
                 activityName = info.activityName;
@@ -432,6 +436,8 @@ public class ViewSnapshot {
         private final CachedBitmap mCachedBitmap;
         private final int mClientDensity = DisplayMetrics.DENSITY_DEFAULT;
         private UIThreadSet<Activity> mLiveActivities;
+        private HandlerThread mHandlerThread;
+        private Handler mHandler;
 
 
         public RootViewFinder() {
@@ -449,13 +455,14 @@ public class ViewSnapshot {
             mRootViews.clear();
             final Set<Activity> liveActivities = mLiveActivities.getAll();
             for (final Activity a : liveActivities) {
-                final View rootView = a.getWindow().getDecorView().getRootView();
+                final Window window = a.getWindow();
+                final View rootView = window.getDecorView().getRootView();
                 if (rootView.getWidth() == 0 || rootView.getHeight() == 0) {
                     continue;
                 }
                 final String activityName = a.getClass().getCanonicalName();
                 a.getWindowManager().getDefaultDisplay().getMetrics(mDisplayMetrics);
-                final RootViewInfo info = new RootViewInfo(activityName, rootView);
+                final RootViewInfo info = new RootViewInfo(activityName, rootView, window);
                 mRootViews.add(info);
             }
             final int viewCount = mRootViews.size();
@@ -466,15 +473,42 @@ public class ViewSnapshot {
             return mRootViews;
         }
 
+
         private void takeScreenshot(final RootViewInfo info) {
             final View rootView = info.rootView;
-            Bitmap rawBitmap = null;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 try {
-                    rawBitmap = Bitmap.createBitmap(rootView.getWidth(), rootView.getHeight(), Bitmap.Config.ARGB_8888);
-                    Canvas canvas = new Canvas(rawBitmap);
-                    rootView.draw(canvas);
-                    scaleBitmap(info, rawBitmap);
+                    final Bitmap rawBitmap = Bitmap.createBitmap(rootView.getWidth(), rootView.getHeight(), Bitmap.Config.ARGB_8888);
+                    final CountDownLatch countDownLatch = new CountDownLatch(1);
+                    if (mHandlerThread == null) {
+                        mHandlerThread = new HandlerThread(TAG);
+                    }
+                    mHandlerThread.start();
+                    if (mHandler == null) {
+                        mHandler = new Handler(mHandlerThread.getLooper());
+                    }
+                    PixelCopy.request(info.window, rawBitmap, new PixelCopy.OnPixelCopyFinishedListener() {
+                        @Override
+                        public void onPixelCopyFinished(int copyResult) {
+                            try {
+                                if (copyResult == PixelCopy.SUCCESS && rawBitmap != null) {
+                                    SALog.i(TAG, "PixelCopy success.");
+                                    scaleBitmap(info, rawBitmap);
+                                } else {
+                                    SALog.i(TAG, "PixelCopy fail, copyResult :" + copyResult);
+                                }
+                                mHandlerThread.quitSafely();
+                                countDownLatch.countDown();
+                            } catch (Throwable t) {
+                                SALog.i(TAG, "Can't take a bitmap snapshot of view " + rootView + ", skipping for now.");
+                            }
+                        }
+                    }, mHandler);
+                    try {
+                        countDownLatch.await();
+                    } catch (InterruptedException e) {
+                        SALog.printStackTrace(e);
+                    }
                 } catch (RuntimeException e) {
                     SALog.i(TAG, "Can't take a bitmap snapshot of view " + rootView + ", skipping for now.", e);
                 }
@@ -484,8 +518,7 @@ public class ViewSnapshot {
                     originalCacheState = rootView.isDrawingCacheEnabled();
                     rootView.setDrawingCacheEnabled(true);
                     rootView.buildDrawingCache(true);
-                    rawBitmap = rootView.getDrawingCache();
-                    scaleBitmap(info, rawBitmap);
+                    scaleBitmap(info, rootView.getDrawingCache());
                     if (null != originalCacheState && !originalCacheState) {
                         rootView.setDrawingCacheEnabled(false);
                     }
@@ -589,12 +622,14 @@ public class ViewSnapshot {
     private static class RootViewInfo {
         public final String activityName;
         public final View rootView;
+        public final Window window;
         public CachedBitmap screenshot;
         public float scale;
 
-        public RootViewInfo(String activityName, View rootView) {
+        public RootViewInfo(String activityName, View rootView, Window window) {
             this.activityName = activityName;
             this.rootView = rootView;
+            this.window = window;
             this.screenshot = null;
             this.scale = 1.0f;
         }

@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".activity.FragmentActivity">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginLeft="10dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginRight="10dp"
+                app:cardBackgroundColor="#ffffff"
+                app:cardCornerRadius="3dp"
+                app:cardElevation="1dp"
+                app:cardUseCompatPadding="true"
+                app:contentPadding="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/dialog_normal"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="normal"
+                        android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/dialog_single_choice"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="SingleChoice"
+                        android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/dialog_multi_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="Multi-Button"
+                        android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/dialog_multi_choice"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="Multi-Choice"
+                        android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/dialog_list"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="List"
+                        android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/dialog_waiting"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="Waiting"
+                        android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/dialog_progress"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="progress"
+                        android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/dialog_input"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="input"
+                        android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/dialog_custom"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="custom"
+                        android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/dialog_utils"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="utils"
+                        android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/dialog_utils_relogin"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="utils_relogin"
+                        android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/dialog_normal_lambda"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="normal-lambda"
+                        android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/dialog_single_choice_lambda"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="SingleChoice-lambda"
+                        android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/dialog_multi_button_lambda"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="Multi-Button"
+                        android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/dialog_multi_choice_lambda"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="Multi-Choice-lambda"
+                        android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/dialog_list_lambda"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="List-lambda"
+                        android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/dialog_input_lambda"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="input-lambda"
+                        android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/dialog_custom_lambda"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="custom-lambda"
+                        android:textColor="#000000" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</FrameLayout>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".activity.TabFrgActivity">
+
+    <FrameLayout
+        android:id="@+id/fl_tab_frg"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+    </FrameLayout>
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/fl_tab_frg"
+        android:layout_gravity="center"
+        app:cardBackgroundColor="#ffffff"
+        app:cardCornerRadius="3dp"
+        app:cardElevation="1dp"
+        app:cardUseCompatPadding="true"
+        app:contentPadding="2dp">
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tablayout_tab_frg"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:tabBackground="@android:color/transparent" />
+    </androidx.cardview.widget.CardView>
+
+
+</LinearLayout>

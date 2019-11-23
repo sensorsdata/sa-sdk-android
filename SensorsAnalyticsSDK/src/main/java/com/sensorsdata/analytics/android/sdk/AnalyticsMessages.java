@@ -192,7 +192,8 @@ class AnalyticsMessages {
 
             //不符合同步数据的网络策略
             String networkType = NetworkUtils.networkType(mContext);
-            if (!NetworkUtils.isShouldFlush(networkType, SensorsDataAPI.sharedInstance(mContext).mFlushNetworkPolicy)) {
+            if (!NetworkUtils.isShouldFlush(networkType, SensorsDataAPI.sharedInstance(mContext).getFlushNetworkPolicy())) {
+                SALog.i(TAG, String.format("您当前网络为 %s，无法发送数据，请确认您的网络发送策略！", networkType));
                 return;
             }
         } catch (Exception e) {
@@ -242,7 +243,7 @@ class AnalyticsMessages {
             } finally {
                 boolean isDebugMode = SensorsDataAPI.sharedInstance(mContext).isDebugMode();
                 if (!TextUtils.isEmpty(errorMessage)) {
-                    if (isDebugMode || SensorsDataAPI.sEnableLog) {
+                    if (isDebugMode || SALog.isLogEnabled()) {
                         SALog.i(TAG, errorMessage);
                         if (isDebugMode && SensorsDataAPI.SHOW_DEBUG_INFO_VIEW) {
                             try {
@@ -339,7 +340,7 @@ class AnalyticsMessages {
             in = null;
 
             String response = new String(responseBody, CHARSET_UTF8);
-            if (SensorsDataAPI.sEnableLog) {
+            if (SALog.isLogEnabled()) {
                 String jsonMessage = JSONUtils.formatJson(rawMessage);
                 // 状态码 200 - 300 间都认为正确
                 if (responseCode >= HttpURLConnection.HTTP_OK &&

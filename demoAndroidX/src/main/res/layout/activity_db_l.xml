@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android">
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
 
         <variable
             name="handlers"
-            type="com.sensorsdata.analytics.android.demo.DataBindingLambdaActivity" />
+            type="com.sensorsdata.analytics.android.demo.activity.DataBindingLambdaActivity" />
     </data>
 
     <ScrollView
@@ -15,8 +16,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="@dimen/activity_horizontal_margin"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:padding="@dimen/activity_horizontal_margin">
 
             <Space
                 android:layout_width="match_parent"
@@ -24,9 +25,9 @@
 
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/button"
+                style="@style/NormalButtonStyle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                style="@style/NormalButtonStyle"
                 android:text="button"
                 android:textAllCaps="false" />
 
@@ -36,9 +37,9 @@
 
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/lambdaButton"
+                style="@style/NormalButtonStyle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                style="@style/NormalButtonStyle"
                 android:text="Lambda Button"
                 android:textAllCaps="false" />
 
@@ -48,9 +49,9 @@
 
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/androidXButtonDataBinding"
+                style="@style/NormalButtonStyle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                style="@style/NormalButtonStyle"
                 android:onClick="@{handlers::onViewClick}"
                 android:text="AndroidX DataBinding Button"
                 android:textAllCaps="false" />
@@ -61,12 +62,64 @@
 
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/androidXButton"
+                style="@style/NormalButtonStyle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                style="@style/NormalButtonStyle"
                 android:onClick="@{handlers::onViewClick}"
                 android:text="AndroidX Button"
                 android:textAllCaps="false" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switch_compat"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginRight="25dp"
+                android:longClickable="false"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white"
+                android:textOff="Off"
+                android:textOn="On"
+                app:showText="true"
+                app:switchPadding="5dp" />
+
+            <androidx.appcompat.widget.AppCompatRatingBar
+                android:id="@+id/ratingbar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:numStars="5"
+                android:rating="3.5" />
+
+            <Button
+                android:id="@+id/dialog"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="测试 Dialog"
+                android:textAllCaps="false" />
+
+            <ListView
+                android:id="@+id/listview"
+                android:layout_width="wrap_content"
+                android:layout_height="200dp" />
+
+            <Button
+                android:id="@+id/tabHost"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="测试 TabHost"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/navigation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="测试 NavigationView"
+                android:textAllCaps="false" />
+
         </LinearLayout>
     </ScrollView>
 </layout>

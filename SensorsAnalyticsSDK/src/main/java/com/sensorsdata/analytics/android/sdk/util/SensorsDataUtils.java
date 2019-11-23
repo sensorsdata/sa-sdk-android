@@ -42,8 +42,11 @@ import android.webkit.WebSettings;
 
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackAppViewScreenUrl;
 import com.sensorsdata.analytics.android.sdk.SensorsDataSDKRemoteConfig;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -56,11 +59,13 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 
 public final class SensorsDataUtils {
@@ -72,6 +77,7 @@ public final class SensorsDataUtils {
     private static final String SHARED_PREF_USER_AGENT_KEY = "sensorsdata.user.agent";
     private static final String SHARED_PREF_REQUEST_TIME = "sensorsdata.request.time";
     private static final String SHARED_PREF_REQUEST_TIME_RANDOM = "sensorsdata.request.time.random";
+    private static final String SHARED_PREF_CHANNEL_EVENT = "sensorsdata.channel.event";
     private static final Map<String, String> sCarrierMap = new HashMap<String, String>() {
         {
             //中国移动
@@ -105,6 +111,8 @@ public final class SensorsDataUtils {
             add("vivo");
         }
     };
+    private static Set<String> channelEvents = new HashSet<>();
+
     private static final List<String> mInvalidAndroidId = new ArrayList<String>() {
         {
             add("9774d56d682e549c");
@@ -900,7 +908,7 @@ public final class SensorsDataUtils {
         }
         return isRequestValid;
     }
-    
+
     public static boolean hasUtmProperties(JSONObject properties) {
         if (properties == null) {
             return false;
@@ -911,6 +919,39 @@ public final class SensorsDataUtils {
                 properties.has("$utm_term") ||
                 properties.has("$utm_content") ||
                 properties.has("$utm_campaign");
+    }
+
+    /**
+     * 是否是首次触发的渠道事件
+     *
+     * @param context Context
+     * @param eventName 事件名称
+     * @return 是否是首次触发
+     */
+    public static boolean isFirstChannelEvent(Context context, String eventName) {
+        try {
+            SharedPreferences channelPref = getSharedPreferences(context);
+            if (channelEvents.isEmpty()) {
+                String channelJson = channelPref.getString(SHARED_PREF_CHANNEL_EVENT, "");
+                if (!TextUtils.isEmpty(channelJson)) {
+                    JSONArray jsonArray = new JSONArray(channelJson);
+                    if (jsonArray.length() > 0) {
+                        for (int i = 0; i < jsonArray.length(); i++) {
+                            channelEvents.add(jsonArray.getString(i));
+                        }
+                    }
+                }
+            }
+            if (!channelEvents.isEmpty() && channelEvents.contains(eventName)) {
+                return false;
+            }
+            channelEvents.add(eventName);
+            channelPref.edit().putString(SHARED_PREF_CHANNEL_EVENT, channelEvents.toString()).apply();
+            return true;
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+            return false;
+        }
     }
 
     /**
@@ -988,5 +1029,35 @@ public final class SensorsDataUtils {
             SALog.printStackTrace(e);
         }
         return false;
+    }
+
+    /**
+     * 获取 ScreenUrl
+     *
+     * @param object activity/fragment
+     * @return screenUrl
+     */
+    public static String getScreenUrl(Object object) {
+        if (object == null) {
+            return null;
+        }
+        String screenUrl = null;
+        try {
+            if (object instanceof ScreenAutoTracker) {
+                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) object;
+                screenUrl = screenAutoTracker.getScreenUrl();
+            } else {
+                SensorsDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = object.getClass().getAnnotation(SensorsDataAutoTrackAppViewScreenUrl.class);
+                if (autoTrackAppViewScreenUrl != null) {
+                    screenUrl = autoTrackAppViewScreenUrl.url();
+                }
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        if (screenUrl == null) {
+            screenUrl = object.getClass().getCanonicalName();
+        }
+        return screenUrl;
     }
 }
