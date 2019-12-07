@@ -200,17 +200,20 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     @Override
+    @Deprecated
     public void showUpWebView(WebView webView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify) {
 
     }
 
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     @Override
+    @Deprecated
     public void showUpWebView(WebView webView, boolean isSupportJellyBean, JSONObject properties) {
 
     }
 
     @Override
+    @Deprecated
     public void showUpX5WebView(Object x5WebView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify) {
 
     }

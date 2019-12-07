@@ -218,7 +218,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     boolean isReactNativeAutoTrackEnabled();
 
     /**
-     * 向 WebView 注入本地方法, 将 distinctId 传递给当前的 WebView
+     * 向 WebView 注入本地方法，默认不开启认证校验。
      *
      * @param webView 当前 WebView
      * @param isSupportJellyBean 是否支持 API level 16 及以下的版本。
@@ -228,7 +228,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     void showUpWebView(WebView webView, boolean isSupportJellyBean);
 
     /**
-     * 向 WebView 注入本地方法, 将 distinctId 传递给当前的 WebView
+     * 向 WebView 注入本地方法
      *
      * @param webView 当前 WebView
      * @param isSupportJellyBean 是否支持 API level 16 及以下的版本。
@@ -239,7 +239,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     void showUpWebView(WebView webView, boolean isSupportJellyBean, boolean enableVerify);
 
     /**
-     * 向 WebView 注入本地方法, 将 distinctId 传递给当前的 WebView
+     * 向 WebView 注入本地方法, 将 distinctId 传递给当前的 WebView，该方法用于老版打通方式，已过时。
      *
      * @param webView 当前 WebView
      * @param properties 属性
@@ -249,10 +249,11 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * 此方法谨慎修改，插件配置 disableJsInterface 会修改此方法。
      */
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
+    @Deprecated
     void showUpWebView(WebView webView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify);
 
     /**
-     * 向 WebView 注入本地方法, 将 distinctId 传递给当前的 WebView
+     * 向 WebView 注入本地方法, 将 distinctId 传递给当前的 WebView，该方法用于老版打通方式，已过时。
      *
      * @param webView 当前 WebView
      * @param isSupportJellyBean 是否支持 API level 16 及以下的版本。
@@ -260,12 +261,35 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * @param properties 用户自定义属性
      */
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
+    @Deprecated
     void showUpWebView(WebView webView, boolean isSupportJellyBean, JSONObject properties);
 
+    /**
+     * 向腾讯 x5WebView 注入本地方法, 将 distinctId 传递给当前的 WebView，该方法用于老版打通方式，已过时。
+     *
+     * @param x5WebView 腾讯 x5WebView
+     * @param properties 属性
+     * @param isSupportJellyBean 是否支持 API level 16 及以下的版本。
+     * @param enableVerify 是否开启认证
+     * 此方法谨慎修改，插件配置 disableJsInterface 会修改此方法。
+     */
+    @Deprecated
     void showUpX5WebView(Object x5WebView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify);
 
+    /**
+     * 向腾讯 x5WebView 注入本地方法
+     *
+     * @param x5WebView 腾讯 x5WebView
+     * @param enableVerify 是否开启认证
+     * 此方法谨慎修改，插件配置 disableJsInterface 会修改此方法。
+     */
     void showUpX5WebView(Object x5WebView, boolean enableVerify);
 
+    /**
+     * 向腾讯 x5WebView 注入本地方法, 默认不开启认证校验。
+     *
+     * @param x5WebView 腾讯 x5WebView
+     */
     void showUpX5WebView(Object x5WebView);
 
     /**
