@@ -43,7 +43,7 @@ public class DbAdapter {
     private final DbParams mDbParams;
     private final Context mContext;
     /* Session 时长间隔 */
-    private int mSessionTime = 30 * 1000, mSavedSessionTime = 0;
+    private int mSessionTime = 30 * 1000;
     /* AppPaused 的时间戳 */
     private long mAppPausedTime = 0;
     private ContentResolver contentResolver;
@@ -419,17 +419,13 @@ public class DbAdapter {
      * @param sessionIntervalTime Session 的时长
      */
     public void commitSessionIntervalTime(int sessionIntervalTime) {
-        if (sessionIntervalTime == mSavedSessionTime) {
-            return;
-        }
         try {
             ContentValues contentValues = new ContentValues();
             contentValues.put(DbParams.TABLE_SESSION_INTERVAL_TIME, sessionIntervalTime);
             contentResolver.insert(mDbParams.getSessionTimeUri(), contentValues);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
-        mSavedSessionTime = sessionIntervalTime;
     }
 
     /**
@@ -438,24 +434,22 @@ public class DbAdapter {
      * @return Session 的时长
      */
     public int getSessionIntervalTime() {
-        if (mSessionTime != mSavedSessionTime) {
-            Cursor cursor = null;
-            try {
-                cursor = contentResolver.query(mDbParams.getSessionTimeUri(), null, null, null, null);
-                if (cursor != null && cursor.getCount() > 0) {
-                    while (cursor.moveToNext()) {
-                        mSessionTime = cursor.getInt(0);
-                    }
-                }
-            } catch (Exception e) {
-                com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-            } finally {
-                if (cursor != null) {
-                    cursor.close();
+        Cursor cursor = null;
+        try {
+            cursor = contentResolver.query(mDbParams.getSessionTimeUri(), null, null, null, null);
+            if (cursor != null && cursor.getCount() > 0) {
+                while (cursor.moveToNext()) {
+                    mSessionTime = cursor.getInt(0);
                 }
             }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
         }
-        mSavedSessionTime = mSessionTime;
+
         SALog.d(TAG, "getSessionIntervalTime:" + mSessionTime);
         return mSessionTime;
     }

@@ -178,8 +178,10 @@ class AnalyticsMessages {
             }
 
             if (TextUtils.isEmpty(SensorsDataAPI.sharedInstance(mContext).getServerUrl())) {
+                SALog.i(TAG, "Server url is null or empty.");
                 return;
             }
+
             //不是主进程
             if (!SensorsDataAPI.mIsMainProcess) {
                 return;

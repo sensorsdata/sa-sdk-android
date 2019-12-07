@@ -151,7 +151,7 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
      * @return SAOptionsConfig
      */
     public SAConfigOptions setMinRequestInterval(int minRequestInterval) {
-        this.mMinRequestInterval = minRequestInterval;
+        this.mMinRequestInterval = minRequestInterval > 0 ? minRequestInterval : mMinRequestInterval;
         return this;
     }
 
@@ -162,7 +162,7 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
      * @return SAOptionsConfig
      */
     public SAConfigOptions setMaxRequestInterval(int maxRequestInterval) {
-        this.mMaxRequestInterval = maxRequestInterval;
+        this.mMaxRequestInterval = maxRequestInterval > 0 ? maxRequestInterval : mMaxRequestInterval;
         return this;
     }
 
@@ -306,6 +306,7 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
 
     /**
      * 是否开启多进程
+     *
      * @param enableMultiProcess 是否开启多进程
      * @return SAConfigOptions
      */

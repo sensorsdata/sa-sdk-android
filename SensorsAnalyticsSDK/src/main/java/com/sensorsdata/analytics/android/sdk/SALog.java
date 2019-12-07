@@ -78,7 +78,7 @@ public class SALog {
      * @param e Exception
      */
     public static void printStackTrace(Exception e) {
-        if (e != null) {
+        if (enableLog && e != null) {
             e.printStackTrace();
         }
     }

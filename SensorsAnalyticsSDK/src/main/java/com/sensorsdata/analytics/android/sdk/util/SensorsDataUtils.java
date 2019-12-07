@@ -705,18 +705,18 @@ public final class SensorsDataUtils {
      * 插件配置 disableIMEI 会修改此方法
      * 获取IMEI
      *
-     * @param mContext Context
+     * @param context Context
      * @return IMEI
      */
     @SuppressLint({"MissingPermission", "HardwareIds"})
-    public static String getIMEI(Context mContext) {
+    public static String getIMEI(Context context) {
         String imei = "";
         try {
-            if (!checkHasPermission(mContext, Manifest.permission.READ_PHONE_STATE)) {
+            if (!checkHasPermission(context, Manifest.permission.READ_PHONE_STATE)) {
                 return imei;
             }
 
-            TelephonyManager tm = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
+            TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
             if (tm != null) {
                 if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
                     if (tm.hasCarrierPrivileges()) {
@@ -737,26 +737,61 @@ public final class SensorsDataUtils {
     }
 
     /**
+     * 获取设备标识
+     * @param context Context
+     * @return 设备标识
+     */
+    public static String getIMEIOld(Context context) {
+        return getDeviceID(context, -1);
+    }
+
+    /**
+     * 获取设备标识
+     * @param context Context
+     * @param number 卡槽位置
+     * @return 设备标识
+     */
+    public static String getSlot(Context context, int number) {
+        return getDeviceID(context, number);
+    }
+
+    /**
+     * 获取设备标识
+     * @param context Context
+     * @return 设备标识
+     */
+    public static String getMEID(Context context) {
+        return getDeviceID(context, -2);
+    }
+
+    /**
      * 获取设备唯一标识
      *
-     * @param mContext Context
+     * @param context Context
+     * @param number 卡槽
      * @return 设备唯一标识
      */
-    public static String getIMEIOld(Context mContext) {
-        String imei = "";
+    private static String getDeviceID(Context context, int number) {
+        String deviceId = "";
         try {
-            if (!checkHasPermission(mContext, "android.permission.READ_PHONE_STATE")) {
-                return imei;
+            if (!SensorsDataUtils.checkHasPermission(context, "android.permission.READ_PHONE_STATE")) {
+                return deviceId;
             }
 
-            TelephonyManager tm = (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
+            TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
             if (tm != null) {
-                imei = tm.getDeviceId();
+                if (number == -1) {
+                    deviceId = tm.getDeviceId();
+                } else if (number == -2 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    deviceId = tm.getMeid();
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    deviceId = tm.getDeviceId(number);
+                }
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
-        return imei;
+        return deviceId;
     }
 
     /**
@@ -764,14 +799,14 @@ public final class SensorsDataUtils {
      * 插件配置 disableAndroidID 会修改此方法
      * 获取 Android ID
      *
-     * @param mContext Context
+     * @param context Context
      * @return androidID
      */
     @SuppressLint("HardwareIds")
-    public static String getAndroidID(Context mContext) {
+    public static String getAndroidID(Context context) {
         String androidID = "";
         try {
-            androidID = Settings.Secure.getString(mContext.getContentResolver(), Settings.Secure.ANDROID_ID);
+            androidID = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -896,25 +931,34 @@ public final class SensorsDataUtils {
     }
 
     public static boolean isRequestValid(Context context, int minRequestHourInterval, int maxRequestHourInterval) {
-        SharedPreferences sharedPreferences = getSharedPreferences(context);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        boolean isRequestValid = true;
-        long lastRequestTime = sharedPreferences.getLong(SHARED_PREF_REQUEST_TIME, 0);
-        int randomTime = sharedPreferences.getInt(SHARED_PREF_REQUEST_TIME_RANDOM, 0);
-        if (lastRequestTime != 0 && randomTime != 0) {
-            float requestInterval = SystemClock.elapsedRealtime() - lastRequestTime;
-            if (requestInterval > 0 && requestInterval / 1000 < randomTime * 3600) {
-                isRequestValid = false;
+        try {
+            if (minRequestHourInterval > maxRequestHourInterval) {
+                SALog.d(TAG, "最小时间间隔（minRequestHourInterval）大于最大时间间隔（maxRequestHourInterval），时间间隔设置无效。");
+                return true;
             }
-        }
+            SharedPreferences sharedPreferences = getSharedPreferences(context);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            boolean isRequestValid = true;
+            long lastRequestTime = sharedPreferences.getLong(SHARED_PREF_REQUEST_TIME, 0);
+            int randomTime = sharedPreferences.getInt(SHARED_PREF_REQUEST_TIME_RANDOM, 0);
+            if (lastRequestTime != 0 && randomTime != 0) {
+                float requestInterval = SystemClock.elapsedRealtime() - lastRequestTime;
+                if (requestInterval > 0 && requestInterval / 1000 < randomTime * 3600) {
+                    isRequestValid = false;
+                }
+            }
 
-        if (isRequestValid) {
-            editor.putLong(SHARED_PREF_REQUEST_TIME, SystemClock.elapsedRealtime());
-            editor.putInt(SHARED_PREF_REQUEST_TIME_RANDOM,
-                    new Random().nextInt(maxRequestHourInterval - minRequestHourInterval + 1) + minRequestHourInterval);
-            editor.apply();
+            if (isRequestValid) {
+                editor.putLong(SHARED_PREF_REQUEST_TIME, SystemClock.elapsedRealtime());
+                editor.putInt(SHARED_PREF_REQUEST_TIME_RANDOM,
+                        new Random().nextInt(maxRequestHourInterval - minRequestHourInterval + 1) + minRequestHourInterval);
+                editor.apply();
+            }
+            return isRequestValid;
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+            return true;
         }
-        return isRequestValid;
     }
 
     /**

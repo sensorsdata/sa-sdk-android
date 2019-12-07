@@ -512,20 +512,23 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         InputStreamReader in = null;
                         HttpURLConnection urlConnection = null;
                         try {
-                            if (TextUtils.isEmpty(mServerUrl)) {
-                                return;
-                            }
-
                             URL url;
                             String configUrl = null;
                             if (mSAConfigOptions != null && !TextUtils.isEmpty(mSAConfigOptions.mRemoteConfigUrl)) {
                                 configUrl = mSAConfigOptions.mRemoteConfigUrl;
                             } else {
-                                int pathPrefix = mServerUrl.lastIndexOf("/");
-                                if (pathPrefix != -1) {
-                                    configUrl = mServerUrl.substring(0, pathPrefix);
-                                    configUrl = configUrl + "/config/Android.conf";
+                                if (!TextUtils.isEmpty(mServerUrl)) {
+                                    int pathPrefix = mServerUrl.lastIndexOf("/");
+                                    if (pathPrefix != -1) {
+                                        configUrl = mServerUrl.substring(0, pathPrefix);
+                                        configUrl = configUrl + "/config/Android.conf";
+                                    }
                                 }
+                            }
+
+                            if (TextUtils.isEmpty(configUrl)) {
+                                SALog.i(TAG, "Remote config url is null or empty.");
+                                return;
                             }
 
                             if (!TextUtils.isEmpty(configUrl) && finalEnableConfigV) {
@@ -966,6 +969,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     @Override
+    @Deprecated
     public void showUpWebView(WebView webView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify) {
         if (Build.VERSION.SDK_INT < 17 && !isSupportJellyBean) {
             SALog.d(TAG, "For applications targeted to API level JELLY_BEAN or below, this feature NOT SUPPORTED");
@@ -978,25 +982,15 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 向 WebView 注入本地方法, 将 distinctId 传递给当前的 WebView
-     *
-     * @param webView 当前 WebView
-     * @param isSupportJellyBean 是否支持 API level 16 及以下的版本。
-     * 因为 API level 16 及以下的版本, addJavascriptInterface 有安全漏洞,请谨慎使用
-     * @param properties 用户自定义属性
-     */
     @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     @Override
+    @Deprecated
     public void showUpWebView(WebView webView, boolean isSupportJellyBean, JSONObject properties) {
         showUpWebView(webView, properties, isSupportJellyBean, false);
     }
 
-    /**
-     * 此方法谨慎修改
-     * 插件配置 disableJsInterface 会修改此方法
-     */
     @Override
+    @Deprecated
     public void showUpX5WebView(Object x5WebView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify) {
         try {
             if (Build.VERSION.SDK_INT < 17 && !isSupportJellyBean) {
@@ -1020,10 +1014,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    /**
-     * 此方法谨慎修改
-     * 插件配置 disableJsInterface 会修改此方法
-     */
     @Override
     public void showUpX5WebView(Object x5WebView, boolean enableVerify) {
         try {
@@ -1753,10 +1743,13 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             }
 
                             if (!SensorsDataUtils.hasUtmProperties(_properties)) {
-                                String installSource = String.format("android_id=%s##imei=%s##imei_old=%s##mac=%s##oaid=%s",
+                                String installSource = String.format("android_id=%s##imei=%s##imei_old=%s##imei_slot1=%s##imei_slot2=%s##imei_meid=%s##mac=%s##oaid=%s",
                                         mAndroidId,
                                         SensorsDataUtils.getIMEI(mContext),
                                         SensorsDataUtils.getIMEIOld(mContext),
+                                        SensorsDataUtils.getSlot(mContext, 0),
+                                        SensorsDataUtils.getSlot(mContext, 1),
+                                        SensorsDataUtils.getMEID(mContext),
                                         SensorsDataUtils.getMacAddress(mContext),
                                         SADeviceUtils.getOAID(mContext));
                                 if (_properties.has("$gaid")) {
@@ -1846,10 +1839,13 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             }
                         }
                         if (!SensorsDataUtils.hasUtmProperties(_properties)) {
-                            String installSource = String.format("android_id=%s##imei=%s##imei_old=%s##mac=%s##oaid=%s",
+                            String installSource = String.format("android_id=%s##imei=%s##imei_old=%s##imei_slot1=%s##imei_slot2=%s##imei_meid=%s##mac=%s##oaid=%s",
                                     mAndroidId,
                                     SensorsDataUtils.getIMEI(mContext),
                                     SensorsDataUtils.getIMEIOld(mContext),
+                                    SensorsDataUtils.getSlot(mContext, 0),
+                                    SensorsDataUtils.getSlot(mContext, 1),
+                                    SensorsDataUtils.getMEID(mContext),
                                     SensorsDataUtils.getMacAddress(mContext),
                                     SADeviceUtils.getOAID(mContext));
                             _properties.put("$channel_device_info", installSource);
@@ -2083,6 +2079,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     @Override
+    @Deprecated
     public void trackViewScreen(final String url, final JSONObject properties) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
@@ -2600,6 +2597,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             mOriginServerUrl = serverUrl;
             if (TextUtils.isEmpty(serverUrl)) {
                 mServerUrl = serverUrl;
+                SALog.i(TAG, "Server url is null or empty.");
                 return;
             }
 
