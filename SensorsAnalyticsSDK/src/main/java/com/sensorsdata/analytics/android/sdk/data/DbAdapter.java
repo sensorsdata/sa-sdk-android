@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2015/08/01.
- * Copyright 2015－2019 Sensors Data Inc.
+ * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,8 +44,8 @@ public class DbAdapter {
     private final Context mContext;
     /* Session 时长间隔 */
     private int mSessionTime = 30 * 1000;
-    /* AppPaused 的时间戳 */
-    private long mAppPausedTime = 0;
+    /* $AppEnd 事件触发的时间戳 */
+    private long mAppEndTime = 0;
     private ContentResolver contentResolver;
     /**
      * AES 秘钥加密
@@ -312,15 +312,15 @@ public class DbAdapter {
      *
      * @param appPausedTime Activity Pause 的时间戳
      */
-    public void commitAppPausedTime(long appPausedTime) {
+    public void commitAppEndTime(long appPausedTime) {
         try {
             ContentValues contentValues = new ContentValues();
-            contentValues.put(DbParams.TABLE_APP_PAUSED_TIME, appPausedTime);
+            contentValues.put(DbParams.TABLE_APP_END_TIME, appPausedTime);
             contentResolver.insert(mDbParams.getAppPausedUri(), contentValues);
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
         }
-        mAppPausedTime = appPausedTime;
+        mAppEndTime = appPausedTime;
     }
 
     /**
@@ -328,14 +328,14 @@ public class DbAdapter {
      *
      * @return Activity Pause 的时间戳
      */
-    public long getAppPausedTime() {
-        if (System.currentTimeMillis() - mAppPausedTime > mSessionTime) {
+    public long getAppEndTime() {
+        if (System.currentTimeMillis() - mAppEndTime > mSessionTime) {
             Cursor cursor = null;
             try {
                 cursor = contentResolver.query(mDbParams.getAppPausedUri(), null, null, null, null);
                 if (cursor != null && cursor.getCount() > 0) {
                     while (cursor.moveToNext()) {
-                        mAppPausedTime = cursor.getLong(0);
+                        mAppEndTime = cursor.getLong(0);
                     }
                 }
             } catch (Exception e) {
@@ -346,7 +346,7 @@ public class DbAdapter {
                 }
             }
         }
-        return mAppPausedTime;
+        return mAppEndTime;
     }
 
     /**

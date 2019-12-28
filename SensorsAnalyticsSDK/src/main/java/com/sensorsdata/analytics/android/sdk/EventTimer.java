@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2017/4/10.
- * Copyright 2015－2019 Sensors Data Inc.
+ * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,18 +29,11 @@ class EventTimer {
     private long eventAccumulatedDuration;
     private boolean isPaused = false;
 
-    EventTimer(TimeUnit timeUnit) {
-        this.startTime = SystemClock.elapsedRealtime();
+    EventTimer(TimeUnit timeUnit, long startTime) {
+        this.startTime = startTime;
         this.timeUnit = timeUnit;
         this.eventAccumulatedDuration = 0;
         this.endTime = -1;
-    }
-
-    public EventTimer(TimeUnit timeUnit, long startTime, long endTime) {
-        this.timeUnit = timeUnit;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.eventAccumulatedDuration = 0;
     }
 
     String duration() {
@@ -68,37 +61,41 @@ class EventTimer {
             }
             return durationFloat < 0 ? String.valueOf(0) : String.format(Locale.CHINA, "%.3f", durationFloat);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
             return String.valueOf(0);
         }
     }
 
-    public long getStartTime() {
+    long getStartTime() {
         return startTime;
     }
 
-    public void setStartTime(long startTime) {
+    void setStartTime(long startTime) {
         this.startTime = startTime;
     }
 
-    public long getEndTime() {
+    void setEndTime(long endTime) {
+        this.endTime = endTime;
+    }
+
+    long getEndTime() {
         return endTime;
     }
 
-    public long getEventAccumulatedDuration() {
+    long getEventAccumulatedDuration() {
         return eventAccumulatedDuration;
     }
 
-    public void setEventAccumulatedDuration(long eventAccumulatedDuration) {
+    void setEventAccumulatedDuration(long eventAccumulatedDuration) {
         this.eventAccumulatedDuration = eventAccumulatedDuration;
     }
 
-    void setTimerState(boolean isPaused) {
+    void setTimerState(boolean isPaused, long elapsedRealtime) {
         this.isPaused = isPaused;
         if (isPaused) {
-            eventAccumulatedDuration = eventAccumulatedDuration + SystemClock.elapsedRealtime() - startTime;
+            eventAccumulatedDuration = eventAccumulatedDuration + elapsedRealtime - startTime;
         }
-        startTime = SystemClock.elapsedRealtime();
+        startTime = elapsedRealtime;
     }
 
     boolean isPaused() {

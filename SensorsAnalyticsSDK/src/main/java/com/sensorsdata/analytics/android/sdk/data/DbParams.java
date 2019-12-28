@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2019/02/01.
- * Copyright 2015－2019 Sensors Data Inc.
+ * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ public class DbParams {
     static final int DATABASE_VERSION = 4;
     static final String TABLE_ACTIVITY_START_COUNT = "activity_started_count";
     static final String TABLE_APP_START_TIME = "app_start_time";
-    static final String TABLE_APP_PAUSED_TIME = "app_paused_time";
+    static final String TABLE_APP_END_TIME = "app_end_time";
     static final String TABLE_APP_END_DATA = "app_end_data";
     static final String TABLE_SESSION_INTERVAL_TIME = "session_interval_time";
     static final String TABLE_LOGIN_ID = "events_login_id";
@@ -39,7 +39,7 @@ public class DbParams {
     /* 数据库状态 */
     static final int DB_UPDATE_ERROR = -1;
     private static DbParams instance;
-    private final Uri mUri, mActivityStartCountUri, mAppStartTimeUri, mAppPausedUri,
+    private final Uri mUri, mActivityStartCountUri, mAppStartTimeUri, mAppEndUri,
             mAppEndDataUri, mSessionTimeUri, mLoginIdUri;
 
     private DbParams(String packageName) {
@@ -47,7 +47,7 @@ public class DbParams {
         mActivityStartCountUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_ACTIVITY_START_COUNT);
         mAppStartTimeUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_START_TIME);
         mAppEndDataUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_END_DATA);
-        mAppPausedUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_PAUSED_TIME);
+        mAppEndUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_END_TIME);
         mSessionTimeUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_SESSION_INTERVAL_TIME);
         mLoginIdUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_LOGIN_ID);
     }
@@ -99,7 +99,7 @@ public class DbParams {
      * @return uri
      */
     Uri getAppPausedUri() {
-        return mAppPausedUri;
+        return mAppEndUri;
     }
 
     /**

@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2017/4/12.
- * Copyright 2015－2019 Sensors Data Inc.
+ * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +58,6 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
@@ -87,7 +86,9 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private int startTimerCount;
     // $AppEnd 消息标记位
     private final int MESSAGE_END = 0;
-    // $AppEnd 停止时间
+    // $AppStart 事件的时间戳
+    private final String APP_START_TIME = "app_start_time";
+    // $AppEnd 事件的时间戳
     private final String APP_END_TIME = "app_end_time";
     // $AppEnd 事件属性
     private final String APP_END_DATA = "app_end_data";
@@ -98,6 +99,8 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     // SDK 版本号
     private String lib_version;
     private Handler handler;
+    /* 兼容由于在魅族手机上退到后台后，线程会被休眠，导致 $AppEnd 无法触发，造成再次打开重复发送。*/
+    private long messageReceiveTime = 0L;
     /**
      * 打点时间间隔：2000 毫秒
      */
@@ -212,7 +215,12 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                             mSensorsDataInstance.track("$AppStart", properties);
                         }
 
-                        mDbAdapter.commitAppStartTime(SystemClock.elapsedRealtime());   // 防止动态开启 $AppEnd 时，启动时间戳不对的问题。
+                        try {
+                            mDbAdapter.commitAppStartTime(SystemClock.elapsedRealtime());   // 防止动态开启 $AppEnd 时，启动时间戳不对的问题。
+                        } catch (Exception ex) {
+                            // 出现异常，在重新存储一次，防止使用原有的时间戳造成时长计算错误
+                            mDbAdapter.commitAppStartTime(SystemClock.elapsedRealtime());
+                        }
                     } catch (Exception e) {
                         SALog.i(TAG, e);
                     }
@@ -313,34 +321,47 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
      * @param pausedTime 退出时间
      * @param jsonEndData $AppEnd 事件属性
      */
-    private void trackAppEnd(long pausedTime, String jsonEndData) {
+    private void trackAppEnd(long startTime, long pausedTime, String jsonEndData) {
         try {
             if (mSensorsDataInstance.isAutoTrackEnabled() && isAutoTrackAppEnd()) {
                 if (!TextUtils.isEmpty(jsonEndData)) {
                     JSONObject endDataJsonObject = new JSONObject(jsonEndData);
-                    if (endDataJsonObject.has(EVENT_TIMER)) {
-                        long startTime = mDbAdapter.getAppStartTime(); //获取启动时间戳
-                        long endTime = endDataJsonObject.getLong(EVENT_TIMER); // 获取结束时间戳
-                        EventTimer eventTimer = new EventTimer(TimeUnit.SECONDS, startTime, endTime);
-                        SALog.d(TAG, "startTime:" + startTime + "--endTime:" + endTime + "--event_duration:" + eventTimer.duration());
-                        mSensorsDataInstance.trackTimer("$AppEnd", eventTimer); // 构建 Timer
-                        endDataJsonObject.remove(EVENT_TIMER);
-                        // 读取指定的字段，防止别人篡改写入脏属性
-                        JSONObject properties = new JSONObject();
-                        properties.put("$screen_name", endDataJsonObject.optString("$screen_name"));
-                        properties.put("$title", endDataJsonObject.optString("$title"));
-                        properties.put(LIB_VERSION, endDataJsonObject.optString(LIB_VERSION));
-                        properties.put(APP_VERSION, endDataJsonObject.optString(APP_VERSION));
-                        mSensorsDataInstance.clearLastScreenUrl();
-                        properties.put("event_time", pausedTime);
-                        mSensorsDataInstance.track("$AppEnd", properties);
-                        mDbAdapter.commitAppEndData(""); // 保存的信息只使用一次就置空，防止后面状态错乱再次发送。
-                        mSensorsDataInstance.flushSync();
-                    }
+                    long endTime = endDataJsonObject.optLong(EVENT_TIMER); // 获取结束时间戳
+                    // 读取指定的字段，防止别人篡改写入脏属性
+                    JSONObject properties = new JSONObject();
+                    properties.put("$screen_name", endDataJsonObject.optString("$screen_name"));
+                    properties.put("$title", endDataJsonObject.optString("$title"));
+                    properties.put(LIB_VERSION, endDataJsonObject.optString(LIB_VERSION));
+                    properties.put(APP_VERSION, endDataJsonObject.optString(APP_VERSION));
+                    properties.put("event_duration", duration(startTime, endTime));
+                    properties.put("event_time", pausedTime);
+                    mSensorsDataInstance.track("$AppEnd", properties);
+                    mDbAdapter.commitAppEndData(""); // 保存的信息只使用一次就置空，防止后面状态错乱再次发送。
+                    mSensorsDataInstance.flushSync();
                 }
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
+        }
+    }
+
+    /**
+     * 计算退出事件时长
+     * @param startTime 启动时间
+     * @param endTime 退出时间
+     * @return 时长
+     */
+    private String duration(long startTime, long endTime) {
+        long duration = endTime - startTime;
+        try {
+            if (duration < 0 || duration > 24 * 60 * 60 * 1000) {
+                return String.valueOf(0);
+            }
+            float durationFloat = duration / 1000.0f;
+            return durationFloat < 0 ? String.valueOf(0) : String.format(Locale.CHINA, "%.3f", durationFloat);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+            return String.valueOf(0);
         }
     }
 
@@ -353,7 +374,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
             endDataProperty.put(APP_VERSION, app_version);
             endDataProperty.put(LIB_VERSION, lib_version);
             mDbAdapter.commitAppEndData(endDataProperty.toString());
-            mDbAdapter.commitAppPausedTime(System.currentTimeMillis());
+            mDbAdapter.commitAppEndTime(System.currentTimeMillis());
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -366,7 +387,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
      */
     private boolean isSessionTimeOut() {
         long currentTime = System.currentTimeMillis() > 946656000000L ? System.currentTimeMillis() : 946656000000L;
-        boolean sessionTimeOut = Math.abs(currentTime - mDbAdapter.getAppPausedTime()) > sessionTime;
+        boolean sessionTimeOut = Math.abs(currentTime - mDbAdapter.getAppEndTime()) > sessionTime;
         SALog.d(TAG, "SessionTimeOut:" + sessionTimeOut);
         return sessionTimeOut;
     }
@@ -381,7 +402,8 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         Message message = Message.obtain(handler);
         message.what = MESSAGE_END;
         Bundle bundle = new Bundle();
-        bundle.putLong(APP_END_TIME, DbAdapter.getInstance().getAppPausedTime());
+        bundle.putLong(APP_START_TIME, DbAdapter.getInstance().getAppStartTime());
+        bundle.putLong(APP_END_TIME, DbAdapter.getInstance().getAppEndTime());
         bundle.putString(APP_END_DATA, DbAdapter.getInstance().getAppEndData());
         bundle.putBoolean(APP_RESET_STATE, resetState);
         message.setData(bundle);
@@ -395,8 +417,14 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
             handler = new Handler(handlerThread.getLooper()) {
                 @Override
                 public void handleMessage(Message msg) {
+                    if (messageReceiveTime != 0 && SystemClock.elapsedRealtime() - messageReceiveTime < sessionTime) {
+                        SALog.i(TAG, "$AppEnd 事件已触发。");
+                        return;
+                    }
+                    messageReceiveTime = SystemClock.elapsedRealtime();
                     if (msg != null) {
                         Bundle bundle = msg.getData();
+                        long startTime = bundle.getLong(APP_START_TIME);
                         long endTime = bundle.getLong(APP_END_TIME);
                         String endData = bundle.getString(APP_END_DATA);
                         boolean resetState = bundle.getBoolean(APP_RESET_STATE);
@@ -406,7 +434,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                         } else {// 如果是补发则需要添加打点间隔，防止 $AppEnd 在 AppCrash 事件序列之前
                             endTime = endTime + TIME_INTERVAL;
                         }
-                        trackAppEnd(endTime, endData);
+                        trackAppEnd(startTime, endTime, endData);
                     }
                 }
             };
@@ -429,6 +457,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
             VisualizedAutoTrackService.getInstance().stop();
             mSensorsDataInstance.appEnterBackground();
             resumeFromBackground = true;
+            mSensorsDataInstance.clearLastScreenUrl();
 //            mSensorsDataInstance.stopTrackTaskThread();
         } catch (Exception e) {
             SALog.printStackTrace(e);

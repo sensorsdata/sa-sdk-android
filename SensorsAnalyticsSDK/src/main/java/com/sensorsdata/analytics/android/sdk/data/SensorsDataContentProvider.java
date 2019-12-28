@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2017/5/5.
- * Copyright 2015－2019 Sensors Data Inc.
+ * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ public class SensorsDataContentProvider extends ContentProvider {
             uriMatcher.addURI(authority, DbParams.TABLE_ACTIVITY_START_COUNT, ACTIVITY_START_COUNT);
             uriMatcher.addURI(authority, DbParams.TABLE_APP_START_TIME, APP_START_TIME);
             uriMatcher.addURI(authority, DbParams.TABLE_APP_END_DATA, APP_END_DATA);
-            uriMatcher.addURI(authority, DbParams.TABLE_APP_PAUSED_TIME, APP_PAUSED_TIME);
+            uriMatcher.addURI(authority, DbParams.TABLE_APP_END_TIME, APP_PAUSED_TIME);
             uriMatcher.addURI(authority, DbParams.TABLE_SESSION_INTERVAL_TIME, SESSION_INTERVAL_TIME);
             uriMatcher.addURI(authority, DbParams.TABLE_LOGIN_ID, LOGIN_ID);
             dbHelper = new SensorsDataDBHelper(context);
@@ -115,7 +115,7 @@ public class SensorsDataContentProvider extends ContentProvider {
             PersistentLoader.initLoader(context);
             persistentAppEndData = (PersistentAppEndData) PersistentLoader.loadPersistent(DbParams.TABLE_APP_END_DATA);
             persistentAppStartTime = (PersistentAppStartTime) PersistentLoader.loadPersistent(DbParams.TABLE_APP_START_TIME);
-            persistentAppPaused = (PersistentAppPaused) PersistentLoader.loadPersistent(DbParams.TABLE_APP_PAUSED_TIME);
+            persistentAppPaused = (PersistentAppPaused) PersistentLoader.loadPersistent(DbParams.TABLE_APP_END_TIME);
             persistentSessionIntervalTime = (PersistentSessionIntervalTime) PersistentLoader.loadPersistent(DbParams.TABLE_SESSION_INTERVAL_TIME);
             persistentLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(DbParams.TABLE_LOGIN_ID);
         }
@@ -257,7 +257,7 @@ public class SensorsDataContentProvider extends ContentProvider {
                 persistentAppStartTime.commit(values.getAsLong(DbParams.TABLE_APP_START_TIME));
                 break;
             case APP_PAUSED_TIME:
-                persistentAppPaused.commit(values.getAsLong(DbParams.TABLE_APP_PAUSED_TIME));
+                persistentAppPaused.commit(values.getAsLong(DbParams.TABLE_APP_END_TIME));
                 break;
             case APP_END_DATA:
                 persistentAppEndData.commit(values.getAsString(DbParams.TABLE_APP_END_DATA));
@@ -294,7 +294,7 @@ public class SensorsDataContentProvider extends ContentProvider {
                 break;
             case APP_PAUSED_TIME:
                 data = persistentAppPaused.get();
-                column = DbParams.TABLE_APP_PAUSED_TIME;
+                column = DbParams.TABLE_APP_END_TIME;
                 break;
             case APP_END_DATA:
                 data = persistentAppEndData.get();

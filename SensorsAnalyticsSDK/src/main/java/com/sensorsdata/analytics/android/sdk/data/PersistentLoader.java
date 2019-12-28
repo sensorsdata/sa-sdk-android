@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2019/02/01.
- * Copyright 2015－2019 Sensors Data Inc.
+ * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -96,7 +96,7 @@ public class PersistentLoader {
 
     public interface PersistentName {
         String APP_END_DATA = DbParams.TABLE_APP_END_DATA;
-        String APP_PAUSED_TIME = DbParams.TABLE_APP_PAUSED_TIME;
+        String APP_PAUSED_TIME = DbParams.TABLE_APP_END_TIME;
         String APP_START_TIME = DbParams.TABLE_APP_START_TIME;
         String APP_SESSION_TIME = DbParams.TABLE_SESSION_INTERVAL_TIME;
         String DISTINCT_ID = "events_distinct_id";
