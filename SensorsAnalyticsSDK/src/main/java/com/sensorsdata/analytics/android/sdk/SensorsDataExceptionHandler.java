@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2015/08/01.
- * Copyright 2015－2019 Sensors Data Inc.
+ * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -80,7 +80,7 @@ class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHandler {
                     }
 
                     SensorsDataTimer.getInstance().shutdownTimerTask();
-                    DbAdapter.getInstance().commitAppPausedTime(System.currentTimeMillis());
+                    DbAdapter.getInstance().commitAppEndTime(System.currentTimeMillis());
                     // 注意这里要重置为 0，对于跨进程的情况，如果子进程崩溃，主进程但是没崩溃，造成统计个数异常，所以要重置为 0。
                     DbAdapter.getInstance().commitActivityCount(0);
                     sensorsData.flushSync();

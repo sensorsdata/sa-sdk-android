@@ -1,6 +1,6 @@
 /*
  * Created by zhangwei on 2019/05/05.
- * Copyright 2015－2019 Sensors Data Inc.
+ * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -256,7 +256,7 @@ public class SensorsDataContentProviderTest {
             //app pause state test
             long appPausedTime = System.currentTimeMillis();
             ContentValues contentValues = new ContentValues();
-            contentValues.put(DbParams.TABLE_APP_PAUSED_TIME, appPausedTime);
+            contentValues.put(DbParams.TABLE_APP_END_TIME, appPausedTime);
             Uri uri = resolver.insert(dbParams.getAppPausedUri(), contentValues);
             assertEquals(uri, dbParams.getAppPausedUri());
             Cursor cursor = resolver.query(uri, null, null, null, null);

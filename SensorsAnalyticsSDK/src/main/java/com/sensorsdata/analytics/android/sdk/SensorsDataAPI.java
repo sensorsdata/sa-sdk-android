@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2015/08/01.
- * Copyright 2015－2019 Sensors Data Inc.
+ * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,7 +78,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -165,7 +164,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private SimpleDateFormat mIsFirstDayDateFormat;
     private SSLSocketFactory mSSLSocketFactory;
     private SensorsDataTrackEventCallBack mTrackEventCallBack;
-    private HashSet<String> mFilterEventProperties = null;
     private IFragmentAPI mFragmentAPI;
 
     //private
@@ -1678,14 +1676,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
-                try {
-                    if (!mIsMainProcess) {
-                        return;
-                    }
-                } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                if (!mIsMainProcess) {
+                    return;
                 }
-
                 try {
                     boolean firstTrackInstallation;
                     if (disableCallback) {
@@ -1871,32 +1864,17 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Deprecated
     @Override
     public void trackTimer(final String eventName, final TimeUnit timeUnit) {
+        final long startTime = SystemClock.elapsedRealtime();
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
                 try {
                     assertKey(eventName);
                     synchronized (mTrackTimer) {
-                        mTrackTimer.put(eventName, new EventTimer(timeUnit));
+                        mTrackTimer.put(eventName, new EventTimer(timeUnit, startTime));
                     }
                 } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-                }
-            }
-        });
-    }
-
-    void trackTimer(final String eventName, final EventTimer eventTimer) {
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    assertKey(eventName);
-                    synchronized (mTrackTimer) {
-                        mTrackTimer.put(eventName, eventTimer);
-                    }
-                } catch (Exception ex) {
-                    SALog.printStackTrace(ex);
+                    SALog.printStackTrace(e);
                 }
             }
         });
@@ -1931,6 +1909,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @param isPause 设置是否暂停
      */
     private void trackTimerState(final String eventName, final boolean isPause) {
+        final long startTime = SystemClock.elapsedRealtime();
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
@@ -1939,7 +1918,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     synchronized (mTrackTimer) {
                         EventTimer eventTimer = mTrackTimer.get(eventName);
                         if (eventTimer != null && eventTimer.isPaused() != isPause) {
-                            eventTimer.setTimerState(isPause);
+                            eventTimer.setTimerState(isPause, startTime);
                         }
                     }
                 } catch (Exception e) {
@@ -1979,13 +1958,22 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     @Override
     public void trackTimerEnd(final String eventName, final JSONObject properties) {
+        long endTime = SystemClock.elapsedRealtime();
+        if (eventName != null) {
+            synchronized (mTrackTimer) {
+                EventTimer eventTimer = mTrackTimer.get(eventName);
+                if (eventTimer != null) {
+                    eventTimer.setEndTime(endTime);
+                }
+            }
+        }
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
                 try {
                     trackEvent(EventType.TRACK, eventName, properties, null);
                 } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                    SALog.printStackTrace(e);
                 }
             }
         });
@@ -1993,16 +1981,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     @Override
     public void trackTimerEnd(final String eventName) {
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    trackEvent(EventType.TRACK, eventName, null, null);
-                } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-                }
-            }
-        });
+        trackTimerEnd(eventName, null);
     }
 
     @Override
@@ -2087,18 +2066,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     if (activity == null) {
                         return;
                     }
-
-                    JSONObject properties = new JSONObject();
-                    properties.put("$screen_name", activity.getClass().getCanonicalName());
-                    SensorsDataUtils.getScreenNameAndTitleFromActivity(properties, activity);
-
-                    if (activity instanceof ScreenAutoTracker) {
-                        ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
-                        JSONObject otherProperties = screenAutoTracker.getTrackProperties();
-                        if (otherProperties != null) {
-                            SensorsDataUtils.mergeJSONObject(otherProperties, properties);
-                        }
-                    }
+                    JSONObject properties = AopUtil.buildTitleAndScreenName(activity);
                     trackViewScreen(SensorsDataUtils.getScreenUrl(activity), properties);
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
@@ -2292,16 +2260,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public void setTrackEventCallBack(SensorsDataTrackEventCallBack trackEventCallBack) {
         mTrackEventCallBack = trackEventCallBack;
-        if (mFilterEventProperties == null) {
-            mFilterEventProperties = new HashSet<>();
-            mFilterEventProperties.add("$device_id");
-            mFilterEventProperties.add(AopConstants.ELEMENT_ID);
-            mFilterEventProperties.add(AopConstants.SCREEN_NAME);
-            mFilterEventProperties.add(AopConstants.TITLE);
-            mFilterEventProperties.add(AopConstants.ELEMENT_POSITION);
-            mFilterEventProperties.add(AopConstants.ELEMENT_CONTENT);
-            mFilterEventProperties.add(AopConstants.ELEMENT_TYPE);
-        }
     }
 
     @Override
@@ -2821,24 +2779,13 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         if (mTrackEventCallBack != null) {
             SALog.d(TAG, "SDK have set trackEvent callBack");
             try {
-                JSONObject properties = new JSONObject();
-                Iterator<String> iterator = eventProperties.keys();
-                ArrayList<String> keys = new ArrayList<>();
-                while (iterator.hasNext()) {
-                    String key = iterator.next();
-                    if (key.startsWith("$") && !mFilterEventProperties.contains(key)) {
-                        continue;
-                    }
-                    Object value = eventProperties.opt(key);
-                    properties.put(key, value);
-                    keys.add(key);
-                }
-                enterDb = mTrackEventCallBack.onTrackEvent(eventName, properties);
-                if (enterDb) {
-                    for (String key : keys) {
-                        eventProperties.remove(key);
-                    }
-                    Iterator<String> it = properties.keys();
+                enterDb = mTrackEventCallBack.onTrackEvent(eventName, eventProperties);
+            } catch (Exception e) {
+                SALog.printStackTrace(e);
+            }
+            if (enterDb) {
+                try {
+                    Iterator<String> it = eventProperties.keys();
                     while (it.hasNext()) {
                         String key = it.next();
                         try {
@@ -2847,7 +2794,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             SALog.printStackTrace(e);
                             return false;
                         }
-                        Object value = properties.opt(key);
+                        Object value = eventProperties.opt(key);
                         if (!(value instanceof CharSequence || value instanceof Number || value
                                 instanceof JSONArray || value instanceof Boolean || value instanceof Date)) {
                             SALog.d(TAG, String.format("The property value must be an instance of " +
@@ -2868,12 +2815,15 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                                 value = ((String) value).substring(0, 8191) + "$";
                             }
                         }
-                        eventProperties.put(key, value);
+                        if (value instanceof Date) {
+                            eventProperties.put(key, DateFormatUtils.formatDate((Date) value, Locale.CHINA));
+                        } else {
+                            eventProperties.put(key, value);
+                        }
                     }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
                 }
-
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
             }
         }
         return enterDb;

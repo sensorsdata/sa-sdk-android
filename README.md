@@ -14,6 +14,9 @@
 
 SensorsAnalytics SDK 是国内第一家开源商用版用户行为采集 SDK，目前支持代码埋点、全埋点、App 点击图、可视化全埋点等。目前已累计有 1000 多家付费客户，2000+ 的 App 集成使用，作为 App 数据采集利器，致力于帮助客户挖掘更多的商业价值，为其精准运营和业务支撑提供了可靠的数据来源。其采集全面而灵活、性能良好，并一直保持稳定的迭代，经受住了时间和客户的考验。
 
+## 基本要求
+Android 4.0 及以上。
+
 ## 集成文档
 
 请参考神策官网 [Android SDK 集成文档](http://www.sensorsdata.cn/manual/android_sdk.html)。
@@ -33,7 +36,7 @@ SensorsAnalytics SDK 是国内第一家开源商用版用户行为采集 SDK，�
 
 ## 讨论
 
-可以扫码加入神策官方 SDK QQ 讨论群：<br><br>
+可以扫码加入神策开源 SDK QQ 讨论群，群号：785122381<br><br>
 ![ QQ 讨论群](docs/qrCode.jpeg)
 
 ## 新书推荐
@@ -50,7 +53,7 @@ SensorsAnalytics SDK 是国内第一家开源商用版用户行为采集 SDK，�
 
 ## License
 
-Copyright 2015－2019 Sensors Data Inc.
+Copyright 2015－2020 Sensors Data Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
