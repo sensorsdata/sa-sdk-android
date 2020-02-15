@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -479,8 +478,8 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
-    public void trackTimerStart(String eventName) {
-
+    public String trackTimerStart(String eventName) {
+        return "";
     }
 
     @Override
@@ -758,6 +757,16 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public void enableNetworkRequest(boolean isRequest) {
+
+    }
+
+    @Override
+    public void startTrackThread() {
+
+    }
+
+    @Override
+    public void stopTrackThread() {
 
     }
 }

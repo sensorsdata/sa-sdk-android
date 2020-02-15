@@ -82,11 +82,6 @@ abstract class AbstractSAConfigOptions {
     boolean mHeatMapConfirmDialogEnabled;
 
     /**
-     * 点击图证书检查
-     */
-    boolean mHeatMapSSLChecked;
-
-    /**
      * 可视化全埋点是否可用
      */
     boolean mVisualizedEnabled;
@@ -95,11 +90,6 @@ abstract class AbstractSAConfigOptions {
      * 可视化全埋点对话框是否可用
      */
     boolean mVisualizedConfirmDialogEnabled;
-
-    /**
-     * 可视化全埋点证书检查
-     */
-    boolean mVisualizedSSLChecked;
 
     /**
      * 是否开启打印日志

@@ -722,7 +722,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     /**
      * 停止事件计时器
      *
-     * @param eventName 事件的名称
+     * @param eventName 事件的名称，或者交叉计算场景时 trackTimerStart 的返回值
      * @param properties 事件的属性
      */
     void trackTimerEnd(final String eventName, JSONObject properties);
@@ -730,7 +730,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     /**
      * 停止事件计时器
      *
-     * @param eventName 事件的名称
+     * @param eventName 事件的名称，或者交叉计算场景时 trackTimerStart 的返回值
      */
     void trackTimerEnd(final String eventName);
 
@@ -995,8 +995,9 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * 初始化事件的计时器，计时单位为秒。
      *
      * @param eventName 事件的名称
+     * @return 交叉计时的事件名称
      */
-    void trackTimerStart(final String eventName);
+    String trackTimerStart(final String eventName);
 
     /**
      * 暂停事件计时器，计时单位为秒。
@@ -1089,4 +1090,14 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * @return true 开启加密，false，不开启加密
      */
     boolean isEncryptEnabled();
+
+    /**
+     * 停止事件采集，注意不要随便调用，调用后会造成数据丢失。
+     */
+    void stopTrackThread();
+
+    /**
+     * 开启事件采集
+     */
+    void startTrackThread();
 }

@@ -80,8 +80,11 @@ public class TrackTaskManagerThread implements Runnable {
         }
     }
 
-    public void setStop(boolean isStop) {
+    void setStop(boolean isStop) {
         this.isStop = isStop;
     }
 
+    boolean isStopped() {
+        return isStop;
+    }
 }
