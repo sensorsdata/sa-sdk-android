@@ -311,12 +311,9 @@ public class HeatMapViewCrawler implements VTrack {
             BufferedOutputStream bout = null;
             try {
                 HttpURLConnection connection;
-                if (mPostUrl.startsWith("https://") && !SensorsDataAPI.sharedInstance().isHeatMapSSLCheckEnabled()) {
-                    disableSSLCertificateChecking();
-                }
                 final URL url = new URL(mPostUrl);
                 connection = (HttpURLConnection) url.openConnection();
-                if (SensorsDataAPI.sharedInstance().getSSLSocketFactory() != null && SensorsDataAPI.sharedInstance().isHeatMapSSLCheckEnabled() && connection instanceof HttpsURLConnection) {
+                if (SensorsDataAPI.sharedInstance().getSSLSocketFactory() != null && connection instanceof HttpsURLConnection) {
                     ((HttpsURLConnection) connection).setSSLSocketFactory(SensorsDataAPI.sharedInstance().getSSLSocketFactory());
                 }
                 connection.setDoOutput(true);
@@ -395,42 +392,6 @@ public class HeatMapViewCrawler implements VTrack {
 
             buffer.flush();
             return buffer.toByteArray();
-        }
-
-        /**
-         * 将 HTTPS 请求不验证证书，即信任所有证书
-         */
-        private void disableSSLCertificateChecking() {
-            try {
-                SSLContext sc = SSLContext.getInstance("TLS");
-                sc.init(null, new TrustManager[]{new CustomTrustManager()}, new SecureRandom());
-                HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-                HttpsURLConnection.setDefaultHostnameVerifier(new CustomHostnameVerifier());
-            } catch (Exception e) {
-                com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-            }
-        }
-
-        private class CustomTrustManager implements X509TrustManager {
-            @Override
-            public void checkClientTrusted(X509Certificate[] chain, String authType) {
-            }
-
-            @Override
-            public void checkServerTrusted(X509Certificate[] chain, String authType) {
-            }
-
-            @Override
-            public X509Certificate[] getAcceptedIssuers() {
-                return null;
-            }
-        }
-
-        private class CustomHostnameVerifier implements HostnameVerifier {
-            @Override
-            public boolean verify(String hostname, SSLSession session) {
-                return true;
-            }
         }
     }
 }

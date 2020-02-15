@@ -399,26 +399,34 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         } catch (final Exception e) {
             SALog.i(TAG, "Exception getting app version name", e);
         }
-        //context.getResources().getDisplayMetrics()这种方式获取屏幕高度不包括底部虚拟导航栏
-        final DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
-        int screenWidth = displayMetrics.widthPixels;
-        int screenHeight = displayMetrics.heightPixels;
 
         try {
+            int screenWidth, screenHeight;
             WindowManager windowManager = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
             Display display = windowManager.getDefaultDisplay();
             int rotation = display.getRotation();
+            Point point = new Point();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                Point point = new Point();
                 display.getRealSize(point);
                 screenWidth = point.x;
                 screenHeight = point.y;
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
+                display.getSize(point);
+                screenWidth = point.x;
+                screenHeight = point.y;
+            } else {
+                screenWidth = display.getWidth();
+                screenHeight = display.getHeight();
             }
             deviceInfo.put("$screen_width", SensorsDataUtils.getNaturalWidth(rotation, screenWidth, screenHeight));
             deviceInfo.put("$screen_height", SensorsDataUtils.getNaturalHeight(rotation, screenWidth, screenHeight));
         } catch (Exception e) {
-            deviceInfo.put("$screen_width", screenWidth);
-            deviceInfo.put("$screen_height", screenHeight);
+            //context.getResources().getDisplayMetrics()这种方式获取屏幕高度不包括底部虚拟导航栏
+            if (mContext.getResources() != null) {
+                final DisplayMetrics displayMetrics = mContext.getResources().getDisplayMetrics();
+                deviceInfo.put("$screen_width", displayMetrics.widthPixels);
+                deviceInfo.put("$screen_height", displayMetrics.heightPixels);
+            }
         }
 
         String carrier = SensorsDataUtils.getCarrier(mContext);
@@ -1898,8 +1906,16 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     @Override
-    public void trackTimerStart(String eventName) {
-        trackTimerBegin(eventName, TimeUnit.SECONDS);
+    public String trackTimerStart(String eventName) {
+        try {
+            final String eventNameRegex = String.format("%s_%s_%s", eventName, UUID.randomUUID().toString().replace("-", "_"), "SATimer");
+            trackTimerBegin(eventNameRegex, TimeUnit.SECONDS);
+            trackTimerBegin(eventName, TimeUnit.SECONDS);
+            return eventNameRegex;
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+        return "";
     }
 
     /**
@@ -2260,6 +2276,23 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public void setTrackEventCallBack(SensorsDataTrackEventCallBack trackEventCallBack) {
         mTrackEventCallBack = trackEventCallBack;
+    }
+
+    @Override
+    public void stopTrackThread() {
+        if (mTrackTaskManagerThread != null && !mTrackTaskManagerThread.isStopped()) {
+            mTrackTaskManagerThread.setStop(true);
+            SALog.i(TAG, "Data collection thread has been stopped");
+        }
+    }
+
+    @Override
+    public void startTrackThread() {
+        if (mTrackTaskManagerThread == null || mTrackTaskManagerThread.isStopped()) {
+            mTrackTaskManagerThread = new TrackTaskManagerThread();
+            new Thread(mTrackTaskManagerThread).start();
+            SALog.i(TAG, "Data collection thread has been started");
+        }
     }
 
     @Override
@@ -2829,19 +2862,21 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return enterDb;
     }
 
-    private void trackEvent(final EventType eventType, final String eventName, final JSONObject properties, final String
+    private void trackEvent(final EventType eventType, String eventName, final JSONObject properties, final String
             originalDistinctId) {
-        final EventTimer eventTimer;
-        if (eventName != null) {
-            synchronized (mTrackTimer) {
-                eventTimer = mTrackTimer.get(eventName);
-                mTrackTimer.remove(eventName);
-            }
-        } else {
-            eventTimer = null;
-        }
-
         try {
+            EventTimer eventTimer = null;
+            if (!TextUtils.isEmpty(eventName)) {
+                synchronized (mTrackTimer) {
+                    eventTimer = mTrackTimer.get(eventName);
+                    mTrackTimer.remove(eventName);
+                }
+
+                if (eventName.endsWith("_SATimer") && eventName.length() > 45) {// Timer 计时交叉计算拼接的字符串长度 45
+                    eventName = eventName.substring(0, eventName.length() - 45);
+                }
+            }
+
             if (eventType.isTrack()) {
                 assertKey(eventName);
             }
@@ -3086,34 +3121,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
-
-    void stopTrackTaskThread() {
-        mTrackTaskManagerThread.setStop(true);
-    }
-
-    void resumeTrackTaskThread() {
-        mTrackTaskManagerThread = new TrackTaskManagerThread();
-        new Thread(mTrackTaskManagerThread).start();
-    }
-
-    /**
-     * 点击图是否进行检查 SSL
-     *
-     * @return boolean 是否进行检查
-     */
-    boolean isHeatMapSSLCheckEnabled() {
-        return mSAConfigOptions.mHeatMapSSLChecked;
-    }
-
-    /**
-     * 可视化全埋点是否进行检查 SSL
-     *
-     * @return boolean 是否进行检查
-     */
-    boolean isVisualizedSSLCheckEnabled() {
-        return mSAConfigOptions.mVisualizedSSLChecked;
-    }
-
+    
     boolean isMultiProcess() {
         return mSAConfigOptions.enableMultiProcess;
     }
@@ -3316,12 +3324,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     true);
         }
 
-        if (!mSAConfigOptions.mInvokeHeatMapSSLCheck) {
-            mSAConfigOptions.mHeatMapSSLChecked = configBundle.getBoolean("com.sensorsdata.analytics.android.HeatMapSSLCertificateCheck",
-                    true);
-        }
-
-
         if (!mSAConfigOptions.mInvokeVisualizedEnabled) {
             mSAConfigOptions.mVisualizedEnabled = configBundle.getBoolean("com.sensorsdata.analytics.android.VisualizedAutoTrack",
                     false);
@@ -3329,11 +3331,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
         if (!mSAConfigOptions.mInvokeVisualizedConfirmDialog) {
             mSAConfigOptions.mVisualizedConfirmDialogEnabled = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableVisualizedAutoTrackConfirmDialog",
-                    true);
-        }
-
-        if (!mSAConfigOptions.mInvokeVisualizedSSLCheck) {
-            mSAConfigOptions.mVisualizedSSLChecked = configBundle.getBoolean("com.sensorsdata.analytics.android.VisualizedAutoTrackSSLCertificateCheck",
                     true);
         }
 

@@ -201,18 +201,6 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
     }
 
     /**
-     * 设置点击图是否检查证书
-     *
-     * @param enableHeatMapSSLCheck 点击图是否检查证书
-     * @return SAOptionsConfig
-     */
-    public SAConfigOptions enableHeatMapSSLCheck(boolean enableHeatMapSSLCheck) {
-        this.mHeatMapSSLChecked = enableHeatMapSSLCheck;
-        this.mInvokeHeatMapSSLCheck = true;
-        return this;
-    }
-
-    /**
      * 设置可视化全埋点是否可用
      *
      * @param enableVisualizedAutoTrack 可视化全埋点是否可用
@@ -233,18 +221,6 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
     public SAConfigOptions enableVisualizedAutoTrackConfirmDialog(boolean enableDialog) {
         this.mVisualizedConfirmDialogEnabled = enableDialog;
         this.mInvokeVisualizedConfirmDialog = true;
-        return this;
-    }
-
-    /**
-     * 设置可视化全埋点是否检查证书
-     *
-     * @param enableVisualizedSSLCheck 可视化全埋点是否检查证书
-     * @return SAOptionsConfig
-     */
-    public SAConfigOptions enableVisualizedAutoTrackSSLCheck(boolean enableVisualizedSSLCheck) {
-        this.mVisualizedSSLChecked = enableVisualizedSSLCheck;
-        this.mInvokeVisualizedSSLCheck = true;
         return this;
     }
 

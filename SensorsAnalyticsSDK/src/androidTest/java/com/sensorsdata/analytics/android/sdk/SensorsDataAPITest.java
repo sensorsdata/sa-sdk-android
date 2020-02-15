@@ -390,9 +390,7 @@ public class SensorsDataAPITest {
                     .enableVisualizedAutoTrackConfirmDialog(FLAG)
                     .enableVisualizedAutoTrack(FLAG)
                     .enableHeatMapConfirmDialog(FLAG)
-                    .enableHeatMapSSLCheck(FLAG)
                     .enableTrackScreenOrientation(FLAG)
-                    .enableVisualizedAutoTrackSSLCheck(FLAG)
                     .enableHeatMap(FLAG)
                     .enableTrackAppCrash();
 
@@ -407,7 +405,6 @@ public class SensorsDataAPITest {
             assertEquals(FLAG, SensorsDataAPI.sharedInstance().isVisualizedAutoTrackConfirmDialogEnabled());
             assertEquals(FLAG, SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled());
             assertEquals(FLAG, SensorsDataAPI.sharedInstance().isAppHeatMapConfirmDialogEnabled());
-            assertEquals(FLAG, SensorsDataAPI.sharedInstance().isHeatMapSSLCheckEnabled());
             assertEquals(FLAG, SensorsDataAPI.sharedInstance().isHeatMapEnabled());
 
         } catch (Exception ex) {

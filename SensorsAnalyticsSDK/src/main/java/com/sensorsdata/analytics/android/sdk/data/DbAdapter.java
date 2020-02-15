@@ -76,10 +76,7 @@ public class DbAdapter {
 
     private boolean belowMemThreshold() {
         if (mDatabaseFile.exists()) {
-            return Math.max(
-                    mDatabaseFile.getUsableSpace(),
-                    getMaxCacheSize(mContext)
-            ) < mDatabaseFile.length();
+            return mDatabaseFile.length() >= getMaxCacheSize(mContext);
         }
         return false;
     }
@@ -98,7 +95,7 @@ public class DbAdapter {
         Cursor c = null;
         try {
             if (belowMemThreshold()) {
-                SALog.i(TAG, "There is not enough space left on the device to store events, so will delete some old events");
+                SALog.i(TAG, "There is not enough space left on the device to store events, so will delete 100 oldest events");
                 String[] eventsData = generateDataString(DbParams.TABLE_EVENTS, 100);
                 if (eventsData == null) {
                     return DbParams.DB_OUT_OF_MEMORY_ERROR;
@@ -143,7 +140,7 @@ public class DbAdapter {
         Cursor c = null;
         try {
             if (belowMemThreshold()) {
-                SALog.i(TAG, "There is not enough space left on the device to store events, so will delete some old events");
+                SALog.i(TAG, "There is not enough space left on the device to store events, so will delete 100 oldest events");
                 String[] eventsData = generateDataString(DbParams.TABLE_EVENTS, 100);
                 if (eventsData == null) {
                     return DbParams.DB_OUT_OF_MEMORY_ERROR;
@@ -216,7 +213,7 @@ public class DbAdapter {
                 if (c != null) {
                     c.close();
                 }
-            } catch (Exception ex){
+            } catch (Exception ex) {
                 // ignore
             }
         }
@@ -225,6 +222,7 @@ public class DbAdapter {
 
     /**
      * 保存启动的页面个数
+     *
      * @param activityCount 页面个数
      */
     public void commitActivityCount(int activityCount) {
@@ -235,6 +233,7 @@ public class DbAdapter {
 
     /**
      * 获取存储的页面个数
+     *
      * @return 存储的页面个数
      */
     public int getActivityCount() {

@@ -81,8 +81,13 @@ public class SADeviceUtils {
             Class<?> jLibrary = Class.forName("com.bun.miitmdid.core.JLibrary");
             Method initEntry = jLibrary.getDeclaredMethod("InitEntry", Context.class);
             initEntry.invoke(null, context);
-
-            Class identifyListener = Class.forName("com.bun.miitmdid.core.IIdentifierListener");
+            Class identifyListener;
+            try {
+                identifyListener = Class.forName("com.bun.miitmdid.core.IIdentifierListener");
+            } catch (ClassNotFoundException ex) {
+                // 适配 MSA 的 v1.0.13 版本包名发生改变
+                identifyListener = Class.forName("com.bun.supplier.IIdentifierListener");
+            }
             // 创建 OAID 获取实例
             IdentifyListenerHandler handler = new IdentifyListenerHandler();
             Object iIdentifierListener = Proxy.newProxyInstance(context.getClassLoader(), new Class[]{identifyListener}, handler);
@@ -91,8 +96,8 @@ public class SADeviceUtils {
             Class<?> midSDKHelper = Class.forName("com.bun.miitmdid.core.MdidSdkHelper");
             Method initSDK = midSDKHelper.getDeclaredMethod("InitSdk", Context.class, boolean.class, identifyListener);
             int errCode = (int) initSDK.invoke(null, context, true, iIdentifierListener);
+            SALog.d(TAG, "MdidSdkHelper ErrorCode : " + errCode);
             if (errCode != INIT_ERROR_RESULT_DELAY) {
-                SALog.d(TAG, "get OAID failed : " + errCode);
                 getOAIDReflect(context, --retryCount);
                 if (retryCount == 0) {
                     countDownLatch.countDown();
@@ -130,7 +135,13 @@ public class SADeviceUtils {
             try {
                 if ("OnSupport".equals(method.getName())) {
                     if ((Boolean) args[0]) {
-                        Class<?> idSupplier = Class.forName("com.bun.miitmdid.supplier.IdSupplier");
+                        Class<?> idSupplier;
+                        try {
+                            idSupplier = Class.forName("com.bun.miitmdid.supplier.IdSupplier");
+                        } catch (ClassNotFoundException ex) {
+                            // 适配 MSA 的 v1.0.13 版本包名发生改变
+                            idSupplier = Class.forName("com.bun.supplier.IdSupplier");
+                        }
                         Method getOAID = idSupplier.getDeclaredMethod("getOAID");
                         oaid = (String) getOAID.invoke(args[1]);
                         SALog.d(TAG, "oaid:" + oaid);
