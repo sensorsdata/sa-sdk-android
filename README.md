@@ -36,14 +36,21 @@ Android 4.0 及以上。
 
 ## 讨论
 
-可以扫码加入神策开源 SDK QQ 讨论群，群号：785122381<br><br>
-![ QQ 讨论群](docs/qrCode.jpeg)
+| 扫码加入神策数据开源社区 QQ 群<br>群号：785122381 | 扫码加入神策数据开源社区微信群 |
+| ------ | ------ |
+|![ QQ 讨论群](https://raw.githubusercontent.com/richardhxy/OpensourceQRCode/master/docs/qrCode_for_qq.jpg) | ![ 微信讨论群 ](https://raw.githubusercontent.com/richardhxy/OpensourceQRCode/master/docs/qrcode_for_wechat.JPG) |
+
+## 公众号
+
+| 扫码关注<br>神策数据开源社区 | 扫码关注<br>神策数据开源社区服务号 |
+| ------ | ------ |
+|![ 微信订阅号 ](https://raw.githubusercontent.com/richardhxy/OpensourceQRCode/master/docs/qrcode_for_wechat_subscription_account.jpg) | ![ 微信服务号 ](https://raw.githubusercontent.com/richardhxy/OpensourceQRCode/master/docs/qrcode_for_wechat_service_account.jpg) |
 
 ## 新书推荐
 
 | 《数据驱动：从方法到实践》 | 《Android 全埋点解决方案》 |
 | ------ | ------ |
-| [![《数据驱动：从方法到实践》](docs/data_driven_book.jpg)](https://u.jd.com/dWkE2x) | [![《Android 全埋点解决方案》](docs/android_autotrack_book.jpg)](https://u.jd.com/2JFaeG) |
+| [![《数据驱动：从方法到实践》](docs/data_driven_book.jpg)](https://union-click.jd.com/jdc?e=&p=AyIGZRprFQEQBFYZWBYyVlgNRQQlW1dCFFlQCxxKQgFHREkdSVJKSQVJHFRXFk9FUlpGQUpLCVBaTFhbXQtWVmpSWRtYFwERBVYYa2FKZx0XchgUYnYEA0wjXgtAREt6JFMOHjdUK1sUAxIDUBxdHQQiN1Uca0NsEgZUGloUBxICVitaJQIWDlYcWBUGFQNVH1slBRIOZUcFSVx8QR5QayUyETdlK1slASJFO0lbRwtCAVEYDhUBEQIGGl0cVUYDVEwMFQYaAVFIC0dRIgVUGl8c) | [![《Android 全埋点解决方案》](docs/android_autotrack_book.jpg)](https://u.jd.com/2JFaeG) |
 
 
 ## 感谢
