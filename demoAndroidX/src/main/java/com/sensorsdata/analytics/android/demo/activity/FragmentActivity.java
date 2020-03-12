@@ -42,6 +42,8 @@ public class FragmentActivity extends BaseActivity implements View.OnClickListen
         // app.Fragment
         findViewById(R.id.tv_frg_app_viewpager).setOnClickListener(this);
         findViewById(R.id.tv_frg_app_tab).setOnClickListener(this);
+        findViewById(R.id.tv_viewpager_view).setOnClickListener(this);
+
     }
 
     @Override
@@ -64,6 +66,9 @@ public class FragmentActivity extends BaseActivity implements View.OnClickListen
                 break;
             case R.id.tv_frg_app_tab:
                 openTabAppFrgActivity_app();
+                break;
+            case R.id.tv_viewpager_view:
+                openVPViewActivity();
                 break;
             default:
                 break;
@@ -107,5 +112,12 @@ public class FragmentActivity extends BaseActivity implements View.OnClickListen
      */
     private void openVPAppFrgActivity_app() {
         startActivity(new Intent(this, VPAppFrgActivity.class));
+    }
+
+    /**
+     * 打开 VPViewActivity
+     */
+    private void openVPViewActivity() {
+        startActivity(new Intent(this, VPViewActivity.class));
     }
 }

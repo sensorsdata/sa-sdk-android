@@ -32,6 +32,8 @@ import android.widget.TextView;
 import androidx.annotation.RequiresApi;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -67,7 +69,7 @@ public class ViewUtil {
                 ViewId = view.getResources().getResourceEntryName(id);
 
             } catch (Exception e) {
-                e.printStackTrace();
+                SALog.printStackTrace(e);
             }
             return ViewId;
         }
@@ -207,7 +209,7 @@ public class ViewUtil {
                     mHaveCustomRecyclerView = true;
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                SALog.printStackTrace(e);
             }
         }
     }
@@ -217,7 +219,7 @@ public class ViewUtil {
             try {
                 mRecyclerViewGetChildAdapterPositionMethod = viewClass.getDeclaredMethod("getChildAdapterPosition", new Class[]{View.class});
             } catch (NoSuchMethodException e) {
-                e.printStackTrace();
+                SALog.printStackTrace(e);
             }
             if (mRecyclerViewGetChildAdapterPositionMethod == null) {
                 try {
@@ -240,9 +242,9 @@ public class ViewUtil {
                 return ((Integer) mRecyclerViewGetChildAdapterPositionMethod.invoke(customRecyclerView, new Object[]{childView})).intValue();
             }
         } catch (IllegalAccessException e) {
-            e.printStackTrace();
+            SALog.printStackTrace(e);
         } catch (InvocationTargetException e2) {
-            e2.printStackTrace();
+            SALog.printStackTrace(e2);
         }
         return -1;
     }

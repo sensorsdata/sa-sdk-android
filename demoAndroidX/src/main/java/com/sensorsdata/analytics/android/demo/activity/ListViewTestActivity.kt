@@ -19,23 +19,30 @@ package com.sensorsdata.analytics.android.demo.activity
 
 import android.graphics.Color
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.BaseExpandableListAdapter
-import android.widget.TextView
+import android.widget.*
 import com.sensorsdata.analytics.android.demo.R
 import kotlinx.android.synthetic.main.activity_list.*
 
 class ListViewTestActivity : BaseActivity() {
     private val groups = arrayOf("A", "B", "C")
     private val childs = arrayOf(arrayOf("A1", "A2", "A3", "A4"), arrayOf("B1", "B2", "B3", "B4"), arrayOf("C1", "C2", "C3", "C4"))
-
+    private var datas = ArrayList<String>()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_list)
+
+        addELVHeadViewAndFootView()
         expandableListView.setAdapter(MyExpandableAdapter())
+        for (i in 0..100) {
+            datas.add(i.toString())
+        }
+        addHeadViewAndFootView();
+        listView.adapter = MyListViewAdapter()
         listView.setOnItemClickListener { _, _, _, _ ->
-            println("list view item clicked")
+            Toast.makeText(this@ListViewTestActivity, "list view item clicked", Toast.LENGTH_SHORT).show()
         }
         expandableListView.setOnGroupClickListener { _, _, _, _ ->
             println("group item clicked")
@@ -45,6 +52,7 @@ class ListViewTestActivity : BaseActivity() {
             println("child item clicked")
             true
         }
+
     }
 
     internal inner class MyExpandableAdapter : BaseExpandableListAdapter() {
@@ -102,4 +110,80 @@ class ListViewTestActivity : BaseActivity() {
             return true
         }
     }
+
+    internal inner class MyListViewAdapter : BaseAdapter() {
+
+        var viewHolder: MyViewHolder? = null
+
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
+            val view: View
+            if (convertView == null) {
+                view = layoutInflater.inflate(R.layout.item_listview, null)
+                viewHolder = MyViewHolder(view)
+                view.tag = viewHolder
+            } else {
+                view = convertView
+                viewHolder = convertView.tag as MyViewHolder
+            }
+            viewHolder!!.textView!!.text = datas[position]
+            viewHolder!!.button1!!.text = "button 1： " + datas[position]
+            viewHolder!!.textView!!.setOnClickListener {
+                Toast.makeText(this@ListViewTestActivity, "textView: $position click", Toast.LENGTH_SHORT).show()
+            }
+            viewHolder!!.button1!!.setOnClickListener {
+                Toast.makeText(this@ListViewTestActivity, "button1: $position click", Toast.LENGTH_SHORT).show()
+            }
+            viewHolder!!.button2!!.setOnClickListener {
+                Toast.makeText(this@ListViewTestActivity, "button2: $position click", Toast.LENGTH_SHORT).show()
+            }
+            return view
+        }
+
+        override fun getItem(position: Int): Any {
+            return datas[position]
+        }
+
+        override fun getItemId(position: Int): Long {
+            return position.toLong()
+        }
+
+        override fun getCount(): Int {
+            return datas.size
+        }
+
+        inner class MyViewHolder(view: View) {
+            var textView: TextView? = null
+            var button1: Button? = null
+            var button2: Button? = null
+
+
+            init {
+                textView = view.findViewById(R.id.textView);
+                button1 = view.findViewById(R.id.button1);
+                button2 = view.findViewById(R.id.button2);
+            }
+
+        }
+    }
+
+    private fun addHeadViewAndFootView() {
+        var headView = layoutInflater.inflate(R.layout.item_test, null);
+        listView.addHeaderView(headView);
+        var footView = layoutInflater.inflate(R.layout.item_test, null);
+        listView.addFooterView(footView);
+    }
+
+    private fun addELVHeadViewAndFootView() {
+        var headView = layoutInflater.inflate(R.layout.item_test, null);
+        headView.setOnClickListener {
+            Toast.makeText(this@ListViewTestActivity, "headView: click", Toast.LENGTH_SHORT).show()
+        }
+        expandableListView.addHeaderView(headView);
+        var footView = layoutInflater.inflate(R.layout.item_test, null);
+        footView.setOnClickListener {
+            Toast.makeText(this@ListViewTestActivity, "footView: click", Toast.LENGTH_SHORT).show()
+        }
+        expandableListView.addFooterView(footView);
+    }
+
 }

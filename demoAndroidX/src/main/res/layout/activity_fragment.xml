@@ -54,12 +54,20 @@
                         android:layout_height="50dp"
                         android:gravity="center"
                         android:text="tablayout + ViewPager + Fragment(Androidx)" />
+
                     <TextView
                         android:id="@+id/tv_frg_x_viewpager_viewpager"
                         android:layout_width="match_parent"
                         android:layout_height="50dp"
                         android:gravity="center"
                         android:text="ViewPager + ViewPager + Fragment(Androidx)" />
+
+                    <TextView
+                        android:id="@+id/tv_viewpager_view"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="viewpager + view" />
 
 
                 </LinearLayout>

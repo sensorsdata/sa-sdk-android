@@ -45,6 +45,7 @@ import android.widget.TextView;
 
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -95,7 +96,7 @@ public class SensorsDataAutoTrackHelper {
                 }
             }
         } catch (Exception e) {
-            SALog.printStackTrace(e);
+            //ignored
         }
     }
 
@@ -190,6 +191,7 @@ public class SensorsDataAutoTrackHelper {
                         //$screen_name & $title
                         if (activity != null) {
                             SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
+                            AopUtil.addViewPathProperties(activity, view, properties);
                         }
                         if (view instanceof CompoundButton) {//ReactSwitch
                             return;
@@ -472,8 +474,6 @@ public class SensorsDataAutoTrackHelper {
             if (!TextUtils.isEmpty(idString)) {
                 properties.put(AopConstants.ELEMENT_ID, idString);
             }
-
-            properties.put(AopConstants.ELEMENT_POSITION, String.format(Locale.CHINA, "%d", groupPosition));
             properties.put(AopConstants.ELEMENT_TYPE, "ExpandableListView");
 
             String viewText = null;
@@ -593,8 +593,6 @@ public class SensorsDataAutoTrackHelper {
                 properties = new JSONObject();
             }
 
-            properties.put(AopConstants.ELEMENT_POSITION, String.format(Locale.CHINA, "%d:%d", groupPosition, childPosition));
-
             //扩展属性
             ExpandableListAdapter listAdapter = expandableListView.getExpandableListAdapter();
             if (listAdapter != null) {
@@ -619,7 +617,6 @@ public class SensorsDataAutoTrackHelper {
             if (!TextUtils.isEmpty(idString)) {
                 properties.put(AopConstants.ELEMENT_ID, idString);
             }
-
             properties.put(AopConstants.ELEMENT_TYPE, "ExpandableListView");
 
             String viewText = null;
@@ -863,6 +860,36 @@ public class SensorsDataAutoTrackHelper {
                             }
                         }
 
+                        View tabView = null;
+                        try {
+                            Field viewField = currentTabClass.getDeclaredField("view");
+                            viewField.setAccessible(true);
+                            try {
+                                tabView = (View) viewField.get(tab);
+                            } catch (IllegalAccessException e) {
+                                SALog.printStackTrace(e);
+                            }
+
+                        } catch (NoSuchFieldException e) {
+                            SALog.printStackTrace(e);
+                        }
+                        if (tabView == null) {
+                            try {
+                                Field mViewField = currentTabClass.getDeclaredField("mView");
+                                mViewField.setAccessible(true);
+                                try {
+                                    tabView = (View) mViewField.get(tab);
+                                } catch (IllegalAccessException e) {
+                                    SALog.printStackTrace(e);
+                                }
+                            } catch (NoSuchFieldException e) {
+                                SALog.printStackTrace(e);
+                            }
+                        }
+                        if (tabView != null) {
+                            AopUtil.addViewPathProperties(activity, tabView, properties);
+                        }
+
                         if (view == null || view.getId() == -1) {
                             try {
                                 field = currentTabClass.getDeclaredField("mParent");
@@ -967,6 +994,14 @@ public class SensorsDataAutoTrackHelper {
             //Content
             if (!TextUtils.isEmpty(menuItem.getTitle())) {
                 properties.put(AopConstants.ELEMENT_CONTENT, menuItem.getTitle());
+            }
+
+            View view = null;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+                view = WindowHelper.getClickView(menuItem);
+                if (view != null) {
+                    AopUtil.addViewPathProperties(activity, view, properties);
+                }
             }
 
             //Type
@@ -1184,6 +1219,7 @@ public class SensorsDataAutoTrackHelper {
                     if (!TextUtils.isEmpty(button.getText())) {
                         properties.put(AopConstants.ELEMENT_CONTENT, button.getText());
                     }
+                    AopUtil.addViewPathProperties(activity, button, properties);
                 } else {
                     ListView listView = alertDialog.getListView();
                     if (listView != null) {
@@ -1193,6 +1229,10 @@ public class SensorsDataAutoTrackHelper {
                             if (object instanceof String) {
                                 properties.put(AopConstants.ELEMENT_CONTENT, object);
                             }
+                        }
+                        View clickView = listView.getChildAt(whichButton);
+                        if (clickView != null) {
+                            AopUtil.addViewPathProperties(activity, clickView, properties);
                         }
                     }
                 }
@@ -1212,6 +1252,7 @@ public class SensorsDataAutoTrackHelper {
                     if (!TextUtils.isEmpty(button.getText())) {
                         properties.put(AopConstants.ELEMENT_CONTENT, button.getText());
                     }
+                    AopUtil.addViewPathProperties(activity, button, properties);
                 } else {
                     try {
                         Method getListViewMethod = dialog.getClass().getMethod("getListView");
@@ -1224,6 +1265,10 @@ public class SensorsDataAutoTrackHelper {
                                     if (object instanceof String) {
                                         properties.put(AopConstants.ELEMENT_CONTENT, object);
                                     }
+                                }
+                                View clickView = listView.getChildAt(whichButton);
+                                if (clickView != null) {
+                                    AopUtil.addViewPathProperties(activity, clickView, properties);
                                 }
                             }
                         }
@@ -1335,9 +1380,6 @@ public class SensorsDataAutoTrackHelper {
             if (activity != null) {
                 SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
-
-            //点击的 position
-            properties.put(AopConstants.ELEMENT_POSITION, String.valueOf(position));
 
             String viewText = null;
             if (view instanceof ViewGroup) {

@@ -74,7 +74,7 @@ public class VPFrgActivity extends BaseActivity {
                 super.setPrimaryItem(container, position, object);
             }
         };
-        //viewPager.setOffscreenPageLimit(3);//不设置缓存页面，获取 ViewPath 会变。ViewPgaer 会 destroyItem
+        viewPager.setOffscreenPageLimit(1);//不设置缓存页面，获取 ViewPath 会变。ViewPgaer 会 destroyItem
         viewPager.setAdapter(pagerAdapter);
     }
 }

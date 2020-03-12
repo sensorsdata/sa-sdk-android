@@ -32,6 +32,7 @@ import android.os.Process;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
+import com.sensorsdata.analytics.android.sdk.visual.SnapInfo;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -46,16 +47,9 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
 import java.util.zip.GZIPOutputStream;
 
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 
 import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
 
@@ -73,6 +67,8 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
     private String mFeatureCode;
     private String mPostUrl;
     private String mAppVersion;
+    private boolean mVisualizedAutoTrackRunning = false;
+
     VisualizedAutoTrackViewCrawler(Activity activity, String resourcePackageName, String featureCode, String postUrl) {
         mActivity = activity;
         mFeatureCode = featureCode;
@@ -114,6 +110,8 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
                 mMessageThreadHandler.start();
                 mMessageThreadHandler
                         .sendMessage(mMessageThreadHandler.obtainMessage(MESSAGE_SEND_STATE_FOR_EDITING));
+
+                mVisualizedAutoTrackRunning = true;
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -129,9 +127,14 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
             mMessageThreadHandler.removeMessages(MESSAGE_SEND_STATE_FOR_EDITING);
             final Application app = (Application) mActivity.getApplicationContext();
             app.unregisterActivityLifecycleCallbacks(mLifecycleCallbacks);
+            mVisualizedAutoTrackRunning = false;
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
+    }
+
+    boolean isVisualizedAutoTrackRunning() {
+        return mVisualizedAutoTrackRunning;
     }
 
     private class LifecycleCallbacks
@@ -237,15 +240,17 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
                 writer.write("\"type\": \"snapshot_response\",");
                 writer.write("\"feature_code\": \"" + mFeatureCode + "\",");
                 writer.write("\"app_version\": \"" + mAppVersion + "\",");
+                writer.write("\"lib_version\": \"" + BuildConfig.SDK_VERSION + "\",");
                 writer.write("\"os\": \"Android\",");
-                String screenName;
+                writer.write("\"lib\": \"Android\",");
+                SnapInfo info = null;
                 if (mUseGzip) {
                     final ByteArrayOutputStream payload_out = new ByteArrayOutputStream();
                     final OutputStreamWriter payload_writer = new OutputStreamWriter(payload_out);
 
                     payload_writer.write("{\"activities\":");
                     payload_writer.flush();
-                    screenName = mSnapshot.snapshots(mEditState, payload_out);
+                    info = mSnapshot.snapshots(mEditState, payload_out);
                     final long snapshotTime = System.currentTimeMillis() - startSnapshot;
                     payload_writer.write(",\"snapshot_time_millis\": ");
                     payload_writer.write(Long.toString(snapshotTime));
@@ -254,7 +259,6 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
 
                     payload_out.close();
                     byte[] payloadData = payload_out.toString().getBytes();
-
                     ByteArrayOutputStream os = new ByteArrayOutputStream(payloadData.length);
                     GZIPOutputStream gos = new GZIPOutputStream(os);
                     gos.write(payloadData);
@@ -269,7 +273,7 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
                     {
                         writer.write("\"activities\":");
                         writer.flush();
-                        screenName = mSnapshot.snapshots(mEditState, out);
+                        info = mSnapshot.snapshots(mEditState, out);
                     }
 
                     final long snapshotTime = System.currentTimeMillis() - startSnapshot;
@@ -278,9 +282,19 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
 
                     writer.write("}");
                 }
-                if (!TextUtils.isEmpty(screenName)) {
-                    writer.write(",\"screen_name\": \"" + screenName + "\"");
+                if (!TextUtils.isEmpty(info.screenName)) {
+                    writer.write(",\"screen_name\": \"" + info.screenName + "\"");
                 }
+                if (!TextUtils.isEmpty(info.h5Url)) {
+                    writer.write(",\"h5_url\": \"" + info.h5Url + "\"");
+                }
+                if (!TextUtils.isEmpty(info.h5Title)) {
+                    writer.write(",\"h5_title\": \"" + info.h5Title + "\"");
+                }
+                if (!TextUtils.isEmpty(info.title)) {
+                    writer.write(",\"title\": \"" + info.title + "\"");
+                }
+                writer.write(",\"is_webview\": " + info.isWebView);
                 writer.write("}");
                 writer.flush();
             } catch (final IOException e) {
@@ -292,7 +306,6 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
                     SALog.i(TAG, "Can't close writer.", e);
                 }
             }
-
             postSnapshot(out);
         }
 
@@ -301,6 +314,7 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
             if (TextUtils.isEmpty(mFeatureCode) || TextUtils.isEmpty(mPostUrl)) {
                 return;
             }
+
             try {
                 InputStream in;
                 OutputStream out2;

@@ -84,4 +84,11 @@ public class VisualizedAutoTrackService {
             SALog.printStackTrace(e);
         }
     }
+
+    public boolean isVisualizedAutoTrackRunning() {
+        if (mVTrack != null) {
+            return mVTrack.isVisualizedAutoTrackRunning();
+        }
+        return false;
+    }
 }

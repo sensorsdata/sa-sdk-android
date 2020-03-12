@@ -20,7 +20,6 @@ package com.sensorsdata.analytics.android.sdk;
 import android.content.Context;
 import android.text.TextUtils;
 import android.webkit.JavascriptInterface;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 

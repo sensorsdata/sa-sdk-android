@@ -27,7 +27,6 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Base64;
@@ -35,17 +34,20 @@ import android.util.Base64OutputStream;
 import android.util.DisplayMetrics;
 import android.util.JsonWriter;
 import android.util.LruCache;
-import android.view.PixelCopy;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.Window;
-import android.widget.EditText;
-import android.widget.ListView;
-import android.widget.RatingBar;
+import android.webkit.WebView;
 import android.widget.RelativeLayout;
-import android.widget.SeekBar;
-import android.widget.Spinner;
+
+import com.sensorsdata.analytics.android.sdk.util.AopUtil;
+import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
+import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
+import com.sensorsdata.analytics.android.sdk.visual.SnapInfo;
+import com.sensorsdata.analytics.android.sdk.visual.ViewNode;
+import com.sensorsdata.analytics.android.sdk.visual.VisualUtil;
 
 import org.json.JSONObject;
 
@@ -57,9 +59,7 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -76,6 +76,7 @@ public class ViewSnapshot {
     private final Handler mMainThreadHandler;
     private final ResourceIds mResourceIds;
     private String[] mLastImageHashArray = null;
+    private SnapInfo mSnapInfo = new SnapInfo();
 
     public ViewSnapshot(List<PropertyDescription> properties, ResourceIds resourceIds) {
         mProperties = properties;
@@ -85,8 +86,7 @@ public class ViewSnapshot {
         mClassnameCache = new ClassNameCache(MAX_CLASS_NAME_CACHE_SIZE);
     }
 
-    public synchronized String snapshots(UIThreadSet<Activity> liveActivities, OutputStream out) throws IOException {
-        mRootViewFinder.findInActivities(liveActivities);
+    public synchronized SnapInfo snapshots(UIThreadSet<Activity> liveActivities, OutputStream out) throws IOException {
         final FutureTask<List<RootViewInfo>> infoFuture =
                 new FutureTask<List<RootViewInfo>>(mRootViewFinder);
         mMainThreadHandler.post(infoFuture);
@@ -107,7 +107,7 @@ public class ViewSnapshot {
             SALog.i(TAG, "Exception thrown during screenshot attempt", e);
         }
 
-        String activityName = null;
+        String activityName = null, activityTitle = null;
         final int infoCount = infoList.size();
         for (int i = 0; i < infoCount; i++) {
             final RootViewInfo info = infoList.get(i);
@@ -118,6 +118,7 @@ public class ViewSnapshot {
                 writer.write("{");
                 writer.write("\"activity\":");
                 activityName = info.activityName;
+                activityTitle = info.activityTitle;
                 writer.write(JSONObject.quote(info.activityName));
                 writer.write(",");
                 writer.write("\"scale\":");
@@ -139,7 +140,7 @@ public class ViewSnapshot {
                 writer.write(",");
                 writer.write("\"screenshot\":");
                 writer.flush();
-                info.screenshot.writeBitmapJSON(Bitmap.CompressFormat.PNG, 100, out);
+                info.screenshot.writeBitmapJSON(Bitmap.CompressFormat.PNG, 70, out);
                 writer.write("}");
             } else {
                 writer.write("{}");
@@ -147,40 +148,105 @@ public class ViewSnapshot {
         }
         writer.write("]");
         writer.flush();
-        return activityName;
+        mSnapInfo.screenName = activityName;
+        mSnapInfo.title = activityTitle;
+        return mSnapInfo;
+    }
+
+    public void getVisibleRect(View view, Rect rect, boolean fullscreen) {
+        if (fullscreen) {
+            view.getGlobalVisibleRect(rect);
+            return;
+        }
+        int[] offset = new int[2];
+        view.getLocationOnScreen(offset);
+        view.getLocalVisibleRect(rect);
+        rect.offset(offset[0], offset[1]);
     }
 
     private void snapshotViewHierarchy(JsonWriter j, View rootView)
             throws IOException {
+        reset();
         j.beginArray();
-        snapshotView(j, rootView);
+        snapshotView(j, rootView, 0);
         j.endArray();
     }
 
-    private void snapshotView(JsonWriter j, View view)
+    private void reset() {
+        mSnapInfo = new SnapInfo();
+        ViewUtil.clear();
+    }
+
+    private void snapshotView(JsonWriter j, View view, int viewIndex)
             throws IOException {
         j.beginObject();
         j.name("hashCode").value(view.hashCode());
         j.name("id").value(view.getId());
-        j.name("index").value(getChildIndex(view.getParent(), view));
-        j.name("sa_id_name").value(getResName(view));
+        j.name("index").value(AopUtil.getChildIndex(view.getParent(), view));
+        j.name("element_level").value(++mSnapInfo.elementLevel);
+        ViewNode viewNode = ViewUtil.getViewNode(view, viewIndex);
+        if (viewNode != null) {
+            if (!TextUtils.isEmpty(viewNode.getViewPath())) {
+                j.name("element_path").value(viewNode.getViewPath());
+            }
+            if (!TextUtils.isEmpty(viewNode.getViewPosition())) {
+                j.name("element_position").value(viewNode.getViewPosition());
+            }
+            if (!TextUtils.isEmpty(viewNode.getViewContent()) && VisualUtil.isSupportElementContent(view)) {
+                j.name("element_content").value(viewNode.getViewContent());
+            }
+        }
+        if (view instanceof WebView || ViewUtil.instanceOfX5WebView(view)) {
+            mSnapInfo.isWebView = true;
+        }
 
+        j.name("sa_id_name").value(getResName(view));
         try {
             String saId = (String) view.getTag(R.id.sensors_analytics_tag_view_id);
             if (!TextUtils.isEmpty(saId)) {
                 j.name("sa_id_name").value(saId);
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
-
-        j.name("top").value(view.getTop());
-        j.name("left").value(view.getLeft());
-        j.name("width").value(view.getWidth());
-        j.name("height").value(view.getHeight());
+        /**
+         *  对于 Dialog、PopupWindow 类型的非全屏 View 由于 rootView 存在 getTop = 0 / getLeft = 0 的问题，所以先设置了一个全屏 RootView,
+         *  再设置次级 View 的实际布局。
+         */
+        if (!WindowHelper.isMainWindow(view.getRootView())) {
+            if (WindowHelper.isDecorView(view.getClass())) {
+                final DisplayMetrics displayMetrics = view.getContext().getResources().getDisplayMetrics();
+                int screenWidth = displayMetrics.widthPixels;
+                int screenHeight = displayMetrics.heightPixels;
+                j.name("top").value(view.getTop());
+                j.name("left").value(view.getLeft());
+                j.name("width").value(screenWidth);
+                j.name("height").value(screenHeight);
+            } else {
+                ViewParent parent = view.getParent();
+                if (parent != null && WindowHelper.isDecorView(parent.getClass())) {
+                    Rect rect = new Rect();
+                    getVisibleRect(view, rect, false);
+                    j.name("top").value(rect.top);
+                    j.name("left").value(rect.left);
+                    j.name("width").value(rect.width());
+                    j.name("height").value(rect.height());
+                } else {
+                    j.name("top").value(view.getTop());
+                    j.name("left").value(view.getLeft());
+                    j.name("width").value(view.getWidth());
+                    j.name("height").value(view.getHeight());
+                }
+            }
+        } else {
+            j.name("top").value(view.getTop());
+            j.name("left").value(view.getLeft());
+            j.name("width").value(view.getWidth());
+            j.name("height").value(view.getHeight());
+        }
         j.name("scrollX").value(view.getScrollX());
         j.name("scrollY").value(view.getScrollY());
-        j.name("visibility").value(view.getVisibility());
+        j.name("visibility").value(VisualUtil.getVisibility(view));
 
         float translationX = 0;
         float translationY = 0;
@@ -188,7 +254,6 @@ public class ViewSnapshot {
             translationX = view.getTranslationX();
             translationY = view.getTranslationY();
         }
-
         j.name("translationX").value(translationX);
         j.name("translationY").value(translationY);
 
@@ -238,7 +303,7 @@ public class ViewSnapshot {
                 final View child = group.getChildAt(i);
                 // child can be null when views are getting disposed.
                 if (null != child) {
-                    snapshotView(j, child);
+                    snapshotView(j, child, i);
                 }
             }
         }
@@ -256,20 +321,11 @@ public class ViewSnapshot {
                     j.name(desc.name).value((Number) value);
                 } else if (value instanceof Boolean) {
                     boolean clickable = (boolean) value;
-
-                    //针对部分类型控件，clickable 特殊处理
                     if (TextUtils.equals("clickable", desc.name)) {
-                        // RatingBar 或 SeeekBar 类型，clickable 为 true
-                        if (v instanceof RatingBar || v instanceof SeekBar) {
+                        if (VisualUtil.isSupportClick(v)) {
                             clickable = true;
-                        } else if (isForbiddenClick(v)) {
+                        } else if (VisualUtil.isForbiddenClick(v)) {
                             clickable = false;
-                        } else {
-                            // ListView item 类型，clickable 为 true
-                            ViewParent parent = v.getParent();
-                            if (parent instanceof ListView) {
-                                clickable = true;
-                            }
                         }
                     }
                     j.name(desc.name).value(clickable);
@@ -307,53 +363,6 @@ public class ViewSnapshot {
         }
     }
 
-    private boolean isForbiddenClick(View v) {
-        if (v instanceof ListView || v instanceof Spinner || v instanceof EditText || isNavigationMenuItemView(v)) {
-            return true;
-        }
-
-        return isOtherForbiddenClick(v);
-    }
-
-    private boolean isNavigationMenuItemView(View view) {
-        try {
-            Class<?> tabClass = Class.forName("android.support.design.internal.NavigationMenuItemView");
-            if (tabClass.isAssignableFrom(view.getClass())) {
-                return true;
-            }
-        } catch (Exception e) {
-            //不需要打日志
-        }
-        return false;
-    }
-
-    private boolean isOtherForbiddenClick(View v) {
-        if (isAssignableFromClass(v, "android.support.v7.widget.Toolbar")) {
-            return true;
-        } else return isAssignableFromClass(v, "android.support.design.widget.TabLayout");
-    }
-
-    private boolean isAssignableFromClass(View v, String className) {
-        try {
-            Class<?> someClass = Class.forName(className);
-            if (someClass.isAssignableFrom(v.getClass())) {
-                return true;
-            } else {
-                ViewParent viewParent = v.getParent();
-                if (viewParent == null) {
-                    return false;
-                }
-                if (!(viewParent instanceof View)) {
-                    return false;
-                }
-                return isAssignableFromClass((View) viewParent, className);
-            }
-        } catch (Exception e) {
-            //不需要打日志
-        }
-        return false;
-    }
-
     public void updateLastImageHashArray(String lastImageHashList) {
         if (lastImageHashList == null || lastImageHashList.length() <= 0) {
             mLastImageHashArray = null;
@@ -383,40 +392,6 @@ public class ViewSnapshot {
         }
     }
 
-    private int getChildIndex(ViewParent parent, View child) {
-        if (!(parent instanceof ViewGroup)) {
-            return -1;
-        }
-
-        ViewGroup _parent = (ViewGroup) parent;
-
-        final String childIdName = getResName(child);
-
-        String childClassName = mClassnameCache.get(child.getClass());
-        int index = 0;
-        for (int i = 0; i < _parent.getChildCount(); i++) {
-            View brother = _parent.getChildAt(i);
-
-            if (!Pathfinder.hasClassName(brother, childClassName)) {
-                continue;
-            }
-
-            String brotherIdName = getResName(brother);
-
-            if (null != childIdName && !childIdName.equals(brotherIdName)) {
-                index++;
-                continue;
-            }
-
-            if (brother == child) {
-                return index;
-            }
-
-            index++;
-        }
-
-        return -1;
-    }
 
     private static class ClassNameCache extends LruCache<Class<?>, String> {
         public ClassNameCache(int maxSize) {
@@ -432,101 +407,82 @@ public class ViewSnapshot {
     private static class RootViewFinder implements Callable<List<RootViewInfo>> {
 
         private final List<RootViewInfo> mRootViews;
-        private final DisplayMetrics mDisplayMetrics;
         private final CachedBitmap mCachedBitmap;
         private final int mClientDensity = DisplayMetrics.DENSITY_DEFAULT;
-        private UIThreadSet<Activity> mLiveActivities;
-        private HandlerThread mHandlerThread;
-        private Handler mHandler;
-
 
         public RootViewFinder() {
-            mDisplayMetrics = new DisplayMetrics();
             mRootViews = new ArrayList<RootViewInfo>();
             mCachedBitmap = new CachedBitmap();
-        }
-
-        public void findInActivities(UIThreadSet<Activity> liveActivities) {
-            mLiveActivities = liveActivities;
         }
 
         @Override
         public List<RootViewInfo> call() throws Exception {
             mRootViews.clear();
-            final Set<Activity> liveActivities = mLiveActivities.getAll();
-            for (final Activity a : liveActivities) {
-                final Window window = a.getWindow();
-                final View rootView = window.getDecorView().getRootView();
-                if (rootView.getWidth() == 0 || rootView.getHeight() == 0) {
-                    continue;
-                }
-                final String activityName = a.getClass().getCanonicalName();
-                a.getWindowManager().getDefaultDisplay().getMetrics(mDisplayMetrics);
-                final RootViewInfo info = new RootViewInfo(activityName, rootView, window);
-                mRootViews.add(info);
+            if (AppSateManager.getInstance().isInBackground()) {
+                return mRootViews;
             }
-            final int viewCount = mRootViews.size();
-            for (int i = 0; i < viewCount; i++) {
-                final RootViewInfo info = mRootViews.get(i);
-                takeScreenshot(info);
+            Activity activity = AppSateManager.getInstance().getForegroundActivity();
+            if (activity != null) {
+                final String activityName = activity.getClass().getCanonicalName();
+                final String activityTitle = SensorsDataUtils.getActivityTitle(activity);
+                final Window window = activity.getWindow();
+                final View rootView = window.getDecorView().getRootView();
+                final RootViewInfo info = new RootViewInfo(activityName, activityTitle, rootView);
+                final View[] views = WindowHelper.getSortedWindowViews();
+                Bitmap bitmap = null;
+                if (views != null && views.length > 0) {
+                    bitmap = mergeViewLayers(views, info);
+                    for (View view : views) {
+                        if (view.getWindowVisibility() != View.VISIBLE || view.getVisibility() != View.VISIBLE
+                                || view.getWidth() == 0 || view.getHeight() == 0
+                                || TextUtils.equals(WindowHelper.getWindowPrefix(view), WindowHelper.getMainWindowPrefix()))
+                            continue;
+                        RootViewInfo subInfo = new RootViewInfo(activityName, activityTitle, view.getRootView());
+                        scaleBitmap(subInfo, bitmap);
+                        mRootViews.add(subInfo);
+                    }
+                }
+                if (mRootViews.size() == 0) {
+                    scaleBitmap(info, bitmap);
+                    mRootViews.add(info);
+                }
             }
             return mRootViews;
         }
 
-
-        private void takeScreenshot(final RootViewInfo info) {
-            final View rootView = info.rootView;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                try {
-                    final Bitmap rawBitmap = Bitmap.createBitmap(rootView.getWidth(), rootView.getHeight(), Bitmap.Config.ARGB_8888);
-                    final CountDownLatch countDownLatch = new CountDownLatch(1);
-                    if (mHandlerThread == null) {
-                        mHandlerThread = new HandlerThread(TAG);
-                    }
-                    mHandlerThread.start();
-                    if (mHandler == null) {
-                        mHandler = new Handler(mHandlerThread.getLooper());
-                    }
-                    PixelCopy.request(info.window, rawBitmap, new PixelCopy.OnPixelCopyFinishedListener() {
-                        @Override
-                        public void onPixelCopyFinished(int copyResult) {
-                            try {
-                                if (copyResult == PixelCopy.SUCCESS && rawBitmap != null) {
-                                    SALog.i(TAG, "PixelCopy success.");
-                                    scaleBitmap(info, rawBitmap);
-                                } else {
-                                    SALog.i(TAG, "PixelCopy fail, copyResult :" + copyResult);
-                                }
-                                mHandlerThread.quitSafely();
-                                countDownLatch.countDown();
-                            } catch (Throwable t) {
-                                SALog.i(TAG, "Can't take a bitmap snapshot of view " + rootView + ", skipping for now.");
-                            }
-                        }
-                    }, mHandler);
-                    try {
-                        countDownLatch.await();
-                    } catch (InterruptedException e) {
-                        SALog.printStackTrace(e);
-                    }
-                } catch (RuntimeException e) {
-                    SALog.i(TAG, "Can't take a bitmap snapshot of view " + rootView + ", skipping for now.", e);
-                }
+        Bitmap mergeViewLayers(View[] views, RootViewInfo info) {
+            int width = info.rootView.getWidth();
+            int height = info.rootView.getHeight();
+            if (width == 0 || height == 0) {
+                return null;
+            }
+            Bitmap fullScreenBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            SoftWareCanvas canvas = new SoftWareCanvas(fullScreenBitmap);
+            int[] windowOffset = new int[2];
+            boolean skipOther;
+            if (ViewUtil.getMainWindowCount(views) > 1) {
+                skipOther = true;
             } else {
-                Boolean originalCacheState;
-                try {
-                    originalCacheState = rootView.isDrawingCacheEnabled();
-                    rootView.setDrawingCacheEnabled(true);
-                    rootView.buildDrawingCache(true);
-                    scaleBitmap(info, rootView.getDrawingCache());
-                    if (null != originalCacheState && !originalCacheState) {
-                        rootView.setDrawingCacheEnabled(false);
+                skipOther = false;
+            }
+            WindowHelper.init();
+            ViewUtil.invalidateLayerTypeView(views);
+            for (View view : views) {
+                if (!(view.getVisibility() != View.VISIBLE || view.getWidth() == 0 || view.getHeight() == 0 || !ViewUtil.isWindowNeedTraverse(view, WindowHelper.getWindowPrefix(view), skipOther))) {
+                    view.getLocationOnScreen(windowOffset);
+                    canvas.save();
+                    canvas.translate((float) windowOffset[0], (float) windowOffset[1]);
+                    if (!TextUtils.equals(WindowHelper.getWindowPrefix(view), WindowHelper.getMainWindowPrefix())) {
+                        Paint mMaskPaint = new Paint();
+                        mMaskPaint.setColor(0xA0000000);
+                        canvas.drawRect(-(float) windowOffset[0], -(float) windowOffset[1], canvas.getWidth(), canvas.getHeight(), mMaskPaint);
                     }
-                } catch (final RuntimeException e) {
-                    SALog.i(TAG, "Can't take a bitmap snapshot of view " + rootView + ", skipping for now.", e);
+                    view.draw(canvas);
+                    canvas.restore();
+                    canvas.destroy();
                 }
             }
-
+            return fullScreenBitmap;
         }
 
         private void scaleBitmap(final RootViewInfo info, Bitmap rawBitmap) {
@@ -620,16 +576,16 @@ public class ViewSnapshot {
     }
 
     private static class RootViewInfo {
-        public final String activityName;
-        public final View rootView;
-        public final Window window;
-        public CachedBitmap screenshot;
-        public float scale;
+        final String activityName;
+        final String activityTitle;
+        final View rootView;
+        CachedBitmap screenshot;
+        float scale;
 
-        public RootViewInfo(String activityName, View rootView, Window window) {
+        RootViewInfo(String activityName, String activityTitle, View rootView) {
             this.activityName = activityName;
+            this.activityTitle = activityTitle;
             this.rootView = rootView;
-            this.window = window;
             this.screenshot = null;
             this.scale = 1.0f;
         }

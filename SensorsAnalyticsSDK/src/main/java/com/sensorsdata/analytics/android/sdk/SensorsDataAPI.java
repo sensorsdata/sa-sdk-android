@@ -227,6 +227,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             final SensorsDataActivityLifecycleCallbacks lifecycleCallbacks =
                     new SensorsDataActivityLifecycleCallbacks(this, mFirstStart, mFirstDay, context);
             app.registerActivityLifecycleCallbacks(lifecycleCallbacks);
+            app.registerActivityLifecycleCallbacks(AppSateManager.getInstance());
         }
 
         SALog.i(TAG, String.format(Locale.CHINA, "Initialized the instance of Sensors Analytics SDK with server"
@@ -1013,7 +1014,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             if (addJavascriptInterface == null) {
                 return;
             }
-
             addJavascriptInterface.invoke(x5WebView, new AppWebViewInterface(mContext, properties, enableVerify), "SensorsData_APP_JS_Bridge");
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
@@ -1032,7 +1032,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             if (addJavascriptInterface == null) {
                 return;
             }
-
             addJavascriptInterface.invoke(x5WebView, new AppWebViewInterface(mContext, null, enableVerify), "SensorsData_APP_JS_Bridge");
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
@@ -2791,6 +2790,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             if (eventObject.has("_nocache")) {
                 eventObject.remove("_nocache");
             }
+
             if (eventObject.has("server_url")) {
                 eventObject.remove("server_url");
             }
