@@ -32,6 +32,7 @@ import android.os.Process;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
+import com.sensorsdata.analytics.android.sdk.visual.SnapInfo;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -46,16 +47,9 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
 import java.util.zip.GZIPOutputStream;
 
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 
 import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
 
@@ -73,6 +67,7 @@ public class HeatMapViewCrawler implements VTrack {
     private String mFeatureCode;
     private String mPostUrl;
     private String mAppVersion;
+
     public HeatMapViewCrawler(Activity activity, String resourcePackageName, String featureCode, String postUrl) {
         mActivity = activity;
         mFeatureCode = featureCode;
@@ -242,14 +237,14 @@ public class HeatMapViewCrawler implements VTrack {
                 writer.write("\"feature_code\": \"" + mFeatureCode + "\",");
                 writer.write("\"app_version\": \"" + mAppVersion + "\",");
                 writer.write("\"os\": \"Android\",");
-                String screenName;
+                SnapInfo info = null;
                 if (mUseGzip) {
                     final ByteArrayOutputStream payload_out = new ByteArrayOutputStream();
                     final OutputStreamWriter payload_writer = new OutputStreamWriter(payload_out);
 
                     payload_writer.write("{\"activities\":");
                     payload_writer.flush();
-                    screenName = mSnapshot.snapshots(mEditState, payload_out);
+                    info = mSnapshot.snapshots(mEditState, payload_out);
                     final long snapshotTime = System.currentTimeMillis() - startSnapshot;
                     payload_writer.write(",\"snapshot_time_millis\": ");
                     payload_writer.write(Long.toString(snapshotTime));
@@ -273,7 +268,7 @@ public class HeatMapViewCrawler implements VTrack {
                     {
                         writer.write("\"activities\":");
                         writer.flush();
-                        screenName = mSnapshot.snapshots(mEditState, out);
+                        info = mSnapshot.snapshots(mEditState, out);
                     }
 
                     final long snapshotTime = System.currentTimeMillis() - startSnapshot;
@@ -282,8 +277,8 @@ public class HeatMapViewCrawler implements VTrack {
 
                     writer.write("}");
                 }
-                if (!TextUtils.isEmpty(screenName)) {
-                    writer.write(",\"screen_name\": \"" + screenName + "\"");
+                if (!TextUtils.isEmpty(info.screenName)) {
+                    writer.write(",\"screen_name\": \"" + info.screenName + "\"");
                 }
                 writer.write("}");
                 writer.flush();

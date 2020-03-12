@@ -60,6 +60,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
+        <TextView
+            android:text="TextView 内容采集"
+            android:textIsSelectable="true"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
         <androidx.appcompat.widget.AppCompatEditText
             android:id="@+id/AppCompatEditText"
             android:layout_width="match_parent"
@@ -273,17 +279,17 @@
                 android:text="CardView" />
         </androidx.cardview.widget.CardView>
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/material_cardview"
-            android:layout_width="wrap_content"
-            android:layout_height="50dip">
+<!--        <com.google.android.material.card.MaterialCardView-->
+<!--            android:id="@+id/material_cardview"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="50dip">-->
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="MaterialCardView" />
-        </com.google.android.material.card.MaterialCardView>
+<!--            <TextView-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_gravity="center"-->
+<!--                android:text="MaterialCardView" />-->
+<!--        </com.google.android.material.card.MaterialCardView>-->
 
         <com.sensorsdata.analytics.android.demo.widget.MyCardView
             android:id="@+id/mycardview"

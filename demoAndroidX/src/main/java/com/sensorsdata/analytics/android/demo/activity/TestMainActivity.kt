@@ -43,14 +43,16 @@ class TestMainActivity : AppCompatActivity() {
                 DataEntity("NavigationView", NavigationViewActivity::class.java, true),
                 DataEntity("ViewScreen", ViewScreenActivity::class.java, true),
                 DataEntity("ListView & ExpandableListView", ListViewTestActivity::class.java, true),
-                DataEntity("hint 采集",  HintTestActivity::class.java, true),
+                DataEntity("GridView ", GridViewTestActivity::class.java, true),
+                DataEntity("hint 采集", HintTestActivity::class.java, true),
                 DataEntity("Crash 测试", CrashTestActivity::class.java, true),
                 DataEntity("PopupMenu 测试", PopupMenuActivity::class.java, true),
                 DataEntity("Dialog", DialogActivity::class.java, true),
                 DataEntity("黑名单白名单", BaseActivity::class.java, false),
                 DataEntity("Debug 模式", BaseActivity::class.java, false),
                 DataEntity("点击图 HeatMap", BaseActivity::class.java),
-                DataEntity("可视化全埋点", BaseActivity::class.java)
+                DataEntity("可视化全埋点", BaseActivity::class.java),
+                DataEntity("ListView 内嵌", InnerListTestActivity::class.java,true)
         )
         recyclerView.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
         recyclerView.addItemDecoration(HorizonRecyclerDivider(this, HorizonRecyclerDivider.VERTICAL_LIST))

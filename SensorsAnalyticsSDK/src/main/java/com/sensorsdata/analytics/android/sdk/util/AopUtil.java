@@ -34,9 +34,6 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RadioButton;
-import android.widget.RatingBar;
-import android.widget.SeekBar;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
@@ -47,13 +44,13 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataFragmentTitle;
+import com.sensorsdata.analytics.android.sdk.visual.ViewNode;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -73,7 +70,7 @@ public class AopUtil {
         add("com##google##android##material");
     }};
 
-    private static int getChildIndex(ViewParent parent, View child) {
+    public static int getChildIndex(ViewParent parent, View child) {
         try {
             if (!(parent instanceof ViewGroup)) {
                 return -1;
@@ -109,57 +106,6 @@ public class AopUtil {
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return -1;
-        }
-    }
-
-    public static void addViewPathProperties(Activity activity, View view, JSONObject properties) {
-        try {
-            if (!SensorsDataAPI.sharedInstance().isHeatMapEnabled() && (!SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled())) {
-                return;
-            }
-
-            if (activity != null) {
-                if (!SensorsDataAPI.sharedInstance().isHeatMapActivity(activity.getClass()) && !SensorsDataAPI.sharedInstance().isVisualizedAutoTrackActivity(activity.getClass())) {
-                    return;
-                }
-            }
-            if (view == null) {
-                return;
-            }
-
-            if (properties == null) {
-                properties = new JSONObject();
-            }
-
-            ViewParent viewParent;
-            List<String> viewPath = new ArrayList<>();
-            do {
-                viewParent = view.getParent();
-                int index = getChildIndex(viewParent, view);
-//                String idString2 = AopUtil.getViewId(view);
-//                if (TextUtils.isEmpty(idString2)) {
-//                    viewPath.add(view.getClass().getCanonicalName() + "[" + index + "]");
-//                } else {
-//                    viewPath.add(view.getClass().getCanonicalName() + "[" + idString2 + "]");
-//                }
-                viewPath.add(view.getClass().getCanonicalName() + "[" + index + "]");
-                if (viewParent instanceof ViewGroup) {
-                    view = (ViewGroup) viewParent;
-                }
-
-            } while (viewParent instanceof ViewGroup);
-
-            Collections.reverse(viewPath);
-            StringBuilder stringBuffer = new StringBuilder();
-            for (int i = 1; i < viewPath.size(); i++) {
-                stringBuffer.append(viewPath.get(i));
-                if (i != (viewPath.size() - 1)) {
-                    stringBuffer.append("/");
-                }
-            }
-            properties.put("$element_selector", stringBuffer.toString());
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
 
@@ -721,109 +667,19 @@ public class AopUtil {
                 SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
-            String viewType = view.getClass().getCanonicalName();
-            CharSequence viewText = null;
-            if (view instanceof CheckBox) { // CheckBox
-                if (!isFromUser) {
-                    return false;
-                }
-                viewType = AopUtil.getViewType(viewType, "CheckBox");
-                CheckBox checkBox = (CheckBox) view;
-                viewText = checkBox.getText();
-            } else if (view instanceof RadioButton) { // RadioButton
-                if (!isFromUser) {
-                    return false;
-                }
-                viewType = AopUtil.getViewType(viewType, "RadioButton");
-                RadioButton radioButton = (RadioButton) view;
-                viewText = radioButton.getText();
-            } else if (view instanceof ToggleButton) { // ToggleButton
-                if (!isFromUser) {
-                    return false;
-                }
-                viewType = AopUtil.getViewType(viewType, "ToggleButton");
-                viewText = AopUtil.getCompoundButtonText(view);
-            } else if (view instanceof CompoundButton) {
-                if (!isFromUser) {
-                    return false;
-                }
-                viewType = AopUtil.getViewTypeByReflect(view);
-                viewText = AopUtil.getCompoundButtonText(view);
-            } else if (view instanceof Button) { // Button
-                viewType = AopUtil.getViewType(viewType, "Button");
-                Button button = (Button) view;
-                viewText = button.getText();
-            } else if (view instanceof CheckedTextView) { // CheckedTextView
-                viewType = AopUtil.getViewType(viewType, "CheckedTextView");
-                CheckedTextView textView = (CheckedTextView) view;
-                viewText = textView.getText();
-            } else if (view instanceof TextView) { // TextView
-                viewType = AopUtil.getViewType(viewType, "TextView");
-                TextView textView = (TextView) view;
-                viewText = textView.getText();
-            } else if (view instanceof ImageView) { // ImageView
-                viewType = AopUtil.getViewType(viewType, "ImageView");
-                ImageView imageView = (ImageView) view;
-                if (!TextUtils.isEmpty(imageView.getContentDescription())) {
-                    viewText = imageView.getContentDescription().toString();
-                }
-            } else if (view instanceof RatingBar) {
-                if (!isFromUser) {
-                    return false;
-                }
-                viewType = AopUtil.getViewType(viewType, "RatingBar");
-                RatingBar ratingBar = (RatingBar) view;
-                viewText = String.valueOf(ratingBar.getRating());
-            } else if (view instanceof SeekBar) {
-                viewType = AopUtil.getViewType(viewType, "SeekBar");
-                SeekBar seekBar = (SeekBar) view;
-                viewText = String.valueOf(seekBar.getProgress());
-            } else if (view instanceof Spinner) {
-                viewType = AopUtil.getViewType(viewType, "Spinner");
-                try {
-                    StringBuilder stringBuilder = new StringBuilder();
-                    viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
-                    if (!TextUtils.isEmpty(viewText)) {
-                        viewText = viewText.toString().substring(0, viewText.length() - 1);
-                    }
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
-                }
-            } else if (view instanceof ViewGroup) {
-                viewType = AopUtil.getViewGroupTypeByReflect(view);
-                viewText = view.getContentDescription();
-                if (TextUtils.isEmpty(viewText)) {
-                    try {
-                        StringBuilder stringBuilder = new StringBuilder();
-                        viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
-                        if (!TextUtils.isEmpty(viewText)) {
-                            viewText = viewText.toString().substring(0, viewText.length() - 1);
-                        }
-                    } catch (Exception e) {
-                        SALog.printStackTrace(e);
-                    }
-                }
-            }
+            boolean isTrackEvent = ViewUtil.isTrackEvent(view, isFromUser);
+            if (!isTrackEvent)
+                return false;
 
-            if (TextUtils.isEmpty(viewText) && view instanceof TextView) {
-                viewText = ((TextView) view).getHint();
-            }
-
-            if (TextUtils.isEmpty(viewText)) {
-                viewText = view.getContentDescription();
-            }
-
-            if (view instanceof EditText) {
-                viewText = "";
-            }
-
+            ViewNode viewNode = ViewUtil.getViewContentAndType(view);
+            String viewText = viewNode.getViewContent();
             //$element_content
             if (!TextUtils.isEmpty(viewText)) {
-                properties.put(AopConstants.ELEMENT_CONTENT, viewText.toString());
+                properties.put(AopConstants.ELEMENT_CONTENT, viewText);
             }
 
             //$element_type
-            properties.put(AopConstants.ELEMENT_TYPE, viewType);
+            properties.put(AopConstants.ELEMENT_TYPE, viewNode.getViewType());
 
             //fragmentName
             Object fragment = AopUtil.getFragmentFromView(view);
@@ -866,5 +722,42 @@ public class AopUtil {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         return null;
+    }
+
+    public static void addViewPathProperties(Activity activity, View view, JSONObject properties) {
+
+        try {
+            if (!SensorsDataAPI.sharedInstance().isHeatMapEnabled() && (!SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled())) {
+                return;
+            }
+            if (activity != null) {
+                if (!SensorsDataAPI.sharedInstance().isHeatMapActivity(activity.getClass()) && !SensorsDataAPI.sharedInstance().isVisualizedAutoTrackActivity(activity.getClass())) {
+                    return;
+                }
+            }
+            if (view == null) {
+                return;
+            }
+            if (properties == null) {
+                properties = new JSONObject();
+            }
+            String elementSelector = ViewUtil.getElementSelector(view);
+            if (!TextUtils.isEmpty(elementSelector)) {
+                properties.put(AopConstants.ELEMENT_SELECTOR, elementSelector);
+            }
+            ViewNode viewNode = ViewUtil.getViewPathAndPosition(view);
+            if (viewNode != null) {
+                if (SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled()) {
+                    if (!TextUtils.isEmpty(viewNode.getViewPath())) {
+                        properties.put(AopConstants.ELEMENT_PATH, viewNode.getViewPath());
+                    }
+                }
+                if (!TextUtils.isEmpty(viewNode.getViewPosition())) {
+                    properties.put(AopConstants.ELEMENT_POSITION, viewNode.getViewPosition());
+                }
+            }
+        } catch (JSONException e) {
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+        }
     }
 }

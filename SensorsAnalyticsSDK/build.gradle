@@ -3,7 +3,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 
-version = "3.2.11"
+version = "4.0.0"
 def min_plugin_version = "3.0.0"
 
 android {
@@ -80,6 +80,7 @@ dependencies {
     testImplementation 'org.powermock:powermock-api-mockito2:2.0.2'
     testImplementation 'org.powermock:powermock-module-testng:2.0.2'
     testImplementation 'org.powermock:powermock-core:2.0.2'
+
 }
 
 def siteUrl = 'https://github.com/sensorsdata/sa-sdk-android'

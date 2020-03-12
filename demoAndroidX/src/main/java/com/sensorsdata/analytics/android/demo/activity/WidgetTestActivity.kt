@@ -76,9 +76,9 @@ class WidgetTestActivity : BaseActivity(), CompoundButton.OnCheckedChangeListene
         cardview.setOnClickListener {
 
         }
-        material_cardview.setOnClickListener {
-
-        }
+//        material_cardview.setOnClickListener {
+//
+//        }
         linearlayout.setOnClickListener { }
         mylinearlayout.setOnClickListener { }
         SensorsDataAPI.sharedInstance().ignoreView(changeSeekBar)

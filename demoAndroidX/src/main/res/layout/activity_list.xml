@@ -12,13 +12,20 @@
         android:textSize="18sp"
         android:textStyle="bold" />
 
-    <ListView
-        android:id="@+id/listView"
+
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="15dp"
-        android:layout_weight="1"
-        android:entries="@array/list_test" />
+        android:layout_height="100dp">
+
+        <ListView
+            android:id="@+id/listView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
+            android:entries="@array/list_test" />
+
+
+    </FrameLayout>
 
     <TextView
         android:layout_width="wrap_content"

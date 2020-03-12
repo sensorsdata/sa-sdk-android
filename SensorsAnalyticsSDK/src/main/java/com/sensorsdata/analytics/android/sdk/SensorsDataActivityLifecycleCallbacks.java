@@ -156,7 +156,29 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                 } else if ("visualized".equals(host)) {
                     String featureCode = uri.getQueryParameter("feature_code");
                     String postUrl = uri.getQueryParameter("url");
-                    showOpenVisualizedAutoTrackDialog(activity, featureCode, postUrl);
+                    String serverUrl = SensorsDataAPI.sharedInstance(mContext).getServerUrl();
+                    String visualizedProject = null, visualizedHost = null, serverProject = null, serverHost = null;
+                    if (!TextUtils.isEmpty(postUrl)) {
+                        Uri visualizedUri = Uri.parse(postUrl);
+                        if (visualizedUri != null) {
+                            visualizedProject = visualizedUri.getQueryParameter("project");
+                            visualizedHost = visualizedUri.getHost();
+                        }
+                    }
+                    if (!TextUtils.isEmpty(serverUrl)) {
+                        Uri serverUri = Uri.parse(serverUrl);
+                        if (serverUri != null) {
+                            serverProject = serverUri.getQueryParameter("project");
+                            serverHost = serverUri.getHost();
+                        }
+                    }
+                    if (!TextUtils.isEmpty(visualizedProject) && !TextUtils.isEmpty(serverProject) && TextUtils.equals(visualizedProject, serverProject)
+                            && !TextUtils.isEmpty(visualizedHost) && !TextUtils.isEmpty(serverHost) && TextUtils.equals(visualizedHost, serverHost)
+                    ) {
+                        showOpenVisualizedAutoTrackDialog(activity, featureCode, postUrl);
+                    } else {
+                        showDialog(activity, "App 集成的项目与电脑浏览器打开的项目不同，无法进行可视化全埋点");
+                    }
                 }
             }
         } catch (Exception e) {
@@ -347,6 +369,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
     /**
      * 计算退出事件时长
+     *
      * @param startTime 启动时间
      * @param endTime 退出时间
      * @return 时长
@@ -519,7 +542,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private void showOpenHeatMapDialog(final Activity context, final String featureCode, final String postUrl) {
         try {
             if (!SensorsDataAPI.sharedInstance().isNetworkRequestEnable()) {
-                showNotRequestNetworkDialog(context, "已关闭网络请求（NetworkRequest），无法使用 App 点击分析，请开启后再试！");
+                showDialog(context, "已关闭网络请求（NetworkRequest），无法使用 App 点击分析，请开启后再试！");
                 return;
             }
             if (!SensorsDataAPI.sharedInstance().isAppHeatMapConfirmDialogEnabled()) {
@@ -559,10 +582,11 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
             });
             AlertDialog dialog = builder.create();
             dialog.show();
-
             try {
                 dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.BLACK);
+                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundColor(Color.WHITE);
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.RED);
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundColor(Color.WHITE);
             } catch (Exception e) {
                 com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             }
@@ -574,14 +598,17 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private void showOpenVisualizedAutoTrackDialog(final Activity context, final String featureCode, final String postUrl) {
         try {
             if (!SensorsDataAPI.sharedInstance().isNetworkRequestEnable()) {
-                showNotRequestNetworkDialog(context, "已关闭网络请求（NetworkRequest），无法使用 App 可视化全埋点，请开启后再试！");
+                showDialog(context, "已关闭网络请求（NetworkRequest），无法使用 App 可视化全埋点，请开启后再试！");
+                return;
+            }
+            if (!SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled()) {
+                showDialog(context, "SDK 没有被正确集成，请联系贵方技术人员开启可视化全埋点");
                 return;
             }
             if (!SensorsDataAPI.sharedInstance().isVisualizedAutoTrackConfirmDialogEnabled()) {
                 VisualizedAutoTrackService.getInstance().start(context, featureCode, postUrl);
                 return;
             }
-
             boolean isWifi = false;
             try {
                 String networkType = NetworkUtils.networkType(context);
@@ -617,7 +644,9 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
             try {
                 dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.BLACK);
+                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundColor(Color.WHITE);
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.RED);
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundColor(Color.WHITE);
             } catch (Exception e) {
                 SALog.printStackTrace(e);
             }
@@ -626,11 +655,20 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         }
     }
 
-    private void showNotRequestNetworkDialog(Context context, String message) {
+    private void showDialog(Context context, String message) {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle("提示")
                 .setMessage(message)
-                .setPositiveButton("确定", null).show();
+                .setCancelable(false)
+                .setPositiveButton("确定", null);
+        AlertDialog dialog = builder.create();
+        dialog.show();
+        try {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.RED);
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundColor(Color.WHITE);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     private class SensorsActivityStateObserver extends ContentObserver {

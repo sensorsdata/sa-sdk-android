@@ -17,13 +17,15 @@
 
 package com.sensorsdata.analytics.android.demo.activity
 
+import android.os.Build
 import android.os.Bundle
 import android.webkit.JavascriptInterface
-import android.webkit.WebChromeClient
-import android.webkit.WebView
 import com.sensorsdata.analytics.android.demo.R
 import com.sensorsdata.analytics.android.sdk.SALog
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI
+import com.tencent.smtt.sdk.WebChromeClient
+import com.tencent.smtt.sdk.WebSettings
+import com.tencent.smtt.sdk.WebView
 import kotlinx.android.synthetic.main.activity_h5.*
 import org.json.JSONObject
 
@@ -46,9 +48,12 @@ class H5Activity : BaseActivity() {
             }
         }
 
-        webView.loadUrl("file:///android_asset/index.html")
+        webView.loadUrl("https://fengandyun.github.io/apph5select/index.html")
         webView.addJavascriptInterface(JsObject(), "sensorsDataObj")
-        SensorsDataAPI.sharedInstance().showUpWebView(webView, false, true)
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+//            webView.settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+//        }
+        SensorsDataAPI.sharedInstance().showUpX5WebView(webView, true)
     }
 
     private class JsObject {
@@ -61,6 +66,5 @@ class H5Activity : BaseActivity() {
     private fun initWebView() {
         val settings = webView.settings
         settings.javaScriptEnabled = true
-
     }
 }

@@ -20,6 +20,14 @@ package com.sensorsdata.analytics.android.demo.activity
 import android.os.Bundle
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
+import android.view.LayoutInflater
+import android.view.View
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.ActionBar
+import androidx.core.content.ContextCompat.getSystemService
+import com.sensorsdata.analytics.android.demo.R
+
 
 open class BaseActivity : AppCompatActivity() {
 
