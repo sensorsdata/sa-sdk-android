@@ -157,23 +157,20 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                     String featureCode = uri.getQueryParameter("feature_code");
                     String postUrl = uri.getQueryParameter("url");
                     String serverUrl = SensorsDataAPI.sharedInstance(mContext).getServerUrl();
-                    String visualizedProject = null, visualizedHost = null, serverProject = null, serverHost = null;
+                    String visualizedProject = null, serverProject = null;
                     if (!TextUtils.isEmpty(postUrl)) {
                         Uri visualizedUri = Uri.parse(postUrl);
                         if (visualizedUri != null) {
                             visualizedProject = visualizedUri.getQueryParameter("project");
-                            visualizedHost = visualizedUri.getHost();
                         }
                     }
                     if (!TextUtils.isEmpty(serverUrl)) {
                         Uri serverUri = Uri.parse(serverUrl);
                         if (serverUri != null) {
                             serverProject = serverUri.getQueryParameter("project");
-                            serverHost = serverUri.getHost();
                         }
                     }
                     if (!TextUtils.isEmpty(visualizedProject) && !TextUtils.isEmpty(serverProject) && TextUtils.equals(visualizedProject, serverProject)
-                            && !TextUtils.isEmpty(visualizedHost) && !TextUtils.isEmpty(serverHost) && TextUtils.equals(visualizedHost, serverHost)
                     ) {
                         showOpenVisualizedAutoTrackDialog(activity, featureCode, postUrl);
                     } else {
