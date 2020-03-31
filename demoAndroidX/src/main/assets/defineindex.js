@@ -26,7 +26,7 @@
             source_type:{
                 utm:['ls']
             },
-            server_url: 'https://test-syg.datasink.sensorsdata.cn/sa?project=liangshuang&token=27f1e21b78daf376',
+            server_url: 'https://sdkdebugtest.datasink.sensorsdata.cn/sa?project=default&token=cfb8b60e42e0ae9b',
             heatmap:{
                 scroll_notice_map:'not_collect',
                 element_selector:'not_use_id',

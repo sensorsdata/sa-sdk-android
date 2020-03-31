@@ -224,7 +224,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             final SensorsDataActivityLifecycleCallbacks lifecycleCallbacks =
                     new SensorsDataActivityLifecycleCallbacks(this, mFirstStart, mFirstDay, context);
             app.registerActivityLifecycleCallbacks(lifecycleCallbacks);
-            app.registerActivityLifecycleCallbacks(AppSateManager.getInstance());
+            app.registerActivityLifecycleCallbacks(AppStateManager.getInstance());
         }
 
         SALog.i(TAG, String.format(Locale.CHINA, "Initialized the instance of Sensors Analytics SDK with server"

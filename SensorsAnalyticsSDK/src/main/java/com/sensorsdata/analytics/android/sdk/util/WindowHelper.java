@@ -1,18 +1,16 @@
 package com.sensorsdata.analytics.android.sdk.util;
 
 import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
 import android.app.Activity;
-import android.os.Build;
 import android.os.Build.VERSION;
+import android.text.TextUtils;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 
 
-import com.sensorsdata.analytics.android.sdk.AppSateManager;
-import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.AppStateManager;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -21,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.WeakHashMap;
 
 public class WindowHelper {
     private static Object sWindowManger;
@@ -33,7 +30,6 @@ public class WindowHelper {
     private static boolean sIsInitialized = false;
     private static boolean sArrayListWindowViews = false;
     private static boolean sViewArrayWindowViews = false;
-    private static WeakHashMap<View, Long> showingToast = new WeakHashMap();
     private static final String sMainWindowPrefix = "/MainWindow";
     private static final String sDialogWindowPrefix = "/DialogWindow";
     private static final String sPopupWindowPrefix = "/PopupWindow";
@@ -121,7 +117,7 @@ public class WindowHelper {
     private static View[] getWindowViews() {
         View[] result = new View[0];
         if (sWindowManger == null) {
-            Activity current = AppSateManager.getInstance().getForegroundActivity();
+            Activity current = AppStateManager.getInstance().getForegroundActivity();
             return current != null ? new View[]{current.getWindow().getDecorView()} : result;
         } else {
             try {
@@ -156,7 +152,7 @@ public class WindowHelper {
         public int compare(View lhs, View rhs) {
             int lhsHashCode = lhs.hashCode();
             int rhsHashCode = rhs.hashCode();
-            int currentHashCode = AppSateManager.getInstance().getCurrentRootWindowsHashCode();
+            int currentHashCode = AppStateManager.getInstance().getCurrentRootWindowsHashCode();
             if (lhsHashCode == currentHashCode) {
                 return -1;
             } else {
@@ -174,13 +170,6 @@ public class WindowHelper {
         for (int i = 0; i < length; ++i) {
             View view = result[i];
             if (view != null) {
-                if (!showingToast.isEmpty()) {
-                    Long deadline = (Long) showingToast.get(view);
-                    if (deadline != null && currentTime > deadline) {
-                        continue;
-                    }
-                }
-
                 list.add(view);
             }
         }
@@ -262,7 +251,7 @@ public class WindowHelper {
     }
 
     public static String getWindowPrefix(View root) {
-        if (root.hashCode() == AppSateManager.getInstance().getCurrentRootWindowsHashCode()) {
+        if (root.hashCode() == AppStateManager.getInstance().getCurrentRootWindowsHashCode()) {
             return getMainWindowPrefix();
         }
         return getSubWindowPrefix(root);
@@ -305,6 +294,11 @@ public class WindowHelper {
             return ((WindowManager.LayoutParams) params).type == 1;
         }
         return false;
+    }
+
+    public static boolean isDialogOrPopupWindow(View root) {
+        String prefix = getSubWindowPrefix(root);
+        return TextUtils.equals(sDialogWindowPrefix,prefix) || TextUtils.equals(sPopupWindowPrefix,prefix);
     }
 
 }

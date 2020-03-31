@@ -418,10 +418,10 @@ public class ViewSnapshot {
         @Override
         public List<RootViewInfo> call() throws Exception {
             mRootViews.clear();
-            if (AppSateManager.getInstance().isInBackground()) {
+            if (AppStateManager.getInstance().isInBackground()) {
                 return mRootViews;
             }
-            Activity activity = AppSateManager.getInstance().getForegroundActivity();
+            Activity activity = AppStateManager.getInstance().getForegroundActivity();
             if (activity != null) {
                 final String activityName = activity.getClass().getCanonicalName();
                 final String activityTitle = SensorsDataUtils.getActivityTitle(activity);
@@ -469,13 +469,15 @@ public class ViewSnapshot {
             ViewUtil.invalidateLayerTypeView(views);
             for (View view : views) {
                 if (!(view.getVisibility() != View.VISIBLE || view.getWidth() == 0 || view.getHeight() == 0 || !ViewUtil.isWindowNeedTraverse(view, WindowHelper.getWindowPrefix(view), skipOther))) {
-                    view.getLocationOnScreen(windowOffset);
                     canvas.save();
-                    canvas.translate((float) windowOffset[0], (float) windowOffset[1]);
-                    if (!TextUtils.equals(WindowHelper.getWindowPrefix(view), WindowHelper.getMainWindowPrefix())) {
-                        Paint mMaskPaint = new Paint();
-                        mMaskPaint.setColor(0xA0000000);
-                        canvas.drawRect(-(float) windowOffset[0], -(float) windowOffset[1], canvas.getWidth(), canvas.getHeight(), mMaskPaint);
+                    if (!WindowHelper.isMainWindow(view)) {
+                        view.getLocationOnScreen(windowOffset);
+                        canvas.translate((float) windowOffset[0], (float) windowOffset[1]);
+                        if (WindowHelper.isDialogOrPopupWindow(view)) {
+                            Paint mMaskPaint = new Paint();
+                            mMaskPaint.setColor(0xA0000000);
+                            canvas.drawRect(-(float) windowOffset[0], -(float) windowOffset[1], canvas.getWidth(), canvas.getHeight(), mMaskPaint);
+                        }
                     }
                     view.draw(canvas);
                     canvas.restore();
