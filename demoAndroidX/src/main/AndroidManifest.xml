@@ -17,7 +17,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
-        <activity android:name=".activity.TestMainActivity">
+        <activity android:name=".activity.TestMainActivity" android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -32,9 +32,16 @@
 
                 <data
                     android:host="debugmode"
-                    android:scheme="sa8a9ab067" />
-            </intent-filter>
+                    android:scheme="sf20191010nb" />
 
+                <data
+                    android:host="heatmap"
+                    android:scheme="sf20191010nb" />
+
+                <data
+                    android:host="visualized"
+                    android:scheme="sf20191010nb" />
+            </intent-filter>
         </activity>
 
         <activity android:name=".activity.BasePropertyActivity" />

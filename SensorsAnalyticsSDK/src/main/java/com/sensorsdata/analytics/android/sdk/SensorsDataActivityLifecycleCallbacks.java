@@ -19,16 +19,11 @@ package com.sensorsdata.analytics.android.sdk;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Application;
-import android.app.Dialog;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.database.ContentObserver;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -37,7 +32,6 @@ import android.os.HandlerThread;
 import android.os.Message;
 import android.os.SystemClock;
 import android.text.TextUtils;
-import android.widget.Toast;
 
 import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.DbParams;
@@ -45,24 +39,12 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.DateFormatUtils;
-import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataTimer;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONObject;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.Locale;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSocketFactory;
-
-import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
 
 
 @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
@@ -136,51 +118,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
     @Override
     public void onActivityCreated(Activity activity, Bundle bundle) {
-        try {
-            Uri uri = null;
-            if (activity != null) {
-                Intent intent = activity.getIntent();
-                if (intent != null) {
-                    uri = intent.getData();
-                }
-            }
-            if (uri != null) {
-                String host = uri.getHost();
-                if ("heatmap".equals(host)) {
-                    String featureCode = uri.getQueryParameter("feature_code");
-                    String postUrl = uri.getQueryParameter("url");
-                    showOpenHeatMapDialog(activity, featureCode, postUrl);
-                } else if ("debugmode".equals(host)) {
-                    String infoId = uri.getQueryParameter("info_id");
-                    showDebugModeSelectDialog(activity, infoId);
-                } else if ("visualized".equals(host)) {
-                    String featureCode = uri.getQueryParameter("feature_code");
-                    String postUrl = uri.getQueryParameter("url");
-                    String serverUrl = SensorsDataAPI.sharedInstance(mContext).getServerUrl();
-                    String visualizedProject = null, serverProject = null;
-                    if (!TextUtils.isEmpty(postUrl)) {
-                        Uri visualizedUri = Uri.parse(postUrl);
-                        if (visualizedUri != null) {
-                            visualizedProject = visualizedUri.getQueryParameter("project");
-                        }
-                    }
-                    if (!TextUtils.isEmpty(serverUrl)) {
-                        Uri serverUri = Uri.parse(serverUrl);
-                        if (serverUri != null) {
-                            serverProject = serverUri.getQueryParameter("project");
-                        }
-                    }
-                    if (!TextUtils.isEmpty(visualizedProject) && !TextUtils.isEmpty(serverProject) && TextUtils.equals(visualizedProject, serverProject)
-                    ) {
-                        showOpenVisualizedAutoTrackDialog(activity, featureCode, postUrl);
-                    } else {
-                        showDialog(activity, "App 集成的项目与电脑浏览器打开的项目不同，无法进行可视化全埋点");
-                    }
-                }
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
+        SensorsDataUtils.handleSchemeUrl(activity, activity.getIntent());
     }
 
     @Override
@@ -493,181 +431,6 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         }
     }
 
-    private void showDebugModeSelectDialog(final Activity activity, final String infoId) {
-        try {
-            DebugModeSelectDialog dialog = new DebugModeSelectDialog(activity, mSensorsDataInstance.getDebugMode());
-            dialog.setCanceledOnTouchOutside(false);
-            dialog.setOnDebugModeDialogClickListener(new DebugModeSelectDialog.OnDebugModeViewClickListener() {
-                @Override
-                public void onCancel(Dialog dialog) {
-                    dialog.cancel();
-                }
-
-                @Override
-                public void setDebugMode(Dialog dialog, SensorsDataAPI.DebugMode debugMode) {
-                    mSensorsDataInstance.setDebugMode(debugMode);
-                    dialog.cancel();
-                }
-            });
-            dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
-                @Override
-                public void onCancel(DialogInterface dialog) {
-                    //如果当前的调试模式不是 DebugOff ,则发送匿名或登录 ID 给服务端
-                    String serverUrl = mSensorsDataInstance.getServerUrl();
-                    SensorsDataAPI.DebugMode mCurrentDebugMode = mSensorsDataInstance.getDebugMode();
-                    if (mSensorsDataInstance.isNetworkRequestEnable() && !TextUtils.isEmpty(serverUrl) && !TextUtils.isEmpty(infoId) && mCurrentDebugMode != SensorsDataAPI.DebugMode.DEBUG_OFF) {
-                        new SendDebugIdThread(serverUrl, mSensorsDataInstance.getDistinctId(), infoId, ThreadNameConstants.THREAD_SEND_DISTINCT_ID).start();
-                    }
-                    String currentDebugToastMsg = "";
-                    if (mCurrentDebugMode == SensorsDataAPI.DebugMode.DEBUG_OFF) {
-                        currentDebugToastMsg = "已关闭调试模式，请重新扫描二维码进行开启";
-                    } else if (mCurrentDebugMode == SensorsDataAPI.DebugMode.DEBUG_ONLY) {
-                        currentDebugToastMsg = "开启调试模式，校验数据，但不进行数据导入；关闭 App 进程后，将自动关闭调试模式";
-                    } else if (mCurrentDebugMode == SensorsDataAPI.DebugMode.DEBUG_AND_TRACK) {
-                        currentDebugToastMsg = "开启调试模式，校验数据，并将数据导入到神策分析中；关闭 App 进程后，将自动关闭调试模式";
-                    }
-                    Toast.makeText(activity, currentDebugToastMsg, Toast.LENGTH_LONG).show();
-                    SALog.info(TAG, "您当前的调试模式是：" + mCurrentDebugMode, null);
-                }
-            });
-            dialog.show();
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-    }
-
-    private void showOpenHeatMapDialog(final Activity context, final String featureCode, final String postUrl) {
-        try {
-            if (!SensorsDataAPI.sharedInstance().isNetworkRequestEnable()) {
-                showDialog(context, "已关闭网络请求（NetworkRequest），无法使用 App 点击分析，请开启后再试！");
-                return;
-            }
-            if (!SensorsDataAPI.sharedInstance().isAppHeatMapConfirmDialogEnabled()) {
-                HeatMapService.getInstance().start(context, featureCode, postUrl);
-                return;
-            }
-
-            boolean isWifi = false;
-            try {
-                String networkType = NetworkUtils.networkType(context);
-                if ("WIFI".equals(networkType)) {
-                    isWifi = true;
-                }
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
-            }
-
-            AlertDialog.Builder builder = new AlertDialog.Builder(context);
-            builder.setTitle("提示");
-            if (isWifi) {
-                builder.setMessage("正在连接 App 点击分析");
-            } else {
-                builder.setMessage("正在连接 App 点击分析，建议在 WiFi 环境下使用");
-            }
-            builder.setCancelable(false);
-            builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-
-                }
-            });
-            builder.setPositiveButton("继续", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    HeatMapService.getInstance().start(context, featureCode, postUrl);
-                }
-            });
-            AlertDialog dialog = builder.create();
-            dialog.show();
-            try {
-                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.BLACK);
-                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundColor(Color.WHITE);
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.RED);
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundColor(Color.WHITE);
-            } catch (Exception e) {
-                com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-    }
-
-    private void showOpenVisualizedAutoTrackDialog(final Activity context, final String featureCode, final String postUrl) {
-        try {
-            if (!SensorsDataAPI.sharedInstance().isNetworkRequestEnable()) {
-                showDialog(context, "已关闭网络请求（NetworkRequest），无法使用 App 可视化全埋点，请开启后再试！");
-                return;
-            }
-            if (!SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled()) {
-                showDialog(context, "SDK 没有被正确集成，请联系贵方技术人员开启可视化全埋点");
-                return;
-            }
-            if (!SensorsDataAPI.sharedInstance().isVisualizedAutoTrackConfirmDialogEnabled()) {
-                VisualizedAutoTrackService.getInstance().start(context, featureCode, postUrl);
-                return;
-            }
-            boolean isWifi = false;
-            try {
-                String networkType = NetworkUtils.networkType(context);
-                if ("WIFI".equals(networkType)) {
-                    isWifi = true;
-                }
-            } catch (Exception e) {
-                // ignore
-            }
-
-            AlertDialog.Builder builder = new AlertDialog.Builder(context);
-            builder.setTitle("提示");
-            if (isWifi) {
-                builder.setMessage("正在连接 App 可视化全埋点");
-            } else {
-                builder.setMessage("正在连接 App 可视化全埋点，建议在 WiFi 环境下使用");
-            }
-            builder.setCancelable(false);
-            builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-
-                }
-            });
-            builder.setPositiveButton("继续", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    VisualizedAutoTrackService.getInstance().start(context, featureCode, postUrl);
-                }
-            });
-            AlertDialog dialog = builder.create();
-            dialog.show();
-
-            try {
-                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.BLACK);
-                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundColor(Color.WHITE);
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.RED);
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundColor(Color.WHITE);
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-    }
-
-    private void showDialog(Context context, String message) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle("提示")
-                .setMessage(message)
-                .setCancelable(false)
-                .setPositiveButton("确定", null);
-        AlertDialog dialog = builder.create();
-        dialog.show();
-        try {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.RED);
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundColor(Color.WHITE);
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-    }
-
     private class SensorsActivityStateObserver extends ContentObserver {
 
         /**
@@ -688,106 +451,6 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                 }
             } catch (Exception e) {
                 SALog.printStackTrace(e);
-            }
-        }
-    }
-
-    class SendDebugIdThread extends Thread {
-        private String distinctId;
-        private String infoId;
-        private String serverUrl;
-
-        SendDebugIdThread(String serverUrl, String distinctId, String infoId, String name) {
-            super(name);
-            this.distinctId = distinctId;
-            this.infoId = infoId;
-            this.serverUrl = serverUrl;
-        }
-
-        @Override
-        public void run() {
-            super.run();
-            sendHttpRequest(serverUrl, false);
-        }
-
-        private void sendHttpRequest(String serverUrl, boolean isRedirects) {
-            ByteArrayOutputStream out = null;
-            OutputStream out2 = null;
-            BufferedOutputStream bout = null;
-            HttpURLConnection connection = null;
-            try {
-                URL url = new URL(String.format(serverUrl + "&info_id=%s", infoId));
-                SALog.info(TAG, String.format("DebugMode URL:%s", url), null);
-                connection = (HttpURLConnection) url.openConnection();
-                if (connection == null) {
-                    SALog.info(TAG, String.format("can not connect %s,shouldn't happen", url.toString()), null);
-                    return;
-                }
-                SSLSocketFactory sf = SensorsDataAPI.sharedInstance().getSSLSocketFactory();
-                if (sf != null && connection instanceof HttpsURLConnection) {
-                    ((HttpsURLConnection) connection).setSSLSocketFactory(sf);
-                }
-                connection.setInstanceFollowRedirects(false);
-                out = new ByteArrayOutputStream();
-                OutputStreamWriter writer = new OutputStreamWriter(out);
-                String requestBody = "{\"distinct_id\": \"" + distinctId + "\"}";
-                writer.write(requestBody);
-                writer.flush();
-                SALog.info(TAG, String.format("DebugMode request body : %s", requestBody), null);
-                connection.setDoOutput(true);
-                connection.setUseCaches(false);
-                connection.setRequestMethod("POST");
-                connection.setRequestProperty("Content-type", "text/plain");
-
-                out2 = connection.getOutputStream();
-                bout = new BufferedOutputStream(out2);
-                bout.write(out.toString().getBytes(CHARSET_UTF8));
-                bout.flush();
-                out.close();
-                int responseCode = connection.getResponseCode();
-                SALog.info(TAG, String.format(Locale.CHINA, "DebugMode 后端的响应码是:%d", responseCode), null);
-                if (!isRedirects && SensorsDataHttpURLConnectionHelper.needRedirects(responseCode)) {
-                    String location = SensorsDataHttpURLConnectionHelper.getLocation(connection, serverUrl);
-                    if (!TextUtils.isEmpty(location)) {
-                        closeStream(out, out2, bout, connection);
-                        sendHttpRequest(location, true);
-                    }
-                }
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
-            } finally {
-                closeStream(out, out2, bout, connection);
-            }
-        }
-
-        private void closeStream(ByteArrayOutputStream out, OutputStream out2, BufferedOutputStream bout, HttpURLConnection connection) {
-            if (out != null) {
-                try {
-                    out.close();
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
-                }
-            }
-            if (out2 != null) {
-                try {
-                    out2.close();
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
-                }
-            }
-            if (bout != null) {
-                try {
-                    bout.close();
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
-                }
-            }
-            if (connection != null) {
-                try {
-                    connection.disconnect();
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
-                }
             }
         }
     }

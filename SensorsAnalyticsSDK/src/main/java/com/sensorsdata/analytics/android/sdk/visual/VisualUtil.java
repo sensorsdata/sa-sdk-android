@@ -36,7 +36,7 @@ public class VisualUtil {
         if (view instanceof Spinner) {
             return View.GONE;
         }
-        return view.getVisibility();
+        return ViewUtil.isViewSelfVisible(view) ? View.VISIBLE : View.GONE;
     }
 
     @SuppressLint("NewApi")

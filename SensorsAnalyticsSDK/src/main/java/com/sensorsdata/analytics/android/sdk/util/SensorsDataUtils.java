@@ -24,6 +24,7 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
@@ -44,6 +45,7 @@ import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackAppViewScreenUrl;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackHelper;
 import com.sensorsdata.analytics.android.sdk.SensorsDataSDKRemoteConfig;
 
 import org.json.JSONArray;
@@ -738,6 +740,7 @@ public final class SensorsDataUtils {
 
     /**
      * 获取设备标识
+     *
      * @param context Context
      * @return 设备标识
      */
@@ -747,6 +750,7 @@ public final class SensorsDataUtils {
 
     /**
      * 获取设备标识
+     *
      * @param context Context
      * @param number 卡槽位置
      * @return 设备标识
@@ -757,6 +761,7 @@ public final class SensorsDataUtils {
 
     /**
      * 获取设备标识
+     *
      * @param context Context
      * @return 设备标识
      */
@@ -1141,5 +1146,17 @@ public final class SensorsDataUtils {
             screenUrl = object.getClass().getCanonicalName();
         }
         return screenUrl;
+    }
+
+    /**
+     * 解析 Activity 的 Intent 中是否包含 DebugMode、点击图、可视化全埋点的 uri 信息并显示 Dialog。
+     * 此方法用来辅助完善 Dialog 的展示，通常用在配置了神策 scheme 的 Activity 页面中的 onNewIntent 方法中，
+     * 并且此 Activity 的 launchMode 为 singleTop 或者 singleTask 或者为 singleInstance。
+     *
+     * @param activity activity
+     * @param intent intent
+     */
+    public static void handleSchemeUrl(Activity activity, Intent intent) {
+        SensorsDataAutoTrackHelper.handleSchemeUrl(activity, intent);
     }
 }

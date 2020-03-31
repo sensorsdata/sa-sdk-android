@@ -64,6 +64,7 @@ public abstract class PersistentIdentity<T> {
 
                 if (data == null) {
                     item = (T) serializer.create();
+                    commit(item);
                 } else {
                     item = (T) serializer.load(data);
                 }

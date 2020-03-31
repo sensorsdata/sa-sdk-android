@@ -17,6 +17,7 @@
 
 package com.sensorsdata.analytics.android.demo.activity
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -24,6 +25,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.sensorsdata.analytics.android.demo.PopupMenuActivity
 import com.sensorsdata.analytics.android.demo.R
 import com.sensorsdata.analytics.android.demo.custom.HorizonRecyclerDivider
+import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils
 import kotlinx.android.synthetic.main.activity_test_list.*
 
 class TestMainActivity : AppCompatActivity() {
@@ -61,4 +63,9 @@ class TestMainActivity : AppCompatActivity() {
     }
 
     class DataEntity(val content: String, val activityClazz: Class<*>, val isSupported: Boolean = false)
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        SensorsDataUtils.handleSchemeUrl(this, intent)
+    }
 }

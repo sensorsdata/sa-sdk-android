@@ -48,7 +48,7 @@ class H5Activity : BaseActivity() {
             }
         }
 
-        webView.loadUrl("https://fengandyun.github.io/apph5select/index.html")
+        webView.loadUrl("file:///android_asset/index.html")
         webView.addJavascriptInterface(JsObject(), "sensorsDataObj")
 //        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
 //            webView.settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW

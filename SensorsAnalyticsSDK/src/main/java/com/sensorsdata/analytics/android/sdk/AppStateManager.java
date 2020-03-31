@@ -25,23 +25,23 @@ import android.os.Bundle;
 import java.lang.ref.WeakReference;
 
 @SuppressLint("NewApi")
-public class AppSateManager implements Application.ActivityLifecycleCallbacks {
+public class AppStateManager implements Application.ActivityLifecycleCallbacks {
 
-    private volatile static AppSateManager mSingleton = null;
+    private volatile static AppStateManager mSingleton = null;
 
     private int mActivityCount;
 
-    private AppSateManager() {
+    private AppStateManager() {
     }
 
     private WeakReference<Activity> mForeGroundActivity = new WeakReference((Object) null);
     private int mCurrentRootWindowsHashCode = -1;
 
-    public static AppSateManager getInstance() {
+    public static AppStateManager getInstance() {
         if (mSingleton == null) {
-            synchronized (AppSateManager.class) {
+            synchronized (AppStateManager.class) {
                 if (mSingleton == null) {
-                    mSingleton = new AppSateManager();
+                    mSingleton = new AppStateManager();
                 }
             }
         }
@@ -53,11 +53,11 @@ public class AppSateManager implements Application.ActivityLifecycleCallbacks {
         return this.mForeGroundActivity.get();
     }
 
-    public void setForegroundActivity(Activity activity) {
+    private void setForegroundActivity(Activity activity) {
         this.mForeGroundActivity = new WeakReference(activity);
     }
 
-    public boolean isInBackground() {
+    boolean isInBackground() {
         return mActivityCount <= 0;
     }
 

@@ -24,7 +24,6 @@ import android.os.Build;
 import android.text.TextUtils;
 import android.util.LruCache;
 import android.util.SparseArray;
-import android.util.SparseIntArray;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -40,22 +39,17 @@ import android.widget.RadioButton;
 import android.widget.RatingBar;
 import android.widget.SeekBar;
 import android.widget.Spinner;
-import android.widget.Switch;
-import android.widget.TableLayout;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import com.sensorsdata.analytics.android.sdk.AopConstants;
-import com.sensorsdata.analytics.android.sdk.AppSateManager;
+import com.sensorsdata.analytics.android.sdk.AppStateManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.visual.ViewNode;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 
@@ -68,6 +62,7 @@ public class ViewUtil {
     private static Class sRecyclerViewClass;
     private static LruCache<Class, String> sClassNameCache;
     private static SparseArray sViewCache;
+
     /**
      * 获取 class name
      */
@@ -176,6 +171,20 @@ public class ViewUtil {
             //ignored
         }
         return false;
+    }
+
+    static boolean instanceOfNavigationView(Object view) {
+        Class clazz = null;
+        try {
+            clazz = Class.forName("android.support.design.widget.NavigationView");
+        } catch (ClassNotFoundException th) {
+            try {
+                clazz = Class.forName("com.google.android.material.navigation.NavigationView");
+            } catch (ClassNotFoundException e2) {
+                return false;
+            }
+        }
+        return clazz.isInstance(view);
     }
 
     /**
@@ -335,17 +344,17 @@ public class ViewUtil {
     }
 
     @SuppressLint("NewApi")
-    private static boolean isViewSelfVisible(View mView) {
-        if (mView == null || mView.getWindowVisibility() == View.GONE) {
+    public static boolean isViewSelfVisible(View view) {
+        if (view == null || view.getWindowVisibility() == View.GONE) {
             return false;
         }
-        if (WindowHelper.isDecorView(mView.getClass())) {
+        if (WindowHelper.isDecorView(view.getClass())) {
             return true;
         }
-        if (mView.getWidth() <= 0 || mView.getHeight() <= 0 || mView.getAlpha() <= 0.0f || !mView.getLocalVisibleRect(new Rect())) {
+        if (view.getWidth() <= 0 || view.getHeight() <= 0 || view.getAlpha() <= 0.0f || !view.getLocalVisibleRect(new Rect())) {
             return false;
         }
-        if ((mView.getVisibility() == View.VISIBLE || mView.getAnimation() == null || !mView.getAnimation().getFillAfter()) && mView.getVisibility() != View.VISIBLE) {
+        if ((view.getVisibility() == View.VISIBLE || view.getAnimation() == null || !view.getAnimation().getFillAfter()) && view.getVisibility() != View.VISIBLE) {
             return false;
         }
         return true;
@@ -414,7 +423,7 @@ public class ViewUtil {
     }
 
     public static boolean isWindowNeedTraverse(View root, String prefix, boolean skipOtherActivity) {
-        if (root.hashCode() == AppSateManager.getInstance().getCurrentRootWindowsHashCode()) {
+        if (root.hashCode() == AppStateManager.getInstance().getCurrentRootWindowsHashCode()) {
             return true;
         }
         if (root instanceof ViewGroup) {
@@ -682,36 +691,26 @@ public class ViewUtil {
             }
         } else if ((tab = instanceOfTabView(view)) != null) {
             viewText = getTabLayoutContent(tab);
+            viewType = AopUtil.getViewType(viewType, "TabLayout");
         } else if (ViewUtil.instanceOfBottomNavigationItemView(view)) {
             Object itemData = ViewUtil.getItemData(view);
             if (itemData != null) {
-                Class<?> menuItemImplClass = null;
                 try {
-                    menuItemImplClass = Class.forName("androidx.appcompat.view.menu.MenuItemImpl");
-                } catch (ClassNotFoundException e) {
-                    //ignored
-                }
-                if (menuItemImplClass != null) {
-                    Field field = null;
-                    try {
-                        field = menuItemImplClass.getDeclaredField("mTitle");
-                    } catch (NoSuchFieldException ex) {
-                        //ignored
-                    }
-                    String title = null;
-                    if (field != null) {
-                        field.setAccessible(true);
-                        try {
-                            title = (String) field.get(itemData);
-                        } catch (IllegalAccessException e) {
-                            //ignored
+                    Class<?> menuItemImplClass = ReflectUtil.getCurrentClass(new String[]{"androidx.appcompat.view.menu.MenuItemImpl"});
+                    if (menuItemImplClass != null) {
+                        String title = null;
+                        title = ReflectUtil.findField(menuItemImplClass, itemData, new String[]{"mTitle"});
+                        if (!TextUtils.isEmpty(title)) {
+                            viewText = title;
                         }
                     }
-                    if (!TextUtils.isEmpty(title)) {
-                        viewText = title;
-                    }
+                } catch (Exception e) {
+                    //ignored
                 }
             }
+        } else if (ViewUtil.instanceOfNavigationView(view)) {
+            viewText = ViewUtil.isViewSelfVisible(view) ? "Open" : "Close";
+            viewType = AopUtil.getViewType(viewType, "NavigationView");
         } else if (view instanceof ViewGroup) {
             viewType = AopUtil.getViewGroupTypeByReflect(view);
             viewText = view.getContentDescription();
@@ -747,131 +746,43 @@ public class ViewUtil {
     }
 
     private static Object instanceOfTabView(View tabView) {
-        Class<?> supportTabViewClass = null;
-        Class<?> androidXTabClass = null;
-        Class<?> currentTabViewClass;
         try {
-            supportTabViewClass = Class.forName("android.support.design.widget.TabLayout$TabView");
-        } catch (Exception e) {
-            //ignored
-        }
-        try {
-            androidXTabClass = Class.forName("com.google.android.material.tabs.TabLayout$TabView");
-        } catch (Exception e) {
-            //ignored
-        }
-        if (supportTabViewClass != null) {
-            currentTabViewClass = supportTabViewClass;
-        } else {
-            currentTabViewClass = androidXTabClass;
-        }
-        if (currentTabViewClass != null && currentTabViewClass.isAssignableFrom(tabView.getClass())) {
-            try {
-                Field field = null;
-                try {
-                    field = currentTabViewClass.getDeclaredField("mTab");
-                } catch (NoSuchFieldException ex) {
-                    //ignored
-                }
-                if (field == null) {
-                    try {
-                        field = currentTabViewClass.getDeclaredField("tab");
-                    } catch (NoSuchFieldException ex) {
-                        //ignored
-                    }
-                }
-                Object tab = null;
-                if (field != null) {
-                    field.setAccessible(true);
-                    tab = field.get(tabView);
-                    return tab;
-                }
-            } catch (Exception e) {
-                //ignored
+            Class<?> currentTabViewClass = ReflectUtil.getCurrentClass(new String[]{"android.support.design.widget.TabLayout$TabView", "com.google.android.material.tabs.TabLayout$TabView"});
+            if (currentTabViewClass != null && currentTabViewClass.isAssignableFrom(tabView.getClass())) {
+                return ReflectUtil.findField(currentTabViewClass, tabView, new String[]{"mTab", "tab"});
             }
+        } catch (Exception e) {
         }
         return null;
     }
 
     private static String getTabLayoutContent(Object tab) {
-        Class<?> supportTabClass = null;
-        Class<?> androidXTabClass = null;
-        Class<?> currentTabClass;
         String viewText = null;
+        Class<?> currentTabClass = null;
         try {
-            supportTabClass = Class.forName("android.support.design.widget.TabLayout$Tab");
-        } catch (Exception e) {
-            //ignored
-        }
-        try {
-            androidXTabClass = Class.forName("com.google.android.material.tabs.TabLayout$Tab");
-        } catch (Exception e) {
-            //ignored
-        }
-
-        if (supportTabClass != null) {
-            currentTabClass = supportTabClass;
-        } else {
-            currentTabClass = androidXTabClass;
-        }
-        if (currentTabClass != null) {
-            Method method = null;
-            try {
-                method = currentTabClass.getMethod("getText");
-            } catch (NoSuchMethodException e) {
-                //ignored
-            }
-            if (method != null) {
+            currentTabClass = ReflectUtil.getCurrentClass(new String[]{"android.support.design.widget.TabLayout$Tab", "com.google.android.material.tabs.TabLayout$Tab"});
+            if (currentTabClass != null) {
                 Object text = null;
-                try {
-                    text = method.invoke(tab);
-                } catch (IllegalAccessException e) {
-                    //ignored
-                } catch (InvocationTargetException e) {
-                    //ignored
-                }
+                text = ReflectUtil.callMethod(tab, "getText");
                 if (text != null) {
                     viewText = text.toString();
                 }
-            }
-            try {
-                Field field;
-                try {
-                    field = currentTabClass.getDeclaredField("mCustomView");
-                } catch (NoSuchFieldException ex) {
-                    try {
-                        field = currentTabClass.getDeclaredField("customView");
-                    } catch (NoSuchFieldException e) {
-                        field = null;
-                    }
-                }
                 View customView = null;
-                if (field != null) {
-                    field.setAccessible(true);
-                    try {
-                        customView = (View) field.get(tab);
-                    } catch (IllegalAccessException e) {
-                        //ignored
-                    }
-                    if (customView != null) {
-                        try {
-                            StringBuilder stringBuilder = new StringBuilder();
-                            if (customView instanceof ViewGroup) {
-                                viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) customView);
-                                if (!TextUtils.isEmpty(viewText)) {
-                                    viewText = viewText.toString().substring(0, viewText.length() - 1);
-                                }
-                            } else {
-                                viewText = AopUtil.getViewText(customView);
-                            }
-                        } catch (Exception e) {
-                            //ignored
+                customView = ReflectUtil.findField(currentTabClass, tab, new String[]{"mCustomView", "customView"});
+                if (customView != null) {
+                    StringBuilder stringBuilder = new StringBuilder();
+                    if (customView instanceof ViewGroup) {
+                        viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) customView);
+                        if (!TextUtils.isEmpty(viewText)) {
+                            viewText = viewText.toString().substring(0, viewText.length() - 1);
                         }
+                    } else {
+                        viewText = AopUtil.getViewText(customView);
                     }
                 }
-            } catch (Exception e) {
-                //ignored
             }
+        } catch (Exception e) {
+            //ignored
         }
         return viewText;
     }

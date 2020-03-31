@@ -28,7 +28,7 @@ public class MyApplication extends Application {
     /**
      * Sensors Analytics 采集数据的地址
      */
-    private final static String SA_SERVER_URL = "https://sdkdebugtest.datasink.sensorsdata.cn/sa?project=default&token=cfb8b60e42e0ae9b";
+    private final static String SA_SERVER_URL = "http://10.42.152.233:8106/sa?project=default";
 
     @Override
     public void onCreate() {
@@ -56,6 +56,7 @@ public class MyApplication extends Application {
         SensorsDataAPI.sharedInstance(this).enableVisualizedAutoTrackConfirmDialog(true);
         SensorsDataAPI.sharedInstance(this).trackFragmentAppViewScreen();
         SensorsDataAPI.sharedInstance(this).trackAppCrash();
+        SensorsDataAPI.sharedInstance().enableHeatMap();
     }
 
 }
