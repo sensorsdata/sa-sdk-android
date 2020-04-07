@@ -17,6 +17,8 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
+import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
+
 public final class SAConfigOptions extends AbstractSAConfigOptions {
     /**
      * 是否设置点击图开关
@@ -287,7 +289,29 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
      * @return SAConfigOptions
      */
     public SAConfigOptions enableMultiProcess(boolean enableMultiProcess) {
-        this.enableMultiProcess = enableMultiProcess;
+        this.mEnableMultiProcess = enableMultiProcess;
+        return this;
+    }
+
+    /**
+     * 设置是否保存 utm 属性
+     *
+     * @param enableSave boolean 默认 false 不保存
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions enableSaveDeepLinkInfo(boolean enableSave) {
+        this.mEnableSaveDeepLinkInfo = enableSave;
+        return this;
+    }
+
+    /**
+     * 用户需采集渠道信息自定义属性 key 值，可传多个。
+     *
+     * @param channels 渠道信息自定义属性 key 值
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions setSourceChannels(String... channels) {
+        ChannelUtils.setSourceChannelKeys(channels);
         return this;
     }
 }

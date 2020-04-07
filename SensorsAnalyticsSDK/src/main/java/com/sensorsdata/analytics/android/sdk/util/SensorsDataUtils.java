@@ -958,18 +958,6 @@ public final class SensorsDataUtils {
         }
     }
 
-    public static boolean hasUtmProperties(JSONObject properties) {
-        if (properties == null) {
-            return false;
-        }
-
-        return properties.has("$utm_source") ||
-                properties.has("$utm_medium") ||
-                properties.has("$utm_term") ||
-                properties.has("$utm_content") ||
-                properties.has("$utm_campaign");
-    }
-
     /**
      * 是否是首次触发的渠道事件
      *

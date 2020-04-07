@@ -92,6 +92,13 @@ class TrackProfileSettingsActivity : BaseActivity() {
             R.id.profile_delete -> {
                 SensorsDataAPI.sharedInstance().profileDelete()
             }
+            R.id.item_set -> {
+                SensorsDataAPI.sharedInstance().itemSet("itemType", "itemId", PropertyBuilder
+                        .newInstance().append("item", "item").toJSONObject())
+            }
+            R.id.item_delete -> {
+                SensorsDataAPI.sharedInstance().itemDelete("itemType", "itemId")
+            }
             else -> {
                 //no op
             }
