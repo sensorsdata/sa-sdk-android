@@ -38,6 +38,7 @@ import com.sensorsdata.analytics.android.sdk.data.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
+import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.util.DateFormatUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataTimer;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
@@ -126,7 +127,6 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         try {
             activityProperty = AopUtil.buildTitleAndScreenName(activity);
             SensorsDataUtils.mergeJSONObject(activityProperty, endDataProperty);
-
             if (isMultiProcess) {
                 startActivityCount = mDbAdapter.getActivityCount();
                 mDbAdapter.commitActivityCount(++startActivityCount);
@@ -135,6 +135,9 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
             }
             // 如果是第一个页面
             if (startActivityCount == 1) {
+                if (mSensorsDataInstance.isSaveDeepLinkInfo()) {// 保存 utm 信息时,在 endData 中合并保存的 latestUtm 信息。
+                    SensorsDataUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), endDataProperty);
+                }
                 handler.removeMessages(MESSAGE_END);
                 boolean sessionTimeOut = isSessionTimeOut();
                 if (sessionTimeOut) {
@@ -169,6 +172,9 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                             properties.put("$resume_from_background", resumeFromBackground);
                             properties.put("$is_first_time", firstStart);
                             SensorsDataUtils.mergeJSONObject(activityProperty, properties);
+                            if (ChannelUtils.parseUtmFromActivity(activity, true, mSensorsDataInstance.isSaveDeepLinkInfo())) {
+                                SensorsDataUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
+                            }
                             mSensorsDataInstance.track("$AppStart", properties);
                         }
 
@@ -212,9 +218,18 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     @Override
     public void onActivityResumed(final Activity activity) {
         try {
+            JSONObject utmProperties = null;
+            if (ChannelUtils.parseUtmFromActivity(activity, false, mSensorsDataInstance.isSaveDeepLinkInfo())) {
+                utmProperties = ChannelUtils.getUtmProperties();
+                ChannelUtils.removeDeepLinkInfo(endDataProperty);
+                SensorsDataUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), endDataProperty);
+            }
             if (mSensorsDataInstance.isAutoTrackEnabled() && !mSensorsDataInstance.isActivityAutoTrackAppViewScreenIgnored(activity.getClass())
                     && !mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
                 JSONObject properties = new JSONObject();
+                if (utmProperties != null && utmProperties.length() > 0) {
+                    SensorsDataUtils.mergeJSONObject(utmProperties, properties);
+                }
                 SensorsDataUtils.mergeJSONObject(activityProperty, properties);
                 if (activity instanceof ScreenAutoTracker) {
                     ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
@@ -292,6 +307,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                     properties.put(APP_VERSION, endDataJsonObject.optString(APP_VERSION));
                     properties.put("event_duration", duration(startTime, endTime));
                     properties.put("event_time", pausedTime);
+                    ChannelUtils.mergeUtmToEndData(endDataJsonObject, properties);
                     mSensorsDataInstance.track("$AppEnd", properties);
                     mDbAdapter.commitAppEndData(""); // 保存的信息只使用一次就置空，防止后面状态错乱再次发送。
                     mSensorsDataInstance.flushSync();

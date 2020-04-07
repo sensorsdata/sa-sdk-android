@@ -21,9 +21,10 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
-import com.sensorsdata.analytics.android.demo.databinding.ActivityMainBinding;
 
 import androidx.databinding.DataBindingUtil;
+
+import com.sensorsdata.analytics.android.demo.databinding.ActivityMainBinding;
 
 public class MainActivity extends Activity {
 

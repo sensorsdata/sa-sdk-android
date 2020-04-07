@@ -55,10 +55,10 @@ import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.internal.FragmentAPI;
 import com.sensorsdata.analytics.android.sdk.internal.IFragmentAPI;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
+import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.util.DateFormatUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
-import com.sensorsdata.analytics.android.sdk.util.SADeviceUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONArray;
@@ -85,12 +85,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 
 import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
+import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertKey;
+import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertPropertyTypes;
+import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertValue;
 
 /**
  * Sensors Analytics SDK
@@ -103,9 +105,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static final String VERSION = BuildConfig.SDK_VERSION;
     // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
     static final String MIN_PLUGIN_VERSION = BuildConfig.MIN_PLUGIN_VERSION;
-    private static final Pattern KEY_PATTERN = Pattern.compile(
-            "^((?!^distinct_id$|^original_id$|^device_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
-            Pattern.CASE_INSENSITIVE);
+
     // Maps each token to a singleton SensorsDataAPI instance
     private static final Map<Context, SensorsDataAPI> sInstanceMap = new HashMap<>();
     private static final String TAG = "SA.SensorsDataAPI";
@@ -1724,34 +1724,13 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     }
                     if (firstTrackInstallation) {
                         try {
-                            if (!SensorsDataUtils.hasUtmProperties(_properties)) {
-                                Map<String, String> utmMap = new HashMap<>();
-                                utmMap.put("SENSORS_ANALYTICS_UTM_SOURCE", "$utm_source");
-                                utmMap.put("SENSORS_ANALYTICS_UTM_MEDIUM", "$utm_medium");
-                                utmMap.put("SENSORS_ANALYTICS_UTM_TERM", "$utm_term");
-                                utmMap.put("SENSORS_ANALYTICS_UTM_CONTENT", "$utm_content");
-                                utmMap.put("SENSORS_ANALYTICS_UTM_CAMPAIGN", "$utm_campaign");
-
-                                for (Map.Entry<String, String> entry : utmMap.entrySet()) {
-                                    if (entry != null) {
-                                        String utmValue = SensorsDataUtils.getApplicationMetaData(mContext, entry.getKey());
-                                        if (!TextUtils.isEmpty(utmValue)) {
-                                            _properties.put(entry.getValue(), utmValue);
-                                        }
-                                    }
-                                }
+                            if (!ChannelUtils.hasUtmProperties(_properties)) {
+                                ChannelUtils.mergeUtmByMetaData(mContext, _properties);
                             }
 
-                            if (!SensorsDataUtils.hasUtmProperties(_properties)) {
-                                String installSource = String.format("android_id=%s##imei=%s##imei_old=%s##imei_slot1=%s##imei_slot2=%s##imei_meid=%s##mac=%s##oaid=%s",
-                                        mAndroidId,
-                                        SensorsDataUtils.getIMEI(mContext),
-                                        SensorsDataUtils.getIMEIOld(mContext),
-                                        SensorsDataUtils.getSlot(mContext, 0),
-                                        SensorsDataUtils.getSlot(mContext, 1),
-                                        SensorsDataUtils.getMEID(mContext),
-                                        SensorsDataUtils.getMacAddress(mContext),
-                                        SADeviceUtils.getOAID(mContext));
+                            if (!ChannelUtils.hasUtmProperties(_properties)) {
+                                String installSource = ChannelUtils.getDeviceInfo(mContext,
+                                        mAndroidId);
                                 if (_properties.has("$gaid")) {
                                     installSource = String.format("%s##gaid=%s", installSource, _properties.optString("$gaid"));
                                 }
@@ -1821,34 +1800,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     try {
                         _properties.put("$is_channel_callback_event", SensorsDataUtils.isFirstChannelEvent(mContext, eventName));
-                        if (!SensorsDataUtils.hasUtmProperties(_properties)) {
-                            Map<String, String> utmMap = new HashMap<>();
-                            utmMap.put("SENSORS_ANALYTICS_UTM_SOURCE", "$utm_source");
-                            utmMap.put("SENSORS_ANALYTICS_UTM_MEDIUM", "$utm_medium");
-                            utmMap.put("SENSORS_ANALYTICS_UTM_TERM", "$utm_term");
-                            utmMap.put("SENSORS_ANALYTICS_UTM_CONTENT", "$utm_content");
-                            utmMap.put("SENSORS_ANALYTICS_UTM_CAMPAIGN", "$utm_campaign");
-
-                            for (Map.Entry<String, String> entry : utmMap.entrySet()) {
-                                if (entry != null) {
-                                    String utmValue = SensorsDataUtils.getApplicationMetaData(mContext, entry.getKey());
-                                    if (!TextUtils.isEmpty(utmValue)) {
-                                        _properties.put(entry.getValue(), utmValue);
-                                    }
-                                }
-                            }
+                        if (!ChannelUtils.hasUtmProperties(_properties)) {
+                            ChannelUtils.mergeUtmByMetaData(mContext, _properties);
                         }
-                        if (!SensorsDataUtils.hasUtmProperties(_properties)) {
-                            String installSource = String.format("android_id=%s##imei=%s##imei_old=%s##imei_slot1=%s##imei_slot2=%s##imei_meid=%s##mac=%s##oaid=%s",
-                                    mAndroidId,
-                                    SensorsDataUtils.getIMEI(mContext),
-                                    SensorsDataUtils.getIMEIOld(mContext),
-                                    SensorsDataUtils.getSlot(mContext, 0),
-                                    SensorsDataUtils.getSlot(mContext, 1),
-                                    SensorsDataUtils.getMEID(mContext),
-                                    SensorsDataUtils.getMacAddress(mContext),
-                                    SADeviceUtils.getOAID(mContext));
-                            _properties.put("$channel_device_info", installSource);
+                        if (!ChannelUtils.hasUtmProperties(_properties)) {
+                            _properties.put("$channel_device_info",
+                                    ChannelUtils.getDeviceInfo(mContext, mAndroidId));
                         }
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
@@ -2785,6 +2742,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 if (eventType.isTrack()) {
                     propertiesObject.put("$is_first_day", isFirstDay(eventTime));
                 }
+                SensorsDataUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), propertiesObject);
             }
 
             if (eventObject.has("_nocache")) {
@@ -2944,7 +2902,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             }
                         }
                     } catch (Exception e) {
-                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                        SALog.printStackTrace(e);
+                    }
+                    if (!"$AppEnd".equals(eventName)) {
+                        //合并 $latest_utm 属性
+                        SensorsDataUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), sendProperties);
                     }
 
                     synchronized (mSuperProperties) {
@@ -3223,7 +3185,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     boolean isMultiProcess() {
-        return mSAConfigOptions.enableMultiProcess;
+        return mSAConfigOptions.mEnableMultiProcess;
     }
 
     private boolean isFirstDay(long eventTime) {
@@ -3241,65 +3203,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         return true;
-    }
-
-    private void assertPropertyTypes(JSONObject properties) throws
-            InvalidDataException {
-        if (properties == null) {
-            return;
-        }
-
-        for (Iterator iterator = properties.keys(); iterator.hasNext(); ) {
-            String key = (String) iterator.next();
-
-            // Check Keys
-            assertKey(key);
-
-            try {
-                Object value = properties.get(key);
-
-                if (!(value instanceof CharSequence || value instanceof Number || value
-                        instanceof JSONArray || value instanceof Boolean || value instanceof Date)) {
-                    throw new InvalidDataException("The property value must be an instance of "
-                            + "CharSequence/Number/Boolean/JSONArray. [key='" + key + "', value='" + value.toString()
-                            + "']");
-                }
-
-                if ("app_crashed_reason".equals(key)) {
-                    if (value instanceof String && ((String) value).length() > 8191 * 2) {
-                        properties.put(key, ((String) value).substring(0, 8191 * 2) + "$");
-                        SALog.d(TAG, "The property value is too long. [key='" + key
-                                + "', value='" + value.toString() + "']");
-                    }
-                } else {
-                    if (value instanceof String && ((String) value).length() > 8191) {
-                        properties.put(key, ((String) value).substring(0, 8191) + "$");
-                        SALog.d(TAG, "The property value is too long. [key='" + key
-                                + "', value='" + value.toString() + "']");
-                    }
-                }
-            } catch (JSONException e) {
-                throw new InvalidDataException("Unexpected property key. [key='" + key + "']");
-            }
-        }
-    }
-
-    private void assertKey(String key) throws InvalidDataException {
-        if (null == key || key.length() < 1) {
-            throw new InvalidDataException("The key is empty.");
-        }
-        if (!(KEY_PATTERN.matcher(key).matches())) {
-            throw new InvalidDataException("The key '" + key + "' is invalid.");
-        }
-    }
-
-    private void assertValue(String value) throws InvalidDataException {
-        if (TextUtils.isEmpty(value)) {
-            throw new InvalidDataException("The value is empty.");
-        }
-        if (value.length() > 255) {
-            throw new InvalidDataException("The " + value + " is too long, max length is 255.");
-        }
     }
 
     private void trackItemEvent(String itemType, String itemId, String eventType, JSONObject properties) {
@@ -3454,6 +3357,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
         this.mDisableTrackDeviceId = configBundle.getBoolean("com.sensorsdata.analytics.android.DisableTrackDeviceId",
                 false);
+        if (isSaveDeepLinkInfo()) {
+            ChannelUtils.loadUtmByLocal(mContext);
+        } else {
+            ChannelUtils.clearLocalDeepLinkInfo(mContext);
+        }
     }
 
     private void applySAConfigOptions() {
@@ -3552,6 +3460,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public void setSSLSocketFactory(SSLSocketFactory sf) {
         mSSLSocketFactory = sf;
+    }
+
+    boolean isSaveDeepLinkInfo() {
+        return mSAConfigOptions.mEnableSaveDeepLinkInfo;
     }
 
     /**

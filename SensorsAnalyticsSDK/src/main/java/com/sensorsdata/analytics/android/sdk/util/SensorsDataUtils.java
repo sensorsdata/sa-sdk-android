@@ -989,25 +989,6 @@ public final class SensorsDataUtils {
         return false;
     }
 
-
-    /**
-     * 判断是否包含 Utm 属性
-     *
-     * @param properties 属性
-     * @return true 包含；false 不包含
-     */
-    public static boolean hasUtmProperties(JSONObject properties) {
-        if (properties == null) {
-            return false;
-        }
-
-        return properties.has("$utm_source") ||
-                properties.has("$utm_medium") ||
-                properties.has("$utm_term") ||
-                properties.has("$utm_content") ||
-                properties.has("$utm_campaign");
-    }
-
     /**
      * 是否是首次触发的渠道事件
      *

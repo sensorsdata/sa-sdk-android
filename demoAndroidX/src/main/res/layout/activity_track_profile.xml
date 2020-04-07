@@ -99,5 +99,23 @@
         android:text="Unset Test"
         android:textAllCaps="false" />
 
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/item_set"
+        style="@style/NormalButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="doOnClick"
+        android:text="item set"
+        android:textAllCaps="false" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/item_delete"
+        style="@style/NormalButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="doOnClick"
+        android:text="item delete"
+        android:textAllCaps="false" />
+
 
 </com.google.android.flexbox.FlexboxLayout>
