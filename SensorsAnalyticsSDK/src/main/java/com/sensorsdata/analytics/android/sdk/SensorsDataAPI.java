@@ -54,6 +54,7 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProp
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.internal.FragmentAPI;
 import com.sensorsdata.analytics.android.sdk.internal.IFragmentAPI;
+import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.util.DateFormatUtils;
@@ -166,6 +167,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private SimpleDateFormat mIsFirstDayDateFormat;
     private SSLSocketFactory mSSLSocketFactory;
     private SensorsDataTrackEventCallBack mTrackEventCallBack;
+    private List<SAEventListener> mEventListenerList;
     private IFragmentAPI mFragmentAPI;
 
     //private
@@ -1577,9 +1579,16 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         synchronized (mDistinctId) {
             if (SensorsDataUtils.isValidAndroidId(mAndroidId)) {
                 mDistinctId.commit(mAndroidId);
-                return;
+            } else {
+                mDistinctId.commit(UUID.randomUUID().toString());
             }
-            mDistinctId.commit(UUID.randomUUID().toString());
+
+            // 通知调用 resetAnonymousId 接口
+            if (mEventListenerList != null) {
+                for (SAEventListener eventListener : mEventListenerList) {
+                    eventListener.resetAnonymousId();
+                }
+            }
         }
     }
 
@@ -1602,6 +1611,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     synchronized (mDistinctId) {
                         mDistinctId.commit(distinctId);
+                        // 通知调用 identify 接口
+                        if (mEventListenerList != null) {
+                            for (SAEventListener eventListener : mEventListenerList) {
+                                eventListener.identify();
+                            }
+                        }
                     }
                 } catch (Exception e) {
                     com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
@@ -1633,6 +1648,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             if (!loginId.equals(getAnonymousId())) {
                                 trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, getAnonymousId());
                             }
+                            // 通知调用 login 接口
+                            if (mEventListenerList != null) {
+                                for (SAEventListener eventListener : mEventListenerList) {
+                                    eventListener.login();
+                                }
+                            }
                         }
                     }
                 } catch (Exception e) {
@@ -1650,6 +1671,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     synchronized (mLoginIdLock) {
                         DbAdapter.getInstance().commitLoginId(null);
+                        // 进行通知调用 logout 接口
+                        if (mEventListenerList != null) {
+                            for (SAEventListener eventListener : mEventListenerList) {
+                                eventListener.logout();
+                            }
+                        }
                     }
                 } catch (Exception e) {
                     com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
@@ -3119,6 +3146,13 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     }
                 }
                 dataObj.put("properties", sendProperties);
+
+                if (mEventListenerList != null && eventType.isTrack()) {
+                    for (SAEventListener eventListener : mEventListenerList) {
+                        eventListener.trackEvent(dataObj);
+                    }
+                }
+
                 mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
                 if (SALog.isLogEnabled()) {
                     SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(dataObj.toString()));
@@ -3460,6 +3494,17 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public void setSSLSocketFactory(SSLSocketFactory sf) {
         mSSLSocketFactory = sf;
+    }
+
+    public void addEventListener(SAEventListener eventListener) {
+        try {
+            if (this.mEventListenerList == null) {
+                this.mEventListenerList = new ArrayList<>();
+            }
+            this.mEventListenerList.add(eventListener);
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
     }
 
     boolean isSaveDeepLinkInfo() {

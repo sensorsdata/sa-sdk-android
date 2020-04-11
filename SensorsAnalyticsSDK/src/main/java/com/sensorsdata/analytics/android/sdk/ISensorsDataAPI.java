@@ -549,6 +549,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     /**
      * 重置默认匿名id
      */
+    @Deprecated
     void resetAnonymousId();
 
     /**
