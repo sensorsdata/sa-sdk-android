@@ -2699,7 +2699,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             } else {
                 eventObject.put(distinctIdKey, getAnonymousId());
             }
-
+            eventObject.put("anonymous_id", getAnonymousId());
             long eventTime = System.currentTimeMillis();
             eventObject.put("time", eventTime);
 
@@ -2818,11 +2818,15 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     if (!loginId.equals(DbAdapter.getInstance().getLoginId())) {
                         DbAdapter.getInstance().commitLoginId(loginId);
                         if (!loginId.equals(getAnonymousId())) {
+                            eventObject.put("login_id", loginId);
                             mMessages.enqueueEventMessage(type, eventObject);
                         }
                     }
                 }
             } else {
+                if (!TextUtils.isEmpty(getLoginId())) {
+                    eventObject.put("login_id", getLoginId());
+                }
                 mMessages.enqueueEventMessage(type, eventObject);
             }
             if (SALog.isLogEnabled()) {
@@ -3088,6 +3092,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 }
 
                 dataObj.put("distinct_id", getDistinctId());
+                if (!TextUtils.isEmpty(getLoginId())) {
+                    dataObj.put("login_id", getLoginId());
+                }
+                dataObj.put("anonymous_id", getAnonymousId());
                 dataObj.put("lib", libProperties);
 
                 if (eventType == EventType.TRACK) {

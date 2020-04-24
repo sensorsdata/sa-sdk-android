@@ -70,7 +70,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     void setMaxCacheSize(long maxCacheSize);
 
     /**
-     * 返回档期是否是开启 debug 模式
+     * 是否是开启 debug 模式
      *
      * @return true：是，false：不是
      */
@@ -135,7 +135,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     int getFlushBulkSize();
 
     /**
-     * 设置本地缓存日志的最大条目数，最小50条
+     * 设置本地缓存日志的最大条目数，最小 50 条
      *
      * @param flushBulkSize 缓存数目
      */
@@ -964,7 +964,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     void setGPSLocation(double latitude, double longitude);
 
     /**
-     * 清楚 GPS 位置信息
+     * 清除 GPS 位置信息
      */
     void clearGPSLocation();
 
