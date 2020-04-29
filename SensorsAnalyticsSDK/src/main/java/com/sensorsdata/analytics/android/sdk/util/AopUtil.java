@@ -664,7 +664,19 @@ public class AopUtil {
 
             //$screen_name & $title
             if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
+                JSONObject activityProperties = AopUtil.buildTitleAndScreenName(activity);
+                if (!properties.has(AopConstants.SCREEN_NAME)) {
+                    String screenName = activityProperties.optString(AopConstants.SCREEN_NAME);
+                    if (!TextUtils.isEmpty(screenName)) {
+                        properties.put(AopConstants.SCREEN_NAME, screenName);
+                    }
+                }
+                if (!properties.has(AopConstants.TITLE)) {
+                    String title = activityProperties.optString(AopConstants.TITLE);
+                    if (!TextUtils.isEmpty(title)) {
+                        properties.put(AopConstants.TITLE, title);
+                    }
+                }
             }
 
             boolean isTrackEvent = ViewUtil.isTrackEvent(view, isFromUser);
