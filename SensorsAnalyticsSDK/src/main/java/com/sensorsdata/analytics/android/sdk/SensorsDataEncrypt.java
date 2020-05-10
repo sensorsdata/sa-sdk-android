@@ -194,15 +194,24 @@ public class SensorsDataEncrypt {
      * @return 压缩后事件
      */
     private static byte[] gzipEventData(String record){
+        GZIPOutputStream gzipOutputStream = null;
         try{
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            GZIPOutputStream gzipOutputStream = new GZIPOutputStream(buffer);
+            gzipOutputStream = new GZIPOutputStream(buffer);
             gzipOutputStream.write(record.getBytes());
             gzipOutputStream.finish();
             return buffer.toByteArray();
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
             return null;
+        } finally {
+            if (gzipOutputStream != null) {
+                try {
+                    gzipOutputStream.close();
+                } catch (Exception ex) {
+                    SALog.printStackTrace(ex);
+                }
+            }
         }
     }
 

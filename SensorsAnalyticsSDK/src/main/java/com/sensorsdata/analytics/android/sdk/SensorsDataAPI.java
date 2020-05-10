@@ -137,6 +137,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private List<Class> mIgnoredViewTypeList = new ArrayList<>();
     /* AndroidID */
     private String mAndroidId = null;
+    /* LoginId */
+    private String mLoginId = null;
     /* SensorsAnalytics 地址 */
     private String mServerUrl;
     private String mOriginServerUrl;
@@ -1560,11 +1562,13 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public String getDistinctId() {
         String loginId = getLoginId();
+        if (TextUtils.isEmpty(loginId)) {// 如果从本地缓存读取失败，则尝试使用内存中的 LoginId 值
+            loginId = mLoginId;
+        }
         if (!TextUtils.isEmpty(loginId)) {
             return loginId;
-        } else {
-            return getAnonymousId();
         }
+        return getAnonymousId();
     }
 
     @Override
@@ -1644,6 +1648,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     synchronized (mLoginIdLock) {
                         if (!loginId.equals(DbAdapter.getInstance().getLoginId())) {
+                            mLoginId = loginId;
                             DbAdapter.getInstance().commitLoginId(loginId);
                             if (!loginId.equals(getAnonymousId())) {
                                 trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, getAnonymousId());
@@ -1671,6 +1676,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 try {
                     synchronized (mLoginIdLock) {
                         DbAdapter.getInstance().commitLoginId(null);
+                        mLoginId = null;
                         // 进行通知调用 logout 接口
                         if (mEventListenerList != null) {
                             for (SAEventListener eventListener : mEventListenerList) {

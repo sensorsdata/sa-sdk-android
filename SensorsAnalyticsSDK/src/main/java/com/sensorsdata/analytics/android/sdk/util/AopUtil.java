@@ -274,6 +274,7 @@ public class AopUtil {
                     if (trackProperties.has(AopConstants.TITLE)) {
                         title = trackProperties.optString(AopConstants.TITLE);
                     }
+                    SensorsDataUtils.mergeJSONObject(trackProperties, properties);
                 }
             }
 
@@ -355,10 +356,37 @@ public class AopUtil {
                 ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
                 JSONObject trackProperties = screenAutoTracker.getTrackProperties();
                 if (trackProperties != null) {
+                    SensorsDataUtils.mergeJSONObject(trackProperties, propertyJSON);
+                }
+            }
+        } catch (Exception ex) {
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(ex);
+            return new JSONObject();
+        }
+        return propertyJSON;
+    }
+
+    /**
+     * 构建 Title 和 Screen 的名称
+     *
+     * @param activity 页面
+     * @return JSONObject
+     */
+    public static JSONObject buildTitleNoAutoTrackerProperties(Activity activity) {
+        JSONObject propertyJSON = new JSONObject();
+        try {
+            propertyJSON.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
+            String activityTitle = AopUtil.getActivityTitle(activity);
+            if (!TextUtils.isEmpty(activityTitle)) {
+                propertyJSON.put(AopConstants.TITLE, activityTitle);
+            }
+            if (activity instanceof ScreenAutoTracker) {
+                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
+                JSONObject trackProperties = screenAutoTracker.getTrackProperties();
+                if (trackProperties != null) {
                     if (trackProperties.has(AopConstants.SCREEN_NAME)) {
                         propertyJSON.put(AopConstants.SCREEN_NAME, trackProperties.optString(AopConstants.SCREEN_NAME));
                     }
-
                     if (trackProperties.has(AopConstants.TITLE)) {
                         propertyJSON.put(AopConstants.TITLE, trackProperties.optString(AopConstants.TITLE));
                     }

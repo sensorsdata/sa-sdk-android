@@ -125,7 +125,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     @Override
     public void onActivityStarted(Activity activity) {
         try {
-            activityProperty = AopUtil.buildTitleAndScreenName(activity);
+            activityProperty = AopUtil.buildTitleNoAutoTrackerProperties(activity);
             SensorsDataUtils.mergeJSONObject(activityProperty, endDataProperty);
             if (isMultiProcess) {
                 startActivityCount = mDbAdapter.getActivityCount();

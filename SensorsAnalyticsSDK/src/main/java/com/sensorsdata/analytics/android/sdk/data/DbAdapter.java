@@ -398,17 +398,22 @@ public class DbAdapter {
      */
     public String getLoginId() {
         String data = "";
-        Cursor cursor = contentResolver.query(mDbParams.getLoginIdUri(), null, null, null, null);
-        if (cursor != null && cursor.getCount() > 0) {
-            while (cursor.moveToNext()) {
-                data = cursor.getString(0);
+        Cursor cursor = null;
+        try {
+            cursor = contentResolver.query(mDbParams.getLoginIdUri(), null, null, null, null);
+            if (cursor != null && cursor.getCount() > 0) {
+                while (cursor.moveToNext()) {
+                    data = cursor.getString(0);
+                }
+            }
+            SALog.d(TAG, "getLoginId:" + data);
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
             }
         }
-
-        if (cursor != null) {
-            cursor.close();
-        }
-        SALog.d(TAG, "getLoginId:" + data);
         return data;
     }
 
