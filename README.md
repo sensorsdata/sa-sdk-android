@@ -1,4 +1,4 @@
-![logo](docs/logo.png)
+![logo](https://opensource.sensorsdata.cn/wp-content/uploads/logo.png)
 <br><br>
 [![License](https://img.shields.io/github/license/sensorsdata/sa-sdk-android.svg)](https://github.com/sensorsdata/sa-sdk-android/blob/master/LICENSE)
 [![GitHub release](https://img.shields.io/github/tag/sensorsdata/sa-sdk-android.svg?label=release)](https://github.com/sensorsdata/sa-sdk-android/releases)
