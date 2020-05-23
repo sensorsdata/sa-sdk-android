@@ -25,9 +25,10 @@ android {
         enabled true
     }
 
-//    sensorsAnalytics {
-//        debug = true
-//    }
+    sensorsAnalytics {
+        //debug = true
+        //autoHandleWebView = false
+    }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8

@@ -15,13 +15,15 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.visual;
 
 import android.app.Activity;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+
+import com.sensorsdata.analytics.android.sdk.SALog;
 
 /**
  * Created by 任庆友 on 2019/04/13

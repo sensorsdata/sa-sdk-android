@@ -1,5 +1,5 @@
 /*
- * Created by wangzhuozhou on 2015/08/01.
+ * Created by renqingyou on 2019/04/13.
  * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.visual;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -31,8 +31,16 @@ import android.os.Message;
 import android.os.Process;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.BuildConfig;
+import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceIds;
+import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceReader;
+import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
-import com.sensorsdata.analytics.android.sdk.visual.SnapInfo;
+import com.sensorsdata.analytics.android.sdk.visual.model.SnapInfo;
+import com.sensorsdata.analytics.android.sdk.visual.model.WebNodeInfo;
+import com.sensorsdata.analytics.android.sdk.visual.snap.EditProtocol;
+import com.sensorsdata.analytics.android.sdk.visual.snap.EditState;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -47,6 +55,7 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -55,10 +64,10 @@ import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF
 
 
 @TargetApi(16)
-public class HeatMapViewCrawler implements VTrack {
+class VisualizedAutoTrackViewCrawler implements VTrack {
 
     private static final int MESSAGE_SEND_STATE_FOR_EDITING = 1;
-    private static final String TAG = "SA.HeatMapViewCrawler";
+    private static final String TAG = "SA.VisualizedAutoTrackViewCrawler";
     private final Activity mActivity;
     private final LifecycleCallbacks mLifecycleCallbacks;
     private final EditState mEditState;
@@ -67,8 +76,9 @@ public class HeatMapViewCrawler implements VTrack {
     private String mFeatureCode;
     private String mPostUrl;
     private String mAppVersion;
+    private boolean mVisualizedAutoTrackRunning = false;
 
-    public HeatMapViewCrawler(Activity activity, String resourcePackageName, String featureCode, String postUrl) {
+    VisualizedAutoTrackViewCrawler(Activity activity, String resourcePackageName, String featureCode, String postUrl) {
         mActivity = activity;
         mFeatureCode = featureCode;
         mEditState = new EditState();
@@ -78,7 +88,7 @@ public class HeatMapViewCrawler implements VTrack {
             mPostUrl = URLDecoder.decode(postUrl, CHARSET_UTF8);
             mMessageObject = new JSONObject("{\"type\":\"snapshot_request\",\"payload\":{\"config\":{\"classes\":[{\"name\":\"android.view.View\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]},{\"name\":\"android.widget.TextView\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]},{\"name\":\"android.widget.ImageView\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]}]}}}");
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
             mMessageObject = null;
         }
         final Application app = (Application) mActivity.getApplicationContext();
@@ -93,7 +103,7 @@ public class HeatMapViewCrawler implements VTrack {
         }
 
         final HandlerThread thread =
-                new HandlerThread(HeatMapViewCrawler.class.getCanonicalName(), Process.THREAD_PRIORITY_BACKGROUND);
+                new HandlerThread(VisualizedAutoTrackViewCrawler.class.getCanonicalName(), Process.THREAD_PRIORITY_BACKGROUND);
         thread.start();
 
         mMessageThreadHandler = new ViewCrawlerHandler(mActivity, thread.getLooper(), resourcePackageName);
@@ -105,17 +115,17 @@ public class HeatMapViewCrawler implements VTrack {
             if (!TextUtils.isEmpty(mFeatureCode) && !TextUtils.isEmpty(mPostUrl)) {
                 final Application app = (Application) mActivity.getApplicationContext();
                 app.registerActivityLifecycleCallbacks(mLifecycleCallbacks);
-
                 mMessageThreadHandler.start();
                 mMessageThreadHandler
                         .sendMessage(mMessageThreadHandler.obtainMessage(MESSAGE_SEND_STATE_FOR_EDITING));
+                mVisualizedAutoTrackRunning = true;
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
-    public void stopUpdates(boolean clear) {
+    void stopUpdates(boolean clear) {
         try {
             if (clear) {
                 mFeatureCode = null;
@@ -124,15 +134,20 @@ public class HeatMapViewCrawler implements VTrack {
             mMessageThreadHandler.removeMessages(MESSAGE_SEND_STATE_FOR_EDITING);
             final Application app = (Application) mActivity.getApplicationContext();
             app.unregisterActivityLifecycleCallbacks(mLifecycleCallbacks);
+            mVisualizedAutoTrackRunning = false;
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
+    }
+
+    boolean isVisualizedAutoTrackRunning() {
+        return mVisualizedAutoTrackRunning;
     }
 
     private class LifecycleCallbacks
             implements Application.ActivityLifecycleCallbacks {
 
-        public LifecycleCallbacks() {
+        private LifecycleCallbacks() {
         }
 
         @Override
@@ -171,15 +186,15 @@ public class HeatMapViewCrawler implements VTrack {
 
         private final EditProtocol mProtocol;
         private ViewSnapshot mSnapshot;
-        // 是否启用 GZip 压缩
         private boolean mUseGzip;
+        private StringBuilder mLastImageHash;
 
-        public ViewCrawlerHandler(Context context, Looper looper, String resourcePackageName) {
+        private ViewCrawlerHandler(Context context, Looper looper, String resourcePackageName) {
             super(looper);
             mSnapshot = null;
             final ResourceIds resourceIds = new ResourceReader.Ids(resourcePackageName, context);
             mProtocol = new EditProtocol(resourceIds);
-            // 默认关闭 GZip 压缩
+            mLastImageHash = new StringBuilder();
             mUseGzip = true;
         }
 
@@ -189,14 +204,10 @@ public class HeatMapViewCrawler implements VTrack {
 
         @Override
         public void handleMessage(Message msg) {
-            try {
-                switch (msg.what) {
-                    case MESSAGE_SEND_STATE_FOR_EDITING:
-                        sendSnapshot(mMessageObject);
-                        break;
-                }
-            } finally {
-
+            switch (msg.what) {
+                case MESSAGE_SEND_STATE_FOR_EDITING:
+                    sendSnapshot(mMessageObject);
+                    break;
             }
         }
 
@@ -215,36 +226,33 @@ public class HeatMapViewCrawler implements VTrack {
                     SALog.i(TAG, "Snapshot should be initialize at first calling.");
                     return;
                 }
-
-                if (payload.has("last_image_hash")) {
-                    final String lastImageHash = payload.getString("last_image_hash");
-                    mSnapshot.updateLastImageHashArray(lastImageHash);
-                }
             } catch (final JSONException e) {
                 SALog.i(TAG, "Payload with snapshot config required with snapshot request", e);
                 return;
             } catch (final EditProtocol.BadInstructionsException e) {
-                SALog.i(TAG, "VTrack server sent malformed message with snapshot request", e);
+                SALog.i(TAG, "VisualizedAutoTrack server sent malformed message with snapshot request", e);
                 return;
             }
 
             final ByteArrayOutputStream out = new ByteArrayOutputStream();
             final OutputStreamWriter writer = new OutputStreamWriter(out);
-
+            SnapInfo info = null;
             try {
                 writer.write("{");
                 writer.write("\"type\": \"snapshot_response\",");
                 writer.write("\"feature_code\": \"" + mFeatureCode + "\",");
                 writer.write("\"app_version\": \"" + mAppVersion + "\",");
+                writer.write("\"lib_version\": \"" + BuildConfig.SDK_VERSION + "\",");
                 writer.write("\"os\": \"Android\",");
-                SnapInfo info = null;
+                writer.write("\"lib\": \"Android\",");
+
                 if (mUseGzip) {
                     final ByteArrayOutputStream payload_out = new ByteArrayOutputStream();
                     final OutputStreamWriter payload_writer = new OutputStreamWriter(payload_out);
 
                     payload_writer.write("{\"activities\":");
                     payload_writer.flush();
-                    info = mSnapshot.snapshots(mEditState, payload_out);
+                    info = mSnapshot.snapshots(mEditState, payload_out, mLastImageHash);
                     final long snapshotTime = System.currentTimeMillis() - startSnapshot;
                     payload_writer.write(",\"snapshot_time_millis\": ");
                     payload_writer.write(Long.toString(snapshotTime));
@@ -253,7 +261,6 @@ public class HeatMapViewCrawler implements VTrack {
 
                     payload_out.close();
                     byte[] payloadData = payload_out.toString().getBytes();
-
                     ByteArrayOutputStream os = new ByteArrayOutputStream(payloadData.length);
                     GZIPOutputStream gos = new GZIPOutputStream(os);
                     gos.write(payloadData);
@@ -268,7 +275,7 @@ public class HeatMapViewCrawler implements VTrack {
                     {
                         writer.write("\"activities\":");
                         writer.flush();
-                        info = mSnapshot.snapshots(mEditState, out);
+                        info = mSnapshot.snapshots(mEditState, out, mLastImageHash);
                     }
 
                     final long snapshotTime = System.currentTimeMillis() - startSnapshot;
@@ -279,6 +286,53 @@ public class HeatMapViewCrawler implements VTrack {
                 }
                 if (!TextUtils.isEmpty(info.screenName)) {
                     writer.write(",\"screen_name\": \"" + info.screenName + "\"");
+                }
+
+                if (!TextUtils.isEmpty(info.activityTitle)) {
+                    writer.write(",\"title\": \"" + info.activityTitle + "\"");
+                }
+
+                writer.write(",\"is_webview\": " + info.isWebView);
+
+                if (info.isWebView && !TextUtils.isEmpty(info.webViewUrl)) {
+                    WebNodeInfo pageInfo = WebNodesManager.getInstance().getWebPageInfo(info.webViewUrl);
+                    if (pageInfo != null) {
+                        if (!TextUtils.isEmpty(pageInfo.getUrl())) {
+                            writer.write(",\"h5_url\": \"" + pageInfo.getUrl() + "\"");
+                        }
+                        if (!TextUtils.isEmpty(pageInfo.getTitle())) {
+                            writer.write(",\"h5_title\": \"" + pageInfo.getTitle() + "\"");
+                        }
+                    }
+                    List<WebNodeInfo.AlertInfo> list = info.alertInfos;
+                    if (list != null && list.size() > 0) {
+                        writer.write(",\"app_alert_infos\":");
+                        writer.flush();
+                        writer.write("[");
+                        for (int i = 0; i < list.size(); i++) {
+                            if (i > 0) {
+                                writer.write(",");
+                            }
+                            WebNodeInfo.AlertInfo alertInfo = list.get(i);
+                            if (alertInfo != null) {
+                                writer.write("{");
+                                writer.write("\"title\":");
+                                writer.write("\"" + alertInfo.title + "\"");
+                                writer.write(",");
+                                writer.write("\"message\":");
+                                writer.write("\"" + alertInfo.message + "\"");
+                                writer.write(",");
+                                writer.write("\"link_text\":");
+                                writer.write("\"" + alertInfo.linkText + "\"");
+                                writer.write(",");
+                                writer.write("\"link_url\":");
+                                writer.write("\"" + alertInfo.linkUrl + "\"");
+                                writer.write("}");
+                            }
+                        }
+                        writer.write("]");
+                        writer.flush();
+                    }
                 }
                 writer.write("}");
                 writer.flush();
@@ -291,8 +345,14 @@ public class HeatMapViewCrawler implements VTrack {
                     SALog.i(TAG, "Can't close writer.", e);
                 }
             }
-
+            onSnapFinished(info);
             postSnapshot(out);
+        }
+
+        private void onSnapFinished(SnapInfo info) {
+            if (info != null && !info.isWebView) {
+                WebNodesManager.getInstance().clear();
+            }
         }
 
         private void postSnapshot(ByteArrayOutputStream out) {
@@ -301,10 +361,10 @@ public class HeatMapViewCrawler implements VTrack {
                 return;
             }
 
-            InputStream in = null;
-            OutputStream out2 = null;
-            BufferedOutputStream bout = null;
             try {
+                InputStream in;
+                OutputStream out2;
+                BufferedOutputStream bout;
                 HttpURLConnection connection;
                 final URL url = new URL(mPostUrl);
                 connection = (HttpURLConnection) url.openConnection();
@@ -319,6 +379,7 @@ public class HeatMapViewCrawler implements VTrack {
                 bout = new BufferedOutputStream(out2);
                 bout.write(out.toString().getBytes(CHARSET_UTF8));
                 bout.flush();
+                bout.close();
                 out.close();
 
                 int responseCode = connection.getResponseCode();
@@ -328,6 +389,8 @@ public class HeatMapViewCrawler implements VTrack {
                     in = connection.getErrorStream();
                 }
                 byte[] responseBody = slurp(in);
+                in.close();
+                out2.close();
 
                 String response = new String(responseBody, CHARSET_UTF8);
                 SALog.i(TAG, "responseCode=" + responseCode);
@@ -341,30 +404,6 @@ public class HeatMapViewCrawler implements VTrack {
                 }
             } catch (Exception e) {
                 SALog.printStackTrace(e);
-            } finally {
-                if (in != null) {
-                    try {
-                        in.close();
-                    } catch (Exception ex) {
-                        SALog.printStackTrace(ex);
-                    }
-                }
-
-                if (out2 != null) {
-                    try {
-                        out2.close();
-                    } catch (Exception ex) {
-                        SALog.printStackTrace(ex);
-                    }
-                }
-
-                if (bout != null) {
-                    try {
-                        bout.close();
-                    } catch (Exception ex) {
-                        SALog.printStackTrace(ex);
-                    }
-                }
             }
 
             if (rePostSnapshot) {

@@ -15,10 +15,12 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.visual.snap;
 
 import android.view.View;
 import android.view.ViewGroup;
+
+import com.sensorsdata.analytics.android.sdk.SALog;
 
 import org.json.JSONException;
 import org.json.JSONObject;

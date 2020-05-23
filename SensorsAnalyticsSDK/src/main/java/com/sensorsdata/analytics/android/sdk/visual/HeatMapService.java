@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.visual;
 
 import android.app.Activity;
 import android.content.pm.ApplicationInfo;

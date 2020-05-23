@@ -15,7 +15,9 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.visual.snap;
+
+import com.sensorsdata.analytics.android.sdk.visual.ViewSnapshot;
 
 import org.json.JSONArray;
 import org.json.JSONException;

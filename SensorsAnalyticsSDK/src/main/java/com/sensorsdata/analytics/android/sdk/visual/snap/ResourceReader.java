@@ -15,10 +15,12 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.visual.snap;
 
 import android.content.Context;
 import android.util.SparseArray;
+
+import com.sensorsdata.analytics.android.sdk.SALog;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;

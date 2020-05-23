@@ -20,6 +20,7 @@ package com.sensorsdata.analytics.android.sdk;
 import android.content.Context;
 import android.text.TextUtils;
 import android.webkit.JavascriptInterface;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -62,7 +63,7 @@ import org.json.JSONObject;
         try {
             SensorsDataAPI.sharedInstance(mContext).trackEventFromH5(event, enableVerify);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -75,8 +76,42 @@ import org.json.JSONObject;
             }
             return SensorsDataAPI.sharedInstance(mContext)._trackEventFromH5(event);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
             return false;
         }
+    }
+
+    @JavascriptInterface
+    public String sensorsdata_get_server_url() {
+        return SensorsDataAPI.sharedInstance().getConfigOptions().isAutoTrackWebView ? SensorsDataAPI.sharedInstance().getServerUrl() : "";
+    }
+
+    /**
+     * 解决用户只调用了 showUpWebView 方法时，此时 App 校验 url。JS 需要拿到 App 校验结果。
+     *
+     * @param event
+     * @return
+     */
+    @JavascriptInterface
+    public boolean sensorsdata_visual_verify(String event) {
+        try {
+            if (!enableVerify) {
+                return true;
+            }
+            if (TextUtils.isEmpty(event)) {
+                return false;
+            }
+            JSONObject eventObject = new JSONObject(event);
+            String serverUrl = eventObject.optString("server_url");
+            if (!TextUtils.isEmpty(serverUrl)) {
+                if (!(new ServerUrl(serverUrl).check(new ServerUrl(SensorsDataAPI.sharedInstance().getServerUrl())))) {
+                    return false;
+                }
+                return true;
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return false;
     }
 }

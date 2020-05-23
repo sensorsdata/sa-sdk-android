@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.visual.snap;
 
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
@@ -28,6 +28,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Build.VERSION;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.util.WeakSet;
 
 import java.lang.reflect.Constructor;

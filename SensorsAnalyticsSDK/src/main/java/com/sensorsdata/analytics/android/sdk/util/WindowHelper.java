@@ -8,7 +8,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
-
+import android.widget.ImageButton;
+import android.widget.TabHost;
 
 import com.sensorsdata.analytics.android.sdk.AppStateManager;
 
@@ -196,7 +197,15 @@ public class WindowHelper {
         return null;
     }
 
+    @SuppressLint("NewApi")
     private static View findMenuItemView(View view, MenuItem item) throws InvocationTargetException, IllegalAccessException {
+        // 解决 actionbar 左侧返回按钮全埋点问题
+        if (ViewUtil.instanceOfActionMenuItem(item) && item.getItemId() == android.R.id.home && ViewUtil.instanceOfToolbar(view.getParent()) && view instanceof ImageButton) {
+            View navButtonView = ReflectUtil.findField(new String[]{"androidx.appcompat.widget.Toolbar", "android.support.v7.widget.Toolbar", "android.widget.Toolbar"}, view.getParent(), "mNavButtonView");
+            if (navButtonView != null && navButtonView == view) {
+                return view;
+            }
+        }
         if (getMenuItemData(view) == item) {
             return view;
         }
@@ -223,8 +232,7 @@ public class WindowHelper {
             View menuView;
             for (View window2 : windows) {
                 if (window2.getClass() == sPopupWindowClazz) {
-                    menuView = findMenuItemView(window2, menuItem);
-                    if (menuView != null) {
+                    if ((menuView = findMenuItemView(window2, menuItem)) != null) {
                         return menuView;
                     }
                 }
@@ -233,8 +241,7 @@ public class WindowHelper {
             while (i < length) {
                 window = windows[i];
                 if (window.getClass() != sPopupWindowClazz) {
-                    menuView = findMenuItemView(window, menuItem);
-                    if (menuView != null) {
+                    if ((menuView = findMenuItemView(window, menuItem)) != null) {
                         return menuView;
                     }
                 }
@@ -242,12 +249,59 @@ public class WindowHelper {
             }
             return null;
         } catch (InvocationTargetException e) {
-            //ignored
             return null;
         } catch (IllegalAccessException e2) {
-            //ignored
+            return null;
+        } catch (Exception e) {
             return null;
         }
+    }
+
+    public static View getClickView(String tabHostTag) {
+        int i = 0;
+        if (TextUtils.isEmpty(tabHostTag)) {
+            return null;
+        }
+        WindowHelper.init();
+        View[] windows = WindowHelper.getWindowViews();
+        try {
+            View window;
+            View tabHostView;
+            while (i < windows.length) {
+                window = windows[i];
+                if (window.getClass() != sPopupWindowClazz) {
+                    if ((tabHostView = findTabView(window, tabHostTag)) != null) {
+                        return tabHostView;
+                    }
+                }
+                i++;
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static View findTabView(View view, String tabHostTag) {
+        if (TextUtils.equals(tabHostTag, getTabHostTag(view))) {
+            return ReflectUtil.callMethod(view, "getCurrentTabView");
+        }
+        if (view instanceof ViewGroup) {
+            for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) {
+                View tabHostView = findTabView(((ViewGroup) view).getChildAt(i), tabHostTag);
+                if (tabHostView != null) {
+                    return tabHostView;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static String getTabHostTag(View view) {
+        if (view instanceof TabHost) {
+            return ReflectUtil.callMethod(view, "getCurrentTabTag");
+        }
+        return null;
     }
 
     public static String getWindowPrefix(View root) {
@@ -298,7 +352,7 @@ public class WindowHelper {
 
     public static boolean isDialogOrPopupWindow(View root) {
         String prefix = getSubWindowPrefix(root);
-        return TextUtils.equals(sDialogWindowPrefix,prefix) || TextUtils.equals(sPopupWindowPrefix,prefix);
+        return TextUtils.equals(sDialogWindowPrefix, prefix) || TextUtils.equals(sPopupWindowPrefix, prefix);
     }
 
 }

@@ -82,6 +82,8 @@
         <activity android:name=".activity.GridViewTestActivity" />
         <activity android:name=".activity.VPViewActivity" />
         <activity android:name=".activity.InnerListTestActivity" />
+        <activity android:name=".activity.ActionBarAndToolBarTestActivity" />
+        <activity android:name=".activity.H5VisualTestActivity" />
 
         <meta-data
             android:name="com.sensorsdata.analytics.android.EnableLogging"

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.visual;
+package com.sensorsdata.analytics.android.sdk.visual.model;
 
 import java.io.Serializable;
 
