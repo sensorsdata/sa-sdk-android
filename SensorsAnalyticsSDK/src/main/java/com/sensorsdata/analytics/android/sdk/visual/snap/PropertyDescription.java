@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.visual.snap;
 
-/* package */ class PropertyDescription {
+public class PropertyDescription {
 
     public final String name;
     public final Class<?> targetClass;

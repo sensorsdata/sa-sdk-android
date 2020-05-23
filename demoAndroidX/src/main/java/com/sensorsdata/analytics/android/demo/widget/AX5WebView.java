@@ -1,5 +1,5 @@
 /*
- * Created by wangzhuozhou on 2015/08/01.
+ * Created by zhangwei on 2020/03/26.
  * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.demo.widget;
+
+import android.content.Context;
+
+import com.tencent.smtt.sdk.WebView;
+
+public class AX5WebView extends WebView {
 
 
-/**
- * SDK内部接口
- **/
-public interface VTrack {
-
-    /**
-     * 获取 VTrack 配置
-     */
-    void startUpdates();
+    public AX5WebView(Context context) {
+        super(context);
+    }
 }

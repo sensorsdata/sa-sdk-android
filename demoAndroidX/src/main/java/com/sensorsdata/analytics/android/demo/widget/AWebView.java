@@ -1,5 +1,5 @@
 /*
- * Created by zhangxiangwei on 2020/02/28.
+ * Created by zhangwei on 2020/03/26.
  * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,16 +15,15 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.visual;
+package com.sensorsdata.analytics.android.demo.widget;
 
-public class SnapInfo {
-    public SnapInfo() {
+import android.content.Context;
+import android.webkit.WebView;
+
+public class AWebView extends WebView {
+
+
+    public AWebView(Context context) {
+        super(context);
     }
-
-    public String screenName;
-    public String h5Url;
-    public String h5Title;
-    public String title;
-    public int elementLevel = -1;
-    public boolean isWebView = false;
 }

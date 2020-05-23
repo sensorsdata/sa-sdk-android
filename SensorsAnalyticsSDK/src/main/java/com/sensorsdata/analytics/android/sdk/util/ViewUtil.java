@@ -44,7 +44,8 @@ import android.widget.ToggleButton;
 
 import com.sensorsdata.analytics.android.sdk.AppStateManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.visual.ViewNode;
+import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
+import com.sensorsdata.analytics.android.sdk.visual.util.VisualUtil;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -173,7 +174,36 @@ public class ViewUtil {
         return false;
     }
 
-    static boolean instanceOfNavigationView(Object view) {
+    static boolean instanceOfActionMenuItem(Object view) {
+        Class clazz = null;
+        try {
+            clazz = Class.forName("androidx.appcompat.view.menu.ActionMenuItem");
+            return clazz.isInstance(view);
+        } catch (ClassNotFoundException e) {
+            //ignored
+        }
+        return false;
+    }
+
+    static boolean instanceOfToolbar(Object view) {
+        Class clazz = null;
+        try {
+            clazz = Class.forName("androidx.appcompat.widget.Toolbar");
+        } catch (ClassNotFoundException e) {
+            try {
+                clazz = Class.forName("android.support.v7.widget.Toolbar");
+            } catch (ClassNotFoundException e2) {
+                try {
+                    clazz = Class.forName("android.widget.Toolbar");
+                } catch (ClassNotFoundException e3) {
+                    return false;
+                }
+            }
+        }
+        return clazz.isInstance(view);
+    }
+
+    private static boolean instanceOfNavigationView(Object view) {
         Class clazz = null;
         try {
             clazz = Class.forName("android.support.design.widget.NavigationView");
@@ -480,7 +510,7 @@ public class ViewUtil {
         List<String> viewPath = new ArrayList<>();
         do {
             viewParent = view.getParent();
-            int index = AopUtil.getChildIndex(viewParent, view);
+            int index = VisualUtil.getChildIndex(viewParent, view);
             viewPath.add(view.getClass().getCanonicalName() + "[" + index + "]");
             if (viewParent instanceof ViewGroup) {
                 view = (ViewGroup) viewParent;
@@ -577,7 +607,7 @@ public class ViewUtil {
                             listPos = parentPos;
                         }
                     }
-                    viewPosition = AopUtil.getChildIndex(parentObject, view);
+                    viewPosition = VisualUtil.getChildIndex(parentObject, view);
                     opx.append("/").append(viewName).append("[").append(viewPosition).append("]");
                     px.append("/").append(viewName).append("[").append(viewPosition).append("]");
                 }
@@ -634,7 +664,7 @@ public class ViewUtil {
         return true;
     }
 
-    static ViewNode getViewContentAndType(View view) {
+    public static ViewNode getViewContentAndType(View view) {
         String viewType = view.getClass().getCanonicalName();
         CharSequence viewText = null;
         Object tab = null;
@@ -698,8 +728,7 @@ public class ViewUtil {
                 try {
                     Class<?> menuItemImplClass = ReflectUtil.getCurrentClass(new String[]{"androidx.appcompat.view.menu.MenuItemImpl"});
                     if (menuItemImplClass != null) {
-                        String title = null;
-                        title = ReflectUtil.findField(menuItemImplClass, itemData, new String[]{"mTitle"});
+                        String title = ReflectUtil.findField(menuItemImplClass, itemData, new String[]{"mTitle"});
                         if (!TextUtils.isEmpty(title)) {
                             viewText = title;
                         }
@@ -767,8 +796,7 @@ public class ViewUtil {
                 if (text != null) {
                     viewText = text.toString();
                 }
-                View customView = null;
-                customView = ReflectUtil.findField(currentTabClass, tab, new String[]{"mCustomView", "customView"});
+                View customView = ReflectUtil.findField(currentTabClass, tab, new String[]{"mCustomView", "customView"});
                 if (customView != null) {
                     StringBuilder stringBuilder = new StringBuilder();
                     if (customView instanceof ViewGroup) {

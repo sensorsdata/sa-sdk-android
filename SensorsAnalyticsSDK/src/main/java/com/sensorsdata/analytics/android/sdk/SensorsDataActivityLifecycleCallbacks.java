@@ -42,6 +42,8 @@ import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.util.DateFormatUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataTimer;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+import com.sensorsdata.analytics.android.sdk.visual.HeatMapService;
+import com.sensorsdata.analytics.android.sdk.visual.VisualizedAutoTrackService;
 
 import org.json.JSONObject;
 

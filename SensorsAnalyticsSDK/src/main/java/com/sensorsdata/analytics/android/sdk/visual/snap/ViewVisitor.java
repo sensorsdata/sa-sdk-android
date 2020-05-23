@@ -15,10 +15,12 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.visual.snap;
 
 import android.annotation.TargetApi;
 import android.view.View;
+
+import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
 import java.util.List;
 

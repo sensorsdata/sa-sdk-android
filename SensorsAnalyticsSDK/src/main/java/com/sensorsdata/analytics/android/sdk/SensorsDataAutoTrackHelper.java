@@ -25,6 +25,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.MenuItem;
@@ -51,7 +52,11 @@ import android.widget.Toast;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
+import com.sensorsdata.analytics.android.sdk.visual.HeatMapService;
+import com.sensorsdata.analytics.android.sdk.visual.VisualizedAutoTrackService;
+import com.sensorsdata.analytics.android.sdk.visual.WebViewVisualInterface;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -66,6 +71,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
@@ -692,10 +698,41 @@ public class SensorsDataAutoTrackHelper {
             }
 
             JSONObject properties = new JSONObject();
+            String elementContent = null;
+            // 2020/4/27 新增  1. 解决 TabHost 点击取不到 element_content 2. 可视化增加 $element_path
+            View view = WindowHelper.getClickView(tabName);
+            if (view != null) {
+                Context context = view.getContext();
+                if (context == null) {
+                    return;
+                }
+                Activity activity = null;
+                if (context instanceof Activity) {
+                    activity = (Activity) context;
+                }
+                if (activity != null) {
+                    if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(activity.getClass())) {
+                        return;
+                    }
+                    SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
 
-            properties.put(AopConstants.ELEMENT_CONTENT, tabName);
+                    Object fragment = AopUtil.getFragmentFromView(view);
+                    if (fragment != null) {
+                        if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(fragment.getClass())) {
+                            return;
+                        }
+                        AopUtil.getScreenNameAndTitleFromFragment(properties, fragment, activity);
+                    }
+
+                    AopUtil.addViewPathProperties(activity, view, properties);
+                }
+                elementContent = ViewUtil.getViewContentAndType(view).getViewContent();
+            }
+            if (TextUtils.isEmpty(elementContent)) {
+                elementContent = tabName;
+            }
+            properties.put(AopConstants.ELEMENT_CONTENT, elementContent);
             properties.put(AopConstants.ELEMENT_TYPE, "TabHost");
-
             SensorsDataAPI.sharedInstance().track(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -1014,15 +1051,19 @@ public class SensorsDataAutoTrackHelper {
                 properties.put(AopConstants.ELEMENT_ID, idString);
             }
 
-            //Content
+            // 2020/4/27 新增  1. 解决 Actionbar 返回按钮 获取不到 $element_content
+            String elementContent = null;
             if (!TextUtils.isEmpty(menuItem.getTitle())) {
-                properties.put(AopConstants.ELEMENT_CONTENT, menuItem.getTitle());
+                elementContent = menuItem.getTitle().toString();
             }
 
             if (view != null) {
+                if (TextUtils.isEmpty(elementContent)) {
+                    elementContent = ViewUtil.getViewContentAndType(view).getViewContent();
+                }
                 AopUtil.addViewPathProperties(activity, view, properties);
             }
-
+            properties.put(AopConstants.ELEMENT_CONTENT, elementContent);
             //Type
             properties.put(AopConstants.ELEMENT_TYPE, "MenuItem");
 
@@ -1890,6 +1931,109 @@ public class SensorsDataAutoTrackHelper {
                     SALog.printStackTrace(e);
                 }
             }
+        }
+    }
+
+    public static void loadUrl(View webView, String url) {
+        if (webView == null) {
+            throw new NullPointerException("WebView has not initialized.");
+        }
+        setupH5Bridge(webView);
+        invokeWebViewLoad(webView, "loadUrl", new Object[]{url}, new Class[]{String.class});
+    }
+
+    public static void loadUrl(View webView, String url, Map<String, String> additionalHttpHeaders) {
+        if (webView == null) {
+            throw new NullPointerException("WebView has not initialized.");
+        }
+        setupH5Bridge(webView);
+        invokeWebViewLoad(webView, "loadUrl", new Object[]{url, additionalHttpHeaders}, new Class[]{String.class, Map.class});
+    }
+
+    public static void loadData(View webView, String data, String mimeType, String encoding) {
+        if (webView == null) {
+            throw new NullPointerException("WebView has not initialized.");
+        }
+        setupH5Bridge(webView);
+        invokeWebViewLoad(webView, "loadData", new Object[]{data, mimeType, encoding}, new Class[]{String.class, String.class, String.class});
+    }
+
+    public static void loadDataWithBaseURL(View webView, String baseUrl, String data, String mimeType, String encoding, String historyUrl) {
+        if (webView == null) {
+            throw new NullPointerException("WebView has not initialized.");
+        }
+        setupH5Bridge(webView);
+        invokeWebViewLoad(webView, "loadDataWithBaseURL", new Object[]{baseUrl, data, mimeType, encoding, historyUrl},
+                new Class[]{String.class, String.class, String.class, String.class, String.class});
+    }
+
+    public static void postUrl(View webView, String url, byte[] postData) {
+        if (webView == null) {
+            throw new NullPointerException("WebView has not initialized.");
+        }
+        setupH5Bridge(webView);
+        invokeWebViewLoad(webView, "postUrl", new Object[]{url, postData},
+                new Class[]{String.class, byte[].class});
+    }
+
+    private static void setupH5Bridge(View webView) {
+        if (isSupportJellyBean() && SensorsDataAPI.sharedInstance().getConfigOptions().isAutoTrackWebView) {
+            setupWebView(webView);
+        }
+        if (isSupportJellyBean()) {
+            addWebViewVisualInterface(webView);
+        }
+    }
+
+    private static void invokeWebViewLoad(View webView, String methodName, Object[] params, Class[] paramTypes) {
+        try {
+            Class<?> clazz = webView.getClass();
+            Method loadMethod = clazz.getMethod(methodName, paramTypes);
+            loadMethod.invoke(webView, params);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
+    static void addWebViewVisualInterface(View webView) {
+        if (webView != null && webView.getTag(R.id.sensors_analytics_tag_view_webview_visual) == null) {
+            webView.setTag(R.id.sensors_analytics_tag_view_webview_visual, new Object());
+            addJavascriptInterface(webView, new WebViewVisualInterface(webView), "SensorsData_App_Visual_Bridge");
+        }
+    }
+
+    private static boolean isSupportJellyBean() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1 && !SensorsDataAPI.sharedInstance().getConfigOptions().isWebViewSupportJellyBean) {
+            SALog.d(TAG, "For applications targeted to API level JELLY_BEAN or below, this feature NOT SUPPORTED");
+            return false;
+        }
+        return true;
+    }
+
+    private static void setupWebView(View webView) {
+        if (webView != null && webView.getTag(R.id.sensors_analytics_tag_view_webview) == null) {
+            webView.setTag(R.id.sensors_analytics_tag_view_webview, new Object());
+            addJavascriptInterface(webView, new AppWebViewInterface(SensorsDataAPI.sharedInstance().getContext(), null, false), "SensorsData_APP_New_H5_Bridge");
+        }
+    }
+
+    private static void addJavascriptInterface(View webView, Object obj, String interfaceName) {
+        try {
+            Class<?> clazz = webView.getClass();
+            try {
+                Method getSettingsMethod = clazz.getMethod("getSettings");
+                Object settings = getSettingsMethod.invoke(webView);
+                if (settings != null) {
+                    Method setJavaScriptEnabledMethod = settings.getClass().getMethod("setJavaScriptEnabled", boolean.class);
+                    setJavaScriptEnabledMethod.invoke(settings, true);
+                }
+            } catch (Exception e) {
+                //ignore
+            }
+            Method addJSMethod = clazz.getMethod("addJavascriptInterface", Object.class, String.class);
+            addJSMethod.invoke(webView, obj, interfaceName);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
     }
 }

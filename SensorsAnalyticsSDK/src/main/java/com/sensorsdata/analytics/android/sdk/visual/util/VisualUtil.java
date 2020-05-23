@@ -15,11 +15,12 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.visual;
+package com.sensorsdata.analytics.android.sdk.visual.util;
 
 import android.annotation.SuppressLint;
 import android.os.Build;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.webkit.WebView;
 import android.widget.AdapterView;
@@ -29,7 +30,10 @@ import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
+import com.sensorsdata.analytics.android.sdk.visual.snap.Pathfinder;
 
 public class VisualUtil {
     public static int getVisibility(View view) {
@@ -68,5 +72,36 @@ public class VisualUtil {
             return true;
         }
         return false;
+    }
+
+    public static int getChildIndex(ViewParent parent, View child) {
+        try {
+            if (!(parent instanceof ViewGroup)) {
+                return -1;
+            }
+            ViewGroup viewParent = (ViewGroup) parent;
+            final String childIdName = AopUtil.getViewId(child);
+            String childClassName = child.getClass().getCanonicalName();
+            int index = 0;
+            for (int i = 0; i < viewParent.getChildCount(); i++) {
+                View brother = viewParent.getChildAt(i);
+                if (!Pathfinder.hasClassName(brother, childClassName)) {
+                    continue;
+                }
+                String brotherIdName = AopUtil.getViewId(brother);
+                if (null != childIdName && !childIdName.equals(brotherIdName)) {
+                    index++;
+                    continue;
+                }
+                if (brother == child) {
+                    return index;
+                }
+                index++;
+            }
+            return -1;
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+            return -1;
+        }
     }
 }

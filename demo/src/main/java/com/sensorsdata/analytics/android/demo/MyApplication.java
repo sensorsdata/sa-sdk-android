@@ -47,6 +47,6 @@ public class MyApplication extends Application {
         // 打开 crash 信息采集
         configOptions.enableTrackAppCrash();
         //传入 SAConfigOptions 对象，初始化神策 SDK
-        SensorsDataAPI.sharedInstance(this, configOptions);
+        SensorsDataAPI.startWithConfigOptions(this, configOptions);
     }
 }

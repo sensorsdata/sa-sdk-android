@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.visual.snap;
 
 import android.app.Activity;
 import android.os.Build;
@@ -35,7 +35,7 @@ import java.util.Set;
  * Handles applying and managing the life cycle of edits in an application. Clients
  * can replace all of the edits in an app with}.
  * Some client is responsible for informing the EditState about the presence or absence
- * of Activities, by calling {@link EditState#add(android.app.Activity)} and {@link EditState#remove(android.app.Activity)}
+ * of Activities, by calling {@link EditState#add(Activity)} and {@link EditState#remove(Activity)}
  */
 public class EditState extends UIThreadSet<Activity> {
 

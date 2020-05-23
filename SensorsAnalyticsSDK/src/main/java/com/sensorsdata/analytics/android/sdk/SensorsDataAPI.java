@@ -101,7 +101,7 @@ import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertValu
 public class SensorsDataAPI implements ISensorsDataAPI {
 
     // 可视化埋点功能最低 API 版本
-    static final int VTRACK_SUPPORTED_MIN_API = 16;
+    public static final int VTRACK_SUPPORTED_MIN_API = 16;
     // SDK版本
     static final String VERSION = BuildConfig.SDK_VERSION;
     // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
@@ -990,6 +990,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         if (webView != null) {
             webView.getSettings().setJavaScriptEnabled(true);
             webView.addJavascriptInterface(new AppWebViewInterface(mContext, properties, enableVerify), "SensorsData_APP_JS_Bridge");
+            SensorsDataAutoTrackHelper.addWebViewVisualInterface(webView);
         }
     }
 
@@ -1019,6 +1020,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 return;
             }
             addJavascriptInterface.invoke(x5WebView, new AppWebViewInterface(mContext, properties, enableVerify), "SensorsData_APP_JS_Bridge");
+            SensorsDataAutoTrackHelper.addWebViewVisualInterface((View) x5WebView);
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
@@ -1037,6 +1039,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 return;
             }
             addJavascriptInterface.invoke(x5WebView, new AppWebViewInterface(mContext, null, enableVerify), "SensorsData_APP_JS_Bridge");
+            SensorsDataAutoTrackHelper.addWebViewVisualInterface((View) x5WebView);
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
@@ -2659,7 +2662,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             }
             trackEventFromH5(eventInfo);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -2679,7 +2682,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 return true;
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
         return false;
 
@@ -3501,7 +3504,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    SSLSocketFactory getSSLSocketFactory() {
+    public SSLSocketFactory getSSLSocketFactory() {
         return mSSLSocketFactory;
     }
 
@@ -3519,6 +3522,14 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
         }
+    }
+
+    SAConfigOptions getConfigOptions(){
+        return mSAConfigOptions;
+    }
+
+    Context getContext(){
+        return mContext;
     }
 
     boolean isSaveDeepLinkInfo() {

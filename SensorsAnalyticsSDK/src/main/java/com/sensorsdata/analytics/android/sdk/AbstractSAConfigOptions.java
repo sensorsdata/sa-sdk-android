@@ -125,4 +125,14 @@ abstract class AbstractSAConfigOptions {
      * 是否使用上次启动时保存的 utm 属性.
      */
     boolean mEnableSaveDeepLinkInfo = false;
+
+    /**
+     * 是否自动进行 H5 打通
+     */
+    boolean isAutoTrackWebView;
+
+    /**
+     * WebView 是否支持 JellyBean
+     */
+    boolean isWebViewSupportJellyBean;
 }

@@ -15,14 +15,16 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.visual.snap;
 
 import android.view.View;
+
+import com.sensorsdata.analytics.android.sdk.SALog;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-class Caller {
+public class Caller {
 
     private static final String TAG = "SA.Caller";
     private final String mMethodName;

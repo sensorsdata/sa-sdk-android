@@ -12,7 +12,6 @@ buildscript {
         maven {
             url 'https://dl.bintray.com/zouyuhan/maven'
         }
-
         maven {
             url 'file:/Users/wangzhuozhou/Documents/repo'
         }

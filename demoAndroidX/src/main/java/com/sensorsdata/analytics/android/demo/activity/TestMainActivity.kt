@@ -39,6 +39,7 @@ class TestMainActivity : AppCompatActivity() {
                 DataEntity("track*, profile* 等接口调用", TrackProfileSettingsActivity::class.java, true),
                 DataEntity("OnClick", ClickActivity::class.java, true),
                 DataEntity("H5 页面测试", H5Activity::class.java, true),
+                DataEntity("可视化内嵌 H5", H5VisualTestActivity::class.java, true),
                 DataEntity("Widget 采集测试", WidgetTestActivity::class.java, true),
                 DataEntity("ViewPager & Fragment 测试", FragmentActivity::class.java, true),
                 DataEntity("TabHost", MyTabHostActivity::class.java, true),
@@ -54,7 +55,8 @@ class TestMainActivity : AppCompatActivity() {
                 DataEntity("Debug 模式", BaseActivity::class.java, false),
                 DataEntity("点击图 HeatMap", BaseActivity::class.java),
                 DataEntity("可视化全埋点", BaseActivity::class.java),
-                DataEntity("ListView 内嵌", InnerListTestActivity::class.java,true)
+                DataEntity("ListView 内嵌", InnerListTestActivity::class.java, true),
+                DataEntity("ActionBar && ToolBar", ActionBarAndToolBarTestActivity::class.java, true)
         )
         recyclerView.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
         recyclerView.addItemDecoration(HorizonRecyclerDivider(this, HorizonRecyclerDivider.VERTICAL_LIST))

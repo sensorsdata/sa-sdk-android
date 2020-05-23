@@ -1,0 +1,329 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="shortcut icon" href="#" />
+    <meta charset='UTF-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" >
+    <title>sdk demo ls </title>
+    <style>
+        #rel{
+            position: relative;
+        }
+        #rel button{
+            position: absolute;
+        }
+        *{
+            margin: 5px 5px;
+        }
+        button{
+            width: 70px;
+            height: 20px;
+            border: 1px solid grey;
+        }
+        input{
+            border: 1px solid grey;
+        }
+        #login,#iframewrapper,#setclick,#default{
+            border: 2px solid darkgray;
+            margin: 5px 0;
+            text-align: center;
+        }
+        .img{
+            height: 50px;
+            width: 100px;
+            display: block;
+            margin: 0 auto;
+        }
+        #stoppro{
+            width: 120px;
+            height: 20px;
+            text-align: center;
+            display:block;
+            margin: 5px auto;
+            
+        }
+        .iframe{
+            display: block;
+            margin: 5px auto;
+        }
+        #logoutbtn{
+            display: block;
+            width: 70px;
+            margin: 0 auto;
+            margin-bottom: 6px;
+            margin-top: 5px;
+        }
+        #decodeurl{
+            display: inline;
+            width:60px;
+        }
+        #text{
+            height: 200px;
+            width: 98%;
+            border: 1px solid grey;
+        }
+        .t{
+            display: none;
+        }
+        .active{
+            display: inline-block;
+        }
+        .scroll{
+            height: 3000px;
+            background: radial-gradient(grey,yellow,pink)
+        }
+        .scrollwra{
+            height: 100px;
+            border: 2px solid darkgray;
+            overflow-y: scroll;
+        }
+        .iframe{
+            /* height: 800px; */
+            background: radial-gradient(grey,yellow,pink)
+
+        }
+        #iframewrapper{
+            /* height: 200px; */
+            overflow-y: scroll;
+        }
+       textarea{
+        border: 2px solid darkgray;
+       }
+       .scrollwr{
+           height: 1000px;
+           border: 2px solid darkgray;
+       }
+
+       #default > * {
+           margin: 0;
+       }
+       #vi{
+           height: 100px;
+           visibility: hidden;
+           /* display: none; */
+       }
+       #turnpage{
+           border: 1px solid grey;
+           margin-top: 10px;
+           display: inline-block;
+       }
+    </style>
+    <!-- <script src="https://upcdn.b0.upaiyun.com/libs/jquery/jquery-2.0.2.min.js"></script> -->
+    <!-- <script src="./require.js"></script> -->
+    
+
+   
+       
+
+<!-- Copyright 2015-2017 GrowingIO, Inc. More info available at http://www.growingio.com -->
+
+<script type='text/javascript'>
+!function(e,t,n,g,i){e[i]=e[i]||function(){(e[i].q=e[i].q||[]).push(arguments)},n=t.createElement("script"),tag=t.getElementsByTagName("script")[0],n.async=1,n.src=('https:'==document.location.protocol?'https://':'http://')+g,tag.parentNode.insertBefore(n,tag)}(window,document,"script","assets.giocdn.com/2.1/gio.js","gio");
+  gio('init', 'a50dd4b8f210a44a', {});
+
+  gio('send');
+  
+</script>
+
+<!-- End GrowingIO Analytics code version: 2.1 -->
+    
+<script>
+        var _hmt = _hmt || [];
+        (function() {
+          var hm = document.createElement("script");
+          hm.src = "https://hm.baidu.com/hm.js?ea50e59197afd67cef94b5c114ab11c3";
+          var s = document.getElementsByTagName("script")[0]; 
+          s.parentNode.insertBefore(hm, s);
+        })();
+</script>
+        
+</head>
+<body>
+     <div>
+          <button>test
+              <button>testbtn</button>
+          </button>
+            <a href="#" id = 'tr'>
+                <button id='test'>123i</button>
+            </a>
+            <div id='default'>
+                    <button data='test' sensors-disable=true>disbtn</button>
+                    <button data='test' title="1234" id='goodbtn' class='ww'>button</button>
+                    <div>点击输入text：<input id='a' type="text">提交：<input type="submit"></div>
+                    <button id="alertbtn">弹窗</button>
+                    <a href="http://www.ls.com:8080/indexdemo.html?" id='abtn'>跳转页面demo</a>
+                 </div>
+                 <div id='setclick'>
+                     <img class='img' src="./pic.jpeg" id='trackimg'>
+                     <button id='stoppro'>stopPropagation</button>
+                 </div>
+                 <div id='iframewrapper'>
+                     <h3>iframe indexdemo</h3>
+                     <!-- <iframe src="http://www.ls.com:8080/indexdemo.html?utm_source=1233demo" frameborder="0"></iframe> -->
+                 </div> 
+                 <div id="login">
+                     <input type="text"  sensors-disable = 'true' id='loginid'>
+                     <button id="loginbtn" sensors-disable = 'true'>login</button>
+                     <button id="logoutbtn" sensors-disable = 'true' >logout</button>
+                     <input type="text" id='sensorscookie' sensors-disable = 'true' >
+                     <button id='decodeurl' sensors-disable = 'true'>decode</button>
+                 </div> 
+                 <div id='text'>
+                     <div>
+                         <button class='p'>page 1</button>
+        
+                         <button class='p'>page 2</button>
+                         <button class='p'>page 3</button>
+                     </div>
+                     
+                     <div class='t active'>
+                         <button>
+                                im page1
+                         </button>
+                     </div>
+                     <div class='t'>
+                         <button>
+                            im page2
+                        </button>
+                    </div>
+                     <div class='t'>
+                            <button id = 'pbtn3'>
+                                    im page3
+                            </button>
+                     </div>
+                     <div>
+                            <div id='turnpage'>
+                                    turn to p3
+                                </div>
+                     </div>
+                     
+                 </div>
+                 
+                 <div class="scrollwra">
+                        <div class="scroll">...</div>
+                 </div>
+
+                 <div class="scrollwr"></div>
+                 <div>
+                        <div id='rel'>
+                                <button id="testbtn">test</button>
+                        </div>
+                 </div>
+                 <button id='vi'>
+                     5566
+                 </button>
+                 <!-- <div>
+                        <a href="">
+                                <button>test9999iiiii</button>
+                        </a>
+                 </div> -->
+                 
+
+     </div>
+     <script>
+         
+     </script>
+     <script src='./index.js'></script>
+     <script>
+         
+         alertbtn.onclick = function(){
+             alert(789);         }
+         sensors.quick('isReady',function(){
+             var pro = sensors.getPresetProperties()
+         console.log(pro,'pro-----')
+         })
+         var btnid = 1;
+        //  window.onscroll = function(){
+        //      var odiv = document.createElement('button');
+        //      odiv.innerHTML = btnid;
+        //      btnid ++;
+        //      document.body.appendChild(odiv);
+        //  }
+     </script>  
+     <script>
+        
+        //  document.addEventListener('click',function(e){
+        //      console.log(e.target);
+             
+        //  })
+         window.addEventListener('popstate',func,false);
+         function func(){
+             console.log('popstate---')
+         }
+        
+         
+         var pbtn = document.getElementsByClassName('p');
+         goodbtn.onclick = function(){
+             console.log(34)
+             goodbtn.classList.add('sdd');
+         }
+         var page = document.getElementsByClassName('t');
+         for(var i = 0;i<pbtn.length;i++){
+             (function pp(i){
+                pbtn[i].onclick = function(){
+                    for(var j = 0;j<pbtn.length;j++){
+                        page[j].classList.remove("active");
+                    }
+                    page[i].classList.add('active');
+                 }
+             })(i);
+            
+         }
+         var pagediv = document.getElementById('turnpage');
+         pagediv.onclick = function(){
+            for(var j = 0;j<pbtn.length;j++){
+                        page[j].classList.remove("active");
+                    }
+                    page[2].classList.add('active');
+         }
+        //  sensors.getPresetProperties();
+        //  sensors.quick('isReady',function(){
+        //     console.log(sensors.getPresetProperties())
+        //  })
+         var funcstore = {
+             decodeurlfunc : function(){
+                var cookie2015 = document.getElementById('sensorscookie');
+                var cookieval = "'" + cookie2015.value + "'";
+                console.log(decodeURIComponent(cookieval));
+                cookie2015.value = '';
+             },
+             loginfunc : function(){
+                var loginid = document.getElementById('loginid');
+                var val = loginid.value;
+                sensors.login(val);
+                loginid.value = '';
+             },
+             logoutfunc : function(){
+                 sensors.quick('autoTrack',{
+                     ss:'logout'
+                 });
+                sensors.logout();
+                console.log('logout');
+             }
+         }
+         decodeurl.onclick = function(){funcstore.decodeurlfunc();}
+         loginbtn.onclick = function(){funcstore.loginfunc();}
+         logoutbtn.onclick = function(){funcstore.logoutfunc();}
+         trackimg.onclick = function(){
+             sensors.quick('trackHeatMap',this,{
+                 platform:'trackheatmap'
+             },function(){
+                 console.log('trackheatmap');
+             })
+         }
+         stoppro.onclick = function(event){
+             event.stopPropagation();
+         }
+        abtn.onclick = function(){
+            sensors.track('n',{});
+            sensors.track('d',{});
+            sensors.track('r',{});
+        }
+        document.cookie = "ls=123;expires=‘234'"
+     </script>
+<!-- <script src="./define.js"></script> -->
+
+</body>
+</html>

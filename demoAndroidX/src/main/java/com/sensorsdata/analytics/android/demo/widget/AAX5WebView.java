@@ -1,5 +1,5 @@
 /*
- * Created by wangzhuozhou on 2015/08/01.
+ * Created by zhangwei on 2020/03/26.
  * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,17 +15,14 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.demo.widget;
 
-/**
- * SDK内部接口
- */
-public interface ResourceIds {
+import android.content.Context;
 
-    boolean knownIdName(String name);
+public class AAX5WebView extends AX5WebView {
 
-    int idFromName(String name);
-
-    String nameForId(int id);
+    public AAX5WebView(Context context) {
+        super(context);
+    }
 
 }

@@ -20,7 +20,7 @@ package com.sensorsdata.analytics.android.sdk.util;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
-class ReflectUtil {
+public class ReflectUtil {
 
     static <T> T findField(Class<?> clazz, Object instance, String... fieldName) {
         T t = null;
@@ -63,7 +63,7 @@ class ReflectUtil {
         return currentClass;
     }
 
-    static <T> T callMethod(Object instance, String methodName, Object... args) {
+    public static <T> T callMethod(Object instance, String methodName, Object... args) {
         Class[] argsClass = new Class[args.length];
         for (int i = 0; i < args.length; i++) {
             argsClass[i] = args[i].getClass();

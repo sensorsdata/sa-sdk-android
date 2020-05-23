@@ -314,4 +314,16 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
         ChannelUtils.setSourceChannelKeys(channels);
         return this;
     }
+
+    /**
+     * 开启自动打通所有的 WebView H5 功能。目前支持的 Android 系统自带的 WebView 以及腾讯的 x5WebView.
+     *
+     * @param isSupportJellyBean 是否支持 API level 16 及以下的版本。因为 API level 16 及以下的版本，addJavascriptInterface 有安全漏洞，请谨慎使用。
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions enableJavaScriptBridge(boolean isSupportJellyBean) {
+        this.isAutoTrackWebView = true;
+        this.isWebViewSupportJellyBean = isSupportJellyBean;
+        return this;
+    }
 }

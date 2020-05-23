@@ -57,7 +57,7 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
         this.mForeGroundActivity = new WeakReference(activity);
     }
 
-    boolean isInBackground() {
+    public boolean isInBackground() {
         return mActivityCount <= 0;
     }
 

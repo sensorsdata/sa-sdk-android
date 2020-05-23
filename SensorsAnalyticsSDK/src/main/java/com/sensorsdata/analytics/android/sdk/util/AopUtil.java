@@ -38,13 +38,13 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.sensorsdata.analytics.android.sdk.AopConstants;
-import com.sensorsdata.analytics.android.sdk.Pathfinder;
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataFragmentTitle;
-import com.sensorsdata.analytics.android.sdk.visual.ViewNode;
+import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
+import com.sensorsdata.analytics.android.sdk.visual.snap.Pathfinder;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -69,45 +69,6 @@ public class AopUtil {
         add("androidx##cardview##widget");
         add("com##google##android##material");
     }};
-
-    public static int getChildIndex(ViewParent parent, View child) {
-        try {
-            if (!(parent instanceof ViewGroup)) {
-                return -1;
-            }
-
-            ViewGroup viewParent = (ViewGroup) parent;
-            final String childIdName = AopUtil.getViewId(child);
-
-            String childClassName = child.getClass().getCanonicalName();
-            int index = 0;
-            for (int i = 0; i < viewParent.getChildCount(); i++) {
-                View brother = viewParent.getChildAt(i);
-
-                if (!Pathfinder.hasClassName(brother, childClassName)) {
-                    continue;
-                }
-
-                String brotherIdName = AopUtil.getViewId(brother);
-
-                if (null != childIdName && !childIdName.equals(brotherIdName)) {
-                    index++;
-                    continue;
-                }
-
-                if (brother == child) {
-                    return index;
-                }
-
-                index++;
-            }
-
-            return -1;
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-            return -1;
-        }
-    }
 
     public static String traverseView(StringBuilder stringBuilder, ViewGroup root) {
         try {
@@ -765,30 +726,28 @@ public class AopUtil {
     }
 
     public static void addViewPathProperties(Activity activity, View view, JSONObject properties) {
-
         try {
-            if (!SensorsDataAPI.sharedInstance().isHeatMapEnabled() && (!SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled())) {
+            if (view == null) {
                 return;
             }
-            if (activity != null) {
-                if (!SensorsDataAPI.sharedInstance().isHeatMapActivity(activity.getClass()) && !SensorsDataAPI.sharedInstance().isVisualizedAutoTrackActivity(activity.getClass())) {
-                    return;
-                }
-            }
-            if (view == null) {
+            if (activity == null) {
                 return;
             }
             if (properties == null) {
                 properties = new JSONObject();
             }
-            String elementSelector = ViewUtil.getElementSelector(view);
-            if (!TextUtils.isEmpty(elementSelector)) {
-                properties.put(AopConstants.ELEMENT_SELECTOR, elementSelector);
+            if ((SensorsDataAPI.sharedInstance().isHeatMapEnabled() || SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled())
+                    && (SensorsDataAPI.sharedInstance().isHeatMapActivity(activity.getClass()) || SensorsDataAPI.sharedInstance().isVisualizedAutoTrackActivity(activity.getClass()))) {
+                String elementSelector = ViewUtil.getElementSelector(view);
+                if (!TextUtils.isEmpty(elementSelector)) {
+                    properties.put(AopConstants.ELEMENT_SELECTOR, elementSelector);
+                }
             }
+
             ViewNode viewNode = ViewUtil.getViewPathAndPosition(view);
             if (viewNode != null) {
-                if (SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled()) {
-                    if (!TextUtils.isEmpty(viewNode.getViewPath())) {
+                if (!TextUtils.isEmpty(viewNode.getViewPath())) {
+                    if (SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled() && SensorsDataAPI.sharedInstance().isVisualizedAutoTrackActivity(activity.getClass())) {
                         properties.put(AopConstants.ELEMENT_PATH, viewNode.getViewPath());
                     }
                 }
@@ -797,7 +756,7 @@ public class AopUtil {
                 }
             }
         } catch (JSONException e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 }

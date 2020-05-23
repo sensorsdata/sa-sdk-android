@@ -3,7 +3,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 
-version = "4.0.6-pre"
+version = "4.0.7-pre"
 def min_plugin_version = "3.0.0"
 
 android {
