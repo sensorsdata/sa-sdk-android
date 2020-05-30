@@ -1977,7 +1977,10 @@ public class SensorsDataAutoTrackHelper {
     }
 
     private static void setupH5Bridge(View webView) {
-        if (isSupportJellyBean() && SensorsDataAPI.sharedInstance().getConfigOptions().isAutoTrackWebView) {
+        if (SensorsDataAPI.sharedInstance() instanceof SensorsDataAPIEmptyImplementation) {
+            return;
+        }
+        if (isSupportJellyBean() && SensorsDataAPI.sharedInstance().getConfigOptions() != null && SensorsDataAPI.sharedInstance().getConfigOptions().isAutoTrackWebView) {
             setupWebView(webView);
         }
         if (isSupportJellyBean()) {

@@ -555,12 +555,23 @@ public class ViewUtil {
         if (!WindowHelper.isDecorView(view.getClass()) || (parentObject instanceof View)) {
             if (parentObject instanceof View) {
                 View parentView = (View) parentObject;
-                String listPos = null;
                 StringBuilder opx = new StringBuilder();
                 StringBuilder px = new StringBuilder();
                 String viewName = ViewUtil.getCanonicalName(view.getClass());
                 Object fragment = null;
-                String id = null;
+                String listPos = null;
+                // 处理嵌套场景，如果父 View 是列表类型控件，将父 View 的列表位置传递给非列表类型子控件; 列表类型子控件则直接用自身位置。
+                ViewParent parent = parentView.getParent();
+                if (parent instanceof View) {
+                    View listParentView = (View) parent;
+                    if (sViewCache == null) {
+                        sViewCache = new SparseArray<String>();
+                    }
+                    String parentPos = (String) sViewCache.get(listParentView.hashCode());
+                    if (!TextUtils.isEmpty(parentPos)) {
+                        listPos = parentPos;
+                    }
+                }
                 if (parentView instanceof ExpandableListView) {
                     ExpandableListView listParent = (ExpandableListView) parentView;
                     long elp = listParent.getExpandableListPosition(viewPosition);
@@ -596,17 +607,6 @@ public class ViewUtil {
                     opx.append("/").append(viewName).append("[0]");
                     px.append("/").append(viewName).append("[0]");
                 } else {
-                    ViewParent listParent = parentView.getParent();
-                    if (listParent instanceof View) {
-                        View listParentView = (View) listParent;
-                        if (sViewCache == null) {
-                            sViewCache = new SparseArray<String>();
-                        }
-                        String parentPos = (String) sViewCache.get(listParentView.hashCode());
-                        if (!TextUtils.isEmpty(parentPos)) {
-                            listPos = parentPos;
-                        }
-                    }
                     viewPosition = VisualUtil.getChildIndex(parentObject, view);
                     opx.append("/").append(viewName).append("[").append(viewPosition).append("]");
                     px.append("/").append(viewName).append("[").append(viewPosition).append("]");
