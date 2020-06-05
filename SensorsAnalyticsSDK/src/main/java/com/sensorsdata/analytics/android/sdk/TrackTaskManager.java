@@ -17,17 +17,17 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
-import java.util.LinkedList;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class TrackTaskManager {
     private static TrackTaskManager trackTaskManager;
     /**
      * 请求线程队列
      */
-    private final LinkedList<Runnable> mTrackEventTasks;
+    private final LinkedBlockingQueue<Runnable> mTrackEventTasks;
 
     private TrackTaskManager() {
-        mTrackEventTasks = new LinkedList<>();
+        mTrackEventTasks = new LinkedBlockingQueue<>();
     }
 
     public static synchronized TrackTaskManager getInstance() {
@@ -36,31 +36,38 @@ public class TrackTaskManager {
                 trackTaskManager = new TrackTaskManager();
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
         return trackTaskManager;
     }
 
     public void addTrackEventTask(Runnable trackEvenTask) {
         try {
-            synchronized (mTrackEventTasks) {
-                mTrackEventTasks.addLast(trackEvenTask);
-            }
+            mTrackEventTasks.put(trackEvenTask);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
-    public Runnable getTrackEventTask() {
+    Runnable takeTrackEventTask() {
         try {
-            synchronized (mTrackEventTasks) {
-                if (mTrackEventTasks.size() > 0) {
-                    return mTrackEventTasks.removeFirst();
-                }
-            }
+            return mTrackEventTasks.take();
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
         return null;
+    }
+
+    Runnable pollTrackEventTask() {
+        try {
+            return mTrackEventTasks.poll();
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return null;
+    }
+
+    boolean isEmpty(){
+        return mTrackEventTasks.isEmpty();
     }
 }
