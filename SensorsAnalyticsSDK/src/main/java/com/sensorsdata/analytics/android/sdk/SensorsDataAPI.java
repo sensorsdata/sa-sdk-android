@@ -2320,7 +2320,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public void stopTrackThread() {
         if (mTrackTaskManagerThread != null && !mTrackTaskManagerThread.isStopped()) {
-            mTrackTaskManagerThread.setStop(true);
+            mTrackTaskManagerThread.stop();
             SALog.i(TAG, "Data collection thread has been stopped");
         }
     }

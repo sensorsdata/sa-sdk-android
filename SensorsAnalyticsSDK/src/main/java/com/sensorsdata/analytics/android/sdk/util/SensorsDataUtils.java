@@ -73,7 +73,6 @@ import java.util.UUID;
 public final class SensorsDataUtils {
 
     private static final String marshmallowMacAddress = "02:00:00:00:00:00";
-    private static final String fileAddressMac = "/sys/class/net/wlan0/address";
     private static final String SHARED_PREF_EDITS_FILE = "sensorsdata";
     private static final String SHARED_PREF_DEVICE_ID_KEY = "sensorsdata.device.id";
     private static final String SHARED_PREF_USER_AGENT_KEY = "sensorsdata.user.agent";
