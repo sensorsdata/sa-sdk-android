@@ -22,13 +22,17 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -42,18 +46,17 @@ import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertKey;
 import static com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils.getSharedPreferences;
 
 public class ChannelUtils {
-
     private static final String UTM_SOURCE_KEY = "SENSORS_ANALYTICS_UTM_SOURCE";
     private static final String UTM_MEDIUM_KEY = "SENSORS_ANALYTICS_UTM_MEDIUM";
     private static final String UTM_TERM_KEY = "SENSORS_ANALYTICS_UTM_TERM";
     private static final String UTM_CONTENT_KEY = "SENSORS_ANALYTICS_UTM_CONTENT";
     private static final String UTM_CAMPAIGN_KEY = "SENSORS_ANALYTICS_UTM_CAMPAIGN";
     private static final String SHARED_PREF_UTM_FILE = "sensorsdata.utm";
-
+    private static final String SHARED_PREF_CHANNEL_EVENT = "sensorsdata.channel.event";
     private static final String IS_FIRST_DEEPLINK_ACTIVITY_KEY = "is_first_deeplink_activity";
 
     private static HashSet<String> sChannelSourceKeySet = new HashSet<>();
-
+    private static Set<String> channelEvents = new HashSet<>();
     private static final HashMap<String, String> UTM_MAP = new HashMap<String, String>() {{
         put(UTM_SOURCE_KEY, "$utm_source");
         put(UTM_MEDIUM_KEY, "$utm_medium");
@@ -186,7 +189,7 @@ public class ChannelUtils {
         }
         for (Map.Entry<String, String> entry : UTM_MAP.entrySet()) {
             if (entry != null) {
-                String utmValue = SensorsDataUtils.getApplicationMetaData(context, entry.getKey());
+                String utmValue = getApplicationMetaData(context, entry.getKey());
                 if (!TextUtils.isEmpty(utmValue)) {
                     properties.put(entry.getValue(), utmValue);
                 }
@@ -353,5 +356,53 @@ public class ChannelUtils {
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
+    }
+
+    private static String getApplicationMetaData(Context mContext, String metaKey) {
+        try {
+            ApplicationInfo appInfo = mContext.getApplicationContext().getPackageManager()
+                    .getApplicationInfo(mContext.getApplicationContext().getPackageName(),
+                            PackageManager.GET_META_DATA);
+            String value = appInfo.metaData.getString(metaKey);
+            int iValue = -1;
+            if (value == null) {
+                iValue = appInfo.metaData.getInt(metaKey, -1);
+            }
+            if (iValue != -1) {
+                value = String.valueOf(iValue);
+            }
+            return value;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
+     * 判断是否需要添加渠道回调事件，如果需要则添加。
+     *
+     * @param isAutoAddChannelCallbackEvent 是否开启
+     * @param eventName 事件名
+     * @param properties 属性
+     * @param context Context
+     * @return JSONObject
+     */
+    public static JSONObject checkOrSetChannelCallbackEvent(boolean isAutoAddChannelCallbackEvent, String eventName, JSONObject properties, Context context) {
+        if (isAutoAddChannelCallbackEvent) {
+            if (properties == null) {
+                properties = new JSONObject();
+            }
+            try {
+                boolean isFirst = DbAdapter.getInstance().isFirstChannelEvent(eventName);
+                properties.put("$is_channel_callback_event", isFirst);
+                if (isFirst && context != null && !ChannelUtils.hasUtmProperties(properties)) {
+                    ChannelUtils.mergeUtmByMetaData(context, properties);
+                    DbAdapter.getInstance().addChannelEvent(eventName);
+                }
+                properties.put("$channel_device_info", "1");
+            } catch (JSONException e) {
+                SALog.printStackTrace(e);
+            }
+        }
+        return properties;
     }
 }

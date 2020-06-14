@@ -74,15 +74,4 @@ public class SensorsDataUtilsTest {
             assertFalse("You should run this unit test on a real device, not an emulator", TextUtils.isEmpty(imei));
         }
     }
-
-    @Ignore
-    @Test
-    public void isFirstChannelEvent() {
-        SharedPreferences sharedPreferences = context.getSharedPreferences("com.sensorsdata.analytics.android.sdk.SensorsDataAPI", Context.MODE_PRIVATE);
-        sharedPreferences.edit().clear().apply();
-        boolean isFirst = SensorsDataUtils.isFirstChannelEvent(context, "hello");
-        assertTrue(isFirst);
-        isFirst = SensorsDataUtils.isFirstChannelEvent(context, "hello");
-        assertFalse(isFirst);
-    }
 }

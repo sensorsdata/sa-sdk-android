@@ -595,7 +595,7 @@ public class AopUtil {
                 String key = superPropertiesIterator.next();
                 Object value = source.get(key);
                 if (value instanceof Date) {
-                    dest.put(key, DateFormatUtils.formatDate((Date) value));
+                    dest.put(key, TimeUtils.formatDate((Date) value));
                 } else {
                     dest.put(key, value);
                 }

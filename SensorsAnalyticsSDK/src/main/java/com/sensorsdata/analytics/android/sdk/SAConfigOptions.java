@@ -326,4 +326,15 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
         this.isWebViewSupportJellyBean = isSupportJellyBean;
         return this;
     }
+
+    /**
+     * 是否在手动埋点事件中自动添加渠道匹配信息
+     *
+     * @param isAutoAddChannelCallbackEvent true: 开启，false: 不开启，默认是 false
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions enableAutoAddChannelCallbackEvent(boolean isAutoAddChannelCallbackEvent) {
+        this.isAutoAddChannelCallbackEvent = isAutoAddChannelCallbackEvent;
+        return this;
+    }
 }

@@ -35,17 +35,16 @@ public class SADataHelper {
     private static final String TAG = "SA.SADataHelper";
 
     private static final Pattern KEY_PATTERN = Pattern.compile(
-            "^((?!^distinct_id$|^original_id$|^device_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
+            "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
             Pattern.CASE_INSENSITIVE);
 
-    public static void assertPropertyTypes(JSONObject properties) throws
-            InvalidDataException {
+    public static void assertPropertyTypes(JSONObject properties) throws InvalidDataException {
         if (properties == null) {
             return;
         }
 
-        for (Iterator iterator = properties.keys(); iterator.hasNext(); ) {
-            String key = (String) iterator.next();
+        for (Iterator<String> iterator = properties.keys(); iterator.hasNext(); ) {
+            String key = iterator.next();
 
             // Check Keys
             assertKey(key);
@@ -96,5 +95,4 @@ public class SADataHelper {
             throw new InvalidDataException("The " + value + " is too long, max length is 255.");
         }
     }
-
 }

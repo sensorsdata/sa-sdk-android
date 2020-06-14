@@ -22,11 +22,14 @@ import android.net.Uri;
 public class DbParams {
     /* 数据库中的表名 */
     public static final String TABLE_EVENTS = "events";
+    public static final String TABLE_CHANNEL_PERSISTENT = "t_channel";
     public static final int DB_OUT_OF_MEMORY_ERROR = -2;
+    public static final String KEY_CHANNEL_EVENT_NAME = "event_name";
+    public static final String KEY_CHANNEL_RESULT = "result";
     /* 数据库名称 */
     static final String DATABASE_NAME = "sensorsdata";
     /* 数据库版本号 */
-    static final int DATABASE_VERSION = 4;
+    static final int DATABASE_VERSION = 5;
     static final String TABLE_ACTIVITY_START_COUNT = "activity_started_count";
     static final String TABLE_APP_START_TIME = "app_start_time";
     static final String TABLE_APP_END_TIME = "app_end_time";
@@ -40,7 +43,7 @@ public class DbParams {
     static final int DB_UPDATE_ERROR = -1;
     private static DbParams instance;
     private final Uri mUri, mActivityStartCountUri, mAppStartTimeUri, mAppEndUri,
-            mAppEndDataUri, mSessionTimeUri, mLoginIdUri;
+            mAppEndDataUri, mSessionTimeUri, mLoginIdUri, mChannelPersistentUri;
 
     private DbParams(String packageName) {
         mUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_EVENTS);
@@ -50,6 +53,7 @@ public class DbParams {
         mAppEndUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_END_TIME);
         mSessionTimeUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_SESSION_INTERVAL_TIME);
         mLoginIdUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_LOGIN_ID);
+        mChannelPersistentUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_CHANNEL_PERSISTENT);
     }
 
     public static DbParams getInstance(String packageName) {
@@ -127,5 +131,14 @@ public class DbParams {
      */
     Uri getLoginIdUri() {
         return mLoginIdUri;
+    }
+
+    /**
+     * 获取 Channel 持久化 Uri
+     *
+     * @return Uri
+     */
+    public Uri getChannelPersistentUri() {
+        return mChannelPersistentUri;
     }
 }
