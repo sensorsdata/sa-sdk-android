@@ -27,9 +27,7 @@ import com.sensorsdata.analytics.android.demo.R
 import com.sensorsdata.analytics.android.sdk.PropertyBuilder
 import com.sensorsdata.analytics.android.sdk.SALog
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI
-import com.sensorsdata.analytics.android.sdk.util.JSONUtils
-import com.sensorsdata.analytics.android.sdk.util.NetworkUtils
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils
+import com.sensorsdata.analytics.android.sdk.util.*
 import kotlinx.android.synthetic.main.activity_base_property.*
 import java.util.*
 import kotlin.collections.HashMap
@@ -79,7 +77,7 @@ class BasePropertyActivity : BaseActivity() {
         //deviceInfo["\$lib_version"] = SensorsDataAPI.VERSION //TODO 用到 VERSION 需要将修饰符改成public， 待定
         deviceInfo["\$os"] = "Android"
         deviceInfo["\$os_version"] = if (Build.VERSION.RELEASE == null) "UNKNOWN" else Build.VERSION.RELEASE
-        deviceInfo["\$manufacturer"] = SensorsDataUtils.getManufacturer()
+        deviceInfo["\$manufacturer"] = DeviceUtils.getManufacturer()
         if (TextUtils.isEmpty(Build.MODEL)) {
             deviceInfo["\$model"] = "UNKNOWN"
         } else {
@@ -93,27 +91,8 @@ class BasePropertyActivity : BaseActivity() {
             SALog.i(TAG, "Exception getting app version name", e)
         }
 
-        //context.getResources().getDisplayMetrics()这种方式获取屏幕高度不包括底部虚拟导航栏
-        val displayMetrics = resources.displayMetrics
-        var screenWidth = displayMetrics.widthPixels
-        var screenHeight = displayMetrics.heightPixels
-
-        try {
-            val windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            val display = windowManager.defaultDisplay
-            val rotation = display.rotation
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                val point = Point()
-                display.getRealSize(point)
-                screenWidth = point.x
-                screenHeight = point.y
-            }
-            deviceInfo["\$screen_width"] = SensorsDataUtils.getNaturalWidth(rotation, screenWidth, screenHeight)
-            deviceInfo["\$screen_height"] = SensorsDataUtils.getNaturalHeight(rotation, screenWidth, screenHeight)
-        } catch (e: Exception) {
-            deviceInfo["\$screen_width"] = screenWidth
-            deviceInfo["\$screen_height"] = screenHeight
-        }
+        deviceInfo["\$screen_width"] = DeviceUtils.getDeviceSize(this)[0]
+        deviceInfo["\$screen_height"] = DeviceUtils.getDeviceSize(this)[1]
 
         val carrier = SensorsDataUtils.getCarrier(this)
         if (!TextUtils.isEmpty(carrier)) {
@@ -126,7 +105,7 @@ class BasePropertyActivity : BaseActivity() {
             deviceInfo["\$device_id"] = mAndroidId
         }
 
-        val zoneOffset = SensorsDataUtils.getZoneOffset()
+        val zoneOffset = TimeUtils.getZoneOffset()
         if (zoneOffset != null) {
             //deviceInfo.put("$timezone_offset", zone_offset);
         }

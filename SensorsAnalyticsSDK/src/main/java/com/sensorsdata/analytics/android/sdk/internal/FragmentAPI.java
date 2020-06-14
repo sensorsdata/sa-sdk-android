@@ -17,26 +17,31 @@
 package com.sensorsdata.analytics.android.sdk.internal;
 
 import android.content.Context;
+import android.content.res.AssetManager;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataIgnoreTrackAppViewScreen;
 import com.sensorsdata.analytics.android.sdk.SensorsDataIgnoreTrackAppViewScreenAndAppClick;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 public class FragmentAPI implements IFragmentAPI {
+    private static final String TAG = "FragmentAPI";
     /* $AppViewScreen 事件是否支持 Fragment*/
     private boolean mTrackFragmentAppViewScreen;
     private Set<Integer> mAutoTrackFragments;
     private Set<Integer> mAutoTrackIgnoredFragments;
 
     public FragmentAPI(Context context) {
-        ArrayList<String> autoTrackFragments = SensorsDataUtils.getAutoTrackFragments(context);
+        ArrayList<String> autoTrackFragments = getAutoTrackFragments(context);
         if (autoTrackFragments.size() > 0) {
             mAutoTrackFragments = new CopyOnWriteArraySet<>();
             for (String fragment : autoTrackFragments) {
@@ -211,5 +216,42 @@ public class FragmentAPI implements IFragmentAPI {
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
         }
+    }
+
+    /**
+     * 读取配置配置的 AutoTrack 的 Fragment
+     *
+     * @param context Context
+     * @return ArrayList Fragment 列表
+     */
+    private static ArrayList<String> getAutoTrackFragments(Context context) {
+        ArrayList<String> autoTrackFragments = new ArrayList<>();
+        BufferedReader bf = null;
+        try {
+            //获取assets资源管理器
+            AssetManager assetManager = context.getAssets();
+            //通过管理器打开文件并读取
+            bf = new BufferedReader(new InputStreamReader(
+                    assetManager.open("sa_autotrack_fragment.config")));
+            String line;
+            while ((line = bf.readLine()) != null) {
+                if (!TextUtils.isEmpty(line) && !line.startsWith("#")) {
+                    autoTrackFragments.add(line);
+                }
+            }
+        } catch (FileNotFoundException ex) {
+            SALog.d(TAG, "SensorsDataAutoTrackFragment file doesn't exists.");
+        } catch (IOException e) {
+            SALog.printStackTrace(e);
+        } finally {
+            if (bf != null) {
+                try {
+                    bf.close();
+                } catch (IOException e) {
+                    SALog.printStackTrace(e);
+                }
+            }
+        }
+        return autoTrackFragments;
     }
 }

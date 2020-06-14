@@ -76,7 +76,7 @@ class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHandler {
                             } catch (Exception ex) {
                                 SALog.printStackTrace(ex);
                             }
-                            sensorsData.track("AppCrashed", messageProp);
+                            sensorsData.trackInternal("AppCrashed", messageProp);
                         } catch (Exception e) {
                             SALog.printStackTrace(e);
                         }

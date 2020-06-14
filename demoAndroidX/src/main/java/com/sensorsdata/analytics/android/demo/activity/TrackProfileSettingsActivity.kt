@@ -30,6 +30,7 @@ import com.sensorsdata.analytics.android.demo.R
 import com.sensorsdata.analytics.android.sdk.PropertyBuilder
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI
 import com.sensorsdata.analytics.android.sdk.SensorsDataTrackViewOnClick
+import kotlinx.android.synthetic.main.activity_track_profile.*
 import java.util.*
 
 class TrackProfileSettingsActivity : BaseActivity() {
@@ -48,10 +49,7 @@ class TrackProfileSettingsActivity : BaseActivity() {
         when (view.id) {
             //产生一个自定义事件
             R.id.track_a_event -> {
-                SensorsDataAPI.sharedInstance(this).track("ViewProduct",
-                        PropertyBuilder.newInstance()
-                                .append("ProductPrice", 100)
-                                .append("ProductName", "Apple").toJSONObject())
+                SensorsDataAPI.sharedInstance(this).track("ViewProduct")
             }
             R.id.track_installation -> {
                 //check permission
@@ -66,7 +64,7 @@ class TrackProfileSettingsActivity : BaseActivity() {
                     }
                     return
                 }
-                SensorsDataAPI.sharedInstance(this).trackInstallation("Install", PropertyBuilder.newInstance().append("pKey", "pValue").toJSONObject())
+                SensorsDataAPI.sharedInstance(this).trackInstallation("AppInstall", PropertyBuilder.newInstance().append("pKey", "pValue").toJSONObject())
             }
             //匿名 ID 和用户 ID 关联
             R.id.login_btn -> {
@@ -98,6 +96,15 @@ class TrackProfileSettingsActivity : BaseActivity() {
             }
             R.id.item_delete -> {
                 SensorsDataAPI.sharedInstance().itemDelete("itemType", "itemId")
+            }
+            R.id.trackChannelEvent ->{
+                SensorsDataAPI.sharedInstance().trackChannelEvent("hello_world211")
+            }
+            R.id.track_view_onclick ->{
+                SensorsDataAPI.sharedInstance().trackViewAppClick(track_view_onclick)
+            }
+            R.id.track_view_screen ->{
+                SensorsDataAPI.sharedInstance().trackViewScreen(this)
             }
             else -> {
                 //no op

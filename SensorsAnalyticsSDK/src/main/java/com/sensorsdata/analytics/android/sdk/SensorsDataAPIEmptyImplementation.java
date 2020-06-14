@@ -446,6 +446,10 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     }
 
+    void trackInternal(final String eventName, final JSONObject properties) {
+
+    }
+
     @Deprecated
     @Override
     public void trackTimer(final String eventName) {

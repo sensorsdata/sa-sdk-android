@@ -436,6 +436,41 @@ public class DbAdapter {
     }
 
     /**
+     * 查询表中是否有对应的事件
+     *
+     * @param eventName 事件名
+     * @return false 表示已存在，true 表示不存在，是首次
+     */
+    public boolean isFirstChannelEvent(String eventName) {
+        Cursor cursor = null;
+        try {
+            cursor = contentResolver.query(mDbParams.getChannelPersistentUri(), null, DbParams.KEY_CHANNEL_EVENT_NAME + " = ? ", new String[]{eventName}, null);
+            if (cursor != null && cursor.getCount() > 0) {
+                return false;
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 添加渠道事件
+     *
+     * @param eventName 事件名
+     */
+    public void addChannelEvent(String eventName) {
+        ContentValues values = new ContentValues();
+        values.put(DbParams.KEY_CHANNEL_EVENT_NAME, eventName);
+        values.put(DbParams.KEY_CHANNEL_RESULT, true);
+        contentResolver.insert(mDbParams.getChannelPersistentUri(), values);
+    }
+
+    /**
      * 从 Event 表中读取上报数据
      *
      * @param tableName 表名

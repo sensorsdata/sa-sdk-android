@@ -49,6 +49,7 @@ public class SensorsDataContentProvider extends ContentProvider {
     private final static int APP_PAUSED_TIME = 5;
     private final static int SESSION_INTERVAL_TIME = 6;
     private final static int LOGIN_ID = 7;
+    private final static int CHANNEL_PERSISTENT = 8;
     private static UriMatcher uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 
     private SensorsDataDBHelper dbHelper;
@@ -82,6 +83,7 @@ public class SensorsDataContentProvider extends ContentProvider {
             uriMatcher.addURI(authority, DbParams.TABLE_APP_END_TIME, APP_PAUSED_TIME);
             uriMatcher.addURI(authority, DbParams.TABLE_SESSION_INTERVAL_TIME, SESSION_INTERVAL_TIME);
             uriMatcher.addURI(authority, DbParams.TABLE_LOGIN_ID, LOGIN_ID);
+            uriMatcher.addURI(authority, DbParams.TABLE_CHANNEL_PERSISTENT, CHANNEL_PERSISTENT);
             dbHelper = new SensorsDataDBHelper(context);
 
             /* 迁移数据，并删除老的数据库 */
@@ -159,20 +161,11 @@ public class SensorsDataContentProvider extends ContentProvider {
         }
         try {
             int code = uriMatcher.match(uri);
+
             if (code == EVENTS) {
-                SQLiteDatabase database;
-                try {
-                    database = dbHelper.getWritableDatabase();
-                } catch (SQLiteException e) {
-                    isDbWritable = false;
-                    SALog.printStackTrace(e);
-                    return uri;
-                }
-                if (!values.containsKey(DbParams.KEY_DATA) || !values.containsKey(DbParams.KEY_CREATED_AT)) {
-                    return uri;
-                }
-                long d = database.insert(DbParams.TABLE_EVENTS, "_id", values);
-                return ContentUris.withAppendedId(uri, d);
+                return insertEvent(uri, values);
+            } else if (code == CHANNEL_PERSISTENT) {
+                return insertChannelPersistent(uri, values);
             } else {
                 insert(code, uri, values);
             }
@@ -181,6 +174,38 @@ public class SensorsDataContentProvider extends ContentProvider {
             SALog.printStackTrace(e);
         }
         return uri;
+    }
+
+    private Uri insertEvent(Uri uri, ContentValues values) {
+        SQLiteDatabase database;
+        try {
+            database = dbHelper.getWritableDatabase();
+        } catch (SQLiteException e) {
+            isDbWritable = false;
+            SALog.printStackTrace(e);
+            return uri;
+        }
+        if (!values.containsKey(DbParams.KEY_DATA) || !values.containsKey(DbParams.KEY_CREATED_AT)) {
+            return uri;
+        }
+        long d = database.insert(DbParams.TABLE_EVENTS, "_id", values);
+        return ContentUris.withAppendedId(uri, d);
+    }
+
+    private Uri insertChannelPersistent(Uri uri, ContentValues values) {
+        SQLiteDatabase database;
+        try {
+            database = dbHelper.getWritableDatabase();
+        } catch (SQLiteException e) {
+            isDbWritable = false;
+            SALog.printStackTrace(e);
+            return uri;
+        }
+        if (!values.containsKey(DbParams.KEY_CHANNEL_EVENT_NAME) || !values.containsKey(DbParams.KEY_CHANNEL_RESULT)) {
+            return uri;
+        }
+        long d = database.insertWithOnConflict(DbParams.TABLE_CHANNEL_PERSISTENT, null, values, SQLiteDatabase.CONFLICT_REPLACE);
+        return ContentUris.withAppendedId(uri, d);
     }
 
     @Override
@@ -221,16 +246,24 @@ public class SensorsDataContentProvider extends ContentProvider {
         try {
             int code = uriMatcher.match(uri);
             if (code == EVENTS) {
-                try {
-                    cursor = dbHelper.getWritableDatabase().query(DbParams.TABLE_EVENTS, projection, selection, selectionArgs, null, null, sortOrder);
-                } catch (SQLiteException e) {
-                    isDbWritable = false;
-                    SALog.printStackTrace(e);
-                }
+                cursor = queryByTable(DbParams.TABLE_EVENTS, projection, selection, selectionArgs, sortOrder);
+            } else if (code == CHANNEL_PERSISTENT) {
+                cursor = queryByTable(DbParams.TABLE_CHANNEL_PERSISTENT, projection, selection, selectionArgs, sortOrder);
             } else {
                 cursor = query(code);
             }
         } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return cursor;
+    }
+
+    private Cursor queryByTable(String tableName, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
+        Cursor cursor = null;
+        try {
+            cursor = dbHelper.getWritableDatabase().query(tableName, projection, selection, selectionArgs, null, null, sortOrder);
+        } catch (SQLiteException e) {
+            isDbWritable = false;
             SALog.printStackTrace(e);
         }
         return cursor;

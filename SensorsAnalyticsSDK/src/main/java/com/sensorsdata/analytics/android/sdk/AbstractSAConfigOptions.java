@@ -135,4 +135,9 @@ abstract class AbstractSAConfigOptions {
      * WebView 是否支持 JellyBean
      */
     boolean isWebViewSupportJellyBean;
+
+    /**
+     * 是否在手动埋点事件中自动添加渠道匹配信息
+     */
+    boolean isAutoAddChannelCallbackEvent;
 }

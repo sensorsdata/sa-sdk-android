@@ -22,12 +22,10 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.Activity;
-import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.net.wifi.WifiInfo;
@@ -37,7 +35,6 @@ import android.os.SystemClock;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
-import android.view.Surface;
 import android.view.View;
 import android.webkit.WebSettings;
 
@@ -48,7 +45,6 @@ import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackAppViewScreenUr
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackHelper;
 import com.sensorsdata.analytics.android.sdk.SensorsDataSDKRemoteConfig;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -57,18 +53,14 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.net.NetworkInterface;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
 
 public final class SensorsDataUtils {
 
@@ -78,7 +70,6 @@ public final class SensorsDataUtils {
     private static final String SHARED_PREF_USER_AGENT_KEY = "sensorsdata.user.agent";
     private static final String SHARED_PREF_REQUEST_TIME = "sensorsdata.request.time";
     private static final String SHARED_PREF_REQUEST_TIME_RANDOM = "sensorsdata.request.time.random";
-    private static final String SHARED_PREF_CHANNEL_EVENT = "sensorsdata.channel.event";
     private static final Map<String, String> sCarrierMap = new HashMap<String, String>() {
         {
             //中国移动
@@ -105,14 +96,6 @@ public final class SensorsDataUtils {
 
         }
     };
-    private static final List<String> sManufacturer = new ArrayList<String>() {
-        {
-            add("HUAWEI");
-            add("OPPO");
-            add("vivo");
-        }
-    };
-    private static Set<String> channelEvents = new HashSet<>();
 
     private static final List<String> mInvalidAndroidId = new ArrayList<String>() {
         {
@@ -152,61 +135,6 @@ public final class SensorsDataUtils {
             SALog.printStackTrace(e);
         }
         return sdkRemoteConfig;
-    }
-
-    public static String getManufacturer() {
-        String manufacturer = Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER.trim();
-        try {
-            if (!TextUtils.isEmpty(manufacturer)) {
-                for (String item : sManufacturer) {
-                    if (item.equalsIgnoreCase(manufacturer)) {
-                        return item;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-        return manufacturer;
-    }
-
-    /**
-     * 读取配置配置的 AutoTrack 的 Fragment
-     *
-     * @param context Context
-     * @return ArrayList Fragment 列表
-     */
-    public static ArrayList<String> getAutoTrackFragments(Context context) {
-        ArrayList<String> autoTrackFragments = new ArrayList<>();
-        BufferedReader bf = null;
-        try {
-            //获取assets资源管理器
-            AssetManager assetManager = context.getAssets();
-            //通过管理器打开文件并读取
-            bf = new BufferedReader(new InputStreamReader(
-                    assetManager.open("sa_autotrack_fragment.config")));
-            String line;
-            while ((line = bf.readLine()) != null) {
-                if (!TextUtils.isEmpty(line) && !line.startsWith("#")) {
-                    autoTrackFragments.add(line);
-                }
-            }
-        } catch (IOException e) {
-            if (e.toString().contains("FileNotFoundException")) {
-                SALog.d(TAG, "SensorsDataAutoTrackFragment file not exists.");
-            } else {
-                SALog.printStackTrace(e);
-            }
-        } finally {
-            if (bf != null) {
-                try {
-                    bf.close();
-                } catch (IOException e) {
-                    SALog.printStackTrace(e);
-                }
-            }
-        }
-        return autoTrackFragments;
     }
 
     private static String getJsonFromAssets(String fileName, Context context) {
@@ -324,72 +252,6 @@ public final class SensorsDataUtils {
             SALog.printStackTrace(e);
             return null;
         }
-    }
-
-    /**
-     * 获取主进程的名称
-     *
-     * @param context Context
-     * @return 主进程名称
-     */
-    public static String getMainProcessName(Context context) {
-        if (context == null) {
-            return "";
-        }
-        String mainProcessName = "";
-        try {
-            mainProcessName = context.getApplicationContext().getApplicationInfo().processName;
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
-        }
-        return mainProcessName;
-    }
-
-    /**
-     * 获得当前进程的名字
-     *
-     * @param context Context
-     * @return 进程名称
-     */
-    private static String getCurrentProcessName(Context context) {
-
-        try {
-            int pid = android.os.Process.myPid();
-
-            ActivityManager activityManager = (ActivityManager) context
-                    .getSystemService(Context.ACTIVITY_SERVICE);
-
-
-            if (activityManager == null) {
-                return null;
-            }
-
-            List<ActivityManager.RunningAppProcessInfo> runningAppProcessInfoList = activityManager.getRunningAppProcesses();
-            if (runningAppProcessInfoList != null) {
-                for (ActivityManager.RunningAppProcessInfo appProcess : runningAppProcessInfoList) {
-
-                    if (appProcess != null) {
-                        if (appProcess.pid == pid) {
-                            return appProcess.processName;
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-            return null;
-        }
-        return null;
-    }
-
-    public static boolean isMainProcess(Context context, String mainProcessName) {
-        if (TextUtils.isEmpty(mainProcessName)) {
-            return true;
-        }
-
-        String currentProcess = getCurrentProcessName(context.getApplicationContext());
-        return TextUtils.isEmpty(currentProcess) || mainProcessName.equals(currentProcess);
-
     }
 
     /**
@@ -533,17 +395,6 @@ public final class SensorsDataUtils {
         }
     }
 
-    public static void cleanUserAgent(Context context) {
-        try {
-            final SharedPreferences preferences = getSharedPreferences(context);
-            final SharedPreferences.Editor editor = preferences.edit();
-            editor.putString(SHARED_PREF_USER_AGENT_KEY, null);
-            editor.apply();
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-    }
-
     public static void mergeJSONObject(final JSONObject source, JSONObject dest) {
         try {
             Iterator<String> superPropertiesIterator = source.keys();
@@ -552,7 +403,7 @@ public final class SensorsDataUtils {
                 String key = superPropertiesIterator.next();
                 Object value = source.get(key);
                 if (value instanceof Date && !"$time".equals(key)) {
-                    dest.put(key, DateFormatUtils.formatDate((Date) value, Locale.CHINA));
+                    dest.put(key, TimeUtils.formatDate((Date) value, Locale.CHINA));
                 } else {
                     dest.put(key, value);
                 }
@@ -584,7 +435,7 @@ public final class SensorsDataUtils {
 
                 Object value = source.get(key);
                 if (value instanceof Date && !"$time".equals(key)) {
-                    dest.put(key, DateFormatUtils.formatDate((Date) value, Locale.CHINA));
+                    dest.put(key, TimeUtils.formatDate((Date) value, Locale.CHINA));
                 } else {
                     dest.put(key, value);
                 }
@@ -634,20 +485,6 @@ public final class SensorsDataUtils {
             SALog.printStackTrace(e);
             return null;
         }
-    }
-
-    public static String getDeviceID(Context context) {
-        final SharedPreferences preferences = getSharedPreferences(context);
-        String storedDeviceID = preferences.getString(SHARED_PREF_DEVICE_ID_KEY, null);
-
-        if (storedDeviceID == null) {
-            storedDeviceID = UUID.randomUUID().toString();
-            final SharedPreferences.Editor editor = preferences.edit();
-            editor.putString(SHARED_PREF_DEVICE_ID_KEY, storedDeviceID);
-            editor.apply();
-        }
-
-        return storedDeviceID;
     }
 
     /**
@@ -809,41 +646,6 @@ public final class SensorsDataUtils {
         return androidID;
     }
 
-    /**
-     * 获取时区偏移值
-     *
-     * @return 时区偏移值，单位：秒
-     */
-    public static Integer getZoneOffset() {
-        try {
-            Calendar cal = Calendar.getInstance(Locale.getDefault());
-            int zoneOffset = cal.get(java.util.Calendar.ZONE_OFFSET);
-            return zoneOffset / 1000;
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
-        }
-        return null;
-    }
-
-    public static String getApplicationMetaData(Context mContext, String metaKey) {
-        try {
-            ApplicationInfo appInfo = mContext.getApplicationContext().getPackageManager()
-                    .getApplicationInfo(mContext.getApplicationContext().getPackageName(),
-                            PackageManager.GET_META_DATA);
-            String value = appInfo.metaData.getString(metaKey);
-            int iValue = -1;
-            if (value == null) {
-                iValue = appInfo.metaData.getInt(metaKey, -1);
-            }
-            if (iValue != -1) {
-                value = String.valueOf(iValue);
-            }
-            return value;
-        } catch (Exception e) {
-            return "";
-        }
-    }
-
     private static String getMacAddressByInterface() {
         try {
             List<NetworkInterface> all = Collections.list(NetworkInterface.getNetworkInterfaces());
@@ -955,89 +757,6 @@ public final class SensorsDataUtils {
             SALog.printStackTrace(ex);
             return true;
         }
-    }
-
-    /**
-     * 是否是首次触发的渠道事件
-     *
-     * @param context Context
-     * @param eventName 事件名称
-     * @return 是否是首次触发
-     */
-    public static boolean isFirstChannelEvent(Context context, String eventName) {
-        try {
-            SharedPreferences channelPref = getSharedPreferences(context);
-            if (channelEvents.isEmpty()) {
-                String channelJson = channelPref.getString(SHARED_PREF_CHANNEL_EVENT, "");
-                if (!TextUtils.isEmpty(channelJson)) {
-                    JSONArray jsonArray = new JSONArray(channelJson);
-                    if (jsonArray.length() > 0) {
-                        for (int i = 0; i < jsonArray.length(); i++) {
-                            channelEvents.add(jsonArray.getString(i));
-                        }
-                    }
-                }
-            }
-            if (!channelEvents.isEmpty() && channelEvents.contains(eventName)) {
-                return false;
-            }
-            channelEvents.add(eventName);
-            channelPref.edit().putString(SHARED_PREF_CHANNEL_EVENT, channelEvents.toString()).apply();
-            return true;
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-            return false;
-        }
-    }
-
-    /**
-     * 根据设备 rotation，判断屏幕方向，获取自然方向宽
-     *
-     * @param rotation 设备方向
-     * @param width 逻辑宽
-     * @param height 逻辑高
-     * @return 自然尺寸
-     */
-    public static int getNaturalWidth(int rotation, int width, int height) {
-        return rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 ?
-                width : height;
-    }
-
-    /**
-     * 根据设备 rotation，判断屏幕方向，获取自然方向高
-     *
-     * @param rotation 设备方向
-     * @param width 逻辑宽
-     * @param height 逻辑高
-     * @return 自然尺寸
-     */
-    public static int getNaturalHeight(int rotation, int width, int height) {
-        return rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 ?
-                height : width;
-    }
-
-    /**
-     * 获取应用名称
-     *
-     * @param context Context
-     * @return 应用名称
-     */
-    public static CharSequence getAppName(Context context) {
-        if (context == null) {
-            return "";
-        }
-        try {
-            PackageManager packageManager = context.getPackageManager();
-            if (packageManager == null) {
-                return "";
-            }
-            ApplicationInfo appInfo = packageManager.getApplicationInfo(context.getPackageName(),
-                    PackageManager.GET_META_DATA);
-            return appInfo.loadLabel(packageManager);
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-        return "";
     }
 
     /**

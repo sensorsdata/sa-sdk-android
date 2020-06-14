@@ -26,6 +26,7 @@ import org.json.JSONObject;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -39,36 +40,10 @@ import java.util.Map;
  *
  * @author : chenru
  */
-public class DateFormatUtils {
+public class TimeUtils {
     public static final String YYYY_MM_DD = "yyyy-MM-dd";
-    public static final String YYYY_MM_DD_HH_MM_SS_SSS = "yyyy-MM-dd HH:mm:ss.SSS";
+    private static final String YYYY_MM_DD_HH_MM_SS_SSS = "yyyy-MM-dd HH:mm:ss.SSS";
     private static Map<String, ThreadLocal<SimpleDateFormat>> formatMaps = new HashMap<>();
-
-    private synchronized static SimpleDateFormat getDateFormat(final String patten, final Locale locale) {
-        ThreadLocal<SimpleDateFormat> dateFormatThreadLocal = formatMaps.get(patten);
-        if (null == dateFormatThreadLocal) {
-            dateFormatThreadLocal = new ThreadLocal<SimpleDateFormat>() {
-                @Override
-                protected SimpleDateFormat initialValue() {
-                    SimpleDateFormat simpleDateFormat = null;
-                    try {
-                        if (locale == null) {
-                            simpleDateFormat = new SimpleDateFormat(patten, Locale.getDefault());
-                        } else {
-                            simpleDateFormat = new SimpleDateFormat(patten, locale);
-                        }
-                    } catch (Exception e) {
-                        SALog.printStackTrace(e);
-                    }
-                    return simpleDateFormat;
-                }
-            };
-            if (null != dateFormatThreadLocal.get()) {
-                formatMaps.put(patten, dateFormatThreadLocal);
-            }
-        }
-        return dateFormatThreadLocal.get();
-    }
 
     /**
      * format Date 输出文本格式
@@ -222,5 +197,47 @@ public class DateFormatUtils {
             SALog.printStackTrace(e);
         }
         return jsonObject;
+    }
+
+    /**
+     * 获取时区偏移值
+     *
+     * @return 时区偏移值，单位：分钟
+     */
+    public static Integer getZoneOffset() {
+        try {
+            Calendar cal = Calendar.getInstance(Locale.getDefault());
+            int zoneOffset = cal.get(java.util.Calendar.ZONE_OFFSET) + cal.get(Calendar.DST_OFFSET);
+            return -zoneOffset / (1000 * 60);
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+        return null;
+    }
+
+    private synchronized static SimpleDateFormat getDateFormat(final String patten, final Locale locale) {
+        ThreadLocal<SimpleDateFormat> dateFormatThreadLocal = formatMaps.get(patten);
+        if (null == dateFormatThreadLocal) {
+            dateFormatThreadLocal = new ThreadLocal<SimpleDateFormat>() {
+                @Override
+                protected SimpleDateFormat initialValue() {
+                    SimpleDateFormat simpleDateFormat = null;
+                    try {
+                        if (locale == null) {
+                            simpleDateFormat = new SimpleDateFormat(patten, Locale.getDefault());
+                        } else {
+                            simpleDateFormat = new SimpleDateFormat(patten, locale);
+                        }
+                    } catch (Exception e) {
+                        SALog.printStackTrace(e);
+                    }
+                    return simpleDateFormat;
+                }
+            };
+            if (null != dateFormatThreadLocal.get()) {
+                formatMaps.put(patten, dateFormatThreadLocal);
+            }
+        }
+        return dateFormatThreadLocal.get();
     }
 }

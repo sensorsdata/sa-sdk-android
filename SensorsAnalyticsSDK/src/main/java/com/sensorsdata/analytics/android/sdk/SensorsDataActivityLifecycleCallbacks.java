@@ -39,7 +39,7 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
-import com.sensorsdata.analytics.android.sdk.util.DateFormatUtils;
+import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataTimer;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.visual.HeatMapService;
@@ -177,7 +177,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                             if (ChannelUtils.parseUtmFromActivity(activity, true, mSensorsDataInstance.isSaveDeepLinkInfo())) {
                                 SensorsDataUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
                             }
-                            mSensorsDataInstance.track("$AppStart", properties);
+                            mSensorsDataInstance.trackInternal("$AppStart", properties);
                         }
 
                         try {
@@ -310,7 +310,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                     properties.put("event_duration", duration(startTime, endTime));
                     properties.put("event_time", pausedTime);
                     ChannelUtils.mergeUtmToEndData(endDataJsonObject, properties);
-                    mSensorsDataInstance.track("$AppEnd", properties);
+                    mSensorsDataInstance.trackInternal("$AppEnd", properties);
                     mDbAdapter.commitAppEndData(""); // 保存的信息只使用一次就置空，防止后面状态错乱再次发送。
                     mSensorsDataInstance.flushSync();
                 }
@@ -445,7 +445,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
      */
     private void checkFirstDay() {
         if (mFirstDay.get() == null) {
-            mFirstDay.commit(DateFormatUtils.formatTime(System.currentTimeMillis(), DateFormatUtils.YYYY_MM_DD));
+            mFirstDay.commit(TimeUtils.formatTime(System.currentTimeMillis(), TimeUtils.YYYY_MM_DD));
         }
     }
 
