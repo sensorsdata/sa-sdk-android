@@ -45,7 +45,7 @@ public class ReflectUtil {
         return null;
     }
 
-    static Class<?> getCurrentClass(String[] className) {
+    public static Class<?> getCurrentClass(String[] className) {
         if (className == null || className.length == 0) {
             return null;
         }
@@ -74,6 +74,24 @@ public class ReflectUtil {
                 return (T) method.invoke(instance, args);
             } catch (Exception e) {
                 // Ignored
+            }
+        }
+        return null;
+    }
+
+    public static <T> T callStaticMethod(Class<?> clazz, String methodName, Object... args) {
+        Class[] argsClass = new Class[args.length];
+        for (int i = 0; i < args.length; i++) {
+            argsClass[i] = args[i].getClass();
+        }
+        if (clazz != null) {
+            Method method = getMethod(clazz, methodName, argsClass);
+            if (method != null) {
+                try {
+                    return (T) method.invoke(null, args);
+                } catch (Exception e) {
+                    // Ignored
+                }
             }
         }
         return null;

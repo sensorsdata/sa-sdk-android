@@ -809,7 +809,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     void flush();
 
     /**
-     * 以阻塞形式将所有本地缓存的日志发送到 Sensors Analytics，该方法不能在 UI 线程调用。
+     * 以阻塞形式将所有本地缓存的日志发送到 Sensors Analytics
      */
     void flushSync();
 
