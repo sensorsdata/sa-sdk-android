@@ -57,6 +57,7 @@ import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
 import com.sensorsdata.analytics.android.sdk.visual.HeatMapService;
 import com.sensorsdata.analytics.android.sdk.visual.VisualizedAutoTrackService;
 import com.sensorsdata.analytics.android.sdk.visual.WebViewVisualInterface;
+import com.sensorsdata.analytics.android.sdk.visual.util.VisualUtil;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -1244,6 +1245,9 @@ public class SensorsDataAutoTrackHelper {
             if (activity != null) {
                 SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
+
+            //由于 RN 中 dialog 未屏蔽，直接走到原生，导致 dialog screen_name 取的是原生的。
+            VisualUtil.mergeRnScreenNameAndTitle(properties);
 
             properties.put(AopConstants.ELEMENT_TYPE, "Dialog");
 

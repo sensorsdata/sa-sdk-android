@@ -514,8 +514,9 @@ public class ViewSnapshot {
             Activity activity = AppStateManager.getInstance().getForegroundActivity();
             if (activity != null) {
                 JSONObject object = AopUtil.buildTitleAndScreenName(activity);
-                final String screenName = object.optString(AopConstants.SCREEN_NAME);
-                final String activityTitle = object.optString(AopConstants.TITLE);
+                VisualUtil.mergeRnScreenNameAndTitle(object);
+                String screenName = object.optString(AopConstants.SCREEN_NAME);
+                String activityTitle = object.optString(AopConstants.TITLE);
                 final Window window = activity.getWindow();
                 final View rootView = window.getDecorView().getRootView();
                 final RootViewInfo info = new RootViewInfo(screenName, activityTitle, rootView);
