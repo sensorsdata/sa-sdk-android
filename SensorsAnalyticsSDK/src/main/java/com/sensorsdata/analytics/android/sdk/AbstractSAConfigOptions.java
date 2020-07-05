@@ -140,4 +140,9 @@ abstract class AbstractSAConfigOptions {
      * 是否在手动埋点事件中自动添加渠道匹配信息
      */
     boolean isAutoAddChannelCallbackEvent;
+
+    /**
+     * SDK 是否初始化获取 OAID 的方式
+     */
+    boolean isSDKInitOAID = true;
 }

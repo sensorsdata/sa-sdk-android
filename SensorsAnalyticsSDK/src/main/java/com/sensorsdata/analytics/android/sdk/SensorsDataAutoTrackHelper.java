@@ -31,6 +31,7 @@ import android.text.TextUtils;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -99,29 +100,65 @@ public class SensorsDataAutoTrackHelper {
         return isDeBounceTrack;
     }
 
-    private static void traverseView(String fragmentName, ViewGroup root) {
+    private static void traverseView(final String fragmentName, final ViewGroup root) {
         try {
             if (TextUtils.isEmpty(fragmentName)) {
                 return;
             }
-
             if (root == null) {
                 return;
             }
-
             final int childCount = root.getChildCount();
-            for (int i = 0; i < childCount; ++i) {
-                final View child = root.getChildAt(i);
-                child.setTag(R.id.sensors_analytics_tag_view_fragment_name, fragmentName);
-                if (child instanceof ViewGroup && !(child instanceof ListView ||
-                        child instanceof GridView ||
-                        child instanceof Spinner ||
-                        child instanceof RadioGroup)) {
-                    traverseView(fragmentName, (ViewGroup) child);
+            if (childCount == 0 && ViewUtil.instanceOfRecyclerView(root)) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                    final ViewTreeObserver.OnGlobalLayoutListener onGlobalLayoutListener = new ViewTreeObserver.OnGlobalLayoutListener() {
+                        @Override
+                        public void onGlobalLayout() {
+                            int width = root.getWidth();
+                            int height = root.getHeight();
+                            if (width > 0 && height > 0) {
+                                setFragmentTag(fragmentName, root);
+                            }
+                        }
+                    };
+                    final ViewTreeObserver.OnScrollChangedListener onScrollChangedListener = new ViewTreeObserver.OnScrollChangedListener() {
+                        @Override
+                        public void onScrollChanged() {
+                            setFragmentTag(fragmentName, root);
+                        }
+                    };
+                    root.getViewTreeObserver().addOnGlobalLayoutListener(onGlobalLayoutListener);
+                    root.getViewTreeObserver().addOnScrollChangedListener(onScrollChangedListener);
+                    root.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+                        @Override
+                        public void onViewAttachedToWindow(View v) {
+                        }
+
+                        @Override
+                        public void onViewDetachedFromWindow(View v) {
+                            root.getViewTreeObserver().removeOnGlobalLayoutListener(onGlobalLayoutListener);
+                            root.getViewTreeObserver().removeOnScrollChangedListener(onScrollChangedListener);
+                        }
+                    });
                 }
+            } else {
+                setFragmentTag(fragmentName, root);
             }
         } catch (Exception e) {
             //ignored
+        }
+    }
+
+    private static void setFragmentTag(final String fragmentName, final ViewGroup root) {
+        for (int i = 0; i < root.getChildCount(); ++i) {
+            final View child = root.getChildAt(i);
+            child.setTag(R.id.sensors_analytics_tag_view_fragment_name, fragmentName);
+            if (child instanceof ViewGroup && !(child instanceof ListView ||
+                    child instanceof GridView ||
+                    child instanceof Spinner ||
+                    child instanceof RadioGroup)) {
+                traverseView(fragmentName, (ViewGroup) child);
+            }
         }
     }
 
@@ -1080,7 +1117,8 @@ public class SensorsDataAutoTrackHelper {
                 return;
             }
 
-            if (!view.findViewById(checkedId).isPressed()) {
+            View childView = view.findViewById(checkedId);
+            if (childView == null || !childView.isPressed()) {
                 return;
             }
 
@@ -1138,7 +1176,6 @@ public class SensorsDataAutoTrackHelper {
                 SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
-            View childView = view.findViewById(checkedId);
             String viewType = "RadioButton";
             if (childView != null) {
                 viewType = AopUtil.getViewType(childView.getClass().getCanonicalName(), "RadioButton");

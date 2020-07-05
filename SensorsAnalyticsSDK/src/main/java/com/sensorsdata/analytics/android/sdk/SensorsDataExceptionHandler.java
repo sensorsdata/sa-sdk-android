@@ -31,7 +31,7 @@ import java.io.StringWriter;
 import java.io.Writer;
 
 class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHandler {
-    private static final int SLEEP_TIMEOUT_MS = 3000;
+    private static final int SLEEP_TIMEOUT_MS = 500;
 
     private static SensorsDataExceptionHandler sInstance;
     private Thread.UncaughtExceptionHandler mDefaultExceptionHandler;
@@ -55,59 +55,51 @@ class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHandler {
     @Override
     public void uncaughtException(final Thread t, final Throwable e) {
         try {
-            SensorsDataAPI.allInstances(new SensorsDataAPI.InstanceProcessor() {
-                @Override
-                public void process(SensorsDataAPI sensorsData) {
-                    if (isTrackCrash) {
-                        try {
-                            final JSONObject messageProp = new JSONObject();
-                            try {
-                                Writer writer = new StringWriter();
-                                PrintWriter printWriter = new PrintWriter(writer);
-                                e.printStackTrace(printWriter);
-                                Throwable cause = e.getCause();
-                                while (cause != null) {
-                                    cause.printStackTrace(printWriter);
-                                    cause = cause.getCause();
-                                }
-                                printWriter.close();
-                                String result = writer.toString();
-                                messageProp.put("app_crashed_reason", result);
-                            } catch (Exception ex) {
-                                SALog.printStackTrace(ex);
-                            }
-                            sensorsData.trackInternal("AppCrashed", messageProp);
-                        } catch (Exception e) {
-                            SALog.printStackTrace(e);
+            if (isTrackCrash) {
+                try {
+                    final JSONObject messageProp = new JSONObject();
+                    try {
+                        Writer writer = new StringWriter();
+                        PrintWriter printWriter = new PrintWriter(writer);
+                        e.printStackTrace(printWriter);
+                        Throwable cause = e.getCause();
+                        while (cause != null) {
+                            cause.printStackTrace(printWriter);
+                            cause = cause.getCause();
                         }
+                        printWriter.close();
+                        String result = writer.toString();
+                        messageProp.put("app_crashed_reason", result);
+                    } catch (Exception ex) {
+                        SALog.printStackTrace(ex);
                     }
-
-                    SensorsDataTimer.getInstance().shutdownTimerTask();
-                    /*
-                     * 异常的情况会出现两种：
-                     * 1. 未完成 $AppEnd 事件，触发的异常，此时需要记录下 AppEndTime
-                     * 2. 完成了 $AppEnd 事件，下次启动时触发的异常。还未及时更新 $AppStart 的时间戳，导致计算时长偏大，所以需要重新更新启动时间戳
-                     */
-                    if (TextUtils.isEmpty(DbAdapter.getInstance().getAppEndData())) {
-                        DbAdapter.getInstance().commitAppStartTime(SystemClock.elapsedRealtime());
-                    }
-                    DbAdapter.getInstance().commitAppEndTime(System.currentTimeMillis());
-                    // 注意这里要重置为 0，对于跨进程的情况，如果子进程崩溃，主进程但是没崩溃，造成统计个数异常，所以要重置为 0。
-                    DbAdapter.getInstance().commitActivityCount(0);
-                    sensorsData.flushSync();
+                    SensorsDataAPI.sharedInstance().trackEvent(EventType.TRACK, "AppCrashed", messageProp, null);
+                } catch (Exception ex) {
+                    SALog.printStackTrace(ex);
                 }
-            });
+            }
+
+            SensorsDataTimer.getInstance().shutdownTimerTask();
+            /*
+             * 异常的情况会出现两种：
+             * 1. 未完成 $AppEnd 事件，触发的异常，此时需要记录下 AppEndTime
+             * 2. 完成了 $AppEnd 事件，下次启动时触发的异常。还未及时更新 $AppStart 的时间戳，导致计算时长偏大，所以需要重新更新启动时间戳
+             */
+            if (TextUtils.isEmpty(DbAdapter.getInstance().getAppEndData())) {
+                DbAdapter.getInstance().commitAppStartTime(SystemClock.elapsedRealtime());
+            }
+            DbAdapter.getInstance().commitAppEndTime(System.currentTimeMillis());
+            // 注意这里要重置为 0，对于跨进程的情况，如果子进程崩溃，主进程但是没崩溃，造成统计个数异常，所以要重置为 0。
+            DbAdapter.getInstance().commitActivityCount(0);
+            SensorsDataAPI.sharedInstance().flush();
+
             try {
                 Thread.sleep(SLEEP_TIMEOUT_MS);
             } catch (InterruptedException e1) {
                 SALog.printStackTrace(e1);
             }
             if (mDefaultExceptionHandler != null) {
-                try {
-                    mDefaultExceptionHandler.uncaughtException(t, e);
-                } catch (Exception ex) {
-                    //ignored
-                }
+                mDefaultExceptionHandler.uncaughtException(t, e);
             } else {
                 killProcessAndExit();
             }

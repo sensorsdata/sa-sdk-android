@@ -370,15 +370,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return mSDKRemoteConfig.isDisableSDK();
     }
 
-    /* package */
-    static void allInstances(InstanceProcessor processor) {
-        synchronized (sInstanceMap) {
-            for (final SensorsDataAPI instance : sInstanceMap.values()) {
-                processor.process(instance);
-            }
-        }
-    }
-
     /**
      * 获取并配置 App 的一些基本属性
      */
@@ -1584,12 +1575,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             public void run() {
                 try {
                     synchronized (mLoginIdLock) {
-                        if (!loginId.equals(DbAdapter.getInstance().getLoginId())) {
+                        if (!loginId.equals(DbAdapter.getInstance().getLoginId()) && !loginId.equals(getAnonymousId())) {
                             mLoginId = loginId;
                             DbAdapter.getInstance().commitLoginId(loginId);
-                            if (!loginId.equals(getAnonymousId())) {
-                                trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, getAnonymousId());
-                            }
+                            trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, getAnonymousId());
                             // 通知调用 login 接口
                             if (mEventListenerList != null) {
                                 for (SAEventListener eventListener : mEventListenerList) {
@@ -1700,7 +1689,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
                             if (!ChannelUtils.hasUtmProperties(_properties)) {
                                 String installSource = ChannelUtils.getDeviceInfo(mContext,
-                                        mAndroidId);
+                                        mAndroidId, mSAConfigOptions.isSDKInitOAID);
                                 if (_properties.has("$gaid")) {
                                     installSource = String.format("%s##gaid=%s", installSource, _properties.optString("$gaid"));
                                 }
@@ -1779,7 +1768,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         }
                         if (!ChannelUtils.hasUtmProperties(_properties)) {
                             _properties.put("$channel_device_info",
-                                    ChannelUtils.getDeviceInfo(mContext, mAndroidId));
+                                    ChannelUtils.getDeviceInfo(mContext, mAndroidId, mSAConfigOptions.isSDKInitOAID));
                         }
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
@@ -2761,11 +2750,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             if (eventType == EventType.TRACK_SIGNUP) {
                 String loginId = eventObject.getString("distinct_id");
                 synchronized (mLoginIdLock) {
-                    if (!loginId.equals(DbAdapter.getInstance().getLoginId())) {
+                    if (!loginId.equals(DbAdapter.getInstance().getLoginId()) && !loginId.equals(getAnonymousId())) {
                         DbAdapter.getInstance().commitLoginId(loginId);
-                        if (!loginId.equals(getAnonymousId())) {
-                            eventObject.put("login_id", loginId);
-                            mMessages.enqueueEventMessage(type, eventObject);
+                        eventObject.put("login_id", loginId);
+                        mMessages.enqueueEventMessage(type, eventObject);
+                        if (SALog.isLogEnabled()) {
+                            SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(eventObject.toString()));
                         }
                     }
                 }
@@ -2774,13 +2764,13 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     eventObject.put("login_id", getLoginId());
                 }
                 mMessages.enqueueEventMessage(type, eventObject);
-            }
-            if (SALog.isLogEnabled()) {
-                SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(eventObject.toString()));
+                if (SALog.isLogEnabled()) {
+                    SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(eventObject.toString()));
+                }
             }
         } catch (Exception e) {
             //ignore
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -2844,7 +2834,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         return enterDb;
     }
 
-    private void trackEvent(final EventType eventType, String eventName, final JSONObject properties, final String
+    void trackEvent(final EventType eventType, String eventName, final JSONObject properties, final String
             originalDistinctId) {
         try {
             EventTimer eventTimer = null;
@@ -3506,13 +3496,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         int getEventValue() {
             return eventValue;
         }
-    }
-
-    // Package-level access. Used (at least) by GCMReceiver
-    // when OS-level events occur.
-    /* package */
-    interface InstanceProcessor {
-        void process(SensorsDataAPI m);
     }
 
     /**
