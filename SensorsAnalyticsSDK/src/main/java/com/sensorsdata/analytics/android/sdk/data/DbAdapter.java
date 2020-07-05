@@ -21,7 +21,6 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteException;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
@@ -588,7 +587,7 @@ public class DbAdapter {
                     data = dataBuilder.toString();
                 }
             }
-        } catch (final SQLiteException e) {
+        } catch (Exception e) {
             SALog.i(TAG, "Could not pull records for SensorsData out of database " + tableName
                     + ". Waiting to send.", e);
             last_id = null;

@@ -337,4 +337,13 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
         this.isAutoAddChannelCallbackEvent = isAutoAddChannelCallbackEvent;
         return this;
     }
+
+    /**
+     * 禁用 SDK 初始化获取 OAID 的方式
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions disableSDKInitOAID() {
+        this.isSDKInitOAID = false;
+        return this;
+    }
 }

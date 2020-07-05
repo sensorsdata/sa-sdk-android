@@ -49,7 +49,10 @@ class TrackProfileSettingsActivity : BaseActivity() {
         when (view.id) {
             //产生一个自定义事件
             R.id.track_a_event -> {
-                SensorsDataAPI.sharedInstance(this).track("ViewProduct")
+                SensorsDataAPI.sharedInstance(this).track("ViewProduct",
+                        PropertyBuilder.newInstance()
+                                .append("ProductPrice", 100)
+                                .append("ProductName", "Apple").toJSONObject())
             }
             R.id.track_installation -> {
                 //check permission
@@ -97,13 +100,13 @@ class TrackProfileSettingsActivity : BaseActivity() {
             R.id.item_delete -> {
                 SensorsDataAPI.sharedInstance().itemDelete("itemType", "itemId")
             }
-            R.id.trackChannelEvent ->{
+            R.id.trackChannelEvent -> {
                 SensorsDataAPI.sharedInstance().trackChannelEvent("hello_world211")
             }
-            R.id.track_view_onclick ->{
+            R.id.track_view_onclick -> {
                 SensorsDataAPI.sharedInstance().trackViewAppClick(track_view_onclick)
             }
-            R.id.track_view_screen ->{
+            R.id.track_view_screen -> {
                 SensorsDataAPI.sharedInstance().trackViewScreen(this)
             }
             else -> {

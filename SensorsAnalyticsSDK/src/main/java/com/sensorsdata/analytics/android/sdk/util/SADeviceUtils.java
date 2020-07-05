@@ -40,10 +40,21 @@ public class SADeviceUtils {
      * @return OAID
      */
     public static String getOAID(final Context context) {
+        return getOAID(context, true);
+    }
+
+    /**
+     * 获取 OAID 接口，注意该接口是同步接口，可能会导致线程阻塞，建议在子线程中使用
+     *
+     * @param context Context
+     * @param isSDKInitOAID SDK 是否初始化 OAID
+     * @return OAID
+     */
+    public static String getOAID(final Context context, boolean isSDKInitOAID) {
         try {
             countDownLatch = new CountDownLatch(1);
             if (TextUtils.isEmpty(oaid)) {
-                getOAIDReflect(context, 2);
+                getOAIDReflect(context, 2, isSDKInitOAID);
             } else {
                 return oaid;
             }
@@ -70,17 +81,22 @@ public class SADeviceUtils {
      *
      * @param context Context
      * @param retryCount 重试次数
+     * @param isSDKInitOAID SDK 是否初始化 OAID
      */
-    private static void getOAIDReflect(Context context, int retryCount) {
+    private static void getOAIDReflect(Context context, int retryCount, boolean isSDKInitOAID) {
         try {
             if (retryCount == 0) {
                 return;
             }
             final int INIT_ERROR_RESULT_DELAY = 1008614;            //获取接口是异步的，结果会在回调中返回，回调执行的回调可能在工作线程
             // 初始化 Library
-            Class<?> jLibrary = Class.forName("com.bun.miitmdid.core.JLibrary");
-            Method initEntry = jLibrary.getDeclaredMethod("InitEntry", Context.class);
-            initEntry.invoke(null, context);
+            if (isSDKInitOAID) {
+                Class<?> jLibrary = Class.forName("com.bun.miitmdid.core.JLibrary");
+                Method initEntry = jLibrary.getDeclaredMethod("InitEntry", Context.class);
+                initEntry.invoke(null, context);
+            } else {
+                SALog.i(TAG, "已关闭 SDK 执行 OAID 的初始化操作");
+            }
             Class identifyListener;
             try {
                 identifyListener = Class.forName("com.bun.miitmdid.core.IIdentifierListener");
@@ -98,7 +114,7 @@ public class SADeviceUtils {
             int errCode = (int) initSDK.invoke(null, context, true, iIdentifierListener);
             SALog.d(TAG, "MdidSdkHelper ErrorCode : " + errCode);
             if (errCode != INIT_ERROR_RESULT_DELAY) {
-                getOAIDReflect(context, --retryCount);
+                getOAIDReflect(context, --retryCount, isSDKInitOAID);
                 if (retryCount == 0) {
                     countDownLatch.countDown();
                 }
@@ -121,7 +137,7 @@ public class SADeviceUtils {
             }).start();
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
-            getOAIDReflect(context, --retryCount);
+            getOAIDReflect(context, --retryCount, isSDKInitOAID);
             if (retryCount == 0) {// 对于没有集成 jar 包，尝试后为 0
                 countDownLatch.countDown();
             }

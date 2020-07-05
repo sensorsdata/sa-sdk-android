@@ -17,6 +17,7 @@
 
 package com.sensorsdata.analytics.android.sdk.util;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -24,9 +25,9 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.text.TextUtils;
+import android.util.LruCache;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewParent;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CheckedTextView;
@@ -44,7 +45,6 @@ import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataFragmentTitle;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
-import com.sensorsdata.analytics.android.sdk.visual.snap.Pathfinder;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -57,6 +57,8 @@ import java.util.List;
 import java.util.Locale;
 
 public class AopUtil {
+
+    private static LruCache<String, Object> sLruCache;
 
     // 采集 viewType 忽略以下包内 view 直接返回对应的基础控件 viewType
     private static ArrayList<String> sOSViewPackage = new ArrayList<String>() {{
@@ -707,6 +709,7 @@ public class AopUtil {
      * @param view 点击的 view
      * @return object 这里是 fragment 实例对象
      */
+    @SuppressLint("NewApi")
     public static Object getFragmentFromView(View view) {
         try {
             if (view != null) {
@@ -716,7 +719,16 @@ public class AopUtil {
                     fragmentName = fragmentName2;
                 }
                 if (!TextUtils.isEmpty(fragmentName)) {
-                    return Class.forName(fragmentName).newInstance();
+                    if (sLruCache == null) {
+                        sLruCache = new LruCache<>(10);
+                    }
+                    Object object = sLruCache.get(fragmentName);
+                    if (object != null) {
+                        return object;
+                    }
+                    object = Class.forName(fragmentName).newInstance();
+                    sLruCache.put(fragmentName, object);
+                    return object;
                 }
             }
         } catch (Exception e) {
