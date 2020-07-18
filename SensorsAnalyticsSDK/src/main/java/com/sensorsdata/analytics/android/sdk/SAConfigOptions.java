@@ -339,6 +339,17 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
     }
 
     /**
+     * 是否开启多渠道匹配，开启后 trackInstallation 中由 profile_set_once 操作改为 profile_set 。
+     *
+     * @param enableMultipleChannelMatch true 开启 false 关闭
+     * @return 是否开启多渠道匹配
+     */
+    public SAConfigOptions enableMultipleChannelMatch(boolean enableMultipleChannelMatch) {
+        this.mEnableMultipleChannelMatch = enableMultipleChannelMatch;
+        return this;
+    }
+
+    /**
      * 禁用 SDK 初始化获取 OAID 的方式
      * @return SAConfigOptions
      */

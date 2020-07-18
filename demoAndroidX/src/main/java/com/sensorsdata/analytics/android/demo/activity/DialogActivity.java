@@ -68,6 +68,7 @@ public class DialogActivity extends BaseActivity implements View.OnClickListener
         findViewById(R.id.dialog_list_lambda).setOnClickListener(this);
         findViewById(R.id.dialog_input_lambda).setOnClickListener(this);
         findViewById(R.id.dialog_custom_lambda).setOnClickListener(this);
+        findViewById(R.id.dialog_fragment).setOnClickListener(this);
     }
 
     @Override
@@ -131,6 +132,10 @@ public class DialogActivity extends BaseActivity implements View.OnClickListener
                 break;
             case R.id.dialog_custom_lambda:
                 showCustomizeDialogLambda();
+                break;
+            case R.id.dialog_fragment:
+                ShareDialog dialog = new ShareDialog();
+                dialog.show(getSupportFragmentManager().beginTransaction(), "hello");
                 break;
         }
     }

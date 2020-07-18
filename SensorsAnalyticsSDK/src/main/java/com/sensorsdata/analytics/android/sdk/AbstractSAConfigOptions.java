@@ -142,6 +142,11 @@ abstract class AbstractSAConfigOptions {
     boolean isAutoAddChannelCallbackEvent;
 
     /**
+     * 是否开启多渠道匹配，开启后 trackInstallation 中由 profile_set_once 操作改为 profile_set 。
+     */
+    boolean mEnableMultipleChannelMatch = false;
+
+    /**
      * SDK 是否初始化获取 OAID 的方式
      */
     boolean isSDKInitOAID = true;
