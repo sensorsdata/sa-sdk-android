@@ -1710,11 +1710,15 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         // 先发送 track
                         trackEvent(EventType.TRACK, eventName, _properties, null);
 
-                        // 再发送 profile_set_once
+                        // 再发送 profile_set_once 或者 profile_set
                         JSONObject profileProperties = new JSONObject();
                         SensorsDataUtils.mergeJSONObject(_properties, profileProperties);
                         profileProperties.put("$first_visit_time", new java.util.Date());
-                        trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null);
+                        if (mSAConfigOptions.mEnableMultipleChannelMatch) {
+                            trackEvent(EventType.PROFILE_SET, null, profileProperties, null);
+                        } else {
+                            trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null);
+                        }
 
                         if (disableCallback) {
                             mFirstTrackInstallationWithCallback.commit(false);

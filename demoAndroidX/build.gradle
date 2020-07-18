@@ -44,9 +44,11 @@ dependencies {
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'androidx.legacy:legacy-support-v13:1.0.0'
 
+    //implementation 'com.sensorsdata.analytics.android:SensorsAnalyticsSDK:4.0.0'
     implementation project(':SensorsAnalyticsSDK')
     implementation 'androidx.core:core-ktx:1.2.0'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'com.google.android:flexbox:1.1.0'
     implementation 'com.tencent.tbs.tbssdk:sdk:43697'
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.4'
 }
