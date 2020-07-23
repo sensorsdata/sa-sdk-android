@@ -1676,6 +1676,20 @@ public class SensorsDataAutoTrackHelper {
                 } else if ("popupwindow".equals(host)) {
                     showPopupWindowDialog(activity, uri);
                     intent.setData(null);
+                } else if ("encrypt".equals(host)) {
+                    String version = uri.getQueryParameter("v");
+                    String key = Uri.decode(uri.getQueryParameter("key"));
+                    SALog.d(TAG, "Encrypt, version = " + version + ", key = " + key);
+                    String tip;
+                    if (TextUtils.isEmpty(version) || TextUtils.isEmpty(key)) {
+                        tip = "密钥验证不通过，所选密钥无效";
+                    } else if (SensorsDataAPI.sharedInstance().mSensorsDataEncrypt != null) {
+                        tip = SensorsDataAPI.sharedInstance().mSensorsDataEncrypt.checkRSASecretKey(version, key);
+                    } else {
+                        tip = "当前 App 未开启加密，请开启加密后再试";
+                    }
+                    Toast.makeText(activity, tip, Toast.LENGTH_LONG).show();
+                    intent.setData(null);
                 }
             }
         } catch (Exception e) {

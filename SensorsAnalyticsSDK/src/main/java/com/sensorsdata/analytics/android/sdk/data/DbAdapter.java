@@ -17,42 +17,35 @@
 
 package com.sensorsdata.analytics.android.sdk.data;
 
-import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
-import android.database.Cursor;
-import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.encrypt.SensorsDataEncrypt;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.util.List;
-
 public class DbAdapter {
-    private static final String TAG = "SA.DbAdapter";
     private static DbAdapter instance;
-    private final File mDatabaseFile;
     private final DbParams mDbParams;
-    private final Context mContext;
-    /* Session 时长间隔 */
-    private int mSessionTime = 30 * 1000;
-    /* $AppEnd 事件触发的时间戳 */
-    private long mAppEndTime = 0;
-    private ContentResolver contentResolver;
+    private DataOperation mTrackEventOperation;
+    private DataOperation mPersistentOperation;
 
-    private DbAdapter(Context context, String packageName) {
-        mContext = context.getApplicationContext();
-        contentResolver = mContext.getContentResolver();
-        mDatabaseFile = context.getDatabasePath(DbParams.DATABASE_NAME);
+    private DbAdapter(Context context, String packageName, SensorsDataEncrypt sensorsDataEncrypt) {
         mDbParams = DbParams.getInstance(packageName);
+        if (sensorsDataEncrypt != null) {
+            mTrackEventOperation = new EncryptDataOperation(context.getApplicationContext(), sensorsDataEncrypt);
+        } else {
+            mTrackEventOperation = new EventDataOperation(context.getApplicationContext());
+        }
+        mPersistentOperation = new PersistentDataOperation(context.getApplicationContext());
     }
 
-    public static DbAdapter getInstance(Context context, String packageName) {
+    public static DbAdapter getInstance(Context context, String packageName,
+                                        SensorsDataEncrypt sensorsDataEncrypt) {
         if (instance == null) {
-            instance = new DbAdapter(context, packageName);
+            instance = new DbAdapter(context, packageName, sensorsDataEncrypt);
         }
         return instance;
     }
@@ -64,22 +57,6 @@ public class DbAdapter {
         return instance;
     }
 
-    private long getMaxCacheSize(Context context) {
-        try {
-            return SensorsDataAPI.sharedInstance(context).getMaxCacheSize();
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-            return 32 * 1024 * 1024;
-        }
-    }
-
-    private boolean belowMemThreshold() {
-        if (mDatabaseFile.exists()) {
-            return mDatabaseFile.length() >= getMaxCacheSize(mContext);
-        }
-        return false;
-    }
-
     /**
      * Adds a JSON string representing an event with properties or a person record
      * to the SQLiteDatabase.
@@ -89,104 +66,18 @@ public class DbAdapter {
      * on failure
      */
     public int addJSON(JSONObject j) {
-        // we are aware of the race condition here, but what can we do..?
-        int count = DbParams.DB_UPDATE_ERROR;
-        Cursor c = null;
-        try {
-            if (belowMemThreshold()) {
-                SALog.i(TAG, "There is not enough space left on the device to store events, so will delete 100 oldest events");
-                String[] eventsData = generateDataString(DbParams.TABLE_EVENTS, 100);
-                if (eventsData == null) {
-                    return DbParams.DB_OUT_OF_MEMORY_ERROR;
-                }
-
-                final String lastId = eventsData[0];
-                count = cleanupEvents(lastId);
-                if (count <= 0) {
-                    return DbParams.DB_OUT_OF_MEMORY_ERROR;
-                }
-            }
-
-            final ContentValues cv = new ContentValues();
-            cv.put(DbParams.KEY_DATA, j.toString() + "\t" + j.toString().hashCode());
-            cv.put(DbParams.KEY_CREATED_AT, System.currentTimeMillis());
-            contentResolver.insert(mDbParams.getEventUri(), cv);
-            c = contentResolver.query(mDbParams.getEventUri(), null, null, null, null);
-            if (c != null) {
-                count = c.getCount();
-            }
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        } finally {
-            if (c != null) {
-                c.close();
-            }
+        int code = mTrackEventOperation.insertData(mDbParams.getEventUri(), j);
+        if (code == 0) {
+            return mTrackEventOperation.queryDataCount(mDbParams.getEventUri());
         }
-        return count;
-    }
-
-    /**
-     * Adds a JSON string representing an event with properties or a person record
-     * to the SQLiteDatabase.
-     *
-     * @param eventsList the JSON to record
-     * @return the number of rows in the table, or DB_OUT_OF_MEMORY_ERROR/DB_UPDATE_ERROR
-     * on failure
-     */
-    public int addJSON(List<JSONObject> eventsList) {
-        // we are aware of the race condition here, but what can we do..?
-        int count = DbParams.DB_UPDATE_ERROR;
-        Cursor c = null;
-        try {
-            if (belowMemThreshold()) {
-                SALog.i(TAG, "There is not enough space left on the device to store events, so will delete 100 oldest events");
-                String[] eventsData = generateDataString(DbParams.TABLE_EVENTS, 100);
-                if (eventsData == null) {
-                    return DbParams.DB_OUT_OF_MEMORY_ERROR;
-                }
-                final String lastId = eventsData[0];
-                count = cleanupEvents(lastId);
-                if (count <= 0) {
-                    return DbParams.DB_OUT_OF_MEMORY_ERROR;
-                }
-            }
-            ContentValues[] contentValues = new ContentValues[eventsList.size()];
-            ContentValues cv;
-            int index = 0;
-            for (JSONObject j : eventsList) {
-                cv = new ContentValues();
-                cv.put(DbParams.KEY_DATA, j.toString() + "\t" + j.toString().hashCode());
-                cv.put(DbParams.KEY_CREATED_AT, System.currentTimeMillis());
-                contentValues[index++] = cv;
-            }
-            contentResolver.bulkInsert(mDbParams.getEventUri(), contentValues);
-            c = contentResolver.query(mDbParams.getEventUri(), null, null, null, null);
-            if (c != null) {
-                count = c.getCount();
-            }
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        } finally {
-            try {
-                if (c != null) {
-                    c.close();
-                }
-            } finally {
-
-            }
-        }
-        return count;
+        return code;
     }
 
     /**
      * Removes all events from table
      */
     public void deleteAllEvents() {
-        try {
-            contentResolver.delete(mDbParams.getEventUri(), null, null);
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
+        mTrackEventOperation.deleteData(mDbParams.getEventUri(), DbParams.DB_DELETE_ALL);
     }
 
     /**
@@ -196,27 +87,8 @@ public class DbAdapter {
      * @return the number of rows in the table
      */
     public int cleanupEvents(String last_id) {
-        Cursor c = null;
-        int count = DbParams.DB_UPDATE_ERROR;
-
-        try {
-            contentResolver.delete(mDbParams.getEventUri(), "_id <= ?", new String[]{last_id});
-            c = contentResolver.query(mDbParams.getEventUri(), null, null, null, null);
-            if (c != null) {
-                count = c.getCount();
-            }
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        } finally {
-            try {
-                if (c != null) {
-                    c.close();
-                }
-            } catch (Exception ex) {
-                // ignore
-            }
-        }
-        return count;
+        mTrackEventOperation.deleteData(mDbParams.getEventUri(), last_id);
+        return mTrackEventOperation.queryDataCount(mDbParams.getEventUri());
     }
 
     /**
@@ -225,9 +97,11 @@ public class DbAdapter {
      * @param activityCount 页面个数
      */
     public void commitActivityCount(int activityCount) {
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(DbParams.TABLE_ACTIVITY_START_COUNT, activityCount);
-        contentResolver.insert(mDbParams.getActivityStartCountUri(), contentValues);
+        try {
+            mPersistentOperation.insertData(mDbParams.getActivityStartCountUri(), new JSONObject().put(DbParams.VALUE, activityCount));
+        } catch (JSONException e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     /**
@@ -236,18 +110,11 @@ public class DbAdapter {
      * @return 存储的页面个数
      */
     public int getActivityCount() {
-        int activityCount = 0;
-        Cursor cursor = contentResolver.query(mDbParams.getActivityStartCountUri(), null, null, null, null);
-        if (cursor != null && cursor.getCount() > 0) {
-            while (cursor.moveToNext()) {
-                activityCount = cursor.getInt(0);
-            }
+        String[] values = mPersistentOperation.queryData(mDbParams.getActivityStartCountUri(), 1);
+        if (values != null && values.length > 0) {
+            return Integer.parseInt(values[0]);
         }
-
-        if (cursor != null) {
-            cursor.close();
-        }
-        return activityCount;
+        return 0;
     }
 
     /**
@@ -256,9 +123,11 @@ public class DbAdapter {
      * @param appStartTime Activity Start 的时间戳
      */
     public void commitAppStartTime(long appStartTime) {
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(DbParams.TABLE_APP_START_TIME, appStartTime);
-        contentResolver.insert(mDbParams.getAppStartTimeUri(), contentValues);
+        try {
+            mPersistentOperation.insertData(mDbParams.getAppStartTimeUri(), new JSONObject().put(DbParams.VALUE, appStartTime));
+        } catch (JSONException e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     /**
@@ -267,19 +136,15 @@ public class DbAdapter {
      * @return Activity Start 的时间戳
      */
     public long getAppStartTime() {
-        long startTime = 0;
-        Cursor cursor = contentResolver.query(mDbParams.getAppStartTimeUri(), null, null, null, null);
-        if (cursor != null && cursor.getCount() > 0) {
-            while (cursor.moveToNext()) {
-                startTime = cursor.getLong(0);
+        try {
+            String[] values = mPersistentOperation.queryData(mDbParams.getAppStartTimeUri(), 1);
+            if (values != null && values.length > 0) {
+                return Long.parseLong(values[0]);
             }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
         }
-
-        if (cursor != null) {
-            cursor.close();
-        }
-        SALog.d(TAG, "getAppStartTime:" + startTime);
-        return startTime;
+        return 0;
     }
 
     /**
@@ -289,13 +154,10 @@ public class DbAdapter {
      */
     public void commitAppEndTime(long appPausedTime) {
         try {
-            ContentValues contentValues = new ContentValues();
-            contentValues.put(DbParams.TABLE_APP_END_TIME, appPausedTime);
-            contentResolver.insert(mDbParams.getAppPausedUri(), contentValues);
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
+            mPersistentOperation.insertData(mDbParams.getAppPausedUri(), new JSONObject().put(DbParams.VALUE, appPausedTime));
+        } catch (JSONException e) {
+            SALog.printStackTrace(e);
         }
-        mAppEndTime = appPausedTime;
     }
 
     /**
@@ -304,24 +166,15 @@ public class DbAdapter {
      * @return Activity Pause 的时间戳
      */
     public long getAppEndTime() {
-        if (System.currentTimeMillis() - mAppEndTime > mSessionTime) {
-            Cursor cursor = null;
-            try {
-                cursor = contentResolver.query(mDbParams.getAppPausedUri(), null, null, null, null);
-                if (cursor != null && cursor.getCount() > 0) {
-                    while (cursor.moveToNext()) {
-                        mAppEndTime = cursor.getLong(0);
-                    }
-                }
-            } catch (Exception e) {
-                com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-            } finally {
-                if (cursor != null) {
-                    cursor.close();
-                }
+        try {
+            String[] values = mPersistentOperation.queryData(mDbParams.getAppPausedUri(), 1);
+            if (values != null && values.length > 0) {
+                return Long.parseLong(values[0]);
             }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
         }
-        return mAppEndTime;
+        return 0;
     }
 
     /**
@@ -330,9 +183,11 @@ public class DbAdapter {
      * @param appEndData Activity End 的信息
      */
     public void commitAppEndData(String appEndData) {
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(DbParams.TABLE_APP_END_DATA, appEndData);
-        contentResolver.insert(mDbParams.getAppEndDataUri(), contentValues);
+        try {
+            mPersistentOperation.insertData(mDbParams.getAppEndDataUri(), new JSONObject().put(DbParams.VALUE, appEndData));
+        } catch (JSONException e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     /**
@@ -341,19 +196,11 @@ public class DbAdapter {
      * @return Activity End 的信息
      */
     public String getAppEndData() {
-        String data = "";
-        Cursor cursor = contentResolver.query(mDbParams.getAppEndDataUri(), null, null, null, null);
-        if (cursor != null && cursor.getCount() > 0) {
-            while (cursor.moveToNext()) {
-                data = cursor.getString(0);
-            }
+        String[] values = mPersistentOperation.queryData(mDbParams.getAppEndDataUri(), 1);
+        if (values != null && values.length > 0) {
+            return values[0];
         }
-
-        if (cursor != null) {
-            cursor.close();
-        }
-        SALog.d(TAG, "getAppEndData:" + data);
-        return data;
+        return "";
     }
 
     /**
@@ -362,9 +209,11 @@ public class DbAdapter {
      * @param loginId 登录 Id
      */
     public void commitLoginId(String loginId) {
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(DbParams.TABLE_LOGIN_ID, loginId);
-        contentResolver.insert(mDbParams.getLoginIdUri(), contentValues);
+        try {
+            mPersistentOperation.insertData(mDbParams.getLoginIdUri(), new JSONObject().put(DbParams.VALUE, loginId));
+        } catch (JSONException e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     /**
@@ -373,24 +222,11 @@ public class DbAdapter {
      * @return LoginId
      */
     public String getLoginId() {
-        String data = "";
-        Cursor cursor = null;
-        try {
-            cursor = contentResolver.query(mDbParams.getLoginIdUri(), null, null, null, null);
-            if (cursor != null && cursor.getCount() > 0) {
-                while (cursor.moveToNext()) {
-                    data = cursor.getString(0);
-                }
-            }
-            SALog.d(TAG, "getLoginId:" + data);
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
+        String[] values = mPersistentOperation.queryData(mDbParams.getLoginIdUri(), 1);
+        if (values != null && values.length > 0) {
+            return values[0];
         }
-        return data;
+        return "";
     }
 
     /**
@@ -400,10 +236,8 @@ public class DbAdapter {
      */
     public void commitSessionIntervalTime(int sessionIntervalTime) {
         try {
-            ContentValues contentValues = new ContentValues();
-            contentValues.put(DbParams.TABLE_SESSION_INTERVAL_TIME, sessionIntervalTime);
-            contentResolver.insert(mDbParams.getSessionTimeUri(), contentValues);
-        } catch (Exception e) {
+            mPersistentOperation.insertData(mDbParams.getSessionTimeUri(), new JSONObject().put(DbParams.VALUE, sessionIntervalTime));
+        } catch (JSONException e) {
             SALog.printStackTrace(e);
         }
     }
@@ -414,24 +248,15 @@ public class DbAdapter {
      * @return Session 的时长
      */
     public int getSessionIntervalTime() {
-        Cursor cursor = null;
         try {
-            cursor = contentResolver.query(mDbParams.getSessionTimeUri(), null, null, null, null);
-            if (cursor != null && cursor.getCount() > 0) {
-                while (cursor.moveToNext()) {
-                    mSessionTime = cursor.getInt(0);
-                }
+            String[] values = mPersistentOperation.queryData(mDbParams.getSessionTimeUri(), 1);
+            if (values != null && values.length > 0) {
+                return Integer.parseInt(values[0]);
             }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
         }
-
-        SALog.d(TAG, "getSessionIntervalTime:" + mSessionTime);
-        return mSessionTime;
+        return 0;
     }
 
     /**
@@ -441,20 +266,7 @@ public class DbAdapter {
      * @return false 表示已存在，true 表示不存在，是首次
      */
     public boolean isFirstChannelEvent(String eventName) {
-        Cursor cursor = null;
-        try {
-            cursor = contentResolver.query(mDbParams.getChannelPersistentUri(), null, DbParams.KEY_CHANNEL_EVENT_NAME + " = ? ", new String[]{eventName}, null);
-            if (cursor != null && cursor.getCount() > 0) {
-                return false;
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
-        return true;
+        return mTrackEventOperation.queryDataCount(mDbParams.getChannelPersistentUri(), null, DbParams.KEY_CHANNEL_EVENT_NAME + " = ? ", new String[]{eventName}, null) <= 0;
     }
 
     /**
@@ -466,7 +278,7 @@ public class DbAdapter {
         ContentValues values = new ContentValues();
         values.put(DbParams.KEY_CHANNEL_EVENT_NAME, eventName);
         values.put(DbParams.KEY_CHANNEL_RESULT, true);
-        contentResolver.insert(mDbParams.getChannelPersistentUri(), values);
+        mTrackEventOperation.insertData(mDbParams.getChannelPersistentUri(), values);
     }
 
     /**
@@ -477,61 +289,6 @@ public class DbAdapter {
      * @return 数据
      */
     public String[] generateDataString(String tableName, int limit) {
-        Cursor c = null;
-        String data = null;
-        String last_id = null;
-        try {
-            c = contentResolver.query(mDbParams.getEventUri(), null, null, null, DbParams.KEY_CREATED_AT + " ASC LIMIT " + limit);
-
-            if (c != null) {
-                StringBuilder dataBuilder = new StringBuilder();
-                final String flush_time = ",\"_flush_time\":";
-                String suffix = ",";
-                dataBuilder.append("[");
-                String keyData, crc, content;
-                while (c.moveToNext()) {
-                    if (c.isLast()) {
-                        suffix = "]";
-                        last_id = c.getString(c.getColumnIndex("_id"));
-                    }
-                    try {
-                        keyData = c.getString(c.getColumnIndex(DbParams.KEY_DATA));
-                        if (!TextUtils.isEmpty(keyData)) {
-                            int index = keyData.lastIndexOf("\t");
-                            if (index > -1) {
-                                crc = keyData.substring(index).replaceFirst("\t", "");
-                                content = keyData.substring(0, index);
-                                if (TextUtils.isEmpty(content) || TextUtils.isEmpty(crc)
-                                        || !crc.equals(String.valueOf(content.hashCode()))) {
-                                    continue;
-                                }
-                                keyData = content;
-                            }
-                            dataBuilder.append(keyData, 0, keyData.length() - 1)
-                                    .append(flush_time)
-                                    .append(System.currentTimeMillis())
-                                    .append("}").append(suffix);
-                        }
-                    } catch (Exception e) {
-                        SALog.printStackTrace(e);
-                    }
-                }
-                data = dataBuilder.toString();
-            }
-        } catch (Exception e) {
-            SALog.i(TAG, "Could not pull records for SensorsData out of database " + tableName
-                    + ". Waiting to send.", e);
-            last_id = null;
-            data = null;
-        } finally {
-            if (c != null) {
-                c.close();
-            }
-        }
-
-        if (last_id != null) {
-            return new String[]{last_id, data};
-        }
-        return null;
+        return mTrackEventOperation.queryData(mDbParams.getEventUri(), limit);
     }
 }

@@ -37,6 +37,17 @@ public class SensorsDataSDKRemoteConfig {
      * 是否关闭 SDK
      */
     private boolean disableSDK;
+
+    /**
+     * RSA 公钥
+     */
+    private String rsaPublicKey;
+
+    /**
+     * 公钥版本名称
+     */
+    private int pkv;
+
     private int mAutoTrackEventType;
 
     public SensorsDataSDKRemoteConfig() {
@@ -68,6 +79,23 @@ public class SensorsDataSDKRemoteConfig {
     public void setDisableSDK(boolean disableSDK) {
         this.disableSDK = disableSDK;
     }
+
+    public String getRsaPublicKey() {
+        return rsaPublicKey;
+    }
+
+    public void setRsaPublicKey(String rsaPublicKey) {
+        this.rsaPublicKey = rsaPublicKey;
+    }
+
+    public int getPkv() {
+        return pkv;
+    }
+
+    public void setPkv(int pkv) {
+        this.pkv = pkv;
+    }
+
 
     int getAutoTrackMode() {
         return autoTrackMode;

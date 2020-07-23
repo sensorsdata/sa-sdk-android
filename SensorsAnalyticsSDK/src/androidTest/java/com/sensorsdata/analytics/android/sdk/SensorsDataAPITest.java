@@ -366,6 +366,7 @@ public class SensorsDataAPITest {
         }
     }
 
+
     @Test
     public void SAConfigOptionsTest() {
         try {
@@ -412,6 +413,7 @@ public class SensorsDataAPITest {
         }
     }
 
+
     @Test
     public void maxCacheSizeTest() {
         Context context = ApplicationProvider.getApplicationContext();
@@ -420,7 +422,7 @@ public class SensorsDataAPITest {
         long greater = 20 * 1024 * 1024;
         SensorsDataAPI.sharedInstance().setMaxCacheSize(greater);
         assertEquals(greater, SensorsDataAPI.sharedInstance().getMaxCacheSize());
-        long lesser  =  10 * 1024 * 1024;
+        long lesser = 10 * 1024 * 1024;
         SensorsDataAPI.sharedInstance().setMaxCacheSize(lesser);
         assertEquals(normal, SensorsDataAPI.sharedInstance().getMaxCacheSize());
         long negative = -1;

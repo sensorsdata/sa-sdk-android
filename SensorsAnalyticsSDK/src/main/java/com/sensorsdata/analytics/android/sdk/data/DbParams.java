@@ -41,6 +41,11 @@ public class DbParams {
     static final String KEY_CREATED_AT = "created_at";
     /* 数据库状态 */
     static final int DB_UPDATE_ERROR = -1;
+    static final String VALUE = "value";
+    public static final String GZIP_DATA_EVENT = "1";
+    public static final String GZIP_DATA_ENCRYPT = "9";
+    /* 删除所有数据 */
+    static final String DB_DELETE_ALL = "DB_DELETE_ALL";
     private static DbParams instance;
     private final Uri mUri, mActivityStartCountUri, mAppStartTimeUri, mAppEndUri,
             mAppEndDataUri, mSessionTimeUri, mLoginIdUri, mChannelPersistentUri;
