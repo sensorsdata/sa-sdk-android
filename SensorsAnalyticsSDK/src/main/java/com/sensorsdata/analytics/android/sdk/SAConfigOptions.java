@@ -17,6 +17,7 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
+import com.sensorsdata.analytics.android.sdk.encrypt.IPersistentSecretKey;
 import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
 
 public final class SAConfigOptions extends AbstractSAConfigOptions {
@@ -355,6 +356,28 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
      */
     public SAConfigOptions disableSDKInitOAID() {
         this.isSDKInitOAID = false;
+        return this;
+    }
+
+    /**
+     * 是否开启加密
+     *
+     * @param enableEncrypt 是否开启加密
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions enableEncrypt(boolean enableEncrypt) {
+        this.mEnableEncrypt = enableEncrypt;
+        return this;
+    }
+
+    /**
+     * 密钥回调监听
+     *
+     * @param persistentSecretKey 密钥回调监听
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions persistentSecretKey(IPersistentSecretKey persistentSecretKey) {
+        mPersistentSecretKey = persistentSecretKey;
         return this;
     }
 }

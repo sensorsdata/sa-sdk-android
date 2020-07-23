@@ -220,24 +220,18 @@ class AnalyticsMessages {
 
             final String lastId = eventsData[0];
             final String rawMessage = eventsData[1];
+            final String gzip = eventsData[2];
             String errorMessage = null;
 
             try {
-                String data, gzip;
-                if (SensorsDataAPI.sharedInstance().isEncryptEnabled()) {
-                    data = rawMessage;
-                    gzip = "9";
-                } else {
-                    try {
-                        data = encodeData(rawMessage);
-                        gzip = "1";
-                    } catch (IOException e) {
-                        // 格式错误，直接将数据删除
-                        throw new InvalidDataException(e);
-                    }
+                String data = rawMessage;
+                if (DbParams.GZIP_DATA_EVENT.equals(gzip)) {
+                    data = encodeData(rawMessage);
                 }
 
-                sendHttpRequest(SensorsDataAPI.sharedInstance(mContext).getServerUrl(), data, gzip, rawMessage, false);
+                if (!TextUtils.isEmpty(data)) {
+                    sendHttpRequest(SensorsDataAPI.sharedInstance(mContext).getServerUrl(), data, gzip, rawMessage, false);
+                }
             } catch (ConnectErrorException e) {
                 deleteEvents = false;
                 errorMessage = "Connection error: " + e.getMessage();
@@ -423,14 +417,28 @@ class AnalyticsMessages {
         }
     }
 
-    private String encodeData(final String rawMessage) throws IOException {
-        ByteArrayOutputStream os = new ByteArrayOutputStream(rawMessage.getBytes(CHARSET_UTF8).length);
-        GZIPOutputStream gos = new GZIPOutputStream(os);
-        gos.write(rawMessage.getBytes(CHARSET_UTF8));
-        gos.close();
-        byte[] compressed = os.toByteArray();
-        os.close();
-        return new String(Base64Coder.encode(compressed));
+    private String encodeData(final String rawMessage) throws InvalidDataException {
+        GZIPOutputStream gos = null;
+        try {
+            ByteArrayOutputStream os = new ByteArrayOutputStream(rawMessage.getBytes(CHARSET_UTF8).length);
+            gos = new GZIPOutputStream(os);
+            gos.write(rawMessage.getBytes(CHARSET_UTF8));
+            gos.close();
+            byte[] compressed = os.toByteArray();
+            os.close();
+            return new String(Base64Coder.encode(compressed));
+        } catch (IOException exception) {
+            // 格式错误，直接将数据删除
+            throw new InvalidDataException(exception);
+        } finally {
+            if (gos != null) {
+                try {
+                    gos.close();
+                } catch (IOException e) {
+                    // ignore
+                }
+            }
+        }
     }
 
     // Worker will manage the (at most single) IO thread associated with

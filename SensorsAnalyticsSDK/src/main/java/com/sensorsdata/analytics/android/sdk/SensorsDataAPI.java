@@ -46,6 +46,8 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrac
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallationWithCallback;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProperties;
+import com.sensorsdata.analytics.android.sdk.encrypt.SecreteKey;
+import com.sensorsdata.analytics.android.sdk.encrypt.SensorsDataEncrypt;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.internal.FragmentAPI;
 import com.sensorsdata.analytics.android.sdk.internal.IFragmentAPI;
@@ -96,7 +98,6 @@ import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertValu
  * Sensors Analytics SDK
  */
 public class SensorsDataAPI implements ISensorsDataAPI {
-
     // 可视化埋点功能最低 API 版本
     public static final int VTRACK_SUPPORTED_MIN_API = 16;
     // SDK版本
@@ -111,8 +112,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     static boolean SHOW_DEBUG_INFO_VIEW = true;
     private static SensorsDataSDKRemoteConfig mSDKRemoteConfig;
     private static SensorsDataGPSLocation mGPSLocation;
-    private SensorsDataEncrypt.PersistentSecretKey mPersistentSecretKey;
-    private boolean mEnableEncrypt = false;
     /* 远程配置 */
     private static SAConfigOptions mSAConfigOptions;
     private final Context mContext;
@@ -168,6 +167,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private SensorsDataTrackEventCallBack mTrackEventCallBack;
     private List<SAEventListener> mEventListenerList;
     private IFragmentAPI mFragmentAPI;
+    SensorsDataEncrypt mSensorsDataEncrypt;
 
     //private
     SensorsDataAPI() {
@@ -183,7 +183,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mDeviceInfo = null;
         mTrackTimer = null;
         mMainProcessName = null;
-        mPersistentSecretKey = null;
+        mSensorsDataEncrypt = null;
     }
 
     SensorsDataAPI(Context context, String serverURL, DebugMode debugMode) {
@@ -207,7 +207,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         new Thread(mTrackTaskManagerThread, ThreadNameConstants.THREAD_TASK_QUEUE).start();
         SensorsDataExceptionHandler.init();
         initSAConfig(serverURL, packageName);
-        DbAdapter.getInstance(context, packageName);
+        if (mSAConfigOptions.mEnableEncrypt) {
+            mSensorsDataEncrypt = new SensorsDataEncrypt(context, mSAConfigOptions.mPersistentSecretKey);
+        }
+
+        DbAdapter.getInstance(context, packageName, mSensorsDataEncrypt);
         mMessages = AnalyticsMessages.getInstance(mContext);
         mAndroidId = SensorsDataUtils.getAndroidID(mContext);
 
@@ -437,10 +441,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
         boolean enableConfigV = true;
         // 如果是开启加密的情况下，则判断密钥是否为空或是否是版本升级
-        if (isEncryptEnabled()) {
+        if (mSAConfigOptions.mEnableEncrypt) {
             if (SensorsDataUtils.checkVersionIsNew(mContext, VERSION)) {
                 enableConfigV = false;
-            } else if (TextUtils.isEmpty(getRsaPublicKey())) {
+            } else if (mSensorsDataEncrypt.isRSASecretKeyNull()) {
                 enableConfigV = false;
             }
         }
@@ -507,9 +511,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                                         configUrl = configUrl + "?v=" + configVersion;
                                     }
                                 }
-                                SALog.d(TAG, "Android remote config url:" + configUrl);
                             }
 
+                            SALog.i(TAG, "Android remote config url:" + configUrl);
                             url = new URL(configUrl);
                             urlConnection = (HttpURLConnection) url.openConnection();
                             if (urlConnection == null) {
@@ -541,9 +545,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                                 if (!TextUtils.isEmpty(data)) {
                                     SensorsDataSDKRemoteConfig sdkRemoteConfig = SensorsDataUtils.toSDKRemoteConfig(data);
                                     try {
-                                        if (mPersistentSecretKey != null) {
-                                            mPersistentSecretKey.saveSecretKey(new SensorsDataEncrypt.
-                                                    SecreteKey(sdkRemoteConfig.getRsaPublicKey(), sdkRemoteConfig.getPkv()));
+                                        if (mSAConfigOptions.mEnableEncrypt) {
+                                            mSensorsDataEncrypt.saveSecretKey(new SecreteKey(sdkRemoteConfig.getRsaPublicKey(), sdkRemoteConfig.getPkv()));
                                         }
                                     } catch (Exception e) {
                                         SALog.printStackTrace(e);
@@ -553,7 +556,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                                 }
                             }
                         } catch (Exception e) {
-                            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                            SALog.printStackTrace(e);
                         } finally {
                             try {
                                 if (in != null) {
@@ -596,11 +599,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     void applySDKConfigFromCache() {
         try {
             SensorsDataSDKRemoteConfig sdkRemoteConfig = SensorsDataUtils.toSDKRemoteConfig(mPersistentRemoteSDKConfig.get());
-
-            if (sdkRemoteConfig == null) {
-                sdkRemoteConfig = new SensorsDataSDKRemoteConfig();
-            }
-
             //关闭 debug 模式
             if (sdkRemoteConfig.isDisableDebugMode()) {
                 setDebugMode(DebugMode.DEBUG_OFF);
@@ -2272,24 +2270,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     @Override
-    public void persistentSecretKey(SensorsDataEncrypt.PersistentSecretKey persistentSecretKey) {
-        if (persistentSecretKey == null) {
-            SALog.d(TAG, "PersistentSecretKey can not be null.");
-        }
-        mPersistentSecretKey = persistentSecretKey;
-    }
-
-    @Override
-    public void enableEncrypt(boolean enableEncrypt) {
-        this.mEnableEncrypt = enableEncrypt;
-    }
-
-    @Override
-    public boolean isEncryptEnabled() {
-        return mEnableEncrypt;
-    }
-
-    @Override
     public void stopTrackThread() {
         if (mTrackTaskManagerThread != null && !mTrackTaskManagerThread.isStopped()) {
             mTrackTaskManagerThread.stop();
@@ -3159,59 +3139,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
-    }
-
-    /**
-     * 获取 RSA 公钥
-     *
-     * @return RSA 公钥
-     */
-    String getRsaPublicKey() {
-        String rsaPublicKey = null;
-        try {
-            try {
-                if (mPersistentSecretKey != null) {
-                    SensorsDataEncrypt.SecreteKey rsaPublicKeyVersion = mPersistentSecretKey.loadSecretKey();
-                    if (rsaPublicKeyVersion != null) {
-                        rsaPublicKey = rsaPublicKeyVersion.key;
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            if (TextUtils.isEmpty(rsaPublicKey) && mSDKRemoteConfig != null) {
-                rsaPublicKey = mSDKRemoteConfig.getRsaPublicKey();
-            }
-
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-        return rsaPublicKey;
-    }
-
-    /**
-     * 获取 RSA 公钥版本号
-     *
-     * @return 公钥版本
-     */
-    int getPkv() {
-        try {
-            if (mPersistentSecretKey != null) {
-                SensorsDataEncrypt.SecreteKey rsaPublicKeyVersion = mPersistentSecretKey.loadSecretKey();
-                if (rsaPublicKeyVersion != null) {
-                    return rsaPublicKeyVersion.version;
-                }
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-
-        if (mSDKRemoteConfig != null) {
-            return mSDKRemoteConfig.getPkv();
-        }
-
-        return 0;
     }
 
     boolean isMultiProcess() {

@@ -17,6 +17,8 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
+import com.sensorsdata.analytics.android.sdk.encrypt.IPersistentSecretKey;
+
 /**
  * SDK 配置抽象类
  */
@@ -150,4 +152,14 @@ abstract class AbstractSAConfigOptions {
      * SDK 是否初始化获取 OAID 的方式
      */
     boolean isSDKInitOAID = true;
+
+    /**
+     * 是否开启加密
+     */
+    boolean mEnableEncrypt = false;
+
+    /**
+     * 密钥存储相关接口
+     */
+    IPersistentSecretKey mPersistentSecretKey;
 }
