@@ -92,7 +92,6 @@ public class ViewSnapshot {
     private AlertRunnable mAlertRunnable;
     private final ResourceIds mResourceIds;
     private SnapInfo mSnapInfo = new SnapInfo();
-    private float scale;
 
     public ViewSnapshot(List<PropertyDescription> properties, ResourceIds resourceIds) {
         mProperties = properties;
@@ -214,191 +213,203 @@ public class ViewSnapshot {
     private void snapshotView(final JsonWriter j, final View view, int viewIndex)
             throws IOException {
         // 处理内嵌 H5 页面
-        List<String> webNodeIds = null;
-        if (view instanceof WebView || ViewUtil.instanceOfX5WebView(view)) {
-            mSnapInfo.isWebView = true;
-            final CountDownLatch latch = new CountDownLatch(1);
-            try {
-                view.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        String url = ReflectUtil.callMethod(view, "getUrl");
-                        if (!TextUtils.isEmpty(url)) {
-                            mSnapInfo.webViewUrl = url;
-                            Float scale = ReflectUtil.callMethod(view, "getScale");
-                            if (scale != null) {
-                                mSnapInfo.webViewScale = scale;
+        if (ViewUtil.isViewSelfVisible(view)) {
+            List<String> webNodeIds = null;
+            if (view instanceof WebView || ViewUtil.instanceOfX5WebView(view)) {
+                mSnapInfo.isWebView = true;
+                final CountDownLatch latch = new CountDownLatch(1);
+                try {
+                    view.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            String url = ReflectUtil.callMethod(view, "getUrl");
+                            if (!TextUtils.isEmpty(url)) {
+                                mSnapInfo.webViewUrl = url;
+                                Float scale = ReflectUtil.callMethod(view, "getScale");
+                                if (scale != null) {
+                                    mSnapInfo.webViewScale = scale;
+                                }
+                                latch.countDown();
+                                WebNodeInfo webNodeInfo = WebNodesManager.getInstance().getWebNodes(url);
+                                //获取不到页面元素有两种可能 1. 未集成 JS SDK 2. WebView 在扫码前已经打开。这里针对第二种情况尝试通知 JS 获取数据。
+                                if (webNodeInfo == null) {
+                                    //WebView 扫码前已打开，此时需要通知 JS 发送数据
+                                    SensorsDataAutoTrackHelper.loadUrl(view, "javascript:window.sensorsdata_app_call_js('visualized')");
+                                }
+                            } else {
+                                latch.countDown();
                             }
-                            latch.countDown();
-                            WebNodeInfo webNodeInfo = WebNodesManager.getInstance().getWebNodes(url);
-                            //获取不到页面元素有两种可能 1. 未集成 JS SDK 2. WebView 在扫码前已经打开。这里针对第二种情况尝试通知 JS 获取数据。
-                            if (webNodeInfo == null) {
-                                //WebView 扫码前已打开，此时需要通知 JS 发送数据
-                                SensorsDataAutoTrackHelper.loadUrl(view, "javascript:window.sensorsdata_app_call_js('visualized')");
-                            }
-                        } else {
-                            latch.countDown();
                         }
+                    });
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
+                try {
+                    latch.await(500, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    SALog.printStackTrace(e);
+                }
+                SALog.i(TAG, "WebView url: " + mSnapInfo.webViewUrl);
+                if (!TextUtils.isEmpty(mSnapInfo.webViewUrl)) {
+                    WebNodeInfo webNodeInfo = WebNodesManager.getInstance().getWebNodes(mSnapInfo.webViewUrl);
+                    if (webNodeInfo != null) {
+                        if (webNodeInfo.getStatus() == WebNodeInfo.Status.SUCCESS) {
+                            List<WebNode> webNodes = webNodeInfo.getWebNodes();
+                            if (webNodes != null && webNodes.size() > 0) {
+                                webNodeIds = new ArrayList<>();
+                                for (WebNode webNode : webNodes) {
+                                    mergeWebViewNodes(j, webNode, view, mSnapInfo.webViewScale);
+                                    webNodeIds.add(webNode.getId());
+                                }
+                            }
+                        } else if (webNodeInfo.getStatus() == WebNodeInfo.Status.FAILURE) {
+                            mSnapInfo.alertInfos = webNodeInfo.getAlertInfos();
+                        }
+                    } else {
+                        if (mAlertRunnable == null) {
+                            mAlertRunnable = new AlertRunnable(mSnapInfo.webViewUrl);
+                        }
+                        Dispatch.getInstance().postDelayed(mAlertRunnable, JS_NOT_INTEGRATED_ALERT_TIME_OUT);
                     }
-                });
+                }
+            }
+            // 处理原生页面
+            j.beginObject();
+            j.name("hashCode").value(view.hashCode());
+            j.name("id").value(view.getId());
+            j.name("index").value(VisualUtil.getChildIndex(view.getParent(), view));
+            j.name("element_level").value(++mSnapInfo.elementLevel);
+
+            JSONObject object = VisualUtil.getScreenNameAndTitle(view, mSnapInfo);
+            if (object != null) {
+                String screenName = object.optString(AopConstants.SCREEN_NAME);
+                String title = object.optString(AopConstants.TITLE);
+                if (!TextUtils.isEmpty(screenName)) {
+                    j.name("screen_name").value(screenName);
+                }
+                if (!TextUtils.isEmpty(title)) {
+                    j.name("title").value(title);
+                }
+            }
+
+            ViewNode viewNode = ViewUtil.getViewNode(view, viewIndex);
+            if (viewNode != null) {
+                if (!TextUtils.isEmpty(viewNode.getViewPath())) {
+                    j.name("element_path").value(viewNode.getViewPath());
+                }
+                if (!TextUtils.isEmpty(viewNode.getViewPosition())) {
+                    j.name("element_position").value(viewNode.getViewPosition());
+                }
+                if (!TextUtils.isEmpty(viewNode.getViewContent()) && VisualUtil.isSupportElementContent(view)) {
+                    j.name("element_content").value(viewNode.getViewContent());
+                }
+            }
+
+            j.name("sa_id_name").value(getResName(view));
+            try {
+                String saId = (String) view.getTag(R.id.sensors_analytics_tag_view_id);
+                if (!TextUtils.isEmpty(saId)) {
+                    j.name("sa_id_name").value(saId);
+                }
             } catch (Exception e) {
                 SALog.printStackTrace(e);
             }
-            try {
-                latch.await(500, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                SALog.printStackTrace(e);
-            }
-            SALog.i(TAG, "WebView url: " + mSnapInfo.webViewUrl);
-            if (!TextUtils.isEmpty(mSnapInfo.webViewUrl)) {
-                WebNodeInfo webNodeInfo = WebNodesManager.getInstance().getWebNodes(mSnapInfo.webViewUrl);
-                if (webNodeInfo != null) {
-                    if (webNodeInfo.getStatus() == WebNodeInfo.Status.SUCCESS) {
-                        List<WebNode> webNodes = webNodeInfo.getWebNodes();
-                        if (webNodes != null && webNodes.size() > 0) {
-                            webNodeIds = new ArrayList<>();
-                            for (WebNode webNode : webNodes) {
-                                mergeWebViewNodes(j, webNode, view, mSnapInfo.webViewScale);
-                                webNodeIds.add(webNode.getId());
-                            }
-                        }
-                    } else if (webNodeInfo.getStatus() == WebNodeInfo.Status.FAILURE) {
-                        mSnapInfo.alertInfos = webNodeInfo.getAlertInfos();
-                    }
-                } else {
-                    if (mAlertRunnable == null) {
-                        mAlertRunnable = new AlertRunnable(mSnapInfo.webViewUrl);
-                    }
-                    Dispatch.getInstance().postDelayed(mAlertRunnable, JS_NOT_INTEGRATED_ALERT_TIME_OUT);
-                }
-            }
-        }
-        // 处理原生页面
-        j.beginObject();
-        j.name("hashCode").value(view.hashCode());
-        j.name("id").value(view.getId());
-        j.name("index").value(VisualUtil.getChildIndex(view.getParent(), view));
-        j.name("element_level").value(++mSnapInfo.elementLevel);
-        ViewNode viewNode = ViewUtil.getViewNode(view, viewIndex);
-        if (viewNode != null) {
-            if (!TextUtils.isEmpty(viewNode.getViewPath())) {
-                j.name("element_path").value(viewNode.getViewPath());
-            }
-            if (!TextUtils.isEmpty(viewNode.getViewPosition())) {
-                j.name("element_position").value(viewNode.getViewPosition());
-            }
-            if (!TextUtils.isEmpty(viewNode.getViewContent()) && VisualUtil.isSupportElementContent(view)) {
-                j.name("element_content").value(viewNode.getViewContent());
-            }
-        }
-
-        j.name("sa_id_name").value(getResName(view));
-        try {
-            String saId = (String) view.getTag(R.id.sensors_analytics_tag_view_id);
-            if (!TextUtils.isEmpty(saId)) {
-                j.name("sa_id_name").value(saId);
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-        // 对于 Dialog、PopupWindow 类型的非全屏 View 由于 rootView 存在 getTop = 0 / getLeft = 0 的问题，所以先设置了一个全屏 RootView,再设置次级 View 的实际布局。
-        if (!WindowHelper.isMainWindow(view.getRootView())) {
-            if (WindowHelper.isDecorView(view.getClass())) {
-                final DisplayMetrics displayMetrics = view.getContext().getResources().getDisplayMetrics();
-                int screenWidth = displayMetrics.widthPixels;
-                int screenHeight = displayMetrics.heightPixels;
-                j.name("top").value(view.getTop());
-                j.name("left").value(view.getLeft());
-                j.name("width").value(screenWidth);
-                j.name("height").value(screenHeight);
-            } else {
-                ViewParent parent = view.getParent();
-                if (parent != null && WindowHelper.isDecorView(parent.getClass())) {
-                    Rect rect = new Rect();
-                    getVisibleRect(view, rect, false);
-                    j.name("top").value(rect.top);
-                    j.name("left").value(rect.left);
-                    j.name("width").value(rect.width());
-                    j.name("height").value(rect.height());
-                } else {
+            // 对于 Dialog、PopupWindow 类型的非全屏 View 由于 rootView 存在 getTop = 0 / getLeft = 0 的问题，所以先设置了一个全屏 RootView,再设置次级 View 的实际布局。
+            if (!WindowHelper.isMainWindow(view.getRootView())) {
+                if (WindowHelper.isDecorView(view.getClass())) {
+                    final DisplayMetrics displayMetrics = view.getContext().getResources().getDisplayMetrics();
+                    int screenWidth = displayMetrics.widthPixels;
+                    int screenHeight = displayMetrics.heightPixels;
                     j.name("top").value(view.getTop());
                     j.name("left").value(view.getLeft());
-                    j.name("width").value(view.getWidth());
-                    j.name("height").value(view.getHeight());
+                    j.name("width").value(screenWidth);
+                    j.name("height").value(screenHeight);
+                } else {
+                    ViewParent parent = view.getParent();
+                    if (parent != null && WindowHelper.isDecorView(parent.getClass())) {
+                        Rect rect = new Rect();
+                        getVisibleRect(view, rect, false);
+                        j.name("top").value(rect.top);
+                        j.name("left").value(rect.left);
+                        j.name("width").value(rect.width());
+                        j.name("height").value(rect.height());
+                    } else {
+                        j.name("top").value(view.getTop());
+                        j.name("left").value(view.getLeft());
+                        j.name("width").value(view.getWidth());
+                        j.name("height").value(view.getHeight());
+                    }
                 }
+            } else {
+                j.name("top").value(view.getTop());
+                j.name("left").value(view.getLeft());
+                j.name("width").value(view.getWidth());
+                j.name("height").value(view.getHeight());
             }
-        } else {
-            j.name("top").value(view.getTop());
-            j.name("left").value(view.getLeft());
-            j.name("width").value(view.getWidth());
-            j.name("height").value(view.getHeight());
-        }
-        j.name("scrollX").value(view.getScrollX());
-        j.name("scrollY").value(view.getScrollY());
-        j.name("visibility").value(VisualUtil.getVisibility(view));
+            j.name("scrollX").value(view.getScrollX());
+            j.name("scrollY").value(view.getScrollY());
+            j.name("visibility").value(VisualUtil.getVisibility(view));
 
-        float translationX = 0;
-        float translationY = 0;
-        if (Build.VERSION.SDK_INT >= 11) {
-            translationX = view.getTranslationX();
-            translationY = view.getTranslationY();
-        }
-        j.name("translationX").value(translationX);
-        j.name("translationY").value(translationY);
+            float translationX = 0;
+            float translationY = 0;
+            if (Build.VERSION.SDK_INT >= 11) {
+                translationX = view.getTranslationX();
+                translationY = view.getTranslationY();
+            }
+            j.name("translationX").value(translationX);
+            j.name("translationY").value(translationY);
 
-        j.name("classes");
-        j.beginArray();
-        Class<?> klass = view.getClass();
-        do {
-            j.value(mClassnameCache.get(klass));
-            klass = klass.getSuperclass();
-        } while (klass != Object.class && klass != null);
-        j.endArray();
-
-        addProperties(j, view);
-
-        ViewGroup.LayoutParams layoutParams = view.getLayoutParams();
-        if (layoutParams instanceof RelativeLayout.LayoutParams) {
-            RelativeLayout.LayoutParams relativeLayoutParams = (RelativeLayout.LayoutParams) layoutParams;
-            int[] rules = relativeLayoutParams.getRules();
-            j.name("layoutRules");
+            j.name("classes");
             j.beginArray();
-            for (int rule : rules) {
-                j.value(rule);
-            }
+            Class<?> klass = view.getClass();
+            do {
+                j.value(mClassnameCache.get(klass));
+                klass = klass.getSuperclass();
+            } while (klass != Object.class && klass != null);
             j.endArray();
-        }
 
-        j.name("subviews");
-        j.beginArray();
-        // 添加 WebView 控件所有子元素
-        if (webNodeIds != null && webNodeIds.size() > 0) {
-            for (String id : webNodeIds) {
-                j.value(id);
-            }
-        } else if (view instanceof ViewGroup) {
-            final ViewGroup group = (ViewGroup) view;
-            final int childCount = group.getChildCount();
-            for (int i = 0; i < childCount; i++) {
-                final View child = group.getChildAt(i);
-                if (null != child) {
-                    j.value(child.hashCode());
+            addProperties(j, view);
+
+            ViewGroup.LayoutParams layoutParams = view.getLayoutParams();
+            if (layoutParams instanceof RelativeLayout.LayoutParams) {
+                RelativeLayout.LayoutParams relativeLayoutParams = (RelativeLayout.LayoutParams) layoutParams;
+                int[] rules = relativeLayoutParams.getRules();
+                j.name("layoutRules");
+                j.beginArray();
+                for (int rule : rules) {
+                    j.value(rule);
                 }
+                j.endArray();
             }
-        }
-        j.endArray();
-        j.endObject();
 
-        if (view instanceof ViewGroup) {
-            if (ViewUtil.isViewSelfVisible(view)) {
+            j.name("subviews");
+            j.beginArray();
+            // 添加 WebView 控件所有子元素
+            if (webNodeIds != null && webNodeIds.size() > 0) {
+                for (String id : webNodeIds) {
+                    j.value(id);
+                }
+            } else if (view instanceof ViewGroup) {
                 final ViewGroup group = (ViewGroup) view;
                 final int childCount = group.getChildCount();
                 for (int i = 0; i < childCount; i++) {
                     final View child = group.getChildAt(i);
-                    // child can be null when views are getting disposed.
                     if (null != child) {
-                        snapshotView(j, child, i);
+                        j.value(child.hashCode());
                     }
+                }
+            }
+            j.endArray();
+            j.endObject();
+        }
+        if (view instanceof ViewGroup) {
+            final ViewGroup group = (ViewGroup) view;
+            final int childCount = group.getChildCount();
+            for (int i = 0; i < childCount; i++) {
+                final View child = group.getChildAt(i);
+                // child can be null when views are getting disposed.
+                if (null != child) {
+                    snapshotView(j, child, i);
                 }
             }
         }

@@ -17,15 +17,10 @@
 
 package com.sensorsdata.analytics.android.sdk.util;
 
-import android.annotation.TargetApi;
-import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
-import android.net.Uri;
-import android.os.Build;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
@@ -51,11 +46,9 @@ public class ChannelUtils {
     private static final String UTM_CONTENT_KEY = "SENSORS_ANALYTICS_UTM_CONTENT";
     private static final String UTM_CAMPAIGN_KEY = "SENSORS_ANALYTICS_UTM_CAMPAIGN";
     private static final String SHARED_PREF_UTM_FILE = "sensorsdata.utm";
-    private static final String SHARED_PREF_CHANNEL_EVENT = "sensorsdata.channel.event";
-    private static final String IS_FIRST_DEEPLINK_ACTIVITY_KEY = "is_first_deeplink_activity";
+
 
     private static HashSet<String> sChannelSourceKeySet = new HashSet<>();
-    private static Set<String> channelEvents = new HashSet<>();
     private static final HashMap<String, String> UTM_MAP = new HashMap<String, String>() {{
         put(UTM_SOURCE_KEY, "$utm_source");
         put(UTM_MEDIUM_KEY, "$utm_medium");
@@ -139,16 +132,16 @@ public class ChannelUtils {
     /**
      * 判断是否包含 Utm 属性
      *
-     * @param maps uri 中的 query 信息
+     * @param parameterNames uri 中的参数名
      * @return true 包含；false 不包含
      */
-    private static boolean hasLinkUtmProperties(Map<String, String> maps) {
-        if (maps == null || maps.isEmpty()) {
+    public static boolean hasLinkUtmProperties(Set<String> parameterNames) {
+        if (parameterNames == null || parameterNames.isEmpty()) {
             return false;
         }
         for (Map.Entry<String, String> entry : UTM_LINK_MAP.entrySet()) {
             if (entry != null) {
-                if (null != maps.get(entry.getValue())) {
+                if (parameterNames.contains(entry.getValue())) {
                     return true;
                 }
             }
@@ -172,6 +165,19 @@ public class ChannelUtils {
      * @return 拼接的渠道追踪设置信息
      */
     public static String getDeviceInfo(Context mContext, String androidId, boolean isSDKInitOAID) {
+        return getDeviceInfo(mContext, androidId, isSDKInitOAID, SADeviceUtils.getOAID(mContext, isSDKInitOAID));
+    }
+
+    /**
+     * 获取渠道追踪设置信息
+     *
+     * @param mContext Context
+     * @param androidId androidId
+     * @param isSDKInitOAID SDK 是否初始化 OAID
+     * @param oaid OAID
+     * @return 拼接的渠道追踪设置信息
+     */
+    public static String getDeviceInfo(Context mContext, String androidId, boolean isSDKInitOAID, String oaid) {
         return String.format("android_id=%s##imei=%s##imei_old=%s##imei_slot1=%s##imei_slot2=%s##imei_meid=%s##mac=%s##oaid=%s",
                 androidId,
                 SensorsDataUtils.getIMEI(mContext),
@@ -180,7 +186,7 @@ public class ChannelUtils {
                 SensorsDataUtils.getSlot(mContext, 1),
                 SensorsDataUtils.getMEID(mContext),
                 SensorsDataUtils.getMacAddress(mContext),
-                SADeviceUtils.getOAID(mContext, isSDKInitOAID));
+                oaid);
     }
 
     public static void mergeUtmByMetaData(Context context, JSONObject properties) throws JSONException {
@@ -208,68 +214,30 @@ public class ChannelUtils {
         }
     }
 
-    /**
-     * 解析 Uri 并返回是否包含 utm 属性
-     *
-     * @param activity 浏览页面
-     * @param isStart 是否 ActivityStarted
-     * @param isSaveDeepLinkInfo 是否保存本地
-     * @return 是否包含 utm 属性
-     */
-    @TargetApi(11)
-    public static boolean parseUtmFromActivity(Activity activity, boolean isStart, boolean isSaveDeepLinkInfo) {
-        boolean hasUtmProperties = false;
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
-            return false;
-        }
-        Intent intent = activity.getIntent();
-        if (intent != null
-                && Intent.ACTION_VIEW.equals(intent.getAction())
-                && intent.getBooleanExtra(IS_FIRST_DEEPLINK_ACTIVITY_KEY, true)) {
-            Uri uri = intent.getData();
-            if (uri == null) {
-                return false;
-            }
-            Set<String> parameterNames = uri.getQueryParameterNames();
-            if (parameterNames != null && parameterNames.size() > 0) {
-                Map<String, String> uriParams = new HashMap<>();
-                for (String name : parameterNames) {
-                    String value = uri.getQueryParameter(name);
-                    uriParams.put(name, TextUtils.isEmpty(value) ? "" : value);
+    public static void parseParams(Map<String, String> params) {
+        if (params != null && params.size() > 0) {
+            for (Map.Entry<String, String> entry : UTM_LINK_MAP.entrySet()) {
+                String utmKey = entry.getValue();
+                String value = params.get(utmKey);
+                if (!TextUtils.isEmpty(value)) {
+                    sUtmProperties.put(UTM_MAP.get(entry.getKey()), value);
+                    sLatestUtmProperties.put(LATEST_UTM_MAP.get(entry.getKey()), value);
                 }
-                hasUtmProperties = hasLinkUtmProperties(uriParams);
-                if (hasUtmProperties) {
-                    sUtmProperties.clear();
-                    sLatestUtmProperties.clear();
-                    for (Map.Entry<String, String> entry : UTM_LINK_MAP.entrySet()) {
-                        String utmKey = entry.getValue();
-                        String value = uriParams.get(utmKey);
-                        if (!TextUtils.isEmpty(value)) {
-                            sUtmProperties.put(UTM_MAP.get(entry.getKey()), value);
-                            sLatestUtmProperties.put(LATEST_UTM_MAP.get(entry.getKey()), value);
-                        }
+            }
+            for (String sourceKey : sChannelSourceKeySet) {
+                try {
+                    //检测 key 的值,非正常 key 值直接跳过.
+                    assertKey(sourceKey);
+                    String value = params.get(sourceKey);
+                    if (!TextUtils.isEmpty(value)) {
+                        sUtmProperties.put(sourceKey, value);
+                        sLatestUtmProperties.put("_latest_" + sourceKey, value);
                     }
-                    for (String sourceKey : sChannelSourceKeySet) {
-                        try {
-                            //检测 key 的值,非正常 key 值直接跳过.
-                            assertKey(sourceKey);
-                            String value = uri.getQueryParameter(sourceKey);
-                            if (!TextUtils.isEmpty(value)) {
-                                sUtmProperties.put(sourceKey, value);
-                                sLatestUtmProperties.put("_latest_" + sourceKey, value);
-                            }
-                        } catch (InvalidDataException e) {
-                            SALog.printStackTrace(e);
-                        }
-                    }
-                    intent.putExtra(IS_FIRST_DEEPLINK_ACTIVITY_KEY, isStart);
-                    if (isSaveDeepLinkInfo) {
-                        saveDeepLinkInfo(activity.getApplicationContext());
-                    }
+                } catch (InvalidDataException e) {
+                    SALog.printStackTrace(e);
                 }
             }
         }
-        return hasUtmProperties;
     }
 
     /**
@@ -308,13 +276,31 @@ public class ChannelUtils {
      *
      * @param context Context
      */
-    public static void clearLocalDeepLinkInfo(Context context) {
+    public static void clearLocalUtm(Context context) {
         try {
             SharedPreferences utmPref = getSharedPreferences(context);
             utmPref.edit().putString(SHARED_PREF_UTM_FILE, "").apply();
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
+    }
+
+    /**
+     * 清除内存中的 utm 属性
+     */
+    public static void clearMemoryUtm() {
+        sUtmProperties.clear();
+        sLatestUtmProperties.clear();
+    }
+
+    /**
+     * 清除本地保存和内存中的 utm 属性
+     *
+     * @param context Context
+     */
+    public static void clearUtm(Context context) {
+        clearMemoryUtm();
+        clearLocalUtm(context);
     }
 
     /**
@@ -345,13 +331,13 @@ public class ChannelUtils {
      *
      * @param context Context
      */
-    private static void saveDeepLinkInfo(Context context) {
+    public static void saveDeepLinkInfo(Context context) {
         try {
             if (sLatestUtmProperties.size() > 0) {
                 SharedPreferences utmPref = getSharedPreferences(context);
                 utmPref.edit().putString(SHARED_PREF_UTM_FILE, sLatestUtmProperties.toString()).apply();
             } else {
-                clearLocalDeepLinkInfo(context);
+                clearLocalUtm(context);
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);

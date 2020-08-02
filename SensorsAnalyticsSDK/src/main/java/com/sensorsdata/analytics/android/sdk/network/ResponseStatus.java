@@ -1,5 +1,5 @@
 /*
- * Created by zhangxiangwei on 2020/02/28.
+ * Created by chenru on 2020/06/22.
  * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,17 +15,23 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.visual.model;
+package com.sensorsdata.analytics.android.sdk.network;
 
-import java.util.List;
-
-public class SnapInfo {
-    public String screenName;
-    public boolean hasFragment;
-    public String activityTitle;
-    public int elementLevel = -1;
-    public boolean isWebView = false;
-    public List<WebNodeInfo.AlertInfo> alertInfos;
-    public String webViewUrl;
-    public float webViewScale;
+public enum ResponseStatus {
+    /**
+     * 成功
+     */
+    SUCCESS,
+    /**
+     * 解析错误
+     */
+    PARSE_ERROR,
+    /**
+     * 未查询到数据
+     */
+    NO_QUERY,
+    /**
+     * 请求获取参数失败
+     */
+    GET_PARAMS_FAILED
 }

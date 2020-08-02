@@ -20,6 +20,10 @@ package com.sensorsdata.analytics.android.sdk.util;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
 public class JSONUtils {
 
     public static String optionalStringKey(JSONObject o, String k) throws JSONException {
@@ -96,5 +100,18 @@ public class JSONUtils {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
             return "";
         }
+    }
+
+    public static Map<String, String> json2Map(JSONObject json) {
+        if (json != null && json.length() > 0) {
+            Map<String, String> maps = new HashMap<>();
+            Iterator<String> iterator = json.keys();
+            while (iterator.hasNext()) {
+                String key = iterator.next();
+                maps.put(key, json.optString(key));
+            }
+            return maps;
+        }
+        return null;
     }
 }

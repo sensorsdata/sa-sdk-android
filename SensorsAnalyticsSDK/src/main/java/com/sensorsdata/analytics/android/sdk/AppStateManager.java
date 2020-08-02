@@ -23,10 +23,12 @@ import android.app.Application;
 import android.os.Bundle;
 
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Method;
 
 @SuppressLint("NewApi")
 public class AppStateManager implements Application.ActivityLifecycleCallbacks {
 
+    private static final String TAG = "AppStateManager";
     private volatile static AppStateManager mSingleton = null;
 
     private int mActivityCount;
@@ -36,6 +38,7 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
 
     private WeakReference<Activity> mForeGroundActivity = new WeakReference((Object) null);
     private int mCurrentRootWindowsHashCode = -1;
+    private String mCurrentFragmentName = null;
 
     public static AppStateManager getInstance() {
         if (mSingleton == null) {
@@ -55,6 +58,28 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
 
     private void setForegroundActivity(Activity activity) {
         this.mForeGroundActivity = new WeakReference(activity);
+    }
+
+    void setFragmentScreenName(Object fragment, String fragmentScreenName) {
+        try {
+            Method getParentFragmentMethod = fragment.getClass().getMethod("getParentFragment");
+            if (getParentFragmentMethod != null) {
+                Object parentFragment = getParentFragmentMethod.invoke(fragment);
+                // 如果存在 fragment 多层嵌套场景，只取父 fragment
+                if (parentFragment == null) {
+                    mCurrentFragmentName = fragmentScreenName;
+                    SALog.i(TAG, "setFragmentScreenName | " + fragmentScreenName + " is not nested fragment and set");
+                } else {
+                    SALog.i(TAG, "setFragmentScreenName | " + fragmentScreenName + " is nested fragment and ignored");
+                }
+            }
+        } catch (Exception e) {
+            //ignored
+        }
+    }
+
+    public String getFragmentScreenName() {
+        return mCurrentFragmentName;
     }
 
     public boolean isInBackground() {

@@ -46,6 +46,7 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrac
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallationWithCallback;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProperties;
+import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.encrypt.SecreteKey;
 import com.sensorsdata.analytics.android.sdk.encrypt.SensorsDataEncrypt;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
@@ -168,6 +169,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private List<SAEventListener> mEventListenerList;
     private IFragmentAPI mFragmentAPI;
     SensorsDataEncrypt mSensorsDataEncrypt;
+    private SensorsDataDeepLinkCallback mDeepLinkCallback;
 
     //private
     SensorsDataAPI() {
@@ -1715,12 +1717,24 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             }
 
                             if (!ChannelUtils.hasUtmProperties(_properties)) {
-                                String installSource = ChannelUtils.getDeviceInfo(mContext,
-                                        mAndroidId, mSAConfigOptions.isSDKInitOAID);
+                                String installSource;
+                                if (_properties.has("$oaid")) {
+                                    String oaid = _properties.optString("$oaid");
+                                    installSource = ChannelUtils.getDeviceInfo(mContext,
+                                            mAndroidId, mSAConfigOptions.isSDKInitOAID, oaid);
+                                    SALog.i(TAG, "properties has oaid " + oaid);
+                                } else {
+                                    installSource = ChannelUtils.getDeviceInfo(mContext,
+                                            mAndroidId, mSAConfigOptions.isSDKInitOAID);
+                                }
+
                                 if (_properties.has("$gaid")) {
                                     installSource = String.format("%s##gaid=%s", installSource, _properties.optString("$gaid"));
                                 }
                                 _properties.put("$ios_install_source", installSource);
+                            }
+                            if (_properties.has("$oaid")) {
+                                _properties.remove("$oaid");
                             }
 
                             if (_properties.has("$gaid")) {
@@ -1798,8 +1812,18 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             ChannelUtils.mergeUtmByMetaData(mContext, _properties);
                         }
                         if (!ChannelUtils.hasUtmProperties(_properties)) {
-                            _properties.put("$channel_device_info",
-                                    ChannelUtils.getDeviceInfo(mContext, mAndroidId, mSAConfigOptions.isSDKInitOAID));
+                            if (_properties.has("$oaid")) {
+                                String oaid = _properties.optString("$oaid");
+                                _properties.put("$channel_device_info",
+                                        ChannelUtils.getDeviceInfo(mContext, mAndroidId, mSAConfigOptions.isSDKInitOAID, oaid));
+                                SALog.i(TAG, "properties has oaid " + oaid);
+                            } else {
+                                _properties.put("$channel_device_info",
+                                        ChannelUtils.getDeviceInfo(mContext, mAndroidId, mSAConfigOptions.isSDKInitOAID));
+                            }
+                        }
+                        if (_properties.has("$oaid")) {
+                            _properties.remove("$oaid");
                         }
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
@@ -1964,18 +1988,18 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     @Override
     public void trackTimerEnd(final String eventName, final JSONObject properties) {
-        long endTime = SystemClock.elapsedRealtime();
-        if (eventName != null) {
-            synchronized (mTrackTimer) {
-                EventTimer eventTimer = mTrackTimer.get(eventName);
-                if (eventTimer != null) {
-                    eventTimer.setEndTime(endTime);
-                }
-            }
-        }
+        final long endTime = SystemClock.elapsedRealtime();
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
+                if (eventName != null) {
+                    synchronized (mTrackTimer) {
+                        EventTimer eventTimer = mTrackTimer.get(eventName);
+                        if (eventTimer != null) {
+                            eventTimer.setEndTime(endTime);
+                        }
+                    }
+                }
                 try {
                     JSONObject _properties = ChannelUtils.checkOrSetChannelCallbackEvent(getConfigOptions().isAutoAddChannelCallbackEvent, eventName, properties, mContext);
                     trackEvent(EventType.TRACK, eventName, _properties, null);
@@ -2267,6 +2291,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public void setTrackEventCallBack(SensorsDataTrackEventCallBack trackEventCallBack) {
         mTrackEventCallBack = trackEventCallBack;
+    }
+
+    @Override
+    public void setDeepLinkCallback(SensorsDataDeepLinkCallback deepLinkCallback) {
+        mDeepLinkCallback = deepLinkCallback;
     }
 
     @Override
@@ -3317,7 +3346,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         if (isSaveDeepLinkInfo()) {
             ChannelUtils.loadUtmByLocal(mContext);
         } else {
-            ChannelUtils.clearLocalDeepLinkInfo(mContext);
+            ChannelUtils.clearLocalUtm(mContext);
         }
     }
 
@@ -3440,6 +3469,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     boolean isSaveDeepLinkInfo() {
         return mSAConfigOptions.mEnableSaveDeepLinkInfo;
+    }
+
+    SensorsDataDeepLinkCallback getDeepLinkCallback() {
+        return mDeepLinkCallback;
     }
 
     /**

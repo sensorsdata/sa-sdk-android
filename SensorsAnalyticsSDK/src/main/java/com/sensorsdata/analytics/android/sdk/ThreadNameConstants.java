@@ -22,4 +22,5 @@ public interface ThreadNameConstants {
     String THREAD_TASK_QUEUE = "SA.TaskQueueThread";
     String THREAD_SEND_DISTINCT_ID = "SA.SendDistinctIDThread";
     String THREAD_GET_SDK_REMOTE_CONFIG = "SA.GetSDKRemoteConfigThread";
+    String THREAD_DEEP_LINK_REQUEST = "SA.DeepLinkRequest";
 }

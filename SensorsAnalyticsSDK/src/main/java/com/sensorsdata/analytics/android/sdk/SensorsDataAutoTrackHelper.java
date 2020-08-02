@@ -298,9 +298,9 @@ public class SensorsDataAutoTrackHelper {
             if (!isAutoTrackFragment) {
                 return;
             }
-
             JSONObject properties = new JSONObject();
             AopUtil.getScreenNameAndTitleFromFragment(properties, fragment, null);
+            AppStateManager.getInstance().setFragmentScreenName(fragment, properties.optString(AopConstants.SCREEN_NAME));
             if (fragment instanceof ScreenAutoTracker) {
                 ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
                 JSONObject otherProperties = screenAutoTracker.getTrackProperties();

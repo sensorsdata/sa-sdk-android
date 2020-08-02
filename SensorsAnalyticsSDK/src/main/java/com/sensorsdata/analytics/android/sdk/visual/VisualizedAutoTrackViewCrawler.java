@@ -31,6 +31,7 @@ import android.os.Message;
 import android.os.Process;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.AppStateManager;
 import com.sensorsdata.analytics.android.sdk.BuildConfig;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceIds;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceReader;
@@ -284,8 +285,24 @@ class VisualizedAutoTrackViewCrawler implements VTrack {
 
                     writer.write("}");
                 }
+
+                String pageName = null;
                 if (!TextUtils.isEmpty(info.screenName)) {
                     writer.write(",\"screen_name\": \"" + info.screenName + "\"");
+                    pageName = info.screenName;
+                }
+
+                // 页面浏览事件中，如果存在 fragment ，则优先取 fragment screenName
+                if (info.hasFragment) {
+                    String fragmentScreenName = AppStateManager.getInstance().getFragmentScreenName();
+                    if (!TextUtils.isEmpty(fragmentScreenName)) {
+                        pageName = fragmentScreenName;
+                    }
+                }
+
+                SALog.i(TAG, "page_name： " + pageName);
+                if (!TextUtils.isEmpty(pageName)) {
+                    writer.write(",\"page_name\": \"" + pageName + "\"");
                 }
 
                 if (!TextUtils.isEmpty(info.activityTitle)) {

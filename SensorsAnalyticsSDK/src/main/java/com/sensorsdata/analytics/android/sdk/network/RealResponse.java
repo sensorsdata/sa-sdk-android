@@ -1,5 +1,5 @@
 /*
- * Created by zhangxiangwei on 2020/02/28.
+ * Created by chenru on 2020/06/22.
  * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,17 +15,22 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.visual.model;
+package com.sensorsdata.analytics.android.sdk.network;
 
-import java.util.List;
+import java.util.Locale;
 
-public class SnapInfo {
-    public String screenName;
-    public boolean hasFragment;
-    public String activityTitle;
-    public int elementLevel = -1;
-    public boolean isWebView = false;
-    public List<WebNodeInfo.AlertInfo> alertInfos;
-    public String webViewUrl;
-    public float webViewScale;
+public class RealResponse {
+    public String result;
+    public String errorMsg;
+    public String location;
+    public int code;
+    public long contentLength;
+    public Exception exception;
+
+    @Override
+    public String toString() {
+        return String.format(Locale.getDefault(), "code:%d\nresult:%s\nlocation:%s\nerrorMsg:%s\nexception:%s",
+                code, result, location, errorMsg,
+                exception == null ? "" : exception.getMessage());
+    }
 }

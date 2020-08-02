@@ -22,6 +22,8 @@ import android.app.Activity;
 import android.view.View;
 import android.webkit.WebView;
 
+import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
+
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -564,6 +566,11 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public void setTrackEventCallBack(SensorsDataTrackEventCallBack trackEventCallBack) {
+
+    }
+
+    @Override
+    public void setDeepLinkCallback(SensorsDataDeepLinkCallback deepLinkCallback) {
 
     }
 

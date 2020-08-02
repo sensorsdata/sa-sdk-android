@@ -1,5 +1,5 @@
 /*
- * Created by zhangxiangwei on 2020/02/28.
+ * Created by chenru on 2020/07/18.
  * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,17 +15,16 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.visual.model;
+package com.sensorsdata.analytics.android.sdk.deeplink;
 
-import java.util.List;
-
-public class SnapInfo {
-    public String screenName;
-    public boolean hasFragment;
-    public String activityTitle;
-    public int elementLevel = -1;
-    public boolean isWebView = false;
-    public List<WebNodeInfo.AlertInfo> alertInfos;
-    public String webViewUrl;
-    public float webViewScale;
+/**
+ * DeepLink Callback
+ */
+public interface SensorsDataDeepLinkCallback {
+    /**
+     * @param params 链接设置的 App 内参数
+     * @param success 是否请求成功
+     * @param appAwakePassedTime 请求时长
+     */
+    void onReceive(String params, boolean success, long appAwakePassedTime);
 }

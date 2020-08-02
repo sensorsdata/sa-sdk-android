@@ -18,6 +18,7 @@
 package com.sensorsdata.analytics.android.sdk.visual.util;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.os.Build;
 import android.text.TextUtils;
 import android.view.View;
@@ -31,11 +32,13 @@ import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 
+import com.sensorsdata.analytics.android.sdk.AppStateManager;
 import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
 import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
+import com.sensorsdata.analytics.android.sdk.visual.model.SnapInfo;
 import com.sensorsdata.analytics.android.sdk.visual.snap.Pathfinder;
 
 import org.json.JSONObject;
@@ -111,6 +114,35 @@ public class VisualUtil {
     }
 
     /**
+     * 取控件响应链的 screen_name
+     *
+     * @param view ViewTree 中的 控件
+     * @param info 可视化临时缓存对象
+     * @return 含 $screen_name 和 $title 的 json
+     */
+    public static JSONObject getScreenNameAndTitle(View view, SnapInfo info) {
+        if (view == null) {
+            return null;
+        }
+        JSONObject object = null;
+        Activity activity = AppStateManager.getInstance().getForegroundActivity();
+        if (activity != null) {
+            object = new JSONObject();
+            Object fragment = AopUtil.getFragmentFromView(view);
+            if (fragment != null) {
+                AopUtil.getScreenNameAndTitleFromFragment(object, fragment, activity);
+                if (!info.hasFragment) {
+                    info.hasFragment = true;
+                }
+            } else {
+                object = AopUtil.buildTitleAndScreenName(activity);
+                mergeRnScreenNameAndTitle(object);
+            }
+        }
+        return object;
+    }
+
+    /**
      * 如果存在 RN 页面，优先获取 RN 的 screen_name
      *
      * @param jsonObject 原生的 object
@@ -134,6 +166,5 @@ public class VisualUtil {
             SALog.printStackTrace(e);
         }
     }
-
 
 }

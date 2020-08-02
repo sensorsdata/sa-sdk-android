@@ -22,6 +22,7 @@ import android.content.Context;
 import android.view.View;
 import android.webkit.WebView;
 
+import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.internal.IFragmentAPI;
 
 import org.json.JSONObject;
@@ -826,6 +827,13 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * @param trackEventCallBack track 事件回调接口
      */
     void setTrackEventCallBack(SensorsDataTrackEventCallBack trackEventCallBack);
+
+    /**
+     * 设置 DeepLink 接口回调
+     *
+     * @param deepLinkCallback DeepLink 接口回调
+     */
+    void setDeepLinkCallback(SensorsDataDeepLinkCallback deepLinkCallback);
 
     /**
      * 获取事件公共属性
