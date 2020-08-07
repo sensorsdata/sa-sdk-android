@@ -53,6 +53,7 @@ import android.widget.Toast;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+import com.sensorsdata.analytics.android.sdk.util.ThreadUtils;
 import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
 import com.sensorsdata.analytics.android.sdk.visual.HeatMapService;
@@ -109,7 +110,7 @@ public class SensorsDataAutoTrackHelper {
                 return;
             }
             final int childCount = root.getChildCount();
-            if (childCount == 0 && ViewUtil.instanceOfRecyclerView(root)) {
+            if (childCount == 0 && (ViewUtil.instanceOfRecyclerView(root) || root instanceof AdapterView)) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
                     final ViewTreeObserver.OnGlobalLayoutListener onGlobalLayoutListener = new ViewTreeObserver.OnGlobalLayoutListener() {
                         @Override
@@ -153,10 +154,7 @@ public class SensorsDataAutoTrackHelper {
         for (int i = 0; i < root.getChildCount(); ++i) {
             final View child = root.getChildAt(i);
             child.setTag(R.id.sensors_analytics_tag_view_fragment_name, fragmentName);
-            if (child instanceof ViewGroup && !(child instanceof ListView ||
-                    child instanceof GridView ||
-                    child instanceof Spinner ||
-                    child instanceof RadioGroup)) {
+            if (child instanceof ViewGroup && !(child instanceof Spinner || child instanceof RadioGroup)) {
                 traverseView(fragmentName, (ViewGroup) child);
             }
         }
@@ -1018,94 +1016,103 @@ public class SensorsDataAutoTrackHelper {
         trackMenuItem(null, menuItem);
     }
 
-    public static void trackMenuItem(Object object, MenuItem menuItem) {
+    public static void trackMenuItem(final Object object, final MenuItem menuItem) {
         try {
-            if (menuItem == null) {
-                return;
-            }
-            //关闭 AutoTrack
-            if (!SensorsDataAPI.sharedInstance().isAutoTrackEnabled()) {
-                return;
-            }
+            ThreadUtils.getSinglePool().execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (menuItem == null) {
+                            return;
+                        }
+                        //关闭 AutoTrack
+                        if (!SensorsDataAPI.sharedInstance().isAutoTrackEnabled()) {
+                            return;
+                        }
 
-            //$AppClick 被过滤
-            if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_CLICK)) {
-                return;
-            }
+                        //$AppClick 被过滤
+                        if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_CLICK)) {
+                            return;
+                        }
 
-            //MenuItem 被忽略
-            if (AopUtil.isViewIgnored(MenuItem.class)) {
-                return;
-            }
+                        //MenuItem 被忽略
+                        if (AopUtil.isViewIgnored(MenuItem.class)) {
+                            return;
+                        }
 
-            if (isDeBounceTrack(menuItem)) {
-                return;
-            }
+                        if (isDeBounceTrack(menuItem)) {
+                            return;
+                        }
 
-            Context context = null;
-            if (object != null) {
-                if (object instanceof Context) {
-                    context = (Context) object;
+                        Context context = null;
+                        if (object != null) {
+                            if (object instanceof Context) {
+                                context = (Context) object;
+                            }
+                        }
+
+                        View view = WindowHelper.getClickView(menuItem);
+                        if (context == null && view != null) {
+                            context = view.getContext();
+                        }
+
+                        //将 Context 转成 Activity
+                        Activity activity = null;
+                        if (context != null) {
+                            activity = AopUtil.getActivityFromContext(context, null);
+                        }
+
+                        //Activity 被忽略
+                        if (activity != null) {
+                            if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(activity.getClass())) {
+                                return;
+                            }
+                        }
+
+                        //获取View ID
+                        String idString = null;
+                        try {
+                            if (context != null) {
+                                idString = context.getResources().getResourceEntryName(menuItem.getItemId());
+                            }
+                        } catch (Exception e) {
+                            SALog.printStackTrace(e);
+                        }
+
+                        JSONObject properties = new JSONObject();
+
+                        //$screen_name & $title
+                        if (activity != null) {
+                            SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
+                        }
+
+                        //ViewID
+                        if (!TextUtils.isEmpty(idString)) {
+                            properties.put(AopConstants.ELEMENT_ID, idString);
+                        }
+
+                        // 2020/4/27 新增  1. 解决 Actionbar 返回按钮 获取不到 $element_content
+                        String elementContent = null;
+                        if (!TextUtils.isEmpty(menuItem.getTitle())) {
+                            elementContent = menuItem.getTitle().toString();
+                        }
+
+                        if (view != null) {
+                            if (TextUtils.isEmpty(elementContent)) {
+                                elementContent = ViewUtil.getViewContentAndType(view).getViewContent();
+                            }
+                            AopUtil.addViewPathProperties(activity, view, properties);
+                        }
+                        properties.put(AopConstants.ELEMENT_CONTENT, elementContent);
+                        //Type
+                        properties.put(AopConstants.ELEMENT_TYPE, "MenuItem");
+
+                        SensorsDataAPI.sharedInstance().trackInternal(AopConstants.APP_CLICK_EVENT_NAME, properties);
+                    } catch (Exception e) {
+                        SALog.printStackTrace(e);
+                    }
                 }
-            }
-
-            View view = WindowHelper.getClickView(menuItem);
-            if (context == null && view != null) {
-                context = view.getContext();
-            }
-
-            //将 Context 转成 Activity
-            Activity activity = null;
-            if (context != null) {
-                activity = AopUtil.getActivityFromContext(context, null);
-            }
-
-            //Activity 被忽略
-            if (activity != null) {
-                if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(activity.getClass())) {
-                    return;
-                }
-            }
-
-            //获取View ID
-            String idString = null;
-            try {
-                if (context != null) {
-                    idString = context.getResources().getResourceEntryName(menuItem.getItemId());
-                }
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
-            }
-
-            JSONObject properties = new JSONObject();
-
-            //$screen_name & $title
-            if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
-            }
-
-            //ViewID
-            if (!TextUtils.isEmpty(idString)) {
-                properties.put(AopConstants.ELEMENT_ID, idString);
-            }
-
-            // 2020/4/27 新增  1. 解决 Actionbar 返回按钮 获取不到 $element_content
-            String elementContent = null;
-            if (!TextUtils.isEmpty(menuItem.getTitle())) {
-                elementContent = menuItem.getTitle().toString();
-            }
-
-            if (view != null) {
-                if (TextUtils.isEmpty(elementContent)) {
-                    elementContent = ViewUtil.getViewContentAndType(view).getViewContent();
-                }
-                AopUtil.addViewPathProperties(activity, view, properties);
-            }
-            properties.put(AopConstants.ELEMENT_CONTENT, elementContent);
-            //Type
-            properties.put(AopConstants.ELEMENT_TYPE, "MenuItem");
-
-            SensorsDataAPI.sharedInstance().trackInternal(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            });
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
