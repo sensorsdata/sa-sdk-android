@@ -22,7 +22,6 @@ import android.os.SystemClock;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataTimer;
 
 import org.json.JSONObject;
 
@@ -79,7 +78,6 @@ class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHandler {
                 }
             }
 
-            SensorsDataTimer.getInstance().shutdownTimerTask();
             /*
              * 异常的情况会出现两种：
              * 1. 未完成 $AppEnd 事件，触发的异常，此时需要记录下 AppEndTime
@@ -87,8 +85,14 @@ class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHandler {
              */
             if (TextUtils.isEmpty(DbAdapter.getInstance().getAppEndData())) {
                 DbAdapter.getInstance().commitAppStartTime(SystemClock.elapsedRealtime());
+            } else {
+                DbAdapter.getInstance().commitAppEndTime(System.currentTimeMillis());
             }
-            DbAdapter.getInstance().commitAppEndTime(System.currentTimeMillis());
+
+            if (SensorsDataAPI.sharedInstance().isMultiProcessFlushData()) {
+                DbAdapter.getInstance().commitSubProcessFlushState(false);
+            }
+
             // 注意这里要重置为 0，对于跨进程的情况，如果子进程崩溃，主进程但是没崩溃，造成统计个数异常，所以要重置为 0。
             DbAdapter.getInstance().commitActivityCount(0);
             SensorsDataAPI.sharedInstance().flush();

@@ -33,6 +33,7 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndData;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppPaused;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppStartTime;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFlushDataState;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSessionIntervalTime;
 
@@ -50,6 +51,8 @@ public class SensorsDataContentProvider extends ContentProvider {
     private final static int SESSION_INTERVAL_TIME = 6;
     private final static int LOGIN_ID = 7;
     private final static int CHANNEL_PERSISTENT = 8;
+    private final static int FLUSH_DATA = 9;
+    private final static int FIRST_PROCESS_START = 10;
     private static UriMatcher uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 
     private SensorsDataDBHelper dbHelper;
@@ -59,8 +62,10 @@ public class SensorsDataContentProvider extends ContentProvider {
     private PersistentAppPaused persistentAppPaused;
     private PersistentSessionIntervalTime persistentSessionIntervalTime;
     private PersistentLoginId persistentLoginId;
+    private PersistentFlushDataState persistentFlushDataState;
 
     private boolean isDbWritable = true;
+    private boolean isFirstProcessStarted = true;
     private int startActivityCount = 0;
 
     @Override
@@ -84,6 +89,8 @@ public class SensorsDataContentProvider extends ContentProvider {
             uriMatcher.addURI(authority, DbParams.TABLE_SESSION_INTERVAL_TIME, SESSION_INTERVAL_TIME);
             uriMatcher.addURI(authority, DbParams.TABLE_LOGIN_ID, LOGIN_ID);
             uriMatcher.addURI(authority, DbParams.TABLE_CHANNEL_PERSISTENT, CHANNEL_PERSISTENT);
+            uriMatcher.addURI(authority, DbParams.TABLE_SUB_PROCESS_FLUSH_DATA, FLUSH_DATA);
+            uriMatcher.addURI(authority, DbParams.TABLE_FIRST_PROCESS_START, FIRST_PROCESS_START);
             dbHelper = new SensorsDataDBHelper(context);
 
             /* 迁移数据，并删除老的数据库 */
@@ -120,6 +127,7 @@ public class SensorsDataContentProvider extends ContentProvider {
             persistentAppPaused = (PersistentAppPaused) PersistentLoader.loadPersistent(DbParams.TABLE_APP_END_TIME);
             persistentSessionIntervalTime = (PersistentSessionIntervalTime) PersistentLoader.loadPersistent(DbParams.TABLE_SESSION_INTERVAL_TIME);
             persistentLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(DbParams.TABLE_LOGIN_ID);
+            persistentFlushDataState = (PersistentFlushDataState) PersistentLoader.loadPersistent(DbParams.TABLE_SUB_PROCESS_FLUSH_DATA);
         }
         return true;
     }
@@ -302,6 +310,12 @@ public class SensorsDataContentProvider extends ContentProvider {
             case LOGIN_ID:
                 persistentLoginId.commit(values.getAsString(DbParams.TABLE_LOGIN_ID));
                 break;
+            case FLUSH_DATA:
+                persistentFlushDataState.commit(values.getAsBoolean(DbParams.TABLE_SUB_PROCESS_FLUSH_DATA));
+                break;
+            case FIRST_PROCESS_START:
+                isFirstProcessStarted = values.getAsBoolean(DbParams.TABLE_FIRST_PROCESS_START);
+                break;
             default:
                 break;
         }
@@ -340,6 +354,22 @@ public class SensorsDataContentProvider extends ContentProvider {
             case LOGIN_ID:
                 data = persistentLoginId.get();
                 column = DbParams.TABLE_LOGIN_ID;
+                break;
+            case FLUSH_DATA:
+                synchronized (SensorsDataContentProvider.class) {
+                    if (persistentFlushDataState.get()) {
+                        data = 1;
+                    } else {
+                        data = 0;
+                        persistentFlushDataState.commit(true);
+                    }
+                    column = DbParams.TABLE_SUB_PROCESS_FLUSH_DATA;
+                }
+                break;
+            case FIRST_PROCESS_START:
+                data = isFirstProcessStarted ? 1 : 0;
+                column = DbParams.TABLE_FIRST_PROCESS_START;
+                break;
             default:
                 break;
         }

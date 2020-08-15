@@ -352,6 +352,7 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
 
     /**
      * 禁用 SDK 初始化获取 OAID 的方式
+     *
      * @return SAConfigOptions
      */
     public SAConfigOptions disableSDKInitOAID() {
@@ -378,6 +379,16 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
      */
     public SAConfigOptions persistentSecretKey(IPersistentSecretKey persistentSecretKey) {
         mPersistentSecretKey = persistentSecretKey;
+        return this;
+    }
+
+    /**
+     * 是否多进程上报数据
+     *
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions enableSubProcessFlushData() {
+        this.isSubProcessFlushData = true;
         return this;
     }
 }

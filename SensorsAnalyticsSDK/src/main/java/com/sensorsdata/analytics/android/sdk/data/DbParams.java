@@ -34,6 +34,8 @@ public class DbParams {
     static final String TABLE_APP_START_TIME = "app_start_time";
     static final String TABLE_APP_END_TIME = "app_end_time";
     static final String TABLE_APP_END_DATA = "app_end_data";
+    public static final String TABLE_SUB_PROCESS_FLUSH_DATA = "sub_process_flush_data";
+    public static final String TABLE_FIRST_PROCESS_START = "first_process_start";
     static final String TABLE_SESSION_INTERVAL_TIME = "session_interval_time";
     static final String TABLE_LOGIN_ID = "events_login_id";
     /* Event 表字段 */
@@ -48,7 +50,7 @@ public class DbParams {
     static final String DB_DELETE_ALL = "DB_DELETE_ALL";
     private static DbParams instance;
     private final Uri mUri, mActivityStartCountUri, mAppStartTimeUri, mAppEndUri,
-            mAppEndDataUri, mSessionTimeUri, mLoginIdUri, mChannelPersistentUri;
+            mAppEndDataUri, mSessionTimeUri, mLoginIdUri, mChannelPersistentUri, mSubProcessUri, mFirstProcessUri;
 
     private DbParams(String packageName) {
         mUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_EVENTS);
@@ -59,6 +61,8 @@ public class DbParams {
         mSessionTimeUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_SESSION_INTERVAL_TIME);
         mLoginIdUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_LOGIN_ID);
         mChannelPersistentUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_CHANNEL_PERSISTENT);
+        mSubProcessUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_SUB_PROCESS_FLUSH_DATA);
+        mFirstProcessUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_FIRST_PROCESS_START);
     }
 
     public static DbParams getInstance(String packageName) {
@@ -145,5 +149,23 @@ public class DbParams {
      */
     public Uri getChannelPersistentUri() {
         return mChannelPersistentUri;
+    }
+
+    /**
+     * 多进程上报数据标记位 Uri
+     *
+     * @return Uri
+     */
+    Uri getSubProcessUri() {
+        return mSubProcessUri;
+    }
+
+    /**
+     * 是否首个启动的进程 Uri
+     *
+     * @return Uri
+     */
+    public Uri getFirstProcessUri() {
+        return mFirstProcessUri;
     }
 }

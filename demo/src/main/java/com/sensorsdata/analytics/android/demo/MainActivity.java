@@ -25,7 +25,6 @@ import android.widget.Button;
 import androidx.databinding.DataBindingUtil;
 
 import com.sensorsdata.analytics.android.demo.databinding.ActivityMainBinding;
-import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
 public class MainActivity extends Activity {
 
@@ -54,7 +53,6 @@ public class MainActivity extends Activity {
         findViewById(R.id.button).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                SensorsDataAPI.sharedInstance().trackInstallation("install");
             }
         });
     }

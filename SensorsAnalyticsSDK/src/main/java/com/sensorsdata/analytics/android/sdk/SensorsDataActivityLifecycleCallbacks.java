@@ -42,7 +42,6 @@ import com.sensorsdata.analytics.android.sdk.deeplink.DeepLinkManager;
 import com.sensorsdata.analytics.android.sdk.deeplink.DeepLinkProcessor;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataTimer;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 import com.sensorsdata.analytics.android.sdk.visual.HeatMapService;
@@ -75,8 +74,6 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private boolean isMultiProcess;
     private int startActivityCount;
     private int startTimerCount;
-    // $AppEnd 消息标记位
-    private final int MESSAGE_END = 0;
     // $AppStart 事件的时间戳
     private final String APP_START_TIME = "app_start_time";
     // $AppEnd 事件的时间戳
@@ -89,23 +86,19 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private String app_version;
     // SDK 版本号
     private String lib_version;
-    private Handler handler;
+    private Handler mHandler;
     /* 兼容由于在魅族手机上退到后台后，线程会被休眠，导致 $AppEnd 无法触发，造成再次打开重复发送。*/
     private long messageReceiveTime = 0L;
+    // $AppEnd 消息标记位
+    private final int MESSAGE_CODE_APP_END = 0;
+    private final int MESSAGE_CODE_TIMER = 100;
+    private final int MESSAGE_CODE_SESSION = 200;
 
     private DeepLinkProcessor mDeepLinkInfo;
     /**
      * 打点时间间隔：2000 毫秒
      */
     private static final int TIME_INTERVAL = 2000;
-    private Runnable timer = new Runnable() {
-        @Override
-        public void run() {
-            if (mSensorsDataInstance.isAutoTrackEnabled() && isAutoTrackAppEnd()) {
-                generateAppEndData();
-            }
-        }
-    };
 
     SensorsDataActivityLifecycleCallbacks(SensorsDataAPI instance, PersistentFirstStart firstStart,
                                           PersistentFirstDay firstDay, Context context) {
@@ -115,7 +108,6 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         this.mContext = context;
         this.mDbAdapter = DbAdapter.getInstance();
         this.isMultiProcess = mSensorsDataInstance.isMultiProcess();
-        this.sessionTime = mDbAdapter.getSessionIntervalTime();
         try {
             final PackageManager manager = mContext.getPackageManager();
             final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
@@ -125,6 +117,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
             SALog.i(TAG, "Exception getting version name = ", e);
         }
         initHandler();
+        mHandler.sendEmptyMessage(MESSAGE_CODE_SESSION);
     }
 
     @Override
@@ -148,11 +141,11 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                 if (mSensorsDataInstance.isSaveDeepLinkInfo()) {// 保存 utm 信息时,在 endData 中合并保存的 latestUtm 信息。
                     SensorsDataUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), endDataProperty);
                 }
-                handler.removeMessages(MESSAGE_END);
+                mHandler.removeMessages(MESSAGE_CODE_APP_END);
                 boolean sessionTimeOut = isSessionTimeOut();
                 if (sessionTimeOut) {
                     // 超时尝试补发 $AppEnd
-                    handler.sendMessage(generateMessage(false));
+                    mHandler.sendMessage(obtainAppEndMessage(false));
                     checkFirstDay();
                     // XXX: 注意内部执行顺序
                     boolean firstStart = mFirstStart.get();
@@ -195,15 +188,15 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                             }
                             mSensorsDataInstance.trackInternal("$AppStart", properties);
                         }
-
-                        try {
-                            mDbAdapter.commitAppStartTime(SystemClock.elapsedRealtime());   // 防止动态开启 $AppEnd 时，启动时间戳不对的问题。
-                        } catch (Exception ex) {
-                            // 出现异常，在重新存储一次，防止使用原有的时间戳造成时长计算错误
-                            mDbAdapter.commitAppStartTime(SystemClock.elapsedRealtime());
-                        }
                     } catch (Exception e) {
                         SALog.i(TAG, e);
+                    }
+
+                    try {
+                        mDbAdapter.commitAppStartTime(SystemClock.elapsedRealtime());   // 防止动态开启 $AppEnd 时，启动时间戳不对的问题。
+                    } catch (Exception ex) {
+                        // 出现异常，在重新存储一次，防止使用原有的时间戳造成时长计算错误
+                        mDbAdapter.commitAppStartTime(SystemClock.elapsedRealtime());
                     }
 
                     if (resumeFromBackground) {
@@ -226,7 +219,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                  *  1. App 在 onResume 之前 Crash，导致只有启动没有退出；
                  *  2. 多进程的情况下只会开启一个打点器；
                  */
-                SensorsDataTimer.getInstance().timer(timer, 0, TIME_INTERVAL);
+                mHandler.sendEmptyMessage(MESSAGE_CODE_TIMER);
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -284,7 +277,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
             // 停止计时器，针对跨进程的情况，要停止当前进程的打点器
             startTimerCount--;
             if (startTimerCount == 0) {
-                SensorsDataTimer.getInstance().shutdownTimerTask();
+                mHandler.removeMessages(MESSAGE_CODE_TIMER);
             }
 
             if (mSensorsDataInstance.isMultiProcess()) {
@@ -301,7 +294,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
              */
             if (startActivityCount <= 0) {
                 generateAppEndData();
-                handler.sendMessageDelayed(generateMessage(true), sessionTime);
+                mHandler.sendMessageDelayed(obtainAppEndMessage(true), sessionTime);
             }
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
@@ -314,6 +307,57 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
     @Override
     public void onActivityDestroyed(Activity activity) {
+    }
+
+    private void initHandler() {
+        try {
+            HandlerThread handlerThread = new HandlerThread("SENSORS_DATA_THREAD");
+            handlerThread.start();
+            mHandler = new Handler(handlerThread.getLooper()) {
+                @Override
+                public void handleMessage(Message msg) {
+                    int code = msg.what;
+                    switch (code) {
+                        case MESSAGE_CODE_TIMER:
+                            if (mSensorsDataInstance.isAutoTrackEnabled() && isAutoTrackAppEnd()) {
+                                generateAppEndData();
+                            }
+
+                            if (startTimerCount > 0) {
+                                mHandler.sendEmptyMessageDelayed(MESSAGE_CODE_TIMER, TIME_INTERVAL);
+                            }
+                            break;
+                        case MESSAGE_CODE_APP_END:
+                            if (messageReceiveTime != 0 && SystemClock.elapsedRealtime() - messageReceiveTime < sessionTime) {
+                                SALog.i(TAG, "$AppEnd 事件已触发。");
+                                return;
+                            }
+                            messageReceiveTime = SystemClock.elapsedRealtime();
+                            Bundle bundle = msg.getData();
+                            long startTime = bundle.getLong(APP_START_TIME);
+                            long endTime = bundle.getLong(APP_END_TIME);
+                            String endData = bundle.getString(APP_END_DATA);
+                            boolean resetState = bundle.getBoolean(APP_RESET_STATE);
+                            // 如果是正常的退到后台，需要重置标记位
+                            if (resetState) {
+                                resetState();
+                            } else {// 如果是补发则需要添加打点间隔，防止 $AppEnd 在 AppCrash 事件序列之前
+                                endTime = endTime + TIME_INTERVAL;
+                            }
+                            trackAppEnd(startTime, endTime, endData);
+                            break;
+                        case MESSAGE_CODE_SESSION:
+                            sessionTime = mDbAdapter.getSessionIntervalTime();
+                            break;
+                    }
+                }
+            };
+            // 注册 Session 监听，防止多进程
+            mContext.getContentResolver().registerContentObserver(DbParams.getInstance().getSessionTimeUri(),
+                    false, new SensorsActivityStateObserver(mHandler));
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
     }
 
     /**
@@ -389,7 +433,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
      * @return true 超时，false 未超时
      */
     private boolean isSessionTimeOut() {
-        long currentTime = System.currentTimeMillis() > 946656000000L ? System.currentTimeMillis() : 946656000000L;
+        long currentTime = Math.max(System.currentTimeMillis(), 946656000000L);
         boolean sessionTimeOut = Math.abs(currentTime - mDbAdapter.getAppEndTime()) > sessionTime;
         SALog.d(TAG, "SessionTimeOut:" + sessionTimeOut);
         return sessionTimeOut;
@@ -401,9 +445,9 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
      * @param resetState 是否重置状态
      * @return Message
      */
-    private Message generateMessage(boolean resetState) {
-        Message message = Message.obtain(handler);
-        message.what = MESSAGE_END;
+    private Message obtainAppEndMessage(boolean resetState) {
+        Message message = Message.obtain(mHandler);
+        message.what = MESSAGE_CODE_APP_END;
         Bundle bundle = new Bundle();
         bundle.putLong(APP_START_TIME, DbAdapter.getInstance().getAppStartTime());
         bundle.putLong(APP_END_TIME, DbAdapter.getInstance().getAppEndTime());
@@ -411,42 +455,6 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         bundle.putBoolean(APP_RESET_STATE, resetState);
         message.setData(bundle);
         return message;
-    }
-
-    private void initHandler() {
-        try {
-            HandlerThread handlerThread = new HandlerThread("app_end_timer");
-            handlerThread.start();
-            handler = new Handler(handlerThread.getLooper()) {
-                @Override
-                public void handleMessage(Message msg) {
-                    if (messageReceiveTime != 0 && SystemClock.elapsedRealtime() - messageReceiveTime < sessionTime) {
-                        SALog.i(TAG, "$AppEnd 事件已触发。");
-                        return;
-                    }
-                    messageReceiveTime = SystemClock.elapsedRealtime();
-                    if (msg != null) {
-                        Bundle bundle = msg.getData();
-                        long startTime = bundle.getLong(APP_START_TIME);
-                        long endTime = bundle.getLong(APP_END_TIME);
-                        String endData = bundle.getString(APP_END_DATA);
-                        boolean resetState = bundle.getBoolean(APP_RESET_STATE);
-                        // 如果是正常的退到后台，需要重置标记位
-                        if (resetState) {
-                            resetState();
-                        } else {// 如果是补发则需要添加打点间隔，防止 $AppEnd 在 AppCrash 事件序列之前
-                            endTime = endTime + TIME_INTERVAL;
-                        }
-                        trackAppEnd(startTime, endTime, endData);
-                    }
-                }
-            };
-            // 注册 Session 监听，防止多进程
-            mContext.getContentResolver().registerContentObserver(DbParams.getInstance().getSessionTimeUri(),
-                    false, new SensorsActivityStateObserver(handler));
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
-        }
     }
 
     /**

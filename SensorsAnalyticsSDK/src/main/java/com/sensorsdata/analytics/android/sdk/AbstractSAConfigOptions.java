@@ -149,6 +149,11 @@ abstract class AbstractSAConfigOptions {
     boolean mEnableMultipleChannelMatch = false;
 
     /**
+     * 是否子进程上报数据
+     */
+    boolean isSubProcessFlushData = false;
+
+    /**
      * SDK 是否初始化获取 OAID 的方式
      */
     boolean isSDKInitOAID = true;

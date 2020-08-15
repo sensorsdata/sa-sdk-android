@@ -282,6 +282,66 @@ public class DbAdapter {
     }
 
     /**
+     * 保存子进程上报数据的状态
+     *
+     * @param flushState 上报状态
+     */
+    public void commitSubProcessFlushState(boolean flushState) {
+        try {
+            mPersistentOperation.insertData(mDbParams.getSubProcessUri(), new JSONObject().put(DbParams.VALUE, flushState));
+        } catch (JSONException e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
+    /**
+     * 获取子进程上报数据状态
+     *
+     * @return 上报状态
+     */
+    public boolean isSubProcessFlushing() {
+        try {
+            String[] values = mPersistentOperation.queryData(mDbParams.getSubProcessUri(), 1);
+            if (values != null && values.length > 0) {
+                return Integer.parseInt(values[0]) == 1;
+            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+        return true;
+    }
+
+    /**
+     * 保存首个启动进程的标记
+     *
+     * @param isFirst 是否首个进程
+     */
+    public void commitFirstProcessState(boolean isFirst) {
+        try {
+            mPersistentOperation.insertData(mDbParams.getFirstProcessUri(), new JSONObject().put(DbParams.VALUE, isFirst));
+        } catch (JSONException e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
+    /**
+     * 获取是否首个启动进程的标记
+     *
+     * @return 是否首个进程
+     */
+    public boolean isFirstProcess() {
+        try {
+            String[] values = mPersistentOperation.queryData(mDbParams.getFirstProcessUri(), 1);
+            if (values != null && values.length > 0) {
+                return Integer.parseInt(values[0]) == 1;
+            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+        return true;
+    }
+
+    /**
      * 从 Event 表中读取上报数据
      *
      * @param tableName 表名

@@ -208,12 +208,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mTrackTaskManagerThread = new TrackTaskManagerThread();
         new Thread(mTrackTaskManagerThread, ThreadNameConstants.THREAD_TASK_QUEUE).start();
         SensorsDataExceptionHandler.init();
-        initSAConfig(serverURL, packageName);
         if (mSAConfigOptions.mEnableEncrypt) {
             mSensorsDataEncrypt = new SensorsDataEncrypt(context, mSAConfigOptions.mPersistentSecretKey);
         }
 
         DbAdapter.getInstance(context, packageName, mSensorsDataEncrypt);
+        initSAConfig(serverURL, packageName);
         mMessages = AnalyticsMessages.getInstance(mContext);
         mAndroidId = SensorsDataUtils.getAndroidID(mContext);
 
@@ -3296,6 +3296,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             mSAConfigOptions.setMaxCacheSize(32 * 1024 * 1024L);
         }
 
+        if (mSAConfigOptions.isSubProcessFlushData && DbAdapter.getInstance().isFirstProcess()) {
+            //如果是首个进程
+            DbAdapter.getInstance().commitFirstProcessState(false);
+            DbAdapter.getInstance().commitSubProcessFlushState(false);
+        }
+
         this.mAutoTrack = configBundle.getBoolean("com.sensorsdata.analytics.android.AutoTrack",
                 false);
         if (mSAConfigOptions.mAutoTrackEventType != 0) {
@@ -3473,6 +3479,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     SensorsDataDeepLinkCallback getDeepLinkCallback() {
         return mDeepLinkCallback;
+    }
+
+    boolean isMultiProcessFlushData() {
+        return mSAConfigOptions.isSubProcessFlushData;
     }
 
     /**

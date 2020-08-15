@@ -45,6 +45,7 @@ class PersistentDataOperation extends DataOperation {
 
     @Override
     int insertData(Uri uri, ContentValues contentValues) {
+        contentResolver.insert(uri, contentValues);
         return 0;
     }
 
@@ -73,6 +74,12 @@ class PersistentDataOperation extends DataOperation {
                 case DbParams.TABLE_LOGIN_ID:
                     contentValues.put(DbParams.TABLE_LOGIN_ID, jsonObject.optString(DbParams.VALUE));
                     break;
+                case DbParams.TABLE_SUB_PROCESS_FLUSH_DATA:
+                    contentValues.put(DbParams.TABLE_SUB_PROCESS_FLUSH_DATA, jsonObject.optBoolean(DbParams.VALUE));
+                    break;
+                case DbParams.TABLE_FIRST_PROCESS_START:
+                    contentValues.put(DbParams.TABLE_FIRST_PROCESS_START, jsonObject.optBoolean(DbParams.VALUE));
+                    break;
                 default:
                     return -1;
             }
@@ -93,6 +100,8 @@ class PersistentDataOperation extends DataOperation {
                 cursor.moveToNext();
                 switch (path) {
                     case DbParams.TABLE_ACTIVITY_START_COUNT:
+                    case DbParams.TABLE_SUB_PROCESS_FLUSH_DATA:
+                    case DbParams.TABLE_FIRST_PROCESS_START:
                         return new String[]{String.valueOf(cursor.getInt(0))};
                     case DbParams.TABLE_APP_END_DATA:
                     case DbParams.TABLE_LOGIN_ID:

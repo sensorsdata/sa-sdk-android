@@ -182,11 +182,6 @@ class AnalyticsMessages {
                 return;
             }
 
-            //不是主进程
-            if (!SensorsDataAPI.mIsMainProcess) {
-                return;
-            }
-
             //无网络
             if (!NetworkUtils.isNetworkAvailable(mContext)) {
                 return;
@@ -198,8 +193,20 @@ class AnalyticsMessages {
                 SALog.i(TAG, String.format("您当前网络为 %s，无法发送数据，请确认您的网络发送策略！", networkType));
                 return;
             }
+
+            // 如果开启多进程上报
+            if (SensorsDataAPI.sharedInstance().isMultiProcessFlushData()) {
+                // 已经有进程在上报
+                if (DbAdapter.getInstance().isSubProcessFlushing()) {
+                    return;
+                }
+                DbAdapter.getInstance().commitSubProcessFlushState(true);
+            } else if (!SensorsDataAPI.mIsMainProcess) {//不是主进程
+                return;
+            }
         } catch (Exception e) {
             SALog.printStackTrace(e);
+            return;
         }
         int count = 100;
         Toast toast = null;
@@ -214,7 +221,9 @@ class AnalyticsMessages {
                     eventsData = mDbAdapter.generateDataString(DbParams.TABLE_EVENTS, 50);
                 }
             }
+
             if (eventsData == null) {
+                DbAdapter.getInstance().commitSubProcessFlushState(false);
                 return;
             }
 
@@ -267,7 +276,6 @@ class AnalyticsMessages {
                         }
                     }
                 }
-
                 if (deleteEvents || isDebugMode) {
                     count = mDbAdapter.cleanupEvents(lastId);
                     SALog.i(TAG, String.format(Locale.CHINA, "Events flushed. [left = %d]", count));
@@ -276,6 +284,9 @@ class AnalyticsMessages {
                 }
 
             }
+        }
+        if (SensorsDataAPI.sharedInstance().isMultiProcessFlushData()) {
+            DbAdapter.getInstance().commitSubProcessFlushState(false);
         }
     }
 
