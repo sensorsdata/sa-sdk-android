@@ -208,11 +208,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mTrackTaskManagerThread = new TrackTaskManagerThread();
         new Thread(mTrackTaskManagerThread, ThreadNameConstants.THREAD_TASK_QUEUE).start();
         SensorsDataExceptionHandler.init();
-        if (mSAConfigOptions.mEnableEncrypt) {
-            mSensorsDataEncrypt = new SensorsDataEncrypt(context, mSAConfigOptions.mPersistentSecretKey);
-        }
 
-        DbAdapter.getInstance(context, packageName, mSensorsDataEncrypt);
         initSAConfig(serverURL, packageName);
         mMessages = AnalyticsMessages.getInstance(mContext);
         mAndroidId = SensorsDataUtils.getAndroidID(mContext);
@@ -3268,6 +3264,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         } else {
             this.mSDKConfigInit = true;
         }
+
+        if (mSAConfigOptions.mEnableEncrypt) {
+            mSensorsDataEncrypt = new SensorsDataEncrypt(mContext, mSAConfigOptions.mPersistentSecretKey);
+        }
+
+        DbAdapter.getInstance(mContext, packageName, mSensorsDataEncrypt);
 
         if (mSAConfigOptions.mInvokeLog) {
             enableLog(mSAConfigOptions.mLogEnabled);
