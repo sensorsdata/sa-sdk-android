@@ -23,8 +23,17 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.sensorsdata.analytics.android.demo.R;
+import com.sensorsdata.analytics.android.demo.activity.TestInnerGridViewAdapter;
+import com.sensorsdata.analytics.android.demo.activity.TestRecyclerViewAdapter;
+import com.sensorsdata.analytics.android.demo.custom.HorizonRecyclerDivider;
 import com.sensorsdata.analytics.android.demo.fragment.BaseAndroidXFragment;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Frg_4 extends BaseAndroidXFragment {
 
@@ -35,12 +44,15 @@ public class Frg_4 extends BaseAndroidXFragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_frg_4, container, false);
-        v.findViewById(R.id.tv_frg_4).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Toast.makeText(v.getContext(), "Frg_4 点击", Toast.LENGTH_SHORT).show();
-            }
-        });
+        RecyclerView recyclerView = v.findViewById(R.id.recyclerView);
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext(), RecyclerView.VERTICAL, false));
+        recyclerView.addItemDecoration(new HorizonRecyclerDivider(getContext(), HorizonRecyclerDivider.VERTICAL_LIST));
+        List list = new ArrayList();
+        for (int i = 0; i < 100; i++) {
+            list.add(i + "");
+        }
+        TestRecyclerViewAdapter testListAdapter = new TestRecyclerViewAdapter(getContext(), list);
+        recyclerView.setAdapter(testListAdapter);
         return v;
     }
 }

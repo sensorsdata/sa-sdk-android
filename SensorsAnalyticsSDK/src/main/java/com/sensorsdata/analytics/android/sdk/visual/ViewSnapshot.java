@@ -40,6 +40,7 @@ import android.view.ViewParent;
 import android.view.Window;
 import android.webkit.WebView;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.AppStateManager;
@@ -346,7 +347,16 @@ public class ViewSnapshot {
                 j.name("width").value(view.getWidth());
                 j.name("height").value(view.getHeight());
             }
-            j.name("scrollX").value(view.getScrollX());
+
+            int scrollX = view.getScrollX();
+            // 适配解决 textView 配置了 maxLines = 1 和 gravity = center|right 时 scrollX 属性异常问题
+            if (view instanceof TextView) {
+                TextView textView = (TextView) view;
+                if (textView.getMaxLines() == 1) {
+                    scrollX = 0;
+                }
+            }
+            j.name("scrollX").value(scrollX);
             j.name("scrollY").value(view.getScrollY());
             j.name("visibility").value(VisualUtil.getVisibility(view));
 

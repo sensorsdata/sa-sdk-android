@@ -35,12 +35,14 @@ class WidgetTestActivity : BaseActivity(), CompoundButton.OnCheckedChangeListene
         RadioGroup.OnCheckedChangeListener, RatingBar.OnRatingBarChangeListener, SeekBar.OnSeekBarChangeListener, AdapterView.OnItemSelectedListener {
     private val TAG = "WidgetTestActivity"
 
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_widget)
         initView()
     }
 
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     private fun initView() {
         imageButton.setOnClickListener {
             SALog.i(TAG, "image button clicked")
