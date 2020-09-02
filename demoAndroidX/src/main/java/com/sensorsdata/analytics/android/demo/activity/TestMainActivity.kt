@@ -56,7 +56,8 @@ class TestMainActivity : AppCompatActivity() {
                 DataEntity("点击图 HeatMap", BaseActivity::class.java),
                 DataEntity("可视化全埋点", BaseActivity::class.java),
                 DataEntity("ListView 内嵌", InnerListTestActivity::class.java, true),
-                DataEntity("ActionBar && ToolBar", ActionBarAndToolBarTestActivity::class.java, true)
+                DataEntity("ActionBar && ToolBar", ActionBarAndToolBarTestActivity::class.java, true),
+                DataEntity("Lambda 点击事件", LambdaTestPageActivity::class.java, true)
         )
         recyclerView.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
         recyclerView.addItemDecoration(HorizonRecyclerDivider(this, HorizonRecyclerDivider.VERTICAL_LIST))

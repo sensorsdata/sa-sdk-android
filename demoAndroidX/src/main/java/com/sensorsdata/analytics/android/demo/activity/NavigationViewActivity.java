@@ -38,7 +38,7 @@ public class NavigationViewActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_navi2);
+        setContentView(R.layout.activity_navigation);
         init();
     }
 

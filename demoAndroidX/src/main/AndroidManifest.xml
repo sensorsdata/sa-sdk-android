@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.sensorsdata.analytics.android.demo">
+    package="com.sensorsdata.analytics.android.demo" >
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -16,14 +16,15 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="true">
-        <activity android:name=".activity.TestMainActivity" android:launchMode="singleTask">
+        android:usesCleartextTraffic="true" >
+        <activity
+            android:name=".activity.TestMainActivity"
+            android:launchMode="singleTask" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
@@ -33,31 +34,21 @@
                 <data
                     android:host="debugmode"
                     android:scheme="sf20191010nb" />
-
                 <data
                     android:host="heatmap"
                     android:scheme="sf20191010nb" />
-
                 <data
                     android:host="visualized"
                     android:scheme="sf20191010nb" />
             </intent-filter>
         </activity>
-
         <activity android:name=".activity.BasePropertyActivity" />
-
         <activity android:name=".activity.TrackProfileSettingsActivity" />
-
         <activity android:name=".activity.H5Activity" />
-
         <activity android:name=".activity.WidgetTestActivity" />
-
         <activity android:name=".activity.DataBindingLambdaActivity" />
-
         <activity android:name=".activity.ViewScreenActivity" />
-
         <activity android:name=".activity.ViewScreenIgnoreActivity" />
-
         <activity android:name=".activity.ListViewTestActivity" />
         <activity android:name=".activity.FragmentActivity" />
         <activity android:name=".activity.ClickActivity" />
@@ -68,22 +59,19 @@
         <activity android:name=".activity.VPFrgActivity" />
         <activity android:name=".activity.VPVPFrgActivity" />
         <activity android:name=".activity.DialogActivity" />
-
         <activity android:name=".activity.MyTabHostActivity" />
         <activity android:name=".activity.TabVPFragActivity" />
-
         <activity android:name=".activity.NavigationViewActivity" />
-
         <activity android:name=".activity.HintTestActivity" />
-
         <activity android:name=".activity.CrashTestActivity" />
-
         <activity android:name=".PopupMenuActivity" />
         <activity android:name=".activity.GridViewTestActivity" />
         <activity android:name=".activity.VPViewActivity" />
         <activity android:name=".activity.InnerListTestActivity" />
         <activity android:name=".activity.ActionBarAndToolBarTestActivity" />
         <activity android:name=".activity.H5VisualTestActivity" />
+        <activity android:name=".activity.LambdaTestPageActivity"
+            android:theme="@style/AppThemeNoBar" />
 
         <meta-data
             android:name="com.sensorsdata.analytics.android.EnableLogging"

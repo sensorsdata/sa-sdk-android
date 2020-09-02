@@ -19,18 +19,22 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/next"
+        android:icon="@drawable/next"
         android:title="下一首播放"/>
 
     <item
         android:id="@+id/add"
+        android:icon="@drawable/add"
         android:title="添加到歌单"/>
 
     <item
         android:id="@+id/detail"
+        android:icon="@drawable/detail"
         android:title="歌曲详情"/>
 
     <item
         android:id="@+id/del"
+        android:icon="@drawable/delete"
         android:title="删除歌曲"/>
 
 </menu>

@@ -8,9 +8,9 @@
         app:showAsAction="never"/>
 
     <item
-        android:id="@+id/action_first"
+        android:id="@+id/action_click"
         android:orderInCategory="100"
-        android:title="first"
-        app:showAsAction="never"/>
+        android:title="点击"
+        app:showAsAction="always"/>
 
 </menu>

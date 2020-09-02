@@ -1541,10 +1541,14 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             }
 
             // 通知调用 resetAnonymousId 接口
-            if (mEventListenerList != null) {
-                for (SAEventListener eventListener : mEventListenerList) {
-                    eventListener.resetAnonymousId();
+            try {
+                if (mEventListenerList != null) {
+                    for (SAEventListener eventListener : mEventListenerList) {
+                        eventListener.resetAnonymousId();
+                    }
                 }
+            } catch (Exception e) {
+                SALog.printStackTrace(e);
             }
         }
     }
@@ -1569,10 +1573,14 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     synchronized (mDistinctId) {
                         mDistinctId.commit(distinctId);
                         // 通知调用 identify 接口
-                        if (mEventListenerList != null) {
-                            for (SAEventListener eventListener : mEventListenerList) {
-                                eventListener.identify();
+                        try {
+                            if (mEventListenerList != null) {
+                                for (SAEventListener eventListener : mEventListenerList) {
+                                    eventListener.identify();
+                                }
                             }
+                        } catch (Exception e) {
+                            SALog.printStackTrace(e);
                         }
                     }
                 } catch (Exception e) {
@@ -1605,10 +1613,14 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             DbAdapter.getInstance().commitLoginId(loginId);
                             trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, getAnonymousId());
                             // 通知调用 login 接口
-                            if (mEventListenerList != null) {
-                                for (SAEventListener eventListener : mEventListenerList) {
-                                    eventListener.login();
+                            try {
+                                if (mEventListenerList != null) {
+                                    for (SAEventListener eventListener : mEventListenerList) {
+                                        eventListener.login();
+                                    }
                                 }
+                            } catch (Exception e) {
+                                SALog.printStackTrace(e);
                             }
                         }
                     }
@@ -1629,10 +1641,14 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         DbAdapter.getInstance().commitLoginId(null);
                         mLoginId = null;
                         // 进行通知调用 logout 接口
-                        if (mEventListenerList != null) {
-                            for (SAEventListener eventListener : mEventListenerList) {
-                                eventListener.logout();
+                        try {
+                            if (mEventListenerList != null) {
+                                for (SAEventListener eventListener : mEventListenerList) {
+                                    eventListener.logout();
+                                }
                             }
+                        } catch (Exception e) {
+                            SALog.printStackTrace(e);
                         }
                     }
                 } catch (Exception e) {
@@ -2809,6 +2825,15 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     if (!loginId.equals(DbAdapter.getInstance().getLoginId()) && !loginId.equals(getAnonymousId())) {
                         DbAdapter.getInstance().commitLoginId(loginId);
                         eventObject.put("login_id", loginId);
+                        try {
+                            if (mEventListenerList != null) {
+                                for (SAEventListener eventListener : mEventListenerList) {
+                                    eventListener.login();
+                                }
+                            }
+                        } catch (Exception e) {
+                            SALog.printStackTrace(e);
+                        }
                         mMessages.enqueueEventMessage(type, eventObject);
                         if (SALog.isLogEnabled()) {
                             SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(eventObject.toString()));
@@ -2818,6 +2843,15 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             } else {
                 if (!TextUtils.isEmpty(getLoginId())) {
                     eventObject.put("login_id", getLoginId());
+                }
+                try {
+                    if (mEventListenerList != null && eventType.isTrack()) {
+                        for (SAEventListener eventListener : mEventListenerList) {
+                            eventListener.trackEvent(eventObject);
+                        }
+                    }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
                 }
                 mMessages.enqueueEventMessage(type, eventObject);
                 if (SALog.isLogEnabled()) {
@@ -3148,10 +3182,14 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 }
                 dataObj.put("properties", sendProperties);
 
-                if (mEventListenerList != null && eventType.isTrack()) {
-                    for (SAEventListener eventListener : mEventListenerList) {
-                        eventListener.trackEvent(dataObj);
+                try {
+                    if (mEventListenerList != null && eventType.isTrack()) {
+                        for (SAEventListener eventListener : mEventListenerList) {
+                            eventListener.trackEvent(dataObj);
+                        }
                     }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
                 }
 
                 mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
