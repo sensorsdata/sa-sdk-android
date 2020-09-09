@@ -186,6 +186,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                                     intent.putExtra(IS_ANALYTICS_DEEPLINK, true);
                                 }
                             }
+                            properties.put("event_time", System.currentTimeMillis());
                             mSensorsDataInstance.trackInternal("$AppStart", properties);
                         }
                     } catch (Exception e) {
@@ -229,6 +230,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     @Override
     public void onActivityResumed(final Activity activity) {
         try {
+            updateScreenPropertiesFromChild(activity);
             JSONObject properties = new JSONObject();
             Intent intent = activity.getIntent();
             if (mDeepLinkInfo == null) {
@@ -378,7 +380,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                     properties.put("$title", endDataJsonObject.optString("$title"));
                     properties.put(LIB_VERSION, endDataJsonObject.optString(LIB_VERSION));
                     properties.put(APP_VERSION, endDataJsonObject.optString(APP_VERSION));
-                    properties.put("event_duration", duration(startTime, endTime));
+                    properties.put("event_duration", Double.valueOf(duration(startTime, endTime)));
                     properties.put("event_time", pausedTime);
                     ChannelUtils.mergeUtmToEndData(endDataJsonObject, properties);
                     mSensorsDataInstance.trackInternal("$AppEnd", properties);
@@ -510,5 +512,13 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
     private boolean isAutoTrackAppEnd() {
         return !mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_END);
+    }
+
+    private void updateScreenPropertiesFromChild(Activity activity) {
+        if (activity.isChild()) {
+            activityProperty = AopUtil.buildTitleNoAutoTrackerProperties(activity);
+            SensorsDataUtils.mergeJSONObject(activityProperty, endDataProperty);
+            SALog.i(TAG, "Activity is child, properties is " + activityProperty);
+        }
     }
 }

@@ -3028,9 +3028,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     }
 
                     try {
+                        // 单独处理 $AppStart 和 $AppEnd 的时间戳
                         if ("$AppEnd".equals(eventName)) {
-                            long appEndTime = properties.getLong("event_time");
-                            eventTime = appEndTime > 0 ? appEndTime : eventTime;
+                            long appEndTime = properties.optLong("event_time");
+                            if (appEndTime > 0) {
+                                eventTime = appEndTime;
+                            }
                             String appEnd_lib_version = properties.optString("$lib_version");
                             String appEnd_app_version = properties.optString("$app_version");
                             if (!TextUtils.isEmpty(appEnd_lib_version)) {
@@ -3046,9 +3049,15 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             }
 
                             properties.remove("event_time");
+                        } else if ("$AppStart".equals(eventName)) {
+                            long appStartTime = properties.optLong("event_time");
+                            if (appStartTime > 0) {
+                                eventTime = appStartTime;
+                            }
+                            properties.remove("event_time");
                         }
                     } catch (Exception e) {
-                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                        SALog.printStackTrace(e);
                     }
                     SensorsDataUtils.mergeJSONObject(properties, sendProperties);
                 }
@@ -3060,8 +3069,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             sendProperties.put("event_duration", duration);
                         }
                     } catch (Exception e) {
-                        //ignore
-                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                        SALog.printStackTrace(e);
                     }
                 }
 

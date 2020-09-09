@@ -109,7 +109,9 @@ public class SensorsDataAutoTrackHelper {
                 return;
             }
             if (root.getChildCount() == 0 && (ViewUtil.instanceOfRecyclerView(root) || root instanceof AdapterView)) {
-                ThreadUtils.getSinglePool().execute(new ViewTreeRunnable(fragmentName, root));
+                ViewTreeRunnable runnable = new ViewTreeRunnable(fragmentName, root);
+                runnable.registerViewTreeObserver();
+                ThreadUtils.getSinglePool().execute(runnable);
             } else {
                 setFragmentTag(fragmentName, root);
             }
@@ -133,25 +135,12 @@ public class SensorsDataAutoTrackHelper {
         private static final String TAG = "ViewTreeRunnable";
         private WeakReference<ViewGroup> mRoot;
         private String mFragmentName;
-        private ViewTreeObserver mObserver;
         private boolean mAlive;
 
         public ViewTreeRunnable(String fragmentName, ViewGroup root) {
-            mRoot = new WeakReference<ViewGroup>(root);
+            mRoot = new WeakReference<>(root);
             mAlive = true;
             mFragmentName = fragmentName;
-            try {
-                if (mRoot.get() != null) {
-                    mObserver = mRoot.get().getViewTreeObserver();
-                    if (mObserver.isAlive()) {
-                        mObserver.addOnGlobalLayoutListener(this);
-                        mObserver.addOnScrollChangedListener(this);
-                    }
-                    mRoot.get().addOnAttachStateChangeListener(this);
-                }
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
-            }
         }
 
         @Override
@@ -163,17 +152,13 @@ public class SensorsDataAutoTrackHelper {
             int width = mRoot.get().getWidth();
             int height = mRoot.get().getHeight();
             if (width > 0 && height > 0) {
-                run();
+                setFragmentTagInSubThread();
             }
         }
 
         @Override
         public void onScrollChanged() {
-            if (mRoot.get() == null) {
-                cleanUp();
-                return;
-            }
-            run();
+            setFragmentTagInSubThread();
         }
 
         @Override
@@ -189,35 +174,62 @@ public class SensorsDataAutoTrackHelper {
         private void cleanUp() {
             try {
                 if (mAlive) {
-                    SALog.i(TAG, "cleanUp");
-                    if (mObserver.isAlive()) {
-                        mObserver.removeOnScrollChangedListener(this);
-                        mObserver.removeOnGlobalLayoutListener(this);
-                    }
-                    if (mRoot.get() != null) {
-                        mRoot.get().removeOnAttachStateChangeListener(this);
-                    }
+                    unRegisterViewTreeObserver();
+                    mAlive = false;
                 }
-                mAlive = false;
             } catch (Exception e) {
                 SALog.printStackTrace(e);
             }
         }
 
-        @Override
-        public void run() {
-            if (mRoot.get() == null || !mAlive) {
-                cleanUp();
-                return;
+        void registerViewTreeObserver() {
+            try {
+                if (mRoot.get() != null) {
+                    ViewTreeObserver observer = mRoot.get().getViewTreeObserver();
+                    if (observer != null && observer.isAlive()) {
+                        observer.addOnGlobalLayoutListener(this);
+                        observer.addOnScrollChangedListener(this);
+                    }
+                    mRoot.get().addOnAttachStateChangeListener(this);
+                }
+            } catch (Exception e) {
+                SALog.printStackTrace(e);
             }
+        }
+
+        private void unRegisterViewTreeObserver() {
+            try {
+                if (mRoot.get() != null) {
+                    ViewTreeObserver observer = mRoot.get().getViewTreeObserver();
+                    if (observer != null && observer.isAlive()) {
+                        observer.removeOnScrollChangedListener(this);
+                        observer.removeOnGlobalLayoutListener(this);
+                    }
+                    mRoot.get().removeOnAttachStateChangeListener(this);
+                }
+            } catch (Exception e) {
+                SALog.printStackTrace(e);
+            }
+        }
+
+        private void setFragmentTagInSubThread() {
             ThreadUtils.getSinglePool().execute(new Runnable() {
                 @Override
                 public void run() {
-                    if (mRoot.get() != null) {
-                        setFragmentTag(mFragmentName, mRoot.get());
+                    if (!mAlive) {
+                        return;
                     }
+                    if (mRoot.get() == null) {
+                        cleanUp();
+                        return;
+                    }
+                    setFragmentTag(mFragmentName, mRoot.get());
                 }
             });
+        }
+
+        @Override
+        public void run() {
         }
     }
 
