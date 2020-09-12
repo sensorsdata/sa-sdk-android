@@ -31,7 +31,6 @@ import android.content.res.AssetManager;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
-import android.os.SystemClock;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -43,7 +42,6 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackAppViewScreenUrl;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackHelper;
-import com.sensorsdata.analytics.android.sdk.SensorsDataSDKRemoteConfig;
 
 import org.json.JSONObject;
 
@@ -60,7 +58,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Random;
 
 public final class SensorsDataUtils {
 
@@ -68,8 +65,6 @@ public final class SensorsDataUtils {
     private static final String SHARED_PREF_EDITS_FILE = "sensorsdata";
     private static final String SHARED_PREF_DEVICE_ID_KEY = "sensorsdata.device.id";
     private static final String SHARED_PREF_USER_AGENT_KEY = "sensorsdata.user.agent";
-    private static final String SHARED_PREF_REQUEST_TIME = "sensorsdata.request.time";
-    private static final String SHARED_PREF_REQUEST_TIME_RANDOM = "sensorsdata.request.time.random";
     private static final String SHARED_PREF_APP_VERSION = "sensorsdata.app.version";
     private static final Map<String, String> sCarrierMap = new HashMap<String, String>() {
         {
@@ -105,45 +100,6 @@ public final class SensorsDataUtils {
         }
     };
     private static final String TAG = "SA.SensorsDataUtils";
-
-    /**
-     * 将 json 格式的字符串转成 SensorsDataSDKRemoteConfig 对象，并处理默认值
-     *
-     * @param config String
-     * @return SensorsDataSDKRemoteConfig
-     */
-    public static SensorsDataSDKRemoteConfig toSDKRemoteConfig(String config) {
-        SensorsDataSDKRemoteConfig sdkRemoteConfig = new SensorsDataSDKRemoteConfig();
-        try {
-            if (!TextUtils.isEmpty(config)) {
-                JSONObject jsonObject = new JSONObject(config);
-                sdkRemoteConfig.setV(jsonObject.optString("v"));
-
-                if (!TextUtils.isEmpty(jsonObject.optString("configs"))) {
-                    JSONObject configObject = new JSONObject(jsonObject.optString("configs"));
-                    sdkRemoteConfig.setDisableDebugMode(configObject.optBoolean("disableDebugMode", false));
-                    sdkRemoteConfig.setDisableSDK(configObject.optBoolean("disableSDK", false));
-                    sdkRemoteConfig.setAutoTrackMode(configObject.optInt("autoTrackMode", -1));
-                    JSONObject keyObject = configObject.optJSONObject("key");
-                    if (keyObject != null) {
-                        sdkRemoteConfig.setRsaPublicKey(keyObject.optString("public_key"));
-                        sdkRemoteConfig.setPkv(keyObject.optInt("pkv"));
-                    }
-                } else {
-                    //默认配置
-                    sdkRemoteConfig.setDisableDebugMode(false);
-                    sdkRemoteConfig.setDisableSDK(false);
-                    sdkRemoteConfig.setAutoTrackMode(-1);
-                    sdkRemoteConfig.setRsaPublicKey("");
-                    sdkRemoteConfig.setPkv(-1);
-                }
-                return sdkRemoteConfig;
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-        return sdkRemoteConfig;
-    }
 
     private static String getJsonFromAssets(String fileName, Context context) {
         //将json数据变成字符串
@@ -734,37 +690,6 @@ public final class SensorsDataUtils {
         }
 
         return !mInvalidAndroidId.contains(androidId.toLowerCase(Locale.getDefault()));
-    }
-
-    public static boolean isRequestValid(Context context, int minRequestHourInterval, int maxRequestHourInterval) {
-        try {
-            if (minRequestHourInterval > maxRequestHourInterval) {
-                SALog.d(TAG, "最小时间间隔（minRequestHourInterval）大于最大时间间隔（maxRequestHourInterval），时间间隔设置无效。");
-                return true;
-            }
-            SharedPreferences sharedPreferences = getSharedPreferences(context);
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            boolean isRequestValid = true;
-            long lastRequestTime = sharedPreferences.getLong(SHARED_PREF_REQUEST_TIME, 0);
-            int randomTime = sharedPreferences.getInt(SHARED_PREF_REQUEST_TIME_RANDOM, 0);
-            if (lastRequestTime != 0 && randomTime != 0) {
-                float requestInterval = SystemClock.elapsedRealtime() - lastRequestTime;
-                if (requestInterval > 0 && requestInterval / 1000 < randomTime * 3600) {
-                    isRequestValid = false;
-                }
-            }
-
-            if (isRequestValid) {
-                editor.putLong(SHARED_PREF_REQUEST_TIME, SystemClock.elapsedRealtime());
-                editor.putInt(SHARED_PREF_REQUEST_TIME_RANDOM,
-                        new Random().nextInt(maxRequestHourInterval - minRequestHourInterval + 1) + minRequestHourInterval);
-                editor.apply();
-            }
-            return isRequestValid;
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
-            return true;
-        }
     }
 
     /**

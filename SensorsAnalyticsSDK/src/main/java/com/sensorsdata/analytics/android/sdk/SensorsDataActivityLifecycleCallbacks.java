@@ -89,12 +89,13 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private Handler mHandler;
     /* 兼容由于在魅族手机上退到后台后，线程会被休眠，导致 $AppEnd 无法触发，造成再次打开重复发送。*/
     private long messageReceiveTime = 0L;
+
+    private DeepLinkProcessor mDeepLinkInfo;
+    private SensorsDataRemoteManager mRemoteManager;
     // $AppEnd 消息标记位
     private final int MESSAGE_CODE_APP_END = 0;
     private final int MESSAGE_CODE_TIMER = 100;
     private final int MESSAGE_CODE_SESSION = 200;
-
-    private DeepLinkProcessor mDeepLinkInfo;
     /**
      * 打点时间间隔：2000 毫秒
      */
@@ -108,6 +109,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         this.mContext = context;
         this.mDbAdapter = DbAdapter.getInstance();
         this.isMultiProcess = mSensorsDataInstance.isMultiProcess();
+        this.mRemoteManager = mSensorsDataInstance.mRemoteManager;
         try {
             final PackageManager manager = mContext.getPackageManager();
             final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
@@ -159,12 +161,12 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                     //从后台恢复，从缓存中读取 SDK 控制配置信息
                     if (resumeFromBackground) {
                         //先从缓存中读取 SDKConfig
-                        mSensorsDataInstance.applySDKConfigFromCache();
+                        mRemoteManager.applySDKConfigFromCache();
                         mSensorsDataInstance.resumeTrackScreenOrientation();
 //                    mSensorsDataInstance.resumeTrackTaskThread();
                     }
                     //每次启动 App，重新拉取最新的配置信息
-                    mSensorsDataInstance.pullSDKConfigFromServer();
+                    mRemoteManager.pullSDKConfigFromServer();
 
                     try {
                         if (mSensorsDataInstance.isAutoTrackEnabled() && !mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_START)) {
@@ -465,7 +467,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private void resetState() {
         try {
             mSensorsDataInstance.stopTrackScreenOrientation();
-            mSensorsDataInstance.resetPullSDKConfigTimer();
+            mRemoteManager.resetPullSDKConfigTimer();
             HeatMapService.getInstance().stop();
             VisualizedAutoTrackService.getInstance().stop();
             mSensorsDataInstance.appEnterBackground();

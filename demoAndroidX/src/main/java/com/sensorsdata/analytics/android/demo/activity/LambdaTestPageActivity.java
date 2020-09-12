@@ -27,9 +27,13 @@ import android.view.ViewGroup;
 import android.widget.BaseExpandableListAdapter;
 import android.widget.CheckBox;
 import android.widget.ExpandableListView;
+import android.widget.ListView;
 import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.RatingBar;
 import android.widget.SeekBar;
 import android.widget.Switch;
+import android.widget.TabHost;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -297,4 +301,137 @@ public class LambdaTestPageActivity extends AppCompatActivity {
     private void toast(String tip) {
         Toast.makeText(LambdaTestPageActivity.this, tip, Toast.LENGTH_SHORT).show();
     }
+
+    private long age = 99;
+    private String name = "xiaoming";
+    private int yui = 88;
+
+    private void lambdaTest() {
+        //1
+        View view1 = new View(this);
+        int a = 10;
+        long b = 11;
+        view1.setOnClickListener(view -> {
+            System.out.println("hello world===" + b + (a + age));
+        });
+
+        //2
+        CheckBox checkBox = new CheckBox(this);
+        checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            System.out.println("hello world===" + name + "==" + age + "==" + 88 + "===" + a + b);
+        });
+
+        //3
+        RatingBar ratingBar = new RatingBar(this);
+        ratingBar.setOnRatingBarChangeListener((ratingBar1, rating, fromUser) -> {
+            String tmp = this.name;
+        });
+
+        //4 不属于 lambda 范畴
+        SeekBar seekBar = new SeekBar(this);
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+        //5
+        RadioGroup radioGroup = new RadioGroup(this);
+        radioGroup.setOnCheckedChangeListener((group, checkedId) -> {
+
+        });
+
+        //6,16
+        AlertDialog dialog = new AlertDialog.Builder(this).setPositiveButton("", (dialog1, which) -> {
+
+        }).setMultiChoiceItems(1, null, (dialog12, which, isChecked) -> {
+
+        }).show();
+
+
+        //7
+        ListView listView = new ListView(this);
+        listView.setOnItemClickListener((parent, view, position, id) -> {
+
+        });
+
+        //8
+        ExpandableListView expandableListView = new ExpandableListView(this);
+        expandableListView.setOnGroupClickListener((parent, v, groupPosition, id) -> false);
+        expandableListView.setOnChildClickListener((parent, v, groupPosition, childPosition, id) -> false);
+
+        //9
+        TabHost tabHost = new TabHost(this);
+        tabHost.setOnTabChangedListener(tabId -> {
+
+        });
+
+
+        //10
+        NavigationView navigationView = new NavigationView(this);
+        navigationView.setNavigationItemSelectedListener(item -> false);
+
+        //11
+        //todo  support NavigationView
+
+
+        //12
+        BottomNavigationView bottomNavigationView = new BottomNavigationView(this);
+        bottomNavigationView.setOnNavigationItemSelectedListener(item -> false);
+
+        //13
+        //todo support BottomNavigationView
+
+        //14
+        Toolbar toolbar = new Toolbar(this);
+        toolbar.setOnMenuItemClickListener(item -> false);
+        toolbar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                return false;
+            }
+        });
+
+        //15
+        //todo appcompat ToolBar
+
+        //17
+        PopupMenu popupMenu = new PopupMenu(this, toolbar);
+        popupMenu.setOnMenuItemClickListener(item -> ttt(item));
+        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                return false;
+            }
+        });
+
+        //18
+        androidx.appcompat.widget.PopupMenu popupMenu1 = new androidx.appcompat.widget.PopupMenu(this, toolbar);
+        popupMenu1.setOnMenuItemClickListener(item -> false);
+        popupMenu1.setOnMenuItemClickListener(new androidx.appcompat.widget.PopupMenu.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                return false;
+            }
+        });
+
+        //19 todo support PopupMenu
+
+    }
+
+    private boolean ttt(MenuItem item){
+        return true;
+    }
+
 }

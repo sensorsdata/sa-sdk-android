@@ -83,6 +83,11 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
+    public void setServerUrl(String serverUrl, boolean isRequestRemoteConfig) {
+
+    }
+
+    @Override
     public void enableLog(boolean enable) {
 
     }
@@ -656,6 +661,46 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public void trackEventFromH5(String eventInfo) {
+
+    }
+
+    @Override
+    void trackEvent(EventType eventType, String eventName, JSONObject properties, String originalDistinctId) {
+
+    }
+
+    @Override
+    public void trackTimerPause(String eventName) {
+
+    }
+
+    @Override
+    public void trackTimerResume(String eventName) {
+
+    }
+
+    @Override
+    public boolean isAutoTrackEventTypeIgnored(int autoTrackEventType) {
+        return true;
+    }
+
+    @Override
+    void setDebugMode(DebugMode debugMode) {
+
+    }
+
+    @Override
+    void enableAutoTrack(int autoTrackEventType) {
+
+    }
+
+    @Override
+    void appEnterBackground() {
+
+    }
+
+    @Override
+    void appBecomeActive() {
 
     }
 

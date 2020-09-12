@@ -150,22 +150,28 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
     /**
      * 设置远程配置请求最小间隔时长
      *
-     * @param minRequestInterval 最小时长间隔，单位：小时，默认 24
+     * @param minRequestInterval 最小时长间隔，单位：小时，默认 24，合法区间在(0, 7*24] 之间
      * @return SAOptionsConfig
      */
     public SAConfigOptions setMinRequestInterval(int minRequestInterval) {
-        this.mMinRequestInterval = minRequestInterval > 0 ? minRequestInterval : mMinRequestInterval;
+        //设置最小时长间隔的合法区间为 0 到 7*24 小时
+        if (minRequestInterval > 0) {
+            this.mMinRequestInterval = Math.min(minRequestInterval, 7 * 24);
+        }
         return this;
     }
 
     /**
      * 设置远程配置请求最大间隔时长
      *
-     * @param maxRequestInterval 最大时长间隔，单位：小时，默认 48
+     * @param maxRequestInterval 最大时长间隔，单位：小时，默认 48，合法区间在(0, 7*24] 之间
      * @return SAOptionsConfig
      */
     public SAConfigOptions setMaxRequestInterval(int maxRequestInterval) {
-        this.mMaxRequestInterval = maxRequestInterval > 0 ? maxRequestInterval : mMaxRequestInterval;
+        //设置最大时长间隔合法区间为 0 到 7*24 小时
+        if (maxRequestInterval > 0) {
+            this.mMaxRequestInterval = Math.min(maxRequestInterval, 7 * 24);
+        }
         return this;
     }
 
@@ -347,16 +353,6 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
      */
     public SAConfigOptions enableMultipleChannelMatch(boolean enableMultipleChannelMatch) {
         this.mEnableMultipleChannelMatch = enableMultipleChannelMatch;
-        return this;
-    }
-
-    /**
-     * 禁用 SDK 初始化获取 OAID 的方式
-     *
-     * @return SAConfigOptions
-     */
-    public SAConfigOptions disableSDKInitOAID() {
-        this.isSDKInitOAID = false;
         return this;
     }
 

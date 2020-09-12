@@ -1713,6 +1713,10 @@ public class SensorsDataAutoTrackHelper {
     }
 
     public static void handleSchemeUrl(Activity activity, Intent intent) {
+        if (SensorsDataAPI.isSDKDisabled()) {
+            SALog.i(TAG, "DisableSDK is true,scan code function has been turned off");
+            return;
+        }
         try {
             Uri uri = null;
             if (activity != null && intent != null) {

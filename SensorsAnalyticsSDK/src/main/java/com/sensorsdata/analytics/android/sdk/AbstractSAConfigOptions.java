@@ -154,11 +154,6 @@ abstract class AbstractSAConfigOptions {
     boolean isSubProcessFlushData = false;
 
     /**
-     * SDK 是否初始化获取 OAID 的方式
-     */
-    boolean isSDKInitOAID = true;
-
-    /**
      * 是否开启加密
      */
     boolean mEnableEncrypt = false;

@@ -50,6 +50,14 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     void setServerUrl(String serverUrl);
 
     /**
+     * 设置当前 serverUrl
+     *
+     * @param serverUrl 当前 serverUrl
+     * @param isRequestRemoteConfig 是否立即请求当前 serverUrl 的远程配置
+     */
+    void setServerUrl(String serverUrl, boolean isRequestRemoteConfig);
+
+    /**
      * 设置是否开启 log
      *
      * @param enable boolean

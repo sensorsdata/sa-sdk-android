@@ -34,7 +34,7 @@ public class SADeviceUtilsTest {
     @Test
     public void getOAID() {
         try {
-            String oaid = SADeviceUtils.getOAID(ApplicationProvider.getApplicationContext());
+            String oaid = OaidHelper.getOAID(ApplicationProvider.getApplicationContext());
             assertNull(oaid);
             SensorsDataAPI.sharedInstance().trackInstallation("AppInstall");
         } catch (Exception ex) {

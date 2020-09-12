@@ -27,12 +27,16 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.CountDownLatch;
 
-public class SADeviceUtils {
+public class OaidHelper {
     private static final String TAG = "SA.DeviceUtils";
     // OAID
-    private static String oaid = "";
-    private static CountDownLatch countDownLatch;
-
+    private static String mOAID = "";
+    private static CountDownLatch mCountDownLatch;
+    private static Class<?> mIdentifyListener;
+    private static Class<?> mIdSupplier;
+    private static Class<?> jLibrary;
+    private static Class<?> mMidSDKHelper;
+    
     /**
      * 获取 OAID 接口，注意该接口是同步接口，可能会导致线程阻塞，建议在子线程中使用
      *
@@ -40,31 +44,25 @@ public class SADeviceUtils {
      * @return OAID
      */
     public static String getOAID(final Context context) {
-        return getOAID(context, true);
-    }
-
-    /**
-     * 获取 OAID 接口，注意该接口是同步接口，可能会导致线程阻塞，建议在子线程中使用
-     *
-     * @param context Context
-     * @param isSDKInitOAID SDK 是否初始化 OAID
-     * @return OAID
-     */
-    public static String getOAID(final Context context, boolean isSDKInitOAID) {
         try {
-            countDownLatch = new CountDownLatch(1);
-            if (TextUtils.isEmpty(oaid)) {
-                getOAIDReflect(context, 2, isSDKInitOAID);
+            mCountDownLatch = new CountDownLatch(1);
+            initInvokeListener();
+            if (mMidSDKHelper == null || mIdentifyListener == null || mIdSupplier == null) {
+                SALog.d(TAG, "OAID 读取类创建失败");
+                return "";
+            }
+            if (TextUtils.isEmpty(mOAID)) {
+                getOAIDReflect(context, 2);
             } else {
-                return oaid;
+                return mOAID;
             }
             try {
-                countDownLatch.await();
+                mCountDownLatch.await();
             } catch (InterruptedException e) {
                 SALog.printStackTrace(e);
             }
             SALog.d(TAG, "CountDownLatch await");
-            return oaid;
+            return mOAID;
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
         }
@@ -81,42 +79,26 @@ public class SADeviceUtils {
      *
      * @param context Context
      * @param retryCount 重试次数
-     * @param isSDKInitOAID SDK 是否初始化 OAID
      */
-    private static void getOAIDReflect(Context context, int retryCount, boolean isSDKInitOAID) {
+    private static void getOAIDReflect(Context context, int retryCount) {
         try {
             if (retryCount == 0) {
                 return;
             }
             final int INIT_ERROR_RESULT_DELAY = 1008614;            //获取接口是异步的，结果会在回调中返回，回调执行的回调可能在工作线程
             // 初始化 Library
-            if (isSDKInitOAID) {
-                Class<?> jLibrary = Class.forName("com.bun.miitmdid.core.JLibrary");
+            if (jLibrary != null) {
                 Method initEntry = jLibrary.getDeclaredMethod("InitEntry", Context.class);
                 initEntry.invoke(null, context);
-            } else {
-                SALog.i(TAG, "已关闭 SDK 执行 OAID 的初始化操作");
             }
-            Class identifyListener;
-            try {
-                identifyListener = Class.forName("com.bun.miitmdid.core.IIdentifierListener");
-            } catch (ClassNotFoundException ex) {
-                // 适配 MSA 的 v1.0.13 版本包名发生改变
-                identifyListener = Class.forName("com.bun.supplier.IIdentifierListener");
-            }
-            // 创建 OAID 获取实例
             IdentifyListenerHandler handler = new IdentifyListenerHandler();
-            Object iIdentifierListener = Proxy.newProxyInstance(context.getClassLoader(), new Class[]{identifyListener}, handler);
-
-            // 初始化 SDK
-            Class<?> midSDKHelper = Class.forName("com.bun.miitmdid.core.MdidSdkHelper");
-            Method initSDK = midSDKHelper.getDeclaredMethod("InitSdk", Context.class, boolean.class, identifyListener);
-            int errCode = (int) initSDK.invoke(null, context, true, iIdentifierListener);
+            Method initSDK = mMidSDKHelper.getDeclaredMethod("InitSdk", Context.class, boolean.class, mIdentifyListener);
+            int errCode = (int) initSDK.invoke(null, context, true, Proxy.newProxyInstance(context.getClassLoader(), new Class[]{mIdentifyListener}, handler));
             SALog.d(TAG, "MdidSdkHelper ErrorCode : " + errCode);
             if (errCode != INIT_ERROR_RESULT_DELAY) {
-                getOAIDReflect(context, --retryCount, isSDKInitOAID);
+                getOAIDReflect(context, --retryCount);
                 if (retryCount == 0) {
-                    countDownLatch.countDown();
+                    mCountDownLatch.countDown();
                 }
             }
 
@@ -132,14 +114,14 @@ public class SADeviceUtils {
                     } catch (InterruptedException e) {
                         //ignore
                     }
-                    countDownLatch.countDown();
+                    mCountDownLatch.countDown();
                 }
             }).start();
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
-            getOAIDReflect(context, --retryCount, isSDKInitOAID);
-            if (retryCount == 0) {// 对于没有集成 jar 包，尝试后为 0
-                countDownLatch.countDown();
+            getOAIDReflect(context, --retryCount);
+            if (retryCount == 0) {
+                mCountDownLatch.countDown();
             }
         }
     }
@@ -151,24 +133,53 @@ public class SADeviceUtils {
             try {
                 if ("OnSupport".equals(method.getName())) {
                     if ((Boolean) args[0]) {
-                        Class<?> idSupplier;
-                        try {
-                            idSupplier = Class.forName("com.bun.miitmdid.supplier.IdSupplier");
-                        } catch (ClassNotFoundException ex) {
-                            // 适配 MSA 的 v1.0.13 版本包名发生改变
-                            idSupplier = Class.forName("com.bun.supplier.IdSupplier");
-                        }
-                        Method getOAID = idSupplier.getDeclaredMethod("getOAID");
-                        oaid = (String) getOAID.invoke(args[1]);
-                        SALog.d(TAG, "oaid:" + oaid);
+                        Method getOAID = mIdSupplier.getDeclaredMethod("getOAID");
+                        mOAID = (String) getOAID.invoke(args[1]);
+                        SALog.d(TAG, "oaid:" + mOAID);
                     }
 
-                    countDownLatch.countDown();
+                    mCountDownLatch.countDown();
                 }
             } catch (Exception ex) {
-                countDownLatch.countDown();
+                mCountDownLatch.countDown();
             }
             return null;
+        }
+    }
+
+    private static void initInvokeListener() {
+        try {
+            mMidSDKHelper = Class.forName("com.bun.miitmdid.core.MdidSdkHelper");
+        } catch (ClassNotFoundException e) {
+            SALog.printStackTrace(e);
+            return;
+        }
+        // 尝试 1.0.22 版本
+        try {
+            mIdentifyListener = Class.forName("com.bun.miitmdid.interfaces.IIdentifierListener");
+            mIdSupplier = Class.forName("com.bun.miitmdid.interfaces.IdSupplier");
+            return;
+        } catch (Exception ex) {
+            // ignore
+        }
+
+        // 尝试 1.0.13 - 1.0.21 版本
+        try {
+            mIdentifyListener = Class.forName("com.bun.supplier.IIdentifierListener");
+            mIdSupplier = Class.forName("com.bun.supplier.IdSupplier");
+            jLibrary = Class.forName("com.bun.miitmdid.core.JLibrary");
+            return;
+        } catch (Exception ex) {
+            // ignore
+        }
+
+        // 尝试 1.0.5 - 1.0.13 版本
+        try {
+            mIdentifyListener = Class.forName("com.bun.miitmdid.core.IIdentifierListener");
+            mIdSupplier = Class.forName("com.bun.miitmdid.supplier.IdSupplier");
+            jLibrary = Class.forName("com.bun.miitmdid.core.JLibrary");
+        } catch (Exception ex) {
+            // ignore
         }
     }
 }

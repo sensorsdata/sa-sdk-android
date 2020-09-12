@@ -28,6 +28,7 @@ android {
     sensorsAnalytics {
         //debug = true
         //autoHandleWebView = false
+        //enableAllLambdaParamPerf = true
     }
 
     compileOptions {

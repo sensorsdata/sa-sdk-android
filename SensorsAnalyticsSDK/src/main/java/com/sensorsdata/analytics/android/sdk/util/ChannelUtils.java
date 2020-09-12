@@ -161,11 +161,10 @@ public class ChannelUtils {
      *
      * @param mContext Context
      * @param androidId androidId
-     * @param isSDKInitOAID SDK 是否初始化 OAID
      * @return 拼接的渠道追踪设置信息
      */
-    public static String getDeviceInfo(Context mContext, String androidId, boolean isSDKInitOAID) {
-        return getDeviceInfo(mContext, androidId, isSDKInitOAID, SADeviceUtils.getOAID(mContext, isSDKInitOAID));
+    public static String getDeviceInfo(Context mContext, String androidId) {
+        return getDeviceInfo(mContext, androidId, OaidHelper.getOAID(mContext));
     }
 
     /**
@@ -173,11 +172,10 @@ public class ChannelUtils {
      *
      * @param mContext Context
      * @param androidId androidId
-     * @param isSDKInitOAID SDK 是否初始化 OAID
      * @param oaid OAID
      * @return 拼接的渠道追踪设置信息
      */
-    public static String getDeviceInfo(Context mContext, String androidId, boolean isSDKInitOAID, String oaid) {
+    public static String getDeviceInfo(Context mContext, String androidId, String oaid) {
         return String.format("android_id=%s##imei=%s##imei_old=%s##imei_slot1=%s##imei_slot2=%s##imei_meid=%s##mac=%s##oaid=%s",
                 androidId,
                 SensorsDataUtils.getIMEI(mContext),

@@ -27,7 +27,6 @@ import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -44,10 +43,8 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallation;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallationWithCallback;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProperties;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
-import com.sensorsdata.analytics.android.sdk.encrypt.SecreteKey;
 import com.sensorsdata.analytics.android.sdk.encrypt.SensorsDataEncrypt;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.internal.FragmentAPI;
@@ -66,11 +63,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.lang.reflect.Method;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.security.SecureRandom;
@@ -87,7 +80,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 
 import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
@@ -111,7 +103,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private static final String TAG = "SA.SensorsDataAPI";
     static boolean mIsMainProcess = false;
     static boolean SHOW_DEBUG_INFO_VIEW = true;
-    private static SensorsDataSDKRemoteConfig mSDKRemoteConfig;
     private static SensorsDataGPSLocation mGPSLocation;
     /* 远程配置 */
     private static SAConfigOptions mSAConfigOptions;
@@ -123,14 +114,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private final PersistentFirstDay mFirstDay;
     private final PersistentFirstTrackInstallation mFirstTrackInstallation;
     private final PersistentFirstTrackInstallationWithCallback mFirstTrackInstallationWithCallback;
-    private final PersistentRemoteSDKConfig mPersistentRemoteSDKConfig;
     private final Map<String, Object> mDeviceInfo;
     private final Map<String, EventTimer> mTrackTimer;
     private final Object mLoginIdLock = new Object();
-    /**
-     * 每次启动 App 时，最多尝试三次
-     */
-    private CountDownTimer mPullSDKConfigCountDownTimer;
+
     private List<Class> mIgnoredViewTypeList = new ArrayList<>();
     /* AndroidID */
     private String mAndroidId = null;
@@ -164,12 +151,13 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private SensorsDataScreenOrientationDetector mOrientationDetector;
     private SensorsDataDynamicSuperProperties mDynamicSuperProperties;
     private SimpleDateFormat mIsFirstDayDateFormat;
-    private SSLSocketFactory mSSLSocketFactory;
+    SSLSocketFactory mSSLSocketFactory;
     private SensorsDataTrackEventCallBack mTrackEventCallBack;
     private List<SAEventListener> mEventListenerList;
     private IFragmentAPI mFragmentAPI;
     SensorsDataEncrypt mSensorsDataEncrypt;
     private SensorsDataDeepLinkCallback mDeepLinkCallback;
+    SensorsDataRemoteManager mRemoteManager;
 
     //private
     SensorsDataAPI() {
@@ -181,7 +169,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mFirstDay = null;
         mFirstTrackInstallation = null;
         mFirstTrackInstallationWithCallback = null;
-        mPersistentRemoteSDKConfig = null;
         mDeviceInfo = null;
         mTrackTimer = null;
         mMainProcessName = null;
@@ -201,7 +188,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         mFirstStart = (PersistentFirstStart) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.FIRST_START);
         mFirstTrackInstallation = (PersistentFirstTrackInstallation) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.FIRST_INSTALL);
         mFirstTrackInstallationWithCallback = (PersistentFirstTrackInstallationWithCallback) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.FIRST_INSTALL_CALLBACK);
-        mPersistentRemoteSDKConfig = (PersistentRemoteSDKConfig) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.REMOTE_CONFIG);
         mFirstDay = (PersistentFirstDay) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.FIRST_DAY);
 
         mTrackTaskManager = TrackTaskManager.getInstance();
@@ -212,9 +198,9 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         initSAConfig(serverURL, packageName);
         mMessages = AnalyticsMessages.getInstance(mContext);
         mAndroidId = SensorsDataUtils.getAndroidID(mContext);
-
+        mRemoteManager = new SensorsDataRemoteManager(mContext, mSAConfigOptions, mSensorsDataEncrypt, mDisableDefaultRemoteConfig, this);
         //先从缓存中读取 SDKConfig
-        applySDKConfigFromCache();
+        mRemoteManager.applySDKConfigFromCache();
 
         //打开 debug 模式，弹出提示
         if (mDebugMode != DebugMode.DEBUG_OFF && mIsMainProcess) {
@@ -368,11 +354,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
      * @return true：关闭；false：没有关闭
      */
     public static boolean isSDKDisabled() {
-        if (mSDKRemoteConfig == null) {
-            return false;
+        boolean isSDKDisabled = SensorsDataRemoteManager.isSDKDisabledByRemote();
+        if (isSDKDisabled) {
+            SALog.i(TAG, "DisableSDK is true");
         }
-
-        return mSDKRemoteConfig.isDisableSDK();
+        return isSDKDisabled;
     }
 
     /**
@@ -406,220 +392,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
 
         deviceInfo.put("$app_id", AppInfoUtils.getProcessName(mContext));
+        deviceInfo.put("$app_name", AppInfoUtils.getAppName(mContext));
         return Collections.unmodifiableMap(deviceInfo);
     }
 
-    /**
-     * 更新 SensorsDataSDKRemoteConfig
-     *
-     * @param sdkRemoteConfig SensorsDataSDKRemoteConfig 在线控制 SDK 的配置
-     * @param effectImmediately 是否立即生效
-     */
-    private void setSDKRemoteConfig(SensorsDataSDKRemoteConfig sdkRemoteConfig, boolean effectImmediately) {
-        try {
-            if (sdkRemoteConfig.isDisableSDK()) {
-                SensorsDataSDKRemoteConfig cachedConfig = SensorsDataUtils.toSDKRemoteConfig(mPersistentRemoteSDKConfig.get());
-                if (!cachedConfig.isDisableSDK()) {
-                    trackInternal("DisableSensorsDataSDK", null);
-                }
-            }
-            mPersistentRemoteSDKConfig.commit(sdkRemoteConfig.toJson().toString());
-            if (effectImmediately) {
-                mSDKRemoteConfig = sdkRemoteConfig;
-            }
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
-    }
-
-    void pullSDKConfigFromServer() {
-        if (!isNetworkRequestEnable()) {
-            return;
-        }
-
-        boolean enableConfigV = true;
-        // 如果是开启加密的情况下，则判断密钥是否为空或是否是版本升级
-        if (mSAConfigOptions.mEnableEncrypt) {
-            if (SensorsDataUtils.checkVersionIsNew(mContext, VERSION)) {
-                enableConfigV = false;
-            } else if (mSensorsDataEncrypt.isRSASecretKeyNull()) {
-                enableConfigV = false;
-            }
-        }
-
-        /*
-         * 满足以下条件则触发远程配置请求：
-         * 1. 开启加密，但是密钥为空或升级版本，即 enableConfigV = false；
-         * 2. 禁用分散请求时，即 mDisableRandomTimeRequestRemoteConfig = true；
-         * 3. 分散请求满足条件时；
-         */
-        if (enableConfigV && mSAConfigOptions != null && !mSAConfigOptions.mDisableRandomTimeRequestRemoteConfig
-                && !SensorsDataUtils.isRequestValid(mContext, mSAConfigOptions.mMinRequestInterval, mSAConfigOptions.mMaxRequestInterval)) {
-            return;
-        }
-
-        if (mDisableDefaultRemoteConfig) {
-            return;
-        }
-
-        if (mPullSDKConfigCountDownTimer != null) {
-            mPullSDKConfigCountDownTimer.cancel();
-            mPullSDKConfigCountDownTimer = null;
-        }
-
-        final boolean finalEnableConfigV = enableConfigV;
-        mPullSDKConfigCountDownTimer = new CountDownTimer(120 * 1000, 30 * 1000) {
-            @Override
-            public void onTick(long l) {
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        InputStreamReader in = null;
-                        HttpURLConnection urlConnection = null;
-                        try {
-                            URL url;
-                            String configUrl = null;
-                            if (mSAConfigOptions != null && !TextUtils.isEmpty(mSAConfigOptions.mRemoteConfigUrl)) {
-                                configUrl = mSAConfigOptions.mRemoteConfigUrl;
-                            } else {
-                                if (!TextUtils.isEmpty(mServerUrl)) {
-                                    int pathPrefix = mServerUrl.lastIndexOf("/");
-                                    if (pathPrefix != -1) {
-                                        configUrl = mServerUrl.substring(0, pathPrefix);
-                                        configUrl = configUrl + "/config/Android.conf";
-                                    }
-                                }
-                            }
-
-                            if (TextUtils.isEmpty(configUrl)) {
-                                SALog.i(TAG, "Remote config url is null or empty.");
-                                return;
-                            }
-
-                            if (!TextUtils.isEmpty(configUrl) && finalEnableConfigV) {
-                                String configVersion = null;
-                                if (mSDKRemoteConfig != null) {
-                                    configVersion = mSDKRemoteConfig.getV();
-                                }
-
-                                if (!TextUtils.isEmpty(configVersion)) {
-                                    if (configUrl.contains("?")) {
-                                        configUrl = configUrl + "&v=" + configVersion;
-                                    } else {
-                                        configUrl = configUrl + "?v=" + configVersion;
-                                    }
-                                }
-                            }
-
-                            SALog.i(TAG, "Android remote config url:" + configUrl);
-                            url = new URL(configUrl);
-                            urlConnection = (HttpURLConnection) url.openConnection();
-                            if (urlConnection == null) {
-                                SALog.i(TAG, String.format("can not connect %s, it shouldn't happen", url.toString()), null);
-                                return;
-                            }
-                            if (mSSLSocketFactory != null && urlConnection instanceof HttpsURLConnection) {
-                                ((HttpsURLConnection) urlConnection).setSSLSocketFactory(mSSLSocketFactory);
-                            }
-                            int responseCode = urlConnection.getResponseCode();
-
-                            //配置没有更新
-                            if (responseCode == 304 || responseCode == 404) {
-                                resetPullSDKConfigTimer();
-                                return;
-                            }
-
-                            if (responseCode == 200) {
-                                resetPullSDKConfigTimer();
-
-                                in = new InputStreamReader(urlConnection.getInputStream());
-                                BufferedReader bufferedReader = new BufferedReader(in);
-                                StringBuilder result = new StringBuilder();
-                                String data;
-                                while ((data = bufferedReader.readLine()) != null) {
-                                    result.append(data);
-                                }
-                                data = result.toString();
-                                if (!TextUtils.isEmpty(data)) {
-                                    SensorsDataSDKRemoteConfig sdkRemoteConfig = SensorsDataUtils.toSDKRemoteConfig(data);
-                                    try {
-                                        if (mSAConfigOptions.mEnableEncrypt) {
-                                            mSensorsDataEncrypt.saveSecretKey(new SecreteKey(sdkRemoteConfig.getRsaPublicKey(), sdkRemoteConfig.getPkv()));
-                                        }
-                                    } catch (Exception e) {
-                                        SALog.printStackTrace(e);
-                                    }
-
-                                    setSDKRemoteConfig(sdkRemoteConfig, false);
-                                }
-                            }
-                        } catch (Exception e) {
-                            SALog.printStackTrace(e);
-                        } finally {
-                            try {
-                                if (in != null) {
-                                    in.close();
-                                }
-
-                                if (urlConnection != null) {
-                                    urlConnection.disconnect();
-                                }
-                            } catch (Exception e) {
-                                //ignored
-                            }
-                        }
-                    }
-                }, ThreadNameConstants.THREAD_GET_SDK_REMOTE_CONFIG).start();
-            }
-
-            @Override
-            public void onFinish() {
-            }
-        };
-        mPullSDKConfigCountDownTimer.start();
-    }
-
-    void resetPullSDKConfigTimer() {
-        try {
-            if (mPullSDKConfigCountDownTimer != null) {
-                mPullSDKConfigCountDownTimer.cancel();
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        } finally {
-            mPullSDKConfigCountDownTimer = null;
-        }
-    }
-
-    /**
-     * 从本地缓存中读取最新的 SDK 配置信息
-     */
-    void applySDKConfigFromCache() {
-        try {
-            SensorsDataSDKRemoteConfig sdkRemoteConfig = SensorsDataUtils.toSDKRemoteConfig(mPersistentRemoteSDKConfig.get());
-            //关闭 debug 模式
-            if (sdkRemoteConfig.isDisableDebugMode()) {
-                setDebugMode(DebugMode.DEBUG_OFF);
-            }
-
-            //开启关闭 AutoTrack
-            if (sdkRemoteConfig.getAutoTrackEventType() != 0) {
-                enableAutoTrack(sdkRemoteConfig.getAutoTrackEventType());
-            }
-
-            if (sdkRemoteConfig.isDisableSDK()) {
-                try {
-                    flush();
-                } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-                }
-            }
-
-            mSDKRemoteConfig = sdkRemoteConfig;
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
-    }
 
     /**
      * 返回预置属性
@@ -649,6 +425,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             if (mDeviceInfo.containsKey("$device_id")) {
                 properties.put("$device_id", mDeviceInfo.get("$device_id"));
             }
+            properties.put("$app_name", mDeviceInfo.get("$app_name"));
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -852,7 +629,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    private void enableAutoTrack(int autoTrackEventType) {
+    void enableAutoTrack(int autoTrackEventType) {
         try {
             if (autoTrackEventType <= 0 || autoTrackEventType > 15) {
                 return;
@@ -885,14 +662,12 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             return false;
         }
 
-        if (mSDKRemoteConfig != null) {
-            if (mSDKRemoteConfig.getAutoTrackMode() == 0) {
-                return false;
-            } else if (mSDKRemoteConfig.getAutoTrackMode() > 0) {
-                return true;
+        if (mRemoteManager != null) {
+            Boolean isAutoTrackEnabled = mRemoteManager.isAutoTrackEnabled();
+            if (isAutoTrackEnabled != null) {
+                return isAutoTrackEnabled;
             }
         }
-
         return mAutoTrack;
     }
 
@@ -1212,12 +987,13 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     @Override
     public boolean isAutoTrackEventTypeIgnored(int autoTrackEventType) {
-        if (mSDKRemoteConfig != null) {
-            if (mSDKRemoteConfig.getAutoTrackMode() != SensorsDataSDKRemoteConfig.REMOTE_EVENT_TYPE_NO_USE) {
-                if (mSDKRemoteConfig.getAutoTrackMode() == 0) {
-                    return true;
+        if (mRemoteManager != null) {
+            Boolean isIgnored = mRemoteManager.isAutoTrackEventTypeIgnored(autoTrackEventType);
+            if (isIgnored != null) {
+                if (isIgnored) {
+                    SALog.i(TAG, autoTrackEventType + " is ignored by remote config");
                 }
-                return mSDKRemoteConfig.isAutoTrackEventTypeIgnored(autoTrackEventType);
+                return isIgnored;
             }
         }
 
@@ -1733,11 +1509,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                                 if (_properties.has("$oaid")) {
                                     String oaid = _properties.optString("$oaid");
                                     installSource = ChannelUtils.getDeviceInfo(mContext,
-                                            mAndroidId, mSAConfigOptions.isSDKInitOAID, oaid);
+                                            mAndroidId, oaid);
                                     SALog.i(TAG, "properties has oaid " + oaid);
                                 } else {
                                     installSource = ChannelUtils.getDeviceInfo(mContext,
-                                            mAndroidId, mSAConfigOptions.isSDKInitOAID);
+                                            mAndroidId);
                                 }
 
                                 if (_properties.has("$gaid")) {
@@ -1827,11 +1603,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                             if (_properties.has("$oaid")) {
                                 String oaid = _properties.optString("$oaid");
                                 _properties.put("$channel_device_info",
-                                        ChannelUtils.getDeviceInfo(mContext, mAndroidId, mSAConfigOptions.isSDKInitOAID, oaid));
+                                        ChannelUtils.getDeviceInfo(mContext, mAndroidId, oaid));
                                 SALog.i(TAG, "properties has oaid " + oaid);
                             } else {
                                 _properties.put("$channel_device_info",
-                                        ChannelUtils.getDeviceInfo(mContext, mAndroidId, mSAConfigOptions.isSDKInitOAID));
+                                        ChannelUtils.getDeviceInfo(mContext, mAndroidId));
                             }
                         }
                         if (_properties.has("$oaid")) {
@@ -2569,7 +2345,20 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     @Override
     public void setServerUrl(String serverUrl) {
+        setServerUrl(serverUrl, false);
+    }
+
+    @Override
+    public void setServerUrl(String serverUrl, boolean isRequestRemoteConfig) {
         try {
+            //请求远程配置
+            if (isRequestRemoteConfig && mRemoteManager != null) {
+                try {
+                    mRemoteManager.requestRemoteConfig(SensorsDataRemoteManager.RemoteConfigHandleRandomTimeType.RandomTimeTypeWrite, false);
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
+            }
             mOriginServerUrl = serverUrl;
             if (TextUtils.isEmpty(serverUrl)) {
                 mServerUrl = serverUrl;
@@ -2941,6 +2730,10 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
             if (eventType.isTrack()) {
                 assertKey(eventName);
+                //如果在线控制禁止了事件，则不触发
+                if (mRemoteManager != null && mRemoteManager.ignoreEvent(eventName)) {
+                    return;
+                }
             }
             assertPropertyTypes(properties);
 

@@ -17,14 +17,15 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class SensorsDataSDKRemoteConfig {
     static final int REMOTE_EVENT_TYPE_NO_USE = -1;
     /**
-     * config 版本号
+     * 在线控制版本，老的版本号
      */
-    private String v;
+    private String oldVersion;
     /**
      * 是否关闭 debug 模式
      */
@@ -48,6 +49,21 @@ public class SensorsDataSDKRemoteConfig {
      */
     private int pkv;
 
+    /**
+     * 禁用事件名列表
+     */
+    private JSONArray eventBlacklist;
+
+    /**
+     * 在线控制版本
+     */
+    private String newVersion;
+
+    /**
+     * 是否立即生效，0 表示下次生效，1 表示本次生效
+     */
+    private int effectMode;
+
     private int mAutoTrackEventType;
 
     public SensorsDataSDKRemoteConfig() {
@@ -56,12 +72,12 @@ public class SensorsDataSDKRemoteConfig {
         this.autoTrackMode = REMOTE_EVENT_TYPE_NO_USE;
     }
 
-    String getV() {
-        return v;
+    String getOldVersion() {
+        return oldVersion;
     }
 
-    public void setV(String v) {
-        this.v = v;
+    public void setOldVersion(String oldVersion) {
+        this.oldVersion = oldVersion;
     }
 
     boolean isDisableDebugMode() {
@@ -145,11 +161,14 @@ public class SensorsDataSDKRemoteConfig {
     JSONObject toJson() {
         JSONObject jsonObject = new JSONObject();
         try {
-            jsonObject.put("v", v);
+            jsonObject.put("v", oldVersion);
             JSONObject configObject = new JSONObject();
             configObject.put("disableDebugMode", disableDebugMode);
             configObject.put("autoTrackMode", autoTrackMode);
             configObject.put("disableSDK", disableSDK);
+            configObject.put("event_blacklist", eventBlacklist);
+            configObject.put("nv", newVersion);
+            configObject.put("effect_mode", effectMode);
             jsonObject.put("configs", configObject);
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
@@ -159,6 +178,31 @@ public class SensorsDataSDKRemoteConfig {
 
     @Override
     public String toString() {
-        return "{ v=" + v + ", disableDebugMode=" + disableDebugMode + ", disableSDK=" + disableSDK + ", autoTrackMode=" + autoTrackMode + "}";
+        return "{ v=" + oldVersion + ", disableDebugMode=" + disableDebugMode + ", disableSDK=" + disableSDK + ", autoTrackMode=" + autoTrackMode +
+                ", event_blacklist=" + eventBlacklist + ", nv=" + newVersion + ", effect_mode=" + effectMode + "}";
+    }
+
+    public JSONArray getEventBlacklist() {
+        return eventBlacklist;
+    }
+
+    public void setEventBlacklist(JSONArray eventArray) {
+        this.eventBlacklist = eventArray;
+    }
+
+    public String getNewVersion() {
+        return newVersion;
+    }
+
+    public void setNewVersion(String newVersion) {
+        this.newVersion = newVersion;
+    }
+
+    public void setEffectMode(int effectMode) {
+        this.effectMode = effectMode;
+    }
+
+    public int getEffectMode() {
+        return effectMode;
     }
 }
