@@ -1595,7 +1595,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             public void run() {
                 try {
                     try {
-                        _properties.put("$is_channel_callback_event", DbAdapter.getInstance().isFirstChannelEvent(eventName));
+                        _properties.put("$is_channel_callback_event", ChannelUtils.isFirstChannelEvent(eventName));
                         if (!ChannelUtils.hasUtmProperties(_properties)) {
                             ChannelUtils.mergeUtmByMetaData(mContext, _properties);
                         }

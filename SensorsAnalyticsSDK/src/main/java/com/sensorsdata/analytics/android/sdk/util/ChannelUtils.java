@@ -376,11 +376,10 @@ public class ChannelUtils {
                 properties = new JSONObject();
             }
             try {
-                boolean isFirst = DbAdapter.getInstance().isFirstChannelEvent(eventName);
+                boolean isFirst = isFirstChannelEvent(eventName);
                 properties.put("$is_channel_callback_event", isFirst);
-                if (isFirst && context != null && !ChannelUtils.hasUtmProperties(properties)) {
+                if (context != null && !ChannelUtils.hasUtmProperties(properties)) {
                     ChannelUtils.mergeUtmByMetaData(context, properties);
-                    DbAdapter.getInstance().addChannelEvent(eventName);
                 }
                 properties.put("$channel_device_info", "1");
             } catch (JSONException e) {
@@ -388,5 +387,19 @@ public class ChannelUtils {
             }
         }
         return properties;
+    }
+
+    /**
+     * 是否是首次触发的渠道事件
+     *
+     * @param eventName 事件名称
+     * @return 是否是首次触发
+     */
+    public static boolean isFirstChannelEvent(String eventName) {
+        boolean isFirst = DbAdapter.getInstance().isFirstChannelEvent(eventName);
+        if (isFirst) {
+            DbAdapter.getInstance().addChannelEvent(eventName);
+        }
+        return isFirst;
     }
 }
