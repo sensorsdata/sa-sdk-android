@@ -149,7 +149,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     private TrackTaskManager mTrackTaskManager;
     private TrackTaskManagerThread mTrackTaskManagerThread;
     private SensorsDataScreenOrientationDetector mOrientationDetector;
-    private SensorsDataDynamicSuperProperties mDynamicSuperProperties;
+    private SensorsDataDynamicSuperProperties mDynamicSuperPropertiesCallBack;
     private SimpleDateFormat mIsFirstDayDateFormat;
     SSLSocketFactory mSSLSocketFactory;
     private SensorsDataTrackEventCallBack mTrackEventCallBack;
@@ -2073,7 +2073,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
     @Override
     public void registerDynamicSuperProperties(SensorsDataDynamicSuperProperties dynamicSuperProperties) {
-        mDynamicSuperProperties = dynamicSuperProperties;
+        mDynamicSuperPropertiesCallBack = dynamicSuperProperties;
     }
 
     @Override
@@ -2121,40 +2121,54 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     }
 
     @Override
-    public void registerSuperProperties(JSONObject superProperties) {
-        try {
-            if (superProperties == null) {
-                return;
+    public void registerSuperProperties(final JSONObject superProperties) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (superProperties == null) {
+                        return;
+                    }
+                    assertPropertyTypes(superProperties);
+                    synchronized (mSuperProperties) {
+                        JSONObject properties = mSuperProperties.get();
+                        mSuperProperties.commit(SensorsDataUtils.mergeSuperJSONObject(superProperties, properties));
+                    }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
             }
-            assertPropertyTypes(superProperties);
-            synchronized (mSuperProperties) {
-                JSONObject properties = mSuperProperties.get();
-                SensorsDataUtils.mergeSuperJSONObject(superProperties, properties);
-                mSuperProperties.commit(properties);
-            }
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
+        });
     }
 
     @Override
-    public void unregisterSuperProperty(String superPropertyName) {
-        try {
-            synchronized (mSuperProperties) {
-                JSONObject superProperties = mSuperProperties.get();
-                superProperties.remove(superPropertyName);
-                mSuperProperties.commit(superProperties);
+    public void unregisterSuperProperty(final String superPropertyName) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    synchronized (mSuperProperties) {
+                        JSONObject superProperties = mSuperProperties.get();
+                        superProperties.remove(superPropertyName);
+                        mSuperProperties.commit(superProperties);
+                    }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
             }
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
+        });
     }
 
     @Override
     public void clearSuperProperties() {
-        synchronized (mSuperProperties) {
-            mSuperProperties.commit(new JSONObject());
-        }
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                synchronized (mSuperProperties) {
+                    mSuperProperties.commit(new JSONObject());
+                }
+            }
+        });
     }
 
     @Override
@@ -2542,22 +2556,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                 propertiesObject.put("$network_type", networkType);
 
                 // SuperProperties
-                synchronized (mSuperProperties) {
-                    JSONObject superProperties = mSuperProperties.get();
-                    SensorsDataUtils.mergeJSONObject(superProperties, propertiesObject);
-                }
-
-                try {
-                    if (mDynamicSuperProperties != null) {
-                        JSONObject dynamicSuperProperties = mDynamicSuperProperties.getDynamicSuperProperties();
-                        if (dynamicSuperProperties != null) {
-                            assertPropertyTypes(dynamicSuperProperties);
-                            SensorsDataUtils.mergeJSONObject(dynamicSuperProperties, propertiesObject);
-                        }
-                    }
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
-                }
+                mergerDynamicAndSuperProperties(propertiesObject);
 
                 //是否首日访问
                 if (eventType.isTrack()) {
@@ -2651,6 +2650,27 @@ public class SensorsDataAPI implements ISensorsDataAPI {
             //ignore
             SALog.printStackTrace(e);
         }
+    }
+
+    /**
+     * 合并、去重静态公共属性与动态公共属性
+     *
+     * @param propertiesObject 保存合并后属性的 JSON
+     */
+    private void mergerDynamicAndSuperProperties(JSONObject propertiesObject) {
+        JSONObject superProperties = getSuperProperties();
+        JSONObject dynamicSuperProperties = null;
+        try {
+            if (mDynamicSuperPropertiesCallBack != null) {
+                dynamicSuperProperties = mDynamicSuperPropertiesCallBack.getDynamicSuperProperties();
+                assertPropertyTypes(dynamicSuperProperties);
+            }
+        } catch (Exception e) {
+            dynamicSuperProperties = null;
+            SALog.printStackTrace(e);
+        }
+        JSONObject removeDuplicateSuperProperties = SensorsDataUtils.mergeSuperJSONObject(dynamicSuperProperties, superProperties);
+        SensorsDataUtils.mergeJSONObject(removeDuplicateSuperProperties, propertiesObject);
     }
 
     /**
@@ -2758,23 +2778,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         //合并 $latest_utm 属性
                         SensorsDataUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), sendProperties);
                     }
-
-                    synchronized (mSuperProperties) {
-                        JSONObject superProperties = mSuperProperties.get();
-                        SensorsDataUtils.mergeJSONObject(superProperties, sendProperties);
-                    }
-
-                    try {
-                        if (mDynamicSuperProperties != null) {
-                            JSONObject dynamicSuperProperties = mDynamicSuperProperties.getDynamicSuperProperties();
-                            if (dynamicSuperProperties != null) {
-                                assertPropertyTypes(dynamicSuperProperties);
-                                SensorsDataUtils.mergeJSONObject(dynamicSuperProperties, sendProperties);
-                            }
-                        }
-                    } catch (Exception e) {
-                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-                    }
+                    mergerDynamicAndSuperProperties(sendProperties);
 
                     // 当前网络状况
                     String networkType = NetworkUtils.networkType(mContext);

@@ -378,35 +378,38 @@ public final class SensorsDataUtils {
     }
 
     /**
-     * 融合静态公共属性
+     * 合并、去重公共属性
      *
-     * @param source 源属性
-     * @param dest 目标属性
+     * @param source 新加入或者优先级高的属性
+     * @param dest 本地缓存或者优先级低的属性，如果有重复会删除该属性
+     * @return 合并后的属性
      */
-    public static void mergeSuperJSONObject(final JSONObject source, JSONObject dest) {
+    public static JSONObject mergeSuperJSONObject(JSONObject source, JSONObject dest) {
+        if (source == null) {
+            source = new JSONObject();
+        }
+        if (dest == null) {
+            return source;
+        }
+
         try {
-            Iterator<String> superPropertiesIterator = source.keys();
-            while (superPropertiesIterator.hasNext()) {
-                String key = superPropertiesIterator.next();
-                Iterator<String> destPropertiesIterator = dest.keys();
-                while (destPropertiesIterator.hasNext()) {
-                    String destKey = destPropertiesIterator.next();
-                    if (!TextUtils.isEmpty(key) && key.toLowerCase(Locale.getDefault()).equals(destKey.toLowerCase(Locale.getDefault()))) {
-                        dest.remove(destKey);
-                        break;
+            Iterator<String> sourceIterator = source.keys();
+            while (sourceIterator.hasNext()) {
+                String key = sourceIterator.next();
+                Iterator<String> destIterator = dest.keys();
+                while (destIterator.hasNext()) {
+                    String destKey = destIterator.next();
+                    if (!TextUtils.isEmpty(key) && key.equalsIgnoreCase(destKey)) {
+                        destIterator.remove();
                     }
                 }
-
-                Object value = source.get(key);
-                if (value instanceof Date && !"$time".equals(key)) {
-                    dest.put(key, TimeUtils.formatDate((Date) value, Locale.CHINA));
-                } else {
-                    dest.put(key, value);
-                }
             }
+            //重新遍历赋值，如果在同一次遍历中赋值会导致同一个 json 中大小写不一样的 key 被删除
+            mergeJSONObject(source, dest);
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
         }
+        return dest;
     }
 
     /**

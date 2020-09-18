@@ -18,6 +18,7 @@
 package com.sensorsdata.analytics.android.sdk.util;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -55,9 +56,7 @@ public class NetworkUtils {
                         if (capabilities != null) {
                             if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
                                 return "WIFI";
-                            } else if (!capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
-                                    && !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
-                                    && !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+                            } else if (!isNetworkValid(capabilities)) {
                                 return "NULL";
                             }
                         }
@@ -104,6 +103,8 @@ public class NetworkUtils {
                 case TelephonyManager.NETWORK_TYPE_HSPAP:
                     return "3G";
                 case TelephonyManager.NETWORK_TYPE_LTE:
+                case TelephonyManager.NETWORK_TYPE_IWLAN:
+                case 19:  //目前已知有车机客户使用该标记作为 4G 网络类型 TelephonyManager.NETWORK_TYPE_LTE_CA:
                     return "4G";
                 case TelephonyManager.NETWORK_TYPE_NR:
                     return "5G";
@@ -121,6 +122,7 @@ public class NetworkUtils {
      * @param context Context
      * @return true：网络可用，false：网络不可用
      */
+    @SuppressLint("WrongConstant")
     public static boolean isNetworkAvailable(Context context) {
         // 检测权限
         if (!SensorsDataUtils.checkHasPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
@@ -134,10 +136,7 @@ public class NetworkUtils {
                     if (network != null) {
                         NetworkCapabilities capabilities = cm.getNetworkCapabilities(network);
                         if (capabilities != null) {
-                            return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
-                                    || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
-                                    || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
-                                    || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN);
+                            return isNetworkValid(capabilities);
                         }
                     }
                 } else {
@@ -180,4 +179,16 @@ public class NetworkUtils {
         return SensorsDataAPI.NetworkType.TYPE_ALL;
     }
 
+    @SuppressLint({"NewApi", "WrongConstant"})
+    private static boolean isNetworkValid(NetworkCapabilities capabilities) {
+        if (capabilities != null) {
+            return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+                    || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+                    || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+                    || capabilities.hasTransport(7)  //目前已知在车联网行业使用该标记作为网络类型（TBOX 网络类型）
+                    || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+                    || capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+        }
+        return false;
+    }
 }
