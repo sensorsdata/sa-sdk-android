@@ -29,6 +29,8 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
 
+import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
+
 class DebugModeSelectDialog extends Dialog implements View.OnClickListener {
 
     private OnDebugModeViewClickListener onDebugModeDialogClickListener;
@@ -52,14 +54,14 @@ class DebugModeSelectDialog extends Dialog implements View.OnClickListener {
         Window window = getWindow();
         if (window != null) {
             WindowManager.LayoutParams p = window.getAttributes();
-            p.width = dip2px(getContext(), 270);
-            p.height = dip2px(getContext(), 240);
+            p.width = SADisplayUtil.dip2px(getContext(), 270);
+            p.height = SADisplayUtil.dip2px(getContext(), 240);
             window.setAttributes(p);
             //设置弹框圆角
             GradientDrawable bg = new GradientDrawable();
             bg.setShape(GradientDrawable.RECTANGLE);
             bg.setColor(Color.WHITE);
-            bg.setCornerRadius(dip2px(getContext(), 7));
+            bg.setCornerRadius(SADisplayUtil.dip2px(getContext(), 7));
             window.setBackgroundDrawable(bg);
         }
     }
@@ -118,11 +120,6 @@ class DebugModeSelectDialog extends Dialog implements View.OnClickListener {
         stateListDrawable.addState(new int[]{android.R.attr.state_pressed}, pressDrawable);
         stateListDrawable.addState(new int[]{}, normalDrawable);
         return stateListDrawable;
-    }
-
-    private int dip2px(Context context, float dpValue) {
-        float scale = context.getResources().getDisplayMetrics().density;
-        return (int) (dpValue * scale + 0.5f);
     }
 
     @Override

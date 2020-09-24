@@ -56,6 +56,7 @@ import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.util.DeviceUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
+import com.sensorsdata.analytics.android.sdk.util.OaidHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
@@ -1499,6 +1500,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         firstTrackInstallation = mFirstTrackInstallation.get();
                     }
                     if (firstTrackInstallation) {
+                        boolean isCorrectTrackInstallation = false;
                         try {
                             if (!ChannelUtils.hasUtmProperties(_properties)) {
                                 ChannelUtils.mergeUtmByMetaData(mContext, _properties);
@@ -1506,19 +1508,20 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
                             if (!ChannelUtils.hasUtmProperties(_properties)) {
                                 String installSource;
+                                String oaid;
                                 if (_properties.has("$oaid")) {
-                                    String oaid = _properties.optString("$oaid");
-                                    installSource = ChannelUtils.getDeviceInfo(mContext,
-                                            mAndroidId, oaid);
+                                    oaid = _properties.optString("$oaid");
+                                    installSource = ChannelUtils.getDeviceInfo(mContext, mAndroidId, oaid);
                                     SALog.i(TAG, "properties has oaid " + oaid);
                                 } else {
-                                    installSource = ChannelUtils.getDeviceInfo(mContext,
-                                            mAndroidId);
+                                    oaid = OaidHelper.getOAID(mContext);
+                                    installSource = ChannelUtils.getDeviceInfo(mContext, mAndroidId, oaid);
                                 }
 
                                 if (_properties.has("$gaid")) {
                                     installSource = String.format("%s##gaid=%s", installSource, _properties.optString("$gaid"));
                                 }
+                                isCorrectTrackInstallation = ChannelUtils.isGetDeviceInfo(mContext, mAndroidId, oaid);
                                 _properties.put("$ios_install_source", installSource);
                             }
                             if (_properties.has("$oaid")) {
@@ -1535,7 +1538,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         } catch (Exception e) {
                             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                         }
-
                         // 先发送 track
                         trackEvent(EventType.TRACK, eventName, _properties, null);
 
@@ -1554,6 +1556,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         } else {
                             mFirstTrackInstallation.commit(false);
                         }
+                        ChannelUtils.saveCorrectTrackInstallation(mContext, isCorrectTrackInstallation);
                     }
                     flushSync();
                 } catch (Exception e) {
@@ -1571,6 +1574,34 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     @Override
     public void trackInstallation(String eventName) {
         trackInstallation(eventName, null, false);
+    }
+
+    void trackChannelDebugInstallation() {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    JSONObject _properties = new JSONObject();
+                    _properties.put("$ios_install_source", ChannelUtils.getDeviceInfo(mContext,
+                            mAndroidId, OaidHelper.getOAID(mContext)));
+                    // 先发送 track
+                    trackEvent(EventType.TRACK, "$ChannelDebugInstall", _properties, null);
+
+                    // 再发送 profile_set_once 或者 profile_set
+                    JSONObject profileProperties = new JSONObject();
+                    SensorsDataUtils.mergeJSONObject(_properties, profileProperties);
+                    profileProperties.put("$first_visit_time", new java.util.Date());
+                    if (mSAConfigOptions.mEnableMultipleChannelMatch) {
+                        trackEvent(EventType.PROFILE_SET, null, profileProperties, null);
+                    } else {
+                        trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null);
+                    }
+                    flushSync();
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
+            }
+        });
     }
 
     @Override
@@ -1607,7 +1638,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                                 SALog.i(TAG, "properties has oaid " + oaid);
                             } else {
                                 _properties.put("$channel_device_info",
-                                        ChannelUtils.getDeviceInfo(mContext, mAndroidId));
+                                        ChannelUtils.getDeviceInfo(mContext, mAndroidId, OaidHelper.getOAID(mContext)));
                             }
                         }
                         if (_properties.has("$oaid")) {

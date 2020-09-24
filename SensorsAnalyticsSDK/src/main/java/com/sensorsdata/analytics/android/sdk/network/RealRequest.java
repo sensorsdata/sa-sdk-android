@@ -92,6 +92,7 @@ class RealRequest {
             if (!TextUtils.isEmpty(body)) {
                 writer = new BufferedWriter(new OutputStreamWriter(conn.getOutputStream(), CHARSET_UTF8));
                 writer.write(body);
+                writer.flush();
             }
             return getRealResponse(conn);
         } catch (Exception e) {

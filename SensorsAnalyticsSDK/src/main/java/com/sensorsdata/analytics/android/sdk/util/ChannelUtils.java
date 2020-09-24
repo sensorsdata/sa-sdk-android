@@ -46,7 +46,7 @@ public class ChannelUtils {
     private static final String UTM_CONTENT_KEY = "SENSORS_ANALYTICS_UTM_CONTENT";
     private static final String UTM_CAMPAIGN_KEY = "SENSORS_ANALYTICS_UTM_CAMPAIGN";
     private static final String SHARED_PREF_UTM_FILE = "sensorsdata.utm";
-
+    private static final String SHARED_PREF_CORRECT_TRACK_INSTALLATION = "sensorsdata.correct.track.installation";
 
     private static HashSet<String> sChannelSourceKeySet = new HashSet<>();
     private static final HashMap<String, String> UTM_MAP = new HashMap<String, String>() {{
@@ -154,17 +154,6 @@ public class ChannelUtils {
             }
         }
         return false;
-    }
-
-    /**
-     * 获取渠道追踪设置信息
-     *
-     * @param mContext Context
-     * @param androidId androidId
-     * @return 拼接的渠道追踪设置信息
-     */
-    public static String getDeviceInfo(Context mContext, String androidId) {
-        return getDeviceInfo(mContext, androidId, OaidHelper.getOAID(mContext));
     }
 
     /**
@@ -401,5 +390,97 @@ public class ChannelUtils {
             DbAdapter.getInstance().addChannelEvent(eventName);
         }
         return isFirst;
+    }
+
+    /**
+     * meta 中是否包含 Utm 属性
+     *
+     * @param context Context
+     * @return meta 中是否包含 Utm 属性
+     */
+    public static boolean hasUtmByMetaData(Context context) {
+        if (context == null) {
+            return false;
+        }
+        for (Map.Entry<String, String> entry : UTM_MAP.entrySet()) {
+            if (entry != null) {
+                String utmValue = getApplicationMetaData(context, entry.getKey());
+                if (!TextUtils.isEmpty(utmValue)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 是否获取到设备信息
+     *
+     * @param context Context
+     * @param androidId AndroidID
+     * @param oaid 移动联通设备标识
+     * @return 是否获取到设备信息（macAddress 除外）
+     */
+    public static boolean isGetDeviceInfo(Context context, String androidId, String oaid) {
+        try {
+            return !TextUtils.isEmpty(androidId) ||
+                    !TextUtils.isEmpty(oaid) ||
+                    !TextUtils.isEmpty(SensorsDataUtils.getIMEI(context)) ||
+                    !TextUtils.isEmpty(SensorsDataUtils.getIMEIOld(context)) ||
+                    !TextUtils.isEmpty(SensorsDataUtils.getSlot(context, 0)) ||
+                    !TextUtils.isEmpty(SensorsDataUtils.getSlot(context, 1)) ||
+                    !TextUtils.isEmpty(SensorsDataUtils.getMEID(context));
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return false;
+    }
+
+
+    /**
+     * 是否触发过 trackInstallation 事件
+     *
+     * @param context Context
+     * @return 是否触发过 trackInstallation 事件
+     */
+    public static boolean isTrackInstallation(Context context) {
+        try {
+            SharedPreferences sp = getSharedPreferences(context);
+            return sp.contains(SHARED_PREF_CORRECT_TRACK_INSTALLATION);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return false;
+    }
+
+    /**
+     * 是否正确触发过 trackInstallation 事件
+     *
+     * @param context Context
+     * @return 是否正确触发过 trackInstallation 事件
+     */
+    public static boolean isCorrectTrackInstallation(Context context) {
+        try {
+            SharedPreferences sp = getSharedPreferences(context);
+            return sp.getBoolean(SHARED_PREF_CORRECT_TRACK_INSTALLATION, false);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return false;
+    }
+
+    /**
+     * 保存 trackInstallation 事件是否正确触发标识
+     *
+     * @param context Context
+     * @param isCorrectTrackInstallation trackInstallation 事件是否正确触发标识
+     */
+    public static void saveCorrectTrackInstallation(Context context, boolean isCorrectTrackInstallation) {
+        try {
+            SharedPreferences sp = getSharedPreferences(context);
+            sp.edit().putBoolean(SHARED_PREF_CORRECT_TRACK_INSTALLATION, isCorrectTrackInstallation).apply();
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 }

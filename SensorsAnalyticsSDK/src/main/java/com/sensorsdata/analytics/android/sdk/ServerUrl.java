@@ -25,6 +25,7 @@ public class ServerUrl {
     private String host;
     private String project;
     private String token;
+    private String baseUrl;
 
     private ServerUrl() {
 
@@ -33,6 +34,7 @@ public class ServerUrl {
     public ServerUrl(String url) {
         this.url = url;
         if (!TextUtils.isEmpty(url)) {
+            baseUrl = getBaseUrl(url);
             Uri uri = Uri.parse(url);
             try {
                 host = uri.getHost();
@@ -70,9 +72,14 @@ public class ServerUrl {
         return token;
     }
 
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
     @Override
     public String toString() {
         return "url=" + url + "," +
+                "baseUrl" + baseUrl + "," +
                 "host=" + host + "," +
                 "project=" + project + "," +
                 "token=" + token;
@@ -90,5 +97,21 @@ public class ServerUrl {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
         return false;
+    }
+
+    /**
+     * 获取 BaseRUl 不包含 queryParams 的网络地址。
+     *
+     * @param url 数据接收地址
+     * @return BaseUrl
+     */
+    public String getBaseUrl(String url) {
+        if (!TextUtils.isEmpty(url)) {
+            int pathPrefix = url.lastIndexOf("/");
+            if (pathPrefix != -1) {
+                return url.substring(0, pathPrefix);
+            }
+        }
+        return "";
     }
 }

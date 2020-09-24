@@ -106,5 +106,10 @@ public abstract class HttpCallback<T> {
                 return null;
             }
         }
+
+        @Override
+        public void onAfter() {
+
+        }
     }
 }

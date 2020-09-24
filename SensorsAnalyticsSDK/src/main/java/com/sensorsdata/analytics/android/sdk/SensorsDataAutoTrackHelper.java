@@ -51,8 +51,15 @@ import android.widget.TabHost;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
+import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataLoadingDialog;
+import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
+import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
+import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
+import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
+import com.sensorsdata.analytics.android.sdk.util.OaidHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.ThreadUtils;
 import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
@@ -1774,8 +1781,132 @@ public class SensorsDataAutoTrackHelper {
                     }
                     Toast.makeText(activity, tip, Toast.LENGTH_LONG).show();
                     intent.setData(null);
+                } else if ("channeldebug".equals(host)) {
+                    if (ChannelUtils.hasUtmByMetaData(activity)) {
+                        showDialog(activity, "当前为渠道包，无法使用联调诊断工具");
+                        return;
+                    }
+
+                    String monitorId = uri.getQueryParameter("monitor_id");
+                    if (TextUtils.isEmpty(monitorId)) {
+                        return;
+                    }
+                    String url = SensorsDataAPI.sharedInstance().getServerUrl();
+                    if (TextUtils.isEmpty(url)) {
+                        showDialog(activity, "数据接收地址错误，无法使用联调诊断工具");
+                        return;
+                    }
+                    ServerUrl serverUrl = new ServerUrl(url);
+                    String projectName = uri.getQueryParameter("project_name");
+                    if (serverUrl.getProject().equals(projectName)) {
+                        String projectId = uri.getQueryParameter("project_id");
+                        String accountId = uri.getQueryParameter("account_id");
+                        showChannelDebugDialog(activity, serverUrl.getBaseUrl(), monitorId, projectId, accountId);
+                    } else {
+                        showDialog(activity, "App 集成的项目与电脑浏览器打开的项目不同，无法使用联调诊断工具");
+                    }
+                    intent.setData(null);
                 }
             }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
+    private static void showChannelDebugDialog(final Activity activity,
+                                               final String baseUrl,
+                                               final String monitorId,
+                                               final String projectId,
+                                               final String accountId) {
+        SensorsDataDialogUtils.showDialog(activity, "即将开启联调模式", "", "确定", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (dialog != null) {
+                    dialog.dismiss();
+                }
+                Context context = activity.getApplicationContext();
+                boolean isTrackInstallation = ChannelUtils.isTrackInstallation(context);
+                if (!isTrackInstallation || ChannelUtils.isCorrectTrackInstallation(context)) {
+                    String androidId = SensorsDataUtils.getAndroidID(context);
+                    String oaid = OaidHelper.getOAID(context);
+                    if (isTrackInstallation && !ChannelUtils.isGetDeviceInfo(context, androidId, oaid)) {
+                        showChannelDebugErrorDialog(activity);
+                        return;
+                    }
+                    if (!NetworkUtils.isNetworkAvailable(context)) {
+                        showDialog(activity, "当前网络不可用，请检查网络！");
+                        return;
+                    }
+                    final SensorsDataLoadingDialog loadingDialog = new SensorsDataLoadingDialog(activity);
+                    loadingDialog.show();
+                    requestActiveChannel(context, baseUrl,
+                            monitorId, projectId, accountId,
+                            androidId, oaid, isTrackInstallation,
+                            new HttpCallback.JsonCallback() {
+                                @Override
+                                public void onFailure(int code, String errorMessage) {
+                                    loadingDialog.dismiss();
+                                    SALog.i(TAG, "ChannelDebug request error:" + errorMessage);
+                                    showDialog(activity, "网络异常,请求失败!");
+                                }
+
+                                @Override
+                                public void onResponse(JSONObject response) {
+                                    loadingDialog.dismiss();
+                                    if (response == null) {
+                                        SALog.i(TAG, "ChannelDebug response error msg: response is null");
+                                        showDialog(activity, "添加白名单请求失败，请联系神策技术支持人员排查问题!");
+                                        return;
+                                    }
+                                    int code = response.optInt("code", 0);
+                                    if (code == 1) {// 请求成功
+                                        showChannelDebugActiveDialog(activity);
+                                    } else {//请求失败
+                                        SALog.i(TAG, "ChannelDebug response error msg:" + response.optString("message"));
+                                        showDialog(activity, "添加白名单请求失败，请联系神策技术支持人员排查问题!");
+                                    }
+                                }
+                            });
+                } else {
+                    showChannelDebugErrorDialog(activity);
+                }
+            }
+        }, "取消", null).show();
+    }
+
+    private static void showChannelDebugErrorDialog(Activity activity) {
+        SensorsDataDialogUtils.showDialog(activity, "检测到 “设备码为空”，可能原因如下，请排查：",
+                "1. 开启 App 时拒绝“电话”授权；\n" +
+                        "2. 手机系统权限设置中是否关闭“电话”授权；\n" +
+                        "3. 请联系研发人员确认是否“调用 trackInstallation 接口在获取“电话”授权之后。\n\n " +
+                        "排查修复后，请先卸载应用并重新安装，再扫码进行联调。", "确定", null, null, null).show();
+    }
+
+    private static void showChannelDebugActiveDialog(final Activity activity) {
+        SensorsDataDialogUtils.showDialog(activity, "成功开启调试模式",
+                "此模式下不需要卸载 App，点击“激活”按钮可反复触发激活", "激活", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        SensorsDataAPI.sharedInstance().trackChannelDebugInstallation();
+                        showChannelDebugActiveDialog(activity);
+                    }
+                }, "取消", null).show();
+    }
+
+    private static void requestActiveChannel(Context context, String baseUrl,
+                                             String monitorId, String projectId, String accountId,
+                                             String androidId, String oaid, boolean isActive,
+                                             HttpCallback callback) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("monitor_id", monitorId);
+            json.put("distinct_id", SensorsDataAPI.sharedInstance().getDistinctId());
+            json.put("project_id", projectId);
+            json.put("account_id", accountId);
+            json.put("has_active", isActive ? "true" : "false");
+            json.put("device_code", ChannelUtils.getDeviceInfo(context, androidId, oaid));
+            new RequestHelper.Builder(HttpMethod.POST, baseUrl + "/api/sdk/channel_tool/url")
+                    .jsonData(json.toString()).callback(callback).execute();
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }

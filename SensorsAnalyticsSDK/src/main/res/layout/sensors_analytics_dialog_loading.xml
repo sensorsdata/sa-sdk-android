@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:id="@+id/sensors_analytics_loading"
+    android:padding="6dip">
+    <RelativeLayout
+        android:padding="12dip"
+        android:id="@+id/sensors_analytics_rotate_layout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+    <ImageView
+        android:id="@+id/sensorsdata_analytics_loading_image1"
+        android:layout_width="12dip"
+        android:layout_height="12dip"/>
+    <ImageView
+        android:id="@+id/sensorsdata_analytics_loading_image2"
+        android:layout_toRightOf="@id/sensorsdata_analytics_loading_image1"
+        android:layout_marginLeft="6dip"
+        android:layout_width="12dip"
+        android:layout_height="12dip"/>
+
+    <ImageView
+        android:id="@+id/sensorsdata_analytics_loading_image3"
+        android:layout_below="@id/sensorsdata_analytics_loading_image1"
+        android:layout_marginTop="6dip"
+        android:layout_width="12dip"
+        android:layout_height="12dip"/>
+
+    <ImageView
+        android:id="@+id/sensorsdata_analytics_loading_image4"
+        android:layout_toRightOf="@id/sensorsdata_analytics_loading_image3"
+        android:layout_below="@id/sensorsdata_analytics_loading_image2"
+        android:layout_marginLeft="6dip"
+        android:layout_marginTop="6dip"
+        android:layout_width="12dip"
+        android:layout_height="12dip"/>
+    </RelativeLayout>
+    <TextView
+        android:layout_marginTop="8dip"
+        android:layout_width="wrap_content"
+        android:text="开启中"
+        android:textStyle="bold"
+        android:textSize="12sp"
+        android:layout_height="wrap_content"/>
+</LinearLayout>
