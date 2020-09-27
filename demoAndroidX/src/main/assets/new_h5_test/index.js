@@ -61,7 +61,8 @@
     use_app_track_config:{
         use_app_track:true,
         white_list:['https://sdkdebugtest.datasink.sensorsdata.cn/sa?project=default&token=cfb8b60e42e0ae9b',
-                    'http://test-syg.datasink.sensorsdata.cn/sa?project=liangshuang&token=27f1e21b78daf376']
+                    'http://test-syg.datasink.sensorsdata.cn/sa?project=liangshuang&token=27f1e21b78daf376',
+                    'https://newsdktest.datasink.sensorsdata.cn/sa?project=zhangwei&token=5a394d2405c147ca']
     },
     use_client_time: true,
     cross_subdomain: false,

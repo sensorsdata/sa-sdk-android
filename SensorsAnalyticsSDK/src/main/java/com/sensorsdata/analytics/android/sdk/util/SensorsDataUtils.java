@@ -169,6 +169,9 @@ public final class SensorsDataUtils {
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
+        } catch (Error error) {
+            //针对酷派 B770 机型抛出的 IncompatibleClassChangeError 错误进行捕获
+            SALog.i(TAG, error.toString());
         }
         return null;
     }

@@ -2205,45 +2205,70 @@ public class SensorsDataAutoTrackHelper {
     }
 
     public static void loadUrl(View webView, String url) {
-        if (webView == null) {
-            throw new NullPointerException("WebView has not initialized.");
-        }
-        setupH5Bridge(webView);
+        loadUrl2(webView, url);
         invokeWebViewLoad(webView, "loadUrl", new Object[]{url}, new Class[]{String.class});
     }
 
-    public static void loadUrl(View webView, String url, Map<String, String> additionalHttpHeaders) {
+    public static void loadUrl2(View webView, String url) {
         if (webView == null) {
-            throw new NullPointerException("WebView has not initialized.");
+            SALog.i(TAG, "WebView has not initialized.");
+            return;
         }
         setupH5Bridge(webView);
+    }
+
+    public static void loadUrl(View webView, String url, Map<String, String> additionalHttpHeaders) {
+        loadUrl2(webView, url, additionalHttpHeaders);
         invokeWebViewLoad(webView, "loadUrl", new Object[]{url, additionalHttpHeaders}, new Class[]{String.class, Map.class});
     }
 
-    public static void loadData(View webView, String data, String mimeType, String encoding) {
+    public static void loadUrl2(View webView, String url, Map<String, String> additionalHttpHeaders) {
         if (webView == null) {
-            throw new NullPointerException("WebView has not initialized.");
+            SALog.i(TAG, "WebView has not initialized.");
+            return;
         }
         setupH5Bridge(webView);
+    }
+
+    public static void loadData(View webView, String data, String mimeType, String encoding) {
+        loadData2(webView, data, mimeType, encoding);
         invokeWebViewLoad(webView, "loadData", new Object[]{data, mimeType, encoding}, new Class[]{String.class, String.class, String.class});
     }
 
-    public static void loadDataWithBaseURL(View webView, String baseUrl, String data, String mimeType, String encoding, String historyUrl) {
+    public static void loadData2(View webView, String data, String mimeType, String encoding) {
         if (webView == null) {
-            throw new NullPointerException("WebView has not initialized.");
+            SALog.i(TAG, "WebView has not initialized.");
+            return;
         }
         setupH5Bridge(webView);
+    }
+
+    public static void loadDataWithBaseURL(View webView, String baseUrl, String data, String mimeType, String encoding, String historyUrl) {
+        loadDataWithBaseURL2(webView, baseUrl, data, mimeType, encoding, historyUrl);
         invokeWebViewLoad(webView, "loadDataWithBaseURL", new Object[]{baseUrl, data, mimeType, encoding, historyUrl},
                 new Class[]{String.class, String.class, String.class, String.class, String.class});
     }
 
-    public static void postUrl(View webView, String url, byte[] postData) {
+    public static void loadDataWithBaseURL2(View webView, String baseUrl, String data, String mimeType, String encoding, String historyUrl) {
         if (webView == null) {
-            throw new NullPointerException("WebView has not initialized.");
+            SALog.i(TAG, "WebView has not initialized.");
+            return;
         }
         setupH5Bridge(webView);
+    }
+
+    public static void postUrl(View webView, String url, byte[] postData) {
+        postUrl2(webView, url, postData);
         invokeWebViewLoad(webView, "postUrl", new Object[]{url, postData},
                 new Class[]{String.class, byte[].class});
+    }
+
+    public static void postUrl2(View webView, String url, byte[] postData) {
+        if (webView == null) {
+            SALog.i(TAG, "WebView has not initialized.");
+            return;
+        }
+        setupH5Bridge(webView);
     }
 
     private static void setupH5Bridge(View webView) {
@@ -2259,6 +2284,10 @@ public class SensorsDataAutoTrackHelper {
     }
 
     private static void invokeWebViewLoad(View webView, String methodName, Object[] params, Class[] paramTypes) {
+        if (webView == null) {
+            SALog.i(TAG, "WebView has not initialized.");
+            return;
+        }
         try {
             Class<?> clazz = webView.getClass();
             Method loadMethod = clazz.getMethod(methodName, paramTypes);

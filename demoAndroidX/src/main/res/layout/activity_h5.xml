@@ -10,7 +10,7 @@
         android:text="X5WebView"
         android:textSize="18sp" />
 
-    <com.tencent.smtt.sdk.WebView
+    <com.sensorsdata.analytics.android.demo.widget.AAX5WebView
         android:id="@+id/x5WebView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -29,7 +29,7 @@
         android:text="Android WebView"
         android:textSize="18sp" />
 
-    <WebView
+    <com.sensorsdata.analytics.android.demo.widget.AAWebView
         android:id="@+id/androidWebView"
         android:layout_width="match_parent"
         android:layout_height="0dp"

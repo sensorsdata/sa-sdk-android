@@ -18,6 +18,10 @@
 package com.sensorsdata.analytics.android.demo.widget;
 
 import android.content.Context;
+import android.util.AttributeSet;
+
+import java.security.PKCS12Attribute;
+import java.util.Map;
 
 public class AAX5WebView extends AX5WebView {
 
@@ -25,4 +29,49 @@ public class AAX5WebView extends AX5WebView {
         super(context);
     }
 
+    public AAX5WebView(Context context, boolean b) {
+        super(context, b);
+    }
+
+    public AAX5WebView(Context context, AttributeSet attributeSet) {
+        super(context, attributeSet);
+    }
+
+    public AAX5WebView(Context context, AttributeSet attributeSet, int i) {
+        super(context, attributeSet, i);
+    }
+
+    public AAX5WebView(Context context, AttributeSet attributeSet, int i, boolean b) {
+        super(context, attributeSet, i, b);
+    }
+
+    public void customMethod(String url){
+        //do something
+        loadUrl(url);
+    }
+
+    @Override
+    public void loadUrl(String s, Map<String, String> map) {
+        loadData("","","");
+    }
+
+    @Override
+    public void loadUrl(String s) {
+        super.loadUrl(s);
+    }
+
+    @Override
+    public void postUrl(String s, byte[] bytes) {
+        super.postUrl(s, bytes);
+    }
+
+    @Override
+    public void loadData(String s, String s1, String s2) {
+        super.loadData(s, s1, s2);
+    }
+
+    @Override
+    public void loadDataWithBaseURL(String s, String s1, String s2, String s3, String s4) {
+        super.loadDataWithBaseURL(s, s1, s2, s3, s4);
+    }
 }

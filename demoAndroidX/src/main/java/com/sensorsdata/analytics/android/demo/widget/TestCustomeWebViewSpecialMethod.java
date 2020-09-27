@@ -1,5 +1,5 @@
 /*
- * Created by zhangwei on 2020/03/26.
+ * Created by zhangwei on 2020/08/15.
  * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,29 +19,28 @@ package com.sensorsdata.analytics.android.demo.widget;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.view.View;
+import android.webkit.WebView;
 
-import com.tencent.smtt.sdk.WebView;
+import androidx.annotation.Nullable;
 
-public class AX5WebView extends WebView {
+class TestCustomeWebViewSpecialMethod extends View {
 
-
-    public AX5WebView(Context context) {
+    public TestCustomeWebViewSpecialMethod(Context context) {
         super(context);
     }
 
-    public AX5WebView(Context context, boolean b) {
-        super(context, b);
+    public TestCustomeWebViewSpecialMethod(Context context, @Nullable AttributeSet attrs) {
+        super(context, attrs);
     }
 
-    public AX5WebView(Context context, AttributeSet attributeSet) {
-        super(context, attributeSet);
+    public TestCustomeWebViewSpecialMethod(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
     }
 
-    public AX5WebView(Context context, AttributeSet attributeSet, int i) {
-        super(context, attributeSet, i);
-    }
-
-    public AX5WebView(Context context, AttributeSet attributeSet, int i, boolean b) {
-        super(context, attributeSet, i, b);
+    //需要能够正常插入代码
+    public void loadUrl(String str){
+        WebView webView = null;
+        webView.loadUrl(str);
     }
 }

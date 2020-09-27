@@ -45,6 +45,7 @@ public class MyApplication extends Application {
                 SensorsAnalyticsAutoTrackEventType.APP_VIEW_SCREEN |
                 SensorsAnalyticsAutoTrackEventType.APP_CLICK)
                 .enableTrackAppCrash()
+                .enableJavaScriptBridge(true)
                 .enableVisualizedAutoTrack(true)
                 .enableVisualizedAutoTrackConfirmDialog(true);
         SensorsDataAPI.startWithConfigOptions(this, configOptions);

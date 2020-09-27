@@ -18,12 +18,52 @@
 package com.sensorsdata.analytics.android.demo.widget;
 
 import android.content.Context;
+import android.util.AttributeSet;
+
+import androidx.annotation.Nullable;
+
+import java.util.Map;
 
 public class AAWebView extends AWebView {
-
 
     public AAWebView(Context context) {
         super(context);
     }
 
+    public AAWebView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+    }
+
+    public AAWebView(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+    }
+
+    public AAWebView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        super(context, attrs, defStyleAttr, defStyleRes);
+    }
+
+    public void customMethod(String url){
+        //do something
+        loadUrl(url);
+    }
+
+    @Override
+    public void loadUrl(String s) {
+        loadUrl(s, null);
+    }
+
+    @Override
+    public void loadUrl(String url, Map<String, String> additionalHttpHeaders) {
+        super.loadUrl(url, additionalHttpHeaders);
+    }
+
+    @Override
+    public void postUrl(String url, byte[] postData) {
+        super.postUrl(url, postData);
+    }
+
+    @Override
+    public void loadDataWithBaseURL(@Nullable String baseUrl, String data, @Nullable String mimeType, @Nullable String encoding, @Nullable String historyUrl) {
+        super.loadDataWithBaseURL(baseUrl, data, mimeType, encoding, historyUrl);
+    }
 }

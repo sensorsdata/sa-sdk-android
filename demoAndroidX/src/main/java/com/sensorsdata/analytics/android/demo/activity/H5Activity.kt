@@ -65,7 +65,7 @@ class H5Activity : BaseActivity() {
         //旧版 H5
         //androidWebView.loadUrl("https://fengandyun.github.io/apph5select/index.html")
 
-        SensorsDataAPI.sharedInstance().showUpWebView(androidWebView, true, true)
+        //SensorsDataAPI.sharedInstance().showUpWebView(androidWebView, true, true)
 
     }
 
@@ -77,6 +77,7 @@ class H5Activity : BaseActivity() {
             webView.loadData("data1", "html", "utf8")
             webView.loadUrl("https://www.ss.cn", mapOf("header" to "h1"))
             webView.loadDataWithBaseURL("http://www.base.cn", "h1=5", "text", "utf8", "http://www.hisotory.cn")
+            webView.postUrl("sss" , null)
         }
 
         run {
