@@ -22,13 +22,17 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
+
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.sensorsdata.analytics.android.demo.R;
+import com.sensorsdata.analytics.android.demo.custom.HorizonRecyclerDivider;
 import com.sensorsdata.analytics.android.demo.fragment.BaseAppFragment;
+import com.sensorsdata.analytics.android.demo.fragment.view.NestRecyclerViewAdapter;
 
 public class Frg_app_3 extends BaseAppFragment {
-
+    private RecyclerView recyclerView;
     public Frg_app_3() {
     }
 
@@ -36,12 +40,11 @@ public class Frg_app_3 extends BaseAppFragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View v = inflater.inflate(R.layout.fragment_frg_app_3, container, false);
-        v.findViewById(R.id.tv_app_frg_3).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Toast.makeText(v.getContext(), "Frg_app_3 点击", Toast.LENGTH_SHORT).show();
-            }
-        });
+        recyclerView = v.findViewById(R.id.recyclerView_app3);
+        recyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), RecyclerView.VERTICAL, false));
+        recyclerView.addItemDecoration(new HorizonRecyclerDivider(getActivity(), HorizonRecyclerDivider.VERTICAL_LIST));
+        NestRecyclerViewAdapter nestRecyclerViewAdapter = new NestRecyclerViewAdapter(getActivity());
+        recyclerView.setAdapter(nestRecyclerViewAdapter);
         return v;
     }
 }

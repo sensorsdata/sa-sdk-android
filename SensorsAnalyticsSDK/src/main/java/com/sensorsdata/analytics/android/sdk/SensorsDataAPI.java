@@ -2859,7 +2859,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         // 单独处理 $AppStart 和 $AppEnd 的时间戳
                         if ("$AppEnd".equals(eventName)) {
                             long appEndTime = properties.optLong("event_time");
-                            if (appEndTime > 0) {
+                            // 退出时间戳不合法不使用，2000 为打点间隔时间戳
+                            if (appEndTime > 2000) {
                                 eventTime = appEndTime;
                             }
                             String appEnd_lib_version = properties.optString("$lib_version");

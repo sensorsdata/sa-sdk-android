@@ -17,7 +17,7 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
-import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -76,7 +76,6 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
@@ -110,133 +109,80 @@ public class SensorsDataAutoTrackHelper {
         return isDeBounceTrack;
     }
 
+    @TargetApi(12)
     private static void traverseView(final String fragmentName, final ViewGroup root) {
         try {
             if (TextUtils.isEmpty(fragmentName) || root == null) {
                 return;
             }
-            if (root.getChildCount() == 0 && (ViewUtil.instanceOfRecyclerView(root) || root instanceof AdapterView)) {
-                ViewTreeRunnable runnable = new ViewTreeRunnable(fragmentName, root);
-                runnable.registerViewTreeObserver();
-                ThreadUtils.getSinglePool().execute(runnable);
+            final View rootView = root.getRootView();
+            if (root.getChildCount() == 0 && (ViewUtil.instanceOfRecyclerView(root) || root instanceof AdapterView) && rootView.getTag(R.id.sensors_analytics_tag_view_tree_observer_listeners) == null) {
+                final ViewTreeObserver.OnGlobalLayoutListener onGlobalLayoutListener = new ViewTreeObserver.OnGlobalLayoutListener() {
+                    @Override
+                    public void onGlobalLayout() {
+                        int width = root.getWidth();
+                        int height = root.getHeight();
+                        if (width > 0 && height > 0) {
+                            setFragmentTag(fragmentName, root);
+                        }
+                    }
+                };
+                final ViewTreeObserver.OnScrollChangedListener onScrollChangedListener = new ViewTreeObserver.OnScrollChangedListener() {
+                    @Override
+                    public void onScrollChanged() {
+                        setFragmentTag(fragmentName, root);
+                    }
+                };
+                final View.OnAttachStateChangeListener onAttachStateChangeListener = new View.OnAttachStateChangeListener() {
+                    @Override
+                    public void onViewAttachedToWindow(View v) {
+
+                    }
+
+                    @Override
+                    public void onViewDetachedFromWindow(View v) {
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
+                            root.getViewTreeObserver().removeGlobalOnLayoutListener(onGlobalLayoutListener);
+                        } else {
+                            root.getViewTreeObserver().removeOnGlobalLayoutListener(onGlobalLayoutListener);
+                        }
+                        root.getViewTreeObserver().removeOnScrollChangedListener(onScrollChangedListener);
+                        rootView.setTag(R.id.sensors_analytics_tag_view_tree_observer_listeners, null);
+                    }
+                };
+                root.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        root.getViewTreeObserver().addOnGlobalLayoutListener(onGlobalLayoutListener);
+                        root.getViewTreeObserver().addOnScrollChangedListener(onScrollChangedListener);
+                        root.addOnAttachStateChangeListener(onAttachStateChangeListener);
+                        rootView.setTag(R.id.sensors_analytics_tag_view_tree_observer_listeners, true);
+                    }
+                });
             } else {
                 setFragmentTag(fragmentName, root);
             }
         } catch (Exception e) {
-            //ignored
+            SALog.printStackTrace(e);
         }
     }
 
     private static void setFragmentTag(final String fragmentName, final ViewGroup root) {
-        for (int i = 0; i < root.getChildCount(); ++i) {
-            final View child = root.getChildAt(i);
-            child.setTag(R.id.sensors_analytics_tag_view_fragment_name, fragmentName);
-            if (child instanceof ViewGroup && !(child instanceof Spinner || child instanceof RadioGroup)) {
-                traverseView(fragmentName, (ViewGroup) child);
-            }
-        }
-    }
-
-    @SuppressLint("NewApi")
-    private static class ViewTreeRunnable implements ViewTreeObserver.OnGlobalLayoutListener, ViewTreeObserver.OnScrollChangedListener, View.OnAttachStateChangeListener, Runnable {
-        private static final String TAG = "ViewTreeRunnable";
-        private WeakReference<ViewGroup> mRoot;
-        private String mFragmentName;
-        private boolean mAlive;
-
-        public ViewTreeRunnable(String fragmentName, ViewGroup root) {
-            mRoot = new WeakReference<>(root);
-            mAlive = true;
-            mFragmentName = fragmentName;
-        }
-
-        @Override
-        public void onGlobalLayout() {
-            if (mRoot.get() == null) {
-                cleanUp();
-                return;
-            }
-            int width = mRoot.get().getWidth();
-            int height = mRoot.get().getHeight();
-            if (width > 0 && height > 0) {
-                setFragmentTagInSubThread();
-            }
-        }
-
-        @Override
-        public void onScrollChanged() {
-            setFragmentTagInSubThread();
-        }
-
-        @Override
-        public void onViewAttachedToWindow(View v) {
-
-        }
-
-        @Override
-        public void onViewDetachedFromWindow(View v) {
-            cleanUp();
-        }
-
-        private void cleanUp() {
-            try {
-                if (mAlive) {
-                    unRegisterViewTreeObserver();
-                    mAlive = false;
-                }
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
-            }
-        }
-
-        void registerViewTreeObserver() {
-            try {
-                if (mRoot.get() != null) {
-                    ViewTreeObserver observer = mRoot.get().getViewTreeObserver();
-                    if (observer != null && observer.isAlive()) {
-                        observer.addOnGlobalLayoutListener(this);
-                        observer.addOnScrollChangedListener(this);
-                    }
-                    mRoot.get().addOnAttachStateChangeListener(this);
-                }
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
-            }
-        }
-
-        private void unRegisterViewTreeObserver() {
-            try {
-                if (mRoot.get() != null) {
-                    ViewTreeObserver observer = mRoot.get().getViewTreeObserver();
-                    if (observer != null && observer.isAlive()) {
-                        observer.removeOnScrollChangedListener(this);
-                        observer.removeOnGlobalLayoutListener(this);
-                    }
-                    mRoot.get().removeOnAttachStateChangeListener(this);
-                }
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
-            }
-        }
-
-        private void setFragmentTagInSubThread() {
+        try {
             ThreadUtils.getSinglePool().execute(new Runnable() {
                 @Override
                 public void run() {
-                    if (!mAlive) {
-                        return;
+                    for (int i = 0; i < root.getChildCount(); ++i) {
+                        final View child = root.getChildAt(i);
+                        child.setTag(R.id.sensors_analytics_tag_view_fragment_name, fragmentName);
+                        if (child instanceof ViewGroup && !(child instanceof Spinner || child instanceof RadioGroup)) {
+                            traverseView(fragmentName, (ViewGroup) child);
+                        }
                     }
-                    if (mRoot.get() == null) {
-                        cleanUp();
-                        return;
-                    }
-                    setFragmentTag(mFragmentName, mRoot.get());
                 }
             });
-        }
-
-        @Override
-        public void run() {
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
     }
 

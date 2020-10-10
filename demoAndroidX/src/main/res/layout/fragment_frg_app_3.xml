@@ -5,12 +5,10 @@
     android:layout_height="match_parent"
     tools:context=".fragment.app.Frg_app_3">
 
-    <TextView
-        android:id="@+id/tv_app_frg_3"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView_app3"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/yellow"
-        android:gravity="center"
-        android:text="Frg_app_3" />
+        android:gravity="center"/>
 
 </FrameLayout>
