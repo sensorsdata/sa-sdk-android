@@ -134,8 +134,6 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     @Override
     public void onActivityStarted(Activity activity) {
         try {
-            activityProperty = AopUtil.buildTitleNoAutoTrackerProperties(activity);
-            SensorsDataUtils.mergeJSONObject(activityProperty, endDataProperty);
             if (isMultiProcess) {
                 startActivityCount = mDbAdapter.getActivityCount();
                 mDbAdapter.commitActivityCount(++startActivityCount);
@@ -144,6 +142,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
             }
             // 如果是第一个页面
             if (startActivityCount == 1) {
+                buildScreenProperties(activity);
                 if (mSensorsDataInstance.isSaveDeepLinkInfo()) {// 保存 utm 信息时,在 endData 中合并保存的 latestUtm 信息。
                     SensorsDataUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), endDataProperty);
                 }
@@ -236,7 +235,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     @Override
     public void onActivityResumed(final Activity activity) {
         try {
-            updateScreenPropertiesFromChild(activity);
+            buildScreenProperties(activity);
             JSONObject properties = new JSONObject();
             Intent intent = activity.getIntent();
             if (mDeepLinkInfo == null) {
@@ -535,11 +534,8 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         return !mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_END);
     }
 
-    private void updateScreenPropertiesFromChild(Activity activity) {
-        if (activity.isChild()) {
-            activityProperty = AopUtil.buildTitleNoAutoTrackerProperties(activity);
-            SensorsDataUtils.mergeJSONObject(activityProperty, endDataProperty);
-            SALog.i(TAG, "Activity is child, properties is " + activityProperty);
-        }
+    private void buildScreenProperties(Activity activity) {
+        activityProperty = AopUtil.buildTitleNoAutoTrackerProperties(activity);
+        SensorsDataUtils.mergeJSONObject(activityProperty, endDataProperty);
     }
 }

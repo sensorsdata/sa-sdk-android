@@ -653,21 +653,12 @@ public class AopUtil {
                 properties.put(AopConstants.ELEMENT_ID, idString);
             }
 
+            final String screenName = properties.optString(AopConstants.SCREEN_NAME);
+            final String title = properties.optString(AopConstants.TITLE);
+
             //$screen_name & $title
             if (activity != null) {
-                JSONObject activityProperties = AopUtil.buildTitleAndScreenName(activity);
-                if (!properties.has(AopConstants.SCREEN_NAME)) {
-                    String screenName = activityProperties.optString(AopConstants.SCREEN_NAME);
-                    if (!TextUtils.isEmpty(screenName)) {
-                        properties.put(AopConstants.SCREEN_NAME, screenName);
-                    }
-                }
-                if (!properties.has(AopConstants.TITLE)) {
-                    String title = activityProperties.optString(AopConstants.TITLE);
-                    if (!TextUtils.isEmpty(title)) {
-                        properties.put(AopConstants.TITLE, title);
-                    }
-                }
+                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
             boolean isTrackEvent = ViewUtil.isTrackEvent(view, isFromUser);
@@ -688,6 +679,14 @@ public class AopUtil {
             Object fragment = AopUtil.getFragmentFromView(view);
             if (fragment != null) {
                 AopUtil.getScreenNameAndTitleFromFragment(properties, fragment, activity);
+            }
+            // 最终 property 中的 $screen_name 为最终值
+            if (!TextUtils.isEmpty(screenName)) {
+                properties.put(AopConstants.SCREEN_NAME, screenName);
+            }
+            // 最终 property 中的 $title 为最终值
+            if (!TextUtils.isEmpty(title)) {
+                properties.put(AopConstants.TITLE, title);
             }
 
             //获取 View 自定义属性
