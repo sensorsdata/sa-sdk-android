@@ -67,7 +67,7 @@ class TrackProfileSettingsActivity : BaseActivity() {
                     }
                     return
                 }
-                SensorsDataAPI.sharedInstance(this).trackInstallation("AppInstall", PropertyBuilder.newInstance().append("pKey", "pValue").toJSONObject())
+                SensorsDataAPI.sharedInstance(this).trackAppInstall(PropertyBuilder.newInstance().append("pKey", "pValue").toJSONObject())
             }
             //匿名 ID 和用户 ID 关联
             R.id.login_btn -> {

@@ -447,12 +447,15 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         long currentTime = Math.max(System.currentTimeMillis(), 946656000000L);
         long endTrackTime = 0;
         try {
-            JSONObject endDataJsonObject = new JSONObject(DbAdapter.getInstance().getAppEndData());
-            endTrackTime = endDataJsonObject.optLong(TRACK_TIMER); // 获取 $AppEnd 打点事件戳
+            String endData = DbAdapter.getInstance().getAppEndData();
+            if (!TextUtils.isEmpty(endData)) {
+                JSONObject endDataJsonObject = new JSONObject(endData);
+                endTrackTime = endDataJsonObject.optLong(TRACK_TIMER); // 获取 $AppEnd 打点时间戳
+            }
             if (endTrackTime == 0) {
                 endTrackTime = mDbAdapter.getAppEndTime();
             }
-        } catch (JSONException e) {
+        } catch (Exception e) {
             SALog.printStackTrace(e);
         }
         boolean sessionTimeOut = Math.abs(currentTime - endTrackTime) > sessionTime;

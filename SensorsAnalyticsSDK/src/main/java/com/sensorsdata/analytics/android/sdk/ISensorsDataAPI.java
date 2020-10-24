@@ -631,6 +631,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * @param properties 渠道追踪事件的属性
      * @param disableCallback 是否关闭这次渠道匹配的回调请求
      */
+    @Deprecated
     void trackInstallation(String eventName, JSONObject properties, boolean disableCallback);
 
     /**
@@ -640,6 +641,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * @param eventName 渠道追踪事件的名称
      * @param properties 渠道追踪事件的属性
      */
+    @Deprecated
     void trackInstallation(String eventName, JSONObject properties);
 
     /**
@@ -648,7 +650,31 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      *
      * @param eventName 渠道追踪事件的名称
      */
+    @Deprecated
     void trackInstallation(String eventName);
+
+    /**
+     * 记录 $AppInstall 事件，用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
+     * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
+     *
+     * @param properties 渠道追踪事件的属性
+     * @param disableCallback 是否关闭这次渠道匹配的回调请求
+     */
+    void trackAppInstall(JSONObject properties, boolean disableCallback);
+
+    /**
+     * 记录 $AppInstall 事件，用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
+     * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
+     *
+     * @param properties 渠道追踪事件的属性
+     */
+    void trackAppInstall(JSONObject properties);
+
+    /**
+     * 记录 $AppInstall 事件，用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
+     * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
+     */
+    void trackAppInstall();
 
     /**
      * 调用 track 接口，并附加渠道信息.

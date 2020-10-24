@@ -434,6 +434,21 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
+    public void trackAppInstall(JSONObject properties, boolean disableCallback) {
+
+    }
+
+    @Override
+    public void trackAppInstall(JSONObject properties) {
+
+    }
+
+    @Override
+    public void trackAppInstall() {
+
+    }
+
+    @Override
     public void trackChannelEvent(String eventName) {
 
     }

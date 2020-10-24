@@ -159,6 +159,14 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     SensorsDataEncrypt mSensorsDataEncrypt;
     private SensorsDataDeepLinkCallback mDeepLinkCallback;
     SensorsDataRemoteManager mRemoteManager;
+    /**
+     * 标记是否已经采集了带有插件版本号的事件
+     */
+    private boolean isTrackEventWithPluginVersion = false;
+    /**
+     * 插件版本号，插件会用到此属性，请谨慎修改
+     */
+    private static String ANDROID_PLUGIN_VERSION = "";
 
     //private
     SensorsDataAPI() {
@@ -1476,6 +1484,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
+    @Deprecated
     @Override
     public void trackInstallation(final String eventName, final JSONObject properties, final boolean disableCallback) {
         //只在主进程触发 trackInstallation
@@ -1543,6 +1552,8 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
                         // 再发送 profile_set_once 或者 profile_set
                         JSONObject profileProperties = new JSONObject();
+                        // 用户属性需要去掉 $ios_install_disable_callback 字段
+                        _properties.remove("$ios_install_disable_callback");
                         SensorsDataUtils.mergeJSONObject(_properties, profileProperties);
                         profileProperties.put("$first_visit_time", new java.util.Date());
                         if (mSAConfigOptions.mEnableMultipleChannelMatch) {
@@ -1566,14 +1577,31 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
+    @Deprecated
     @Override
     public void trackInstallation(String eventName, JSONObject properties) {
         trackInstallation(eventName, properties, false);
     }
 
+    @Deprecated
     @Override
     public void trackInstallation(String eventName) {
         trackInstallation(eventName, null, false);
+    }
+
+    @Override
+    public void trackAppInstall(JSONObject properties, final boolean disableCallback) {
+        trackInstallation("$AppInstall", properties, disableCallback);
+    }
+
+    @Override
+    public void trackAppInstall(JSONObject properties) {
+        trackAppInstall(properties, false);
+    }
+
+    @Override
+    public void trackAppInstall() {
+        trackAppInstall(null, false);
     }
 
     void trackChannelDebugInstallation() {
@@ -2635,6 +2663,19 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                     SALog.d(TAG, eventName + " event can not enter database");
                     return;
                 }
+                if (!isTrackEventWithPluginVersion && !propertiesObject.has("$lib_plugin_version")) {
+                    JSONArray libPluginVersion = getPluginVersion();
+                    if (libPluginVersion == null) {
+                        isTrackEventWithPluginVersion = true;
+                    } else {
+                        try {
+                            propertiesObject.put("$lib_plugin_version", libPluginVersion);
+                            isTrackEventWithPluginVersion = true;
+                        } catch (Exception e) {
+                            SALog.printStackTrace(e);
+                        }
+                    }
+                }
             }
             eventObject.put("properties", propertiesObject);
 
@@ -3016,6 +3057,19 @@ public class SensorsDataAPI implements ISensorsDataAPI {
                         SALog.d(TAG, eventName + " event can not enter database");
                         return;
                     }
+                    if (!isTrackEventWithPluginVersion && !sendProperties.has("$lib_plugin_version")) {
+                        JSONArray libPluginVersion = getPluginVersion();
+                        if (libPluginVersion == null) {
+                            isTrackEventWithPluginVersion = true;
+                        } else {
+                            try {
+                                sendProperties.put("$lib_plugin_version", libPluginVersion);
+                                isTrackEventWithPluginVersion = true;
+                            } catch (Exception e) {
+                                SALog.printStackTrace(e);
+                            }
+                        }
+                    }
                 }
                 dataObj.put("properties", sendProperties);
 
@@ -3039,6 +3093,20 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
+    }
+
+    private JSONArray getPluginVersion() {
+        try {
+            if (!TextUtils.isEmpty(ANDROID_PLUGIN_VERSION)) {
+                SALog.i(TAG, "android plugin version: " + ANDROID_PLUGIN_VERSION);
+                JSONArray libPluginVersion = new JSONArray();
+                libPluginVersion.put("android:" + ANDROID_PLUGIN_VERSION);
+                return libPluginVersion;
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return null;
     }
 
     boolean isMultiProcess() {
