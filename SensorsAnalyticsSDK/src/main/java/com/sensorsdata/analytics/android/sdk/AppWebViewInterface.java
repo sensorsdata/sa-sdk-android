@@ -19,21 +19,35 @@ package com.sensorsdata.analytics.android.sdk;
 
 import android.content.Context;
 import android.text.TextUtils;
+import android.view.View;
 import android.webkit.JavascriptInterface;
+
+import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.lang.ref.WeakReference;
 
 /* package */ class AppWebViewInterface {
     private static final String TAG = "SA.AppWebViewInterface";
     private Context mContext;
     private JSONObject properties;
     private boolean enableVerify;
+    private WeakReference<View> mWebView;
+
 
     AppWebViewInterface(Context c, JSONObject p, boolean b) {
+        this(c, p, b, null);
+    }
+
+    AppWebViewInterface(Context c, JSONObject p, boolean b, View view) {
         this.mContext = c;
         this.properties = p;
         this.enableVerify = b;
+        if (view != null) {
+            this.mWebView = new WeakReference<>(view);
+        }
     }
 
     @JavascriptInterface
@@ -109,6 +123,39 @@ import org.json.JSONObject;
                 }
                 return true;
             }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return false;
+    }
+
+    /**
+     * 新打通方案下 js 调用 app 的通道,该接口可复用
+     *
+     * @param content JS 发送的消息
+     */
+    @JavascriptInterface
+    public void sensorsdata_js_call_app(final String content) {
+        try {
+            if (mWebView != null) {
+                SensorsDataAPI.sharedInstance().handleJsMessage(mWebView,content);
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
+    /**
+     * 判断 A/B Testing 是否初始化
+     *
+     * @return A/B Testing SDK 是否初始化
+     */
+    @JavascriptInterface
+    public boolean sensorsdata_abtest_module() {
+        try {
+            Class<?> sensorsABTestClass = ReflectUtil.getCurrentClass(new String[]{"com.sensorsdata.abtest.SensorsABTest"});
+            Object object = ReflectUtil.callStaticMethod(sensorsABTestClass, "shareInstance");
+            return object != null;
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }

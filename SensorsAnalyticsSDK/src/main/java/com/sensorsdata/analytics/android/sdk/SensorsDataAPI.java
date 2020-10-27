@@ -50,6 +50,7 @@ import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.internal.FragmentAPI;
 import com.sensorsdata.analytics.android.sdk.internal.IFragmentAPI;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
+import com.sensorsdata.analytics.android.sdk.listener.SAJSListener;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
@@ -64,6 +65,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -79,6 +81,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -155,6 +158,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
     SSLSocketFactory mSSLSocketFactory;
     private SensorsDataTrackEventCallBack mTrackEventCallBack;
     private List<SAEventListener> mEventListenerList;
+    private CopyOnWriteArrayList<SAJSListener> mSAJSListeners;
     private IFragmentAPI mFragmentAPI;
     SensorsDataEncrypt mSensorsDataEncrypt;
     private SensorsDataDeepLinkCallback mDeepLinkCallback;
@@ -1484,7 +1488,6 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    @Deprecated
     @Override
     public void trackInstallation(final String eventName, final JSONObject properties, final boolean disableCallback) {
         //只在主进程触发 trackInstallation
@@ -1577,13 +1580,11 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    @Deprecated
     @Override
     public void trackInstallation(String eventName, JSONObject properties) {
         trackInstallation(eventName, properties, false);
     }
 
-    @Deprecated
     @Override
     public void trackInstallation(String eventName) {
         trackInstallation(eventName, null, false);
@@ -3528,5 +3529,37 @@ public class SensorsDataAPI implements ISensorsDataAPI {
         public static final int TYPE_WIFI = 1 << 3;//WIFI
         public static final int TYPE_5G = 1 << 4;//5G
         public static final int TYPE_ALL = 0xFF;//ALL
+    }
+
+    /**
+     * 监听 JS 消息
+     *
+     * @param listener JS 监听
+     */
+    public void addSAJSListener(final SAJSListener listener) {
+        try {
+            if (mSAJSListeners == null) {
+                mSAJSListeners = new CopyOnWriteArrayList<>();
+            }
+            if (!mSAJSListeners.contains(listener)) {
+                mSAJSListeners.add(listener);
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
+    void handleJsMessage(WeakReference<View> view, final String message) {
+        if (mSAJSListeners != null && mSAJSListeners.size() > 0) {
+            for (final SAJSListener listener : mSAJSListeners) {
+                try {
+                    if (listener != null) {
+                        listener.onReceiveJSMessage(view, message);
+                    }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
+            }
+        }
     }
 }

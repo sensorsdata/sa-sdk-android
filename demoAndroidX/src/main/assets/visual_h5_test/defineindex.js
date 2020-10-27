@@ -22,9 +22,9 @@
             sdk_url:'./sensorsdata.full.js',
             name: 'sensors',
             //数据接收地址
-            server_url:'https://newsdktest.datasink.sensorsdata.cn/sa?project=weizhangxiang&token=5a394d2405c147ca',
+            server_url:'https://sdkdebugtest.datasink.sensorsdata.cn/sa?project=default&token=cfb8b60e42e0ae9b',
             //是否开启全埋点，配置 heatmap:{} 为开启，不配置 heatmap 为关闭全埋点
-//            heatmap:{},
+            heatmap:{},
             is_track_single_page:true,
             //打通参数设置，server_url 白名单校验 server_url
             app_js_bridge:{

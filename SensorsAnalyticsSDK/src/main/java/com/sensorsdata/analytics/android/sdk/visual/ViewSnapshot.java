@@ -60,7 +60,7 @@ import com.sensorsdata.analytics.android.sdk.visual.snap.PropertyDescription;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceIds;
 import com.sensorsdata.analytics.android.sdk.visual.snap.SoftWareCanvas;
 import com.sensorsdata.analytics.android.sdk.visual.snap.UIThreadSet;
-import com.sensorsdata.analytics.android.sdk.visual.util.Dispatch;
+import com.sensorsdata.analytics.android.sdk.visual.util.Dispatcher;
 import com.sensorsdata.analytics.android.sdk.visual.util.VisualUtil;
 
 import org.json.JSONObject;
@@ -270,7 +270,7 @@ public class ViewSnapshot {
                         if (mAlertRunnable == null) {
                             mAlertRunnable = new AlertRunnable(mSnapInfo.webViewUrl);
                         }
-                        Dispatch.getInstance().postDelayed(mAlertRunnable, JS_NOT_INTEGRATED_ALERT_TIME_OUT);
+                        Dispatcher.getInstance().postDelayed(mAlertRunnable, JS_NOT_INTEGRATED_ALERT_TIME_OUT);
                     }
                 }
             }

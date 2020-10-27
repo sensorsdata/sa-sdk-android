@@ -60,6 +60,7 @@ import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.OaidHelper;
+import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.ThreadUtils;
 import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
@@ -1752,6 +1753,9 @@ public class SensorsDataAutoTrackHelper {
                         showDialog(activity, "App 集成的项目与电脑浏览器打开的项目不同，无法使用联调诊断工具");
                     }
                     intent.setData(null);
+                } else if ("abtest".equals(host)) {
+                    ReflectUtil.callStaticMethod(Class.forName("com.sensorsdata.abtest.core.SensorsABTestSchemeHandler"), "handleSchemeUrl", uri.toString());
+                    intent.setData(null);
                 }
             }
         } catch (Exception e) {
@@ -2261,7 +2265,7 @@ public class SensorsDataAutoTrackHelper {
     private static void setupWebView(View webView) {
         if (webView != null && webView.getTag(R.id.sensors_analytics_tag_view_webview) == null) {
             webView.setTag(R.id.sensors_analytics_tag_view_webview, new Object());
-            addJavascriptInterface(webView, new AppWebViewInterface(SensorsDataAPI.sharedInstance().getContext(), null, false), "SensorsData_APP_New_H5_Bridge");
+            addJavascriptInterface(webView, new AppWebViewInterface(SensorsDataAPI.sharedInstance().getContext(), null, false, webView), "SensorsData_APP_New_H5_Bridge");
         }
     }
 

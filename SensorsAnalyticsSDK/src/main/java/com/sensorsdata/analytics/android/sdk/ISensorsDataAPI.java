@@ -631,7 +631,6 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * @param properties 渠道追踪事件的属性
      * @param disableCallback 是否关闭这次渠道匹配的回调请求
      */
-    @Deprecated
     void trackInstallation(String eventName, JSONObject properties, boolean disableCallback);
 
     /**
@@ -641,7 +640,6 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * @param eventName 渠道追踪事件的名称
      * @param properties 渠道追踪事件的属性
      */
-    @Deprecated
     void trackInstallation(String eventName, JSONObject properties);
 
     /**
@@ -650,7 +648,6 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      *
      * @param eventName 渠道追踪事件的名称
      */
-    @Deprecated
     void trackInstallation(String eventName);
 
     /**

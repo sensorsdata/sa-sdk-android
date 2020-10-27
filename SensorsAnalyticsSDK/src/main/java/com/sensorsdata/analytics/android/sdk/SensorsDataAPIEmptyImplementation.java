@@ -23,6 +23,7 @@ import android.view.View;
 import android.webkit.WebView;
 
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
+import com.sensorsdata.analytics.android.sdk.listener.SAJSListener;
 
 import org.json.JSONObject;
 
@@ -824,6 +825,11 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public void stopTrackThread() {
+
+    }
+
+    @Override
+    public void addSAJSListener(SAJSListener listener) {
 
     }
 }

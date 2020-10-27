@@ -4,24 +4,23 @@ import android.os.Handler;
 import android.os.HandlerThread;
 
 
-public class Dispatch {
+public class Dispatcher {
 
-    private static String TAG = Dispatch.class.getSimpleName();
-    private HandlerThread mHandlerThread;
+    private static String TAG = Dispatcher.class.getSimpleName();
     private Handler mHandler;
 
-    public static Dispatch getInstance() {
+    public static Dispatcher getInstance() {
         return DispatchHolder.INSTANCE;
     }
 
-    private Dispatch() {
-        mHandlerThread = new HandlerThread(TAG);
-        mHandlerThread.start();
-        mHandler = new Handler(mHandlerThread.getLooper());
+    private Dispatcher() {
+        HandlerThread handlerThread = new HandlerThread(TAG);
+        handlerThread.start();
+        mHandler = new Handler(handlerThread.getLooper());
     }
 
     private static class DispatchHolder {
-        private static final Dispatch INSTANCE = new Dispatch();
+        private static final Dispatcher INSTANCE = new Dispatcher();
     }
 
     public void post(Runnable r) {

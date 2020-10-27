@@ -24,7 +24,7 @@ import android.util.LruCache;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.visual.model.WebNode;
 import com.sensorsdata.analytics.android.sdk.visual.model.WebNodeInfo;
-import com.sensorsdata.analytics.android.sdk.visual.util.Dispatch;
+import com.sensorsdata.analytics.android.sdk.visual.util.Dispatcher;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -70,7 +70,7 @@ public class WebNodesManager {
 
     @SuppressLint("NewApi")
     void handlerMessage(String message) {
-        Dispatch.getInstance().removeCallbacksAndMessages();
+        Dispatcher.getInstance().removeCallbacksAndMessages();
         if (!VisualizedAutoTrackService.getInstance().isVisualizedAutoTrackRunning()) {
             return;
         }
@@ -117,7 +117,7 @@ public class WebNodesManager {
 
     @SuppressLint("NewApi")
     void handlerFailure(String webViewUrl, String message) {
-        Dispatch.getInstance().removeCallbacksAndMessages();
+        Dispatcher.getInstance().removeCallbacksAndMessages();
         if (!VisualizedAutoTrackService.getInstance().isVisualizedAutoTrackRunning()) {
             return;
         }
