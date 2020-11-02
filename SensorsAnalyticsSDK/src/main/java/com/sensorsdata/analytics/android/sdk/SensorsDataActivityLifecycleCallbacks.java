@@ -47,7 +47,6 @@ import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 import com.sensorsdata.analytics.android.sdk.visual.HeatMapService;
 import com.sensorsdata.analytics.android.sdk.visual.VisualizedAutoTrackService;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Locale;

@@ -237,7 +237,7 @@ public class SensorsDataAPI implements ISensorsDataAPI {
 
         mDeviceInfo = setupDeviceInfo();
         mTrackTimer = new HashMap<>();
-        mFragmentAPI = new FragmentAPI(context);
+        mFragmentAPI = new FragmentAPI();
     }
 
     /**
