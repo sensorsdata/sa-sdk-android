@@ -20,5 +20,8 @@
         <meta-data
             android:name="com.sensorsdata.analytics.android.MainProcessName"
             android:value="${applicationId}" />
+        <meta-data
+            android:name="com.sensorsdata.analytics.android.version"
+            android:value="${SENSORSDATA_SDK_VERSION}" />
     </application>
 </manifest>

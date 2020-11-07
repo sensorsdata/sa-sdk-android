@@ -34,6 +34,6 @@ public class SecreteKey {
 
     @Override
     public String toString() {
-        return "{ key=\"" + key + "\", \"version\"=" + version + "}";
+        return "{\"key\":\"" + key + "\",\"version\":" + version + "}";
     }
 }

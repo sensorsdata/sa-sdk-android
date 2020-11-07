@@ -33,6 +33,10 @@ import java.nio.ByteBuffer;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
+import java.security.Security;
+import java.security.interfaces.ECPublicKey;
+import java.security.spec.KeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Random;
 import java.util.zip.GZIPOutputStream;
@@ -56,9 +60,32 @@ public class SensorsDataEncrypt {
     private IPersistentSecretKey mPersistentSecretKey;
     private Context mContext;
 
+    static {
+        try {
+            Class<?> provider = Class.forName("org.spongycastle.jce.provider.BouncyCastleProvider");
+            Security.addProvider((Provider) provider.newInstance());
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
     public SensorsDataEncrypt(Context context, IPersistentSecretKey persistentSecretKey) {
         this.mPersistentSecretKey = persistentSecretKey;
         this.mContext = context;
+    }
+
+    /**
+     * 检测是否集成 EC 算法
+     * @return 是否集成 EC 算法
+     */
+    public static boolean isECEncrypt() {
+        try {
+            Class.forName("org.spongycastle.jce.provider.BouncyCastleProvider");
+            return true;
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return false;
     }
 
     /**
@@ -97,11 +124,13 @@ public class SensorsDataEncrypt {
     /**
      * 保存密钥
      *
-     * @param secreteKey SecreteKey
+     * @param publicKey 公钥
+     * @param version 密钥版本号
      */
-    public void saveSecretKey(SecreteKey secreteKey) {
+    public void saveSecretKey(String publicKey, int version) {
         try {
-            SALog.i(TAG, "[saveSecretKey] key = " + secreteKey.key + " ,v = " + secreteKey.version);
+            SecreteKey secreteKey = new SecreteKey(publicKey, version);
+            SALog.i(TAG, "[saveSecretKey] publicKey = " + publicKey + " ,v = " + version);
             if (mPersistentSecretKey != null) {
                 mPersistentSecretKey.saveSecretKey(secreteKey);
                 // 同时删除本地的密钥
@@ -119,7 +148,7 @@ public class SensorsDataEncrypt {
      *
      * @return true，为空。false，不为空
      */
-    public boolean isRSASecretKeyNull() {
+    public boolean isPublicSecretKeyNull() {
         try {
             SecreteKey secreteKey = loadSecretKey();
             return TextUtils.isEmpty(secreteKey.key);
@@ -130,13 +159,13 @@ public class SensorsDataEncrypt {
     }
 
     /**
-     * 检查 RSA 密钥信息是否和本地一致
+     * 检查公钥密钥信息是否和本地一致
      *
      * @param version 版本号
      * @param key 密钥信息
      * @return -1 是本地密钥信息为空，-2 是相同，其它是不相同
      */
-    public String checkRSASecretKey(String version, String key) {
+    public String checkPublicSecretKey(String version, String key) {
         String tip = "";
         try {
             SecreteKey secreteKey = loadSecretKey();
@@ -155,7 +184,7 @@ public class SensorsDataEncrypt {
     }
 
     /**
-     * AES 加密
+     * 使用 AES 密钥对埋点数据加密
      *
      * @param key AES 加密秘钥
      * @param content 加密内容
@@ -185,23 +214,33 @@ public class SensorsDataEncrypt {
     }
 
     /**
-     * RSA 加密
+     * 使用服务端公钥对 AES 密钥加密
      *
-     * @param rsaPublicKey，公钥秘钥
+     * @param publicKey，公钥秘钥
      * @param content，加密内容
      * @return 加密后的数据
      */
-    private String rsaEncrypt(String rsaPublicKey, byte[] content) {
-        if (TextUtils.isEmpty(rsaPublicKey)) {
+    private String publicKeyEncrypt(String publicKey, String type, byte[] content) {
+        if (TextUtils.isEmpty(publicKey)) {
+            SALog.i(TAG, "PublicKey is null.");
             return null;
         }
         try {
-            byte[] keyBytes = Base64Coder.decode(rsaPublicKey);
-            X509EncodedKeySpec x509EncodedKeySpec = new X509EncodedKeySpec(keyBytes);
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-            Key publicKey = keyFactory.generatePublic(x509EncodedKeySpec);
-            Cipher cipher = Cipher.getInstance("RSA/None/PKCS1Padding");
-            cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+            byte[] keyBytes = Base64Coder.decode(publicKey);
+            KeySpec x509EncodedKeySpec = new X509EncodedKeySpec(keyBytes);
+            Cipher cipher;
+            if ("EC".equals(type)) {
+                KeyFactory keyFactory = KeyFactory.getInstance("EC", "SC");
+                ECPublicKey ecPublicKey = (ECPublicKey) keyFactory.generatePublic(x509EncodedKeySpec);
+                cipher = Cipher.getInstance("ECIES", "SC");
+                cipher.init(Cipher.ENCRYPT_MODE, ecPublicKey);
+            } else {
+                KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+                Key rsaPublicKey = keyFactory.generatePublic(x509EncodedKeySpec);
+                cipher = Cipher.getInstance("RSA/None/PKCS1Padding");
+                cipher.init(Cipher.ENCRYPT_MODE, rsaPublicKey);
+            }
+
             int contentLen = content.length;
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             int offSet = 0;
@@ -263,9 +302,9 @@ public class SensorsDataEncrypt {
         if (TextUtils.isEmpty(mEkey) || aesKeyValue == null) {
             KeyGenerator keyGen = KeyGenerator.getInstance("AES");
             keyGen.init(128);
-            SecretKey secretKey = keyGen.generateKey();
-            aesKeyValue = secretKey.getEncoded();
-            mEkey = rsaEncrypt(secreteKey.key, aesKeyValue);
+            SecretKey aesKey = keyGen.generateKey();
+            aesKeyValue = aesKey.getEncoded();
+            mEkey = publicKeyEncrypt(parsePublicKey(secreteKey.key), parseType(secreteKey.key), aesKeyValue);
         }
     }
 
@@ -298,15 +337,15 @@ public class SensorsDataEncrypt {
      * 从 App 端读取密钥
      */
     private SecreteKey readAppKey() {
-        String rsaPublicKey = null;
-        int rsaVersion = 0;
+        String publicKey = null;
+        int keyVersion = 0;
         SecreteKey rsaPublicKeyVersion = mPersistentSecretKey.loadSecretKey();
         if (rsaPublicKeyVersion != null) {
-            rsaPublicKey = rsaPublicKeyVersion.key;
-            rsaVersion = rsaPublicKeyVersion.version;
+            publicKey = rsaPublicKeyVersion.key;
+            keyVersion = rsaPublicKeyVersion.version;
         }
-        SALog.i(TAG, "readAppKey [key = " + rsaPublicKey + " ,v = " + rsaVersion + "]");
-        return new SecreteKey(rsaPublicKey, rsaVersion);
+        SALog.i(TAG, "readAppKey [key = " + publicKey + " ,v = " + keyVersion + "]");
+        return new SecreteKey(publicKey, keyVersion);
     }
 
     /**
@@ -315,21 +354,62 @@ public class SensorsDataEncrypt {
      * @throws JSONException 异常
      */
     private SecreteKey readLocalKey() throws JSONException {
-        String rsaPublicKey = null;
-        int rsaVersion = 0;
+        String publicKey = null;
+        int keyVersion = 0;
         final SharedPreferences preferences = SensorsDataUtils.getSharedPreferences(mContext);
         String secretKey = preferences.getString(SP_SECRET_KEY, "");
         if (!TextUtils.isEmpty(secretKey)) {
             JSONObject jsonObject = new JSONObject(secretKey);
-            rsaPublicKey = jsonObject.optString("key", "");
-            rsaVersion = jsonObject.optInt("version", KEY_VERSION_DEFAULT);
+            publicKey = jsonObject.optString("key", "");
+            keyVersion = jsonObject.optInt("version", KEY_VERSION_DEFAULT);
         }
-        SALog.i(TAG, "readLocalKey [key = " + rsaPublicKey + " ,v = " + rsaVersion + "]");
-        return new SecreteKey(rsaPublicKey, rsaVersion);
+        SALog.i(TAG, "readLocalKey [key = " + publicKey + " ,v = " + keyVersion + "]");
+        return new SecreteKey(publicKey, keyVersion);
     }
 
     private boolean isSecretKeyNull(SecreteKey secreteKey) {
         return secreteKey == null || TextUtils.isEmpty(secreteKey.key) || secreteKey.version == KEY_VERSION_DEFAULT;
     }
-}
 
+    /**
+     * 从公钥中解析出密钥类型
+     *
+     * @param secretKey 拼接后的密钥
+     * @return 公钥类型
+     */
+    private String parseType(String secretKey) {
+        try {
+            // 公钥中的拼接格式: type:key，老的 SA 版本中没有 type 字段，只有 EC 加密有
+            if (!TextUtils.isEmpty(secretKey)) {
+                int index = secretKey.indexOf(":");
+                if (index != -1) {
+                    return secretKey.substring(0, index);
+                }
+            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+        return "RSA";
+    }
+
+    /**
+     * 从拼接字符串中解析出密钥
+     *
+     * @param secretKey 拼接后的密钥
+     * @return 公钥
+     */
+    private String parsePublicKey(String secretKey) {
+        try {
+            // 公钥中的拼接格式: type:key，老的 SA 版本中没有 type 字段，只有 EC 加密有
+            if (!TextUtils.isEmpty(secretKey)) {
+                int index = secretKey.indexOf(":");
+                if (index != -1) {
+                    return secretKey.substring(index + 1);
+                }
+            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+        return secretKey;
+    }
+}

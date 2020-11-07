@@ -681,7 +681,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
-    void trackEvent(EventType eventType, String eventName, JSONObject properties, String originalDistinctId) {
+    protected void trackEvent(EventType eventType, String eventName, JSONObject properties, String originalDistinctId) {
 
     }
 
@@ -825,6 +825,11 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public void stopTrackThread() {
+
+    }
+
+    @Override
+    public void enableDataCollect() {
 
     }
 

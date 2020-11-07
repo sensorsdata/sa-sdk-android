@@ -17,11 +17,15 @@
 
 package com.sensorsdata.analytics.android.sdk.util;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 
 public class JSONUtils {
@@ -113,5 +117,50 @@ public class JSONUtils {
             return maps;
         }
         return null;
+    }
+
+    /**
+     * 创建新的 JSONObject 对象,防止 SDK  内部修改对传入的 property 做出改变
+     * @param properties JSONObject
+     * @return 新的 JSONObject
+     */
+    public static JSONObject makeNewObject(JSONObject properties) {
+        JSONObject _properties;
+        try {
+            if (properties != null) {
+                _properties = new JSONObject(properties.toString());
+            } else {
+                _properties = new JSONObject();
+            }
+        } catch (JSONException e) {
+            SALog.printStackTrace(e);
+            _properties = new JSONObject();
+        }
+        return _properties;
+    }
+
+    /**
+     * 合并非重复的属性
+     * @param source 源
+     * @param dest 目标
+     */
+    public static void mergeDistinctProperty(final JSONObject source, JSONObject dest) {
+        try {
+            Iterator<String> superPropertiesIterator = source.keys();
+            while (superPropertiesIterator.hasNext()) {
+                String key = superPropertiesIterator.next();
+                if (dest.has(key)) {
+                    continue;
+                }
+                Object value = source.get(key);
+                if (value instanceof Date && !"$time".equals(key)) {
+                    dest.put(key, TimeUtils.formatDate((Date) value, Locale.CHINA));
+                } else {
+                    dest.put(key, value);
+                }
+            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
     }
 }

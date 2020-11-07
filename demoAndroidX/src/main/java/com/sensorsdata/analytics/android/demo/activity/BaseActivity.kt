@@ -20,13 +20,6 @@ package com.sensorsdata.analytics.android.demo.activity
 import android.os.Bundle
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
-import android.view.LayoutInflater
-import android.view.View
-import android.widget.TextView
-import android.widget.Toast
-import androidx.appcompat.app.ActionBar
-import androidx.core.content.ContextCompat.getSystemService
-import com.sensorsdata.analytics.android.demo.R
 
 
 open class BaseActivity : AppCompatActivity() {
@@ -41,8 +34,8 @@ open class BaseActivity : AppCompatActivity() {
         }
     }
 
-    override fun onOptionsItemSelected(item: MenuItem?): Boolean {
-        if (item!!.itemId == android.R.id.home) {
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == android.R.id.home) {
             finish()
             return true
         }

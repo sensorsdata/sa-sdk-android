@@ -1685,7 +1685,9 @@ public class SensorsDataAutoTrackHelper {
                     intent.setData(null);
                 } else if ("debugmode".equals(host)) {
                     String infoId = uri.getQueryParameter("info_id");
-                    showDebugModeSelectDialog(activity, infoId);
+                    String locationHref = uri.getQueryParameter("sf_push_distinct_id");
+                    String project = uri.getQueryParameter("project");
+                    showDebugModeSelectDialog(activity, infoId, locationHref, project);
                     intent.setData(null);
                 } else if ("visualized".equals(host)) {
                     String featureCode = uri.getQueryParameter("feature_code");
@@ -1722,7 +1724,7 @@ public class SensorsDataAutoTrackHelper {
                     if (TextUtils.isEmpty(version) || TextUtils.isEmpty(key)) {
                         tip = "密钥验证不通过，所选密钥无效";
                     } else if (SensorsDataAPI.sharedInstance().mSensorsDataEncrypt != null) {
-                        tip = SensorsDataAPI.sharedInstance().mSensorsDataEncrypt.checkRSASecretKey(version, key);
+                        tip = SensorsDataAPI.sharedInstance().mSensorsDataEncrypt.checkPublicSecretKey(version, key);
                     } else {
                         tip = "当前 App 未开启加密，请开启加密后再试";
                     }
@@ -1878,7 +1880,7 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    private static void showDebugModeSelectDialog(final Activity activity, final String infoId) {
+    private static void showDebugModeSelectDialog(final Activity activity, final String infoId, final String locationHref, final String project) {
         try {
             DebugModeSelectDialog dialog = new DebugModeSelectDialog(activity, SensorsDataAPI.sharedInstance().getDebugMode());
             dialog.setCanceledOnTouchOutside(false);
@@ -1901,7 +1903,19 @@ public class SensorsDataAutoTrackHelper {
                     String serverUrl = SensorsDataAPI.sharedInstance().getServerUrl();
                     SensorsDataAPI.DebugMode mCurrentDebugMode = SensorsDataAPI.sharedInstance().getDebugMode();
                     if (SensorsDataAPI.sharedInstance().isNetworkRequestEnable() && !TextUtils.isEmpty(serverUrl) && !TextUtils.isEmpty(infoId) && mCurrentDebugMode != SensorsDataAPI.DebugMode.DEBUG_OFF) {
-                        new SendDebugIdThread(serverUrl, SensorsDataAPI.sharedInstance().getDistinctId(), infoId, ThreadNameConstants.THREAD_SEND_DISTINCT_ID).start();
+                        if (TextUtils.isEmpty(locationHref)) {
+                            new SendDebugIdThread(serverUrl, SensorsDataAPI.sharedInstance().getDistinctId(), infoId, ThreadNameConstants.THREAD_SEND_DISTINCT_ID).start();
+                        } else {
+                            try {
+                                if (!TextUtils.isEmpty(project)) {
+                                    String url = locationHref + "?project=" + project;
+                                    SALog.i(TAG, "sf url:" + url);
+                                    new SendDebugIdThread(url, SensorsDataAPI.sharedInstance().getDistinctId(), infoId, ThreadNameConstants.THREAD_SEND_DISTINCT_ID).start();
+                                }
+                            } catch (Exception e) {
+                                SALog.printStackTrace(e);
+                            }
+                        }
                     }
                     String currentDebugToastMsg = "";
                     if (mCurrentDebugMode == SensorsDataAPI.DebugMode.DEBUG_OFF) {

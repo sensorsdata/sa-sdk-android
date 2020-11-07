@@ -3,17 +3,17 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 
-version = "4.3.7"
+version = "4.4.0"
 def min_plugin_version = "3.0.0"
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 30
 
     resourcePrefix "sensors_analytics_"
 
     defaultConfig {
         minSdkVersion 9
-        targetSdkVersion 29
+        targetSdkVersion 30
         versionCode 1
         versionName "1.0"
         consumerProguardFiles 'proguard-rules.pro'
@@ -25,11 +25,13 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             buildConfigField("String", "SDK_VERSION", "\"${version}\"")
             buildConfigField("String", "MIN_PLUGIN_VERSION", "\"${min_plugin_version}\"")
+            manifestPlaceholders = ["SENSORSDATA_SDK_VERSION": "${version}"]
         }
 
         debug {
             buildConfigField("String", "SDK_VERSION", "\"${version}\"")
             buildConfigField("String", "MIN_PLUGIN_VERSION", "\"${min_plugin_version}\"")
+            manifestPlaceholders = ["SENSORSDATA_SDK_VERSION": "${version}"]
         }
     }
 

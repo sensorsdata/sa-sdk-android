@@ -162,4 +162,9 @@ abstract class AbstractSAConfigOptions {
      * 密钥存储相关接口
      */
     IPersistentSecretKey mPersistentSecretKey;
+
+    /**
+     * 关闭数据采集，默认开启数据采集
+     */
+    boolean isDataCollectEnable = true;
 }

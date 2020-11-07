@@ -387,4 +387,13 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
         this.isSubProcessFlushData = true;
         return this;
     }
+
+    /**
+     * 禁用数据采集
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions disableDataCollect() {
+        this.isDataCollectEnable = false;
+        return this;
+    }
 }

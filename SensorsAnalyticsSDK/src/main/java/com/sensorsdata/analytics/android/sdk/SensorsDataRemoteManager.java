@@ -173,7 +173,18 @@ class SensorsDataRemoteManager {
                     sdkRemoteConfig.setEffectMode(configObject.optInt("effect_mode", 0));
                     JSONObject keyObject = configObject.optJSONObject("key");
                     if (keyObject != null) {
-                        sdkRemoteConfig.setRsaPublicKey(keyObject.optString("public_key"));
+                        if (keyObject.has("key_ec") && SensorsDataEncrypt.isECEncrypt()) {
+                            String key_ec = keyObject.optString("key_ec");
+                            if (!TextUtils.isEmpty(key_ec)) {
+                                keyObject = new JSONObject(key_ec);
+                            }
+                        }
+
+                        String publicKey = keyObject.optString("public_key");
+                        if (keyObject.has("type")) {
+                            publicKey = keyObject.optString("type") + ":" + publicKey;
+                        }
+                        sdkRemoteConfig.setPublicKey(publicKey);
                         sdkRemoteConfig.setPkv(keyObject.optInt("pkv"));
                     }
                 } else {
@@ -181,7 +192,7 @@ class SensorsDataRemoteManager {
                     sdkRemoteConfig.setDisableDebugMode(false);
                     sdkRemoteConfig.setDisableSDK(false);
                     sdkRemoteConfig.setAutoTrackMode(-1);
-                    sdkRemoteConfig.setRsaPublicKey("");
+                    sdkRemoteConfig.setPublicKey("");
                     sdkRemoteConfig.setPkv(-1);
                     sdkRemoteConfig.setEventBlacklist(new JSONArray());
                     sdkRemoteConfig.setNewVersion("");
@@ -209,7 +220,7 @@ class SensorsDataRemoteManager {
         }
 
         //开启加密并且传入秘钥为空的，强制请求后端，此时请求中不带 v
-        if (mSensorsDataEncrypt != null && mSensorsDataEncrypt.isRSASecretKeyNull()) {
+        if (mSensorsDataEncrypt != null && mSensorsDataEncrypt.isPublicSecretKeyNull()) {
             requestRemoteConfig(RemoteConfigHandleRandomTimeType.RandomTimeTypeWrite, false);
             SALog.i(TAG, "Request remote config because encrypt key is null");
             return;
@@ -301,9 +312,8 @@ class SensorsDataRemoteManager {
                                 if (!TextUtils.isEmpty(data)) {
                                     SensorsDataSDKRemoteConfig sdkRemoteConfig = toSDKRemoteConfig(data);
                                     try {
-                                        if (mSensorsDataEncrypt != null && sdkRemoteConfig.getRsaPublicKey() != null) {
-                                            mSensorsDataEncrypt.saveSecretKey(new
-                                                    SecreteKey(sdkRemoteConfig.getRsaPublicKey(), sdkRemoteConfig.getPkv()));
+                                        if (mSensorsDataEncrypt != null && sdkRemoteConfig.getPublicKey() != null) {
+                                            mSensorsDataEncrypt.saveSecretKey(sdkRemoteConfig.getPublicKey(), sdkRemoteConfig.getPkv());
                                         }
                                     } catch (Exception e) {
                                         SALog.printStackTrace(e);
@@ -374,7 +384,7 @@ class SensorsDataRemoteManager {
 
         //再次检查是否应该在请求中带 v，比如在禁止分散请求的情况下，SDK 升级了或者公钥为空，此时应该不带 v
         if (configV && (SensorsDataUtils.checkVersionIsNew(mContext, SensorsDataAPI.VERSION) ||
-                (mSensorsDataEncrypt != null && mSensorsDataEncrypt.isRSASecretKeyNull()))) {
+                (mSensorsDataEncrypt != null && mSensorsDataEncrypt.isPublicSecretKeyNull()))) {
             configV = false;
         }
 

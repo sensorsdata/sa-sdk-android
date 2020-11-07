@@ -5,18 +5,30 @@ apply plugin: 'kotlin-android'
 apply plugin: 'com.sensorsdata.analytics.android'
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 30
 
     defaultConfig {
         applicationId "com.sensorsdata.analytics.android.demo"
         minSdkVersion 15
-        targetSdkVersion 29
+        targetSdkVersion 30
         versionCode 1
         versionName "1.0"
     }
+
+    signingConfigs {
+        release {
+            storeFile file("FuXiaoDouReleaseKey.jks")
+            storePassword "FuXiaoDou@1234#5678!"
+            keyAlias "FuXiaoDouReleaseKey"
+            keyPassword "FuXiaoDou@1234#5678!"
+        }
+
+    }
+
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

@@ -19,7 +19,6 @@ package com.sensorsdata.analytics.android.sdk.util;
 
 import android.Manifest;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Build;
 import android.text.TextUtils;
 import android.util.Log;

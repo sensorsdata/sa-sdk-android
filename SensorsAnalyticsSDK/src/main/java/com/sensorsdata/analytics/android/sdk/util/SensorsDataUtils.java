@@ -40,6 +40,7 @@ import android.webkit.WebSettings;
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackAppViewScreenUrl;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackHelper;
 
@@ -512,7 +513,7 @@ public final class SensorsDataUtils {
     public static String getIMEI(Context context) {
         String imei = "";
         try {
-            if (!checkHasPermission(context, Manifest.permission.READ_PHONE_STATE)) {
+            if (!hasReadPhoneStatePermission(context)) {
                 return imei;
             }
 
@@ -574,10 +575,11 @@ public final class SensorsDataUtils {
      * @param number 卡槽
      * @return 设备唯一标识
      */
+    @SuppressLint({"MissingPermission", "HardwareIds"})
     private static String getDeviceID(Context context, int number) {
         String deviceId = "";
         try {
-            if (!SensorsDataUtils.checkHasPermission(context, "android.permission.READ_PHONE_STATE")) {
+            if (!hasReadPhoneStatePermission(context)) {
                 return deviceId;
             }
 
@@ -595,6 +597,19 @@ public final class SensorsDataUtils {
             SALog.printStackTrace(e);
         }
         return deviceId;
+    }
+
+    private static boolean hasReadPhoneStatePermission(Context context) {
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+            if (!SensorsDataUtils.checkHasPermission(context, Manifest.permission.READ_PRECISE_PHONE_STATE)) {
+                SALog.i(TAG, "Don't have permission android.permission.READ_PRECISE_PHONE_STATE,getDeviceID failed");
+                return false;
+            }
+        } else if (!SensorsDataUtils.checkHasPermission(context, Manifest.permission.READ_PHONE_STATE)) {
+            SALog.i(TAG, "Don't have permission android.permission.READ_PHONE_STATE,getDeviceID failed");
+            return false;
+        }
+        return true;
     }
 
     /**

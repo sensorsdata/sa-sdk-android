@@ -21,13 +21,16 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class TrackTaskManager {
     private static TrackTaskManager trackTaskManager;
+    private boolean mDataCollectEnable = true;
     /**
      * 请求线程队列
      */
     private final LinkedBlockingQueue<Runnable> mTrackEventTasks;
+    private final LinkedBlockingQueue<Runnable> mTrackEventTasksCache;
 
     private TrackTaskManager() {
         mTrackEventTasks = new LinkedBlockingQueue<>();
+        mTrackEventTasksCache = new LinkedBlockingQueue<>();
     }
 
     public static synchronized TrackTaskManager getInstance() {
@@ -41,17 +44,39 @@ public class TrackTaskManager {
         return trackTaskManager;
     }
 
-    public void addTrackEventTask(Runnable trackEvenTask) {
+    void addTrackEventTask(Runnable trackEvenTask) {
         try {
-            mTrackEventTasks.put(trackEvenTask);
+            if (mDataCollectEnable) {
+                mTrackEventTasks.put(trackEvenTask);
+            } else {
+                mTrackEventTasksCache.put(trackEvenTask);
+            }
         } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
+    /**
+     * 将任务添加到真正执行的队列
+     * @param runnable Runnable
+     */
+    void transformTaskQueue(Runnable runnable) {
+        try {
+            if (mTrackEventTasks.size() <= 50) {// 最多只处理 50 条
+                mTrackEventTasks.put(runnable);
+            }
+        } catch (InterruptedException e) {
             SALog.printStackTrace(e);
         }
     }
 
     Runnable takeTrackEventTask() {
         try {
-            return mTrackEventTasks.take();
+            if (mDataCollectEnable) {
+                return mTrackEventTasks.take();
+            } else {
+                return mTrackEventTasksCache.take();
+            }
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -60,7 +85,11 @@ public class TrackTaskManager {
 
     Runnable pollTrackEventTask() {
         try {
-            return mTrackEventTasks.poll();
+            if (mDataCollectEnable) {
+                return mTrackEventTasks.poll();
+            } else {
+                return mTrackEventTasksCache.poll();
+            }
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -69,5 +98,28 @@ public class TrackTaskManager {
 
     boolean isEmpty(){
         return mTrackEventTasks.isEmpty();
+    }
+
+    void setDataCollectEnable(boolean isDataCollectEnable) {
+        this.mDataCollectEnable = isDataCollectEnable;
+        try {
+            if (isDataCollectEnable) {
+                mTrackEventTasksCache.put(new Runnable() {
+                    @Override
+                    public void run() {
+
+                    }
+                });
+            } else {
+                mTrackEventTasks.put(new Runnable() {
+                    @Override
+                    public void run() {
+
+                    }
+                });
+            }
+        } catch (InterruptedException e) {
+            SALog.printStackTrace(e);
+        }
     }
 }

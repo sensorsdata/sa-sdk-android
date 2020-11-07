@@ -1119,4 +1119,9 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * 开启事件采集
      */
     void startTrackThread();
+
+    /**
+     * 开启数据采集
+     */
+    void enableDataCollect();
 }

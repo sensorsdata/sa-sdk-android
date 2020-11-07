@@ -42,7 +42,7 @@ public class SensorsDataSDKRemoteConfig {
     /**
      * RSA 公钥
      */
-    private String rsaPublicKey;
+    private String publicKey;
 
     /**
      * 公钥版本名称
@@ -96,12 +96,12 @@ public class SensorsDataSDKRemoteConfig {
         this.disableSDK = disableSDK;
     }
 
-    public String getRsaPublicKey() {
-        return rsaPublicKey;
+    public String getPublicKey() {
+        return publicKey;
     }
 
-    public void setRsaPublicKey(String rsaPublicKey) {
-        this.rsaPublicKey = rsaPublicKey;
+    public void setPublicKey(String publicKey) {
+        this.publicKey = publicKey;
     }
 
     public int getPkv() {
@@ -111,7 +111,6 @@ public class SensorsDataSDKRemoteConfig {
     public void setPkv(int pkv) {
         this.pkv = pkv;
     }
-
 
     int getAutoTrackMode() {
         return autoTrackMode;
