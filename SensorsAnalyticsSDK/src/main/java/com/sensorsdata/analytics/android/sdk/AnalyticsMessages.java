@@ -70,14 +70,16 @@ class AnalyticsMessages {
     private final Worker mWorker;
     private final Context mContext;
     private final DbAdapter mDbAdapter;
+    private SensorsDataAPI mSensorsDataAPI;
 
     /**
      * 不要直接调用，通过 getInstance 方法获取实例
      */
-    private AnalyticsMessages(final Context context) {
+    private AnalyticsMessages(final Context context, SensorsDataAPI sensorsDataAPI) {
         mContext = context;
         mDbAdapter = DbAdapter.getInstance();
         mWorker = new Worker();
+        mSensorsDataAPI = sensorsDataAPI;
     }
 
     /**
@@ -85,12 +87,12 @@ class AnalyticsMessages {
      *
      * @param messageContext Context
      */
-    public static AnalyticsMessages getInstance(final Context messageContext) {
+    public static AnalyticsMessages getInstance(final Context messageContext, final SensorsDataAPI sensorsDataAPI) {
         synchronized (S_INSTANCES) {
             final Context appContext = messageContext.getApplicationContext();
             final AnalyticsMessages ret;
             if (!S_INSTANCES.containsKey(appContext)) {
-                ret = new AnalyticsMessages(appContext);
+                ret = new AnalyticsMessages(appContext, sensorsDataAPI);
                 S_INSTANCES.put(appContext, ret);
             } else {
                 ret = S_INSTANCES.get(appContext);
@@ -120,7 +122,7 @@ class AnalyticsMessages {
                 int ret = mDbAdapter.addJSON(eventJson);
                 if (ret < 0) {
                     String error = "Failed to enqueue the event: " + eventJson;
-                    if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+                    if (mSensorsDataAPI.isDebugMode()) {
                         throw new DebugModeException(error);
                     } else {
                         SALog.i(TAG, error);
@@ -130,16 +132,16 @@ class AnalyticsMessages {
                 final Message m = Message.obtain();
                 m.what = FLUSH_QUEUE;
 
-                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode() || ret ==
+                if (mSensorsDataAPI.isDebugMode() || ret ==
                         DbParams.DB_OUT_OF_MEMORY_ERROR) {
                     mWorker.runMessage(m);
                 } else {
                     // track_signup 立即发送
-                    if (type.equals("track_signup") || ret > SensorsDataAPI.sharedInstance(mContext)
+                    if (type.equals("track_signup") || ret > mSensorsDataAPI
                             .getFlushBulkSize()) {
                         mWorker.runMessage(m);
                     } else {
-                        final int interval = SensorsDataAPI.sharedInstance(mContext).getFlushInterval();
+                        final int interval = mSensorsDataAPI.getFlushInterval();
                         mWorker.runMessageOnce(m, interval);
                     }
                 }
@@ -172,12 +174,12 @@ class AnalyticsMessages {
 
     private void sendData() {
         try {
-            if (!SensorsDataAPI.sharedInstance(mContext).isNetworkRequestEnable()) {
+            if (!mSensorsDataAPI.isNetworkRequestEnable()) {
                 SALog.i(TAG, "NetworkRequest 已关闭，不发送数据！");
                 return;
             }
 
-            if (TextUtils.isEmpty(SensorsDataAPI.sharedInstance(mContext).getServerUrl())) {
+            if (TextUtils.isEmpty(mSensorsDataAPI.getServerUrl())) {
                 SALog.i(TAG, "Server url is null or empty.");
                 return;
             }
@@ -189,13 +191,13 @@ class AnalyticsMessages {
 
             //不符合同步数据的网络策略
             String networkType = NetworkUtils.networkType(mContext);
-            if (!NetworkUtils.isShouldFlush(networkType, SensorsDataAPI.sharedInstance(mContext).getFlushNetworkPolicy())) {
+            if (!NetworkUtils.isShouldFlush(networkType, mSensorsDataAPI.getFlushNetworkPolicy())) {
                 SALog.i(TAG, String.format("您当前网络为 %s，无法发送数据，请确认您的网络发送策略！", networkType));
                 return;
             }
 
             // 如果开启多进程上报
-            if (SensorsDataAPI.sharedInstance().isMultiProcessFlushData()) {
+            if (mSensorsDataAPI.isMultiProcessFlushData()) {
                 // 已经有进程在上报
                 if (DbAdapter.getInstance().isSubProcessFlushing()) {
                     return;
@@ -214,7 +216,7 @@ class AnalyticsMessages {
             boolean deleteEvents = true;
             String[] eventsData;
             synchronized (mDbAdapter) {
-                if (SensorsDataAPI.sharedInstance(mContext).isDebugMode()) {
+                if (mSensorsDataAPI.isDebugMode()) {
                     /* debug 模式下服务器只允许接收 1 条数据 */
                     eventsData = mDbAdapter.generateDataString(DbParams.TABLE_EVENTS, 1);
                 } else {
@@ -239,7 +241,7 @@ class AnalyticsMessages {
                 }
 
                 if (!TextUtils.isEmpty(data)) {
-                    sendHttpRequest(SensorsDataAPI.sharedInstance(mContext).getServerUrl(), data, gzip, rawMessage, false);
+                    sendHttpRequest(mSensorsDataAPI.getServerUrl(), data, gzip, rawMessage, false);
                 }
             } catch (ConnectErrorException e) {
                 deleteEvents = false;
@@ -253,7 +255,7 @@ class AnalyticsMessages {
                 deleteEvents = false;
                 errorMessage = "Exception: " + e.getMessage();
             } finally {
-                boolean isDebugMode = SensorsDataAPI.sharedInstance(mContext).isDebugMode();
+                boolean isDebugMode = mSensorsDataAPI.isDebugMode();
                 if (!TextUtils.isEmpty(errorMessage)) {
                     if (isDebugMode || SALog.isLogEnabled()) {
                         SALog.i(TAG, errorMessage);
@@ -285,7 +287,7 @@ class AnalyticsMessages {
 
             }
         }
-        if (SensorsDataAPI.sharedInstance().isMultiProcessFlushData()) {
+        if (mSensorsDataAPI.isMultiProcessFlushData()) {
             DbAdapter.getInstance().commitSubProcessFlushState(false);
         }
     }
@@ -302,15 +304,17 @@ class AnalyticsMessages {
                 SALog.i(TAG, String.format("can not connect %s, it shouldn't happen", url.toString()), null);
                 return;
             }
-            if (SensorsDataAPI.sharedInstance().getSSLSocketFactory() != null && connection instanceof HttpsURLConnection) {
-                ((HttpsURLConnection) connection).setSSLSocketFactory(SensorsDataAPI.sharedInstance().getSSLSocketFactory());
+            SAConfigOptions configOptions = SensorsDataAPI.getConfigOptions();
+            if (configOptions != null && configOptions.mSSLSocketFactory != null
+                    && connection instanceof HttpsURLConnection) {
+                ((HttpsURLConnection) connection).setSSLSocketFactory(configOptions.mSSLSocketFactory);
             }
             connection.setInstanceFollowRedirects(false);
-            if (SensorsDataAPI.sharedInstance(mContext).getDebugMode() == SensorsDataAPI.DebugMode.DEBUG_ONLY) {
+            if (mSensorsDataAPI.getDebugMode() == SensorsDataAPI.DebugMode.DEBUG_ONLY) {
                 connection.addRequestProperty("Dry-Run", "true");
             }
 
-            connection.setRequestProperty("Cookie", SensorsDataAPI.sharedInstance(mContext).getCookie(false));
+            connection.setRequestProperty("Cookie", mSensorsDataAPI.getCookie(false));
 
             Uri.Builder builder = new Uri.Builder();
             //先校验crc
@@ -336,8 +340,8 @@ class AnalyticsMessages {
 
             int responseCode = connection.getResponseCode();
             SALog.i(TAG, "responseCode: " + responseCode);
-            if (!isRedirects && SensorsDataHttpURLConnectionHelper.needRedirects(responseCode)) {
-                String location = SensorsDataHttpURLConnectionHelper.getLocation(connection, path);
+            if (!isRedirects && NetworkUtils.needRedirects(responseCode)) {
+                String location = NetworkUtils.getLocation(connection, path);
                 if (!TextUtils.isEmpty(location)) {
                     closeStream(bout, out, null, connection);
                     sendHttpRequest(location, data, gzip, rawMessage, true);

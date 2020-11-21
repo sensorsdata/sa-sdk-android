@@ -19,6 +19,7 @@ package com.sensorsdata.analytics.android.sdk.network;
 
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
@@ -30,7 +31,6 @@ import java.net.URL;
 import java.util.Map;
 
 import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSocketFactory;
 
 import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
 
@@ -131,9 +131,10 @@ class RealRequest {
             //设置为 true 后才能写入参数
             conn.setDoOutput(true);
         }
-        SSLSocketFactory sslSocketFactory = SensorsDataAPI.sharedInstance().getSSLSocketFactory();
-        if (sslSocketFactory != null && conn instanceof HttpsURLConnection) {
-            ((HttpsURLConnection) conn).setSSLSocketFactory(sslSocketFactory);
+        SAConfigOptions configOptions = SensorsDataAPI.getConfigOptions();
+        if (configOptions != null && configOptions.mSSLSocketFactory != null
+                && conn instanceof HttpsURLConnection) {
+            ((HttpsURLConnection) conn).setSSLSocketFactory(configOptions.mSSLSocketFactory);
         }
         return conn;
     }

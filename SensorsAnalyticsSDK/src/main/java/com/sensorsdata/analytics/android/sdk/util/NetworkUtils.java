@@ -26,11 +26,21 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.os.Build;
 import android.telephony.TelephonyManager;
+import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+
 public class NetworkUtils {
+
+    /**
+     * HTTP 状态码 307
+     */
+    private static final int HTTP_307 = 307;
 
     /**
      * 获取网络类型
@@ -180,7 +190,7 @@ public class NetworkUtils {
     }
 
     @SuppressLint({"NewApi", "WrongConstant"})
-    private static boolean isNetworkValid(NetworkCapabilities capabilities) {
+    public static boolean isNetworkValid(NetworkCapabilities capabilities) {
         if (capabilities != null) {
             return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
                     || capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
@@ -191,4 +201,30 @@ public class NetworkUtils {
         }
         return false;
     }
+
+    public static boolean needRedirects(int responseCode) {
+        return responseCode == HttpURLConnection.HTTP_MOVED_PERM || responseCode == HttpURLConnection.HTTP_MOVED_TEMP || responseCode == HTTP_307;
+    }
+
+    public static String getLocation(HttpURLConnection connection, String path) throws MalformedURLException {
+        if (connection == null || TextUtils.isEmpty(path)) {
+            return null;
+        }
+        String location = connection.getHeaderField("Location");
+        if (TextUtils.isEmpty(location)) {
+            location = connection.getHeaderField("location");
+        }
+        if (TextUtils.isEmpty(location)) {
+            return null;
+        }
+        if (!(location.startsWith("http://") || location
+                .startsWith("https://"))) {
+            //某些时候会省略host，只返回后面的path，所以需要补全url
+            URL originUrl = new URL(path);
+            location = originUrl.getProtocol() + "://"
+                    + originUrl.getHost() + location;
+        }
+        return location;
+    }
+
 }

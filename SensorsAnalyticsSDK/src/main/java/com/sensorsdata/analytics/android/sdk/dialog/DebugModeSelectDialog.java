@@ -1,5 +1,5 @@
 /*
- * Created by zhangwei on 2019/04/17.
+ * Created by yuejianzhong on 2020/11/04.
  * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.dialog;
 
 import android.app.Dialog;
 import android.content.Context;
@@ -29,6 +29,8 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.TextView;
 
+import com.sensorsdata.analytics.android.sdk.R;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 
 class DebugModeSelectDialog extends Dialog implements View.OnClickListener {

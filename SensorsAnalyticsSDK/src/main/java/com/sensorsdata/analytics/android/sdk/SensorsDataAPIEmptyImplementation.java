@@ -33,8 +33,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import javax.net.ssl.SSLSocketFactory;
-
 public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     SensorsDataAPIEmptyImplementation() {
 
@@ -100,7 +98,8 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public long getMaxCacheSize() {
-        return 0;
+        // 返回默认值
+        return 32 * 1024 * 1024;
     }
 
     @Override
@@ -115,7 +114,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public int getFlushInterval() {
-        return 0;
+        return 15 * 1000;
     }
 
     @Override
@@ -125,7 +124,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public int getFlushBulkSize() {
-        return 0;
+        return 100;
     }
 
     @Override
@@ -353,7 +352,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
-    boolean isAppHeatMapConfirmDialogEnabled() {
+    public boolean isAppHeatMapConfirmDialogEnabled() {
         return true;
     }
 
@@ -469,7 +468,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     }
 
-    void trackInternal(final String eventName, final JSONObject properties) {
+    public void trackInternal(final String eventName, final JSONObject properties) {
 
     }
 
@@ -701,7 +700,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
-    void setDebugMode(DebugMode debugMode) {
+    public void setDebugMode(DebugMode debugMode) {
 
     }
 
@@ -786,7 +785,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
-    boolean isVisualizedAutoTrackConfirmDialogEnabled() {
+    public boolean isVisualizedAutoTrackConfirmDialogEnabled() {
         return false;
     }
 
@@ -797,11 +796,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public void enableVisualizedAutoTrack() {
-
-    }
-
-    @Override
-    public void setSSLSocketFactory(SSLSocketFactory sf) {
 
     }
 

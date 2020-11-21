@@ -36,7 +36,7 @@ public abstract class HttpCallback<T> {
         } else if (!TextUtils.isEmpty(response.errorMsg)) {
             errorMessage = response.errorMsg;
         } else if (response.exception != null) {
-            errorMessage = response.exception.getMessage();
+            errorMessage = response.exception.toString();
         } else {
             errorMessage = "unknown error";
         }

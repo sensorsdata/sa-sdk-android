@@ -32,6 +32,7 @@ import android.webkit.WebView;
 import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
+import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
@@ -55,8 +56,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import javax.net.ssl.SSLSocketFactory;
-
 import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
 import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertKey;
 import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertPropertyTypes;
@@ -68,7 +67,7 @@ import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertValu
 public class SensorsDataAPI extends AbstractSensorsDataAPI {
     // 可视化埋点功能最低 API 版本
     public static final int VTRACK_SUPPORTED_MIN_API = 16;
-    // SDK版本
+    // SDK 版本，此属性插件会进行访问，谨慎修改
     static final String VERSION = BuildConfig.SDK_VERSION;
     // 此属性插件会进行访问，谨慎删除。当前 SDK 版本所需插件最低版本号，设为空，意为没有任何限制
     static final String MIN_PLUGIN_VERSION = BuildConfig.MIN_PLUGIN_VERSION;
@@ -82,7 +81,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     }
 
     SensorsDataAPI(Context context, String serverURL, DebugMode debugMode) {
-       super(context, serverURL, debugMode);
+        super(context, serverURL, debugMode);
     }
 
     /**
@@ -787,7 +786,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             Boolean isIgnored = mRemoteManager.isAutoTrackEventTypeIgnored(autoTrackEventType);
             if (isIgnored != null) {
                 if (isIgnored) {
-                    SALog.i(TAG, autoTrackEventType + " is ignored by remote config");
+                    SALog.i(TAG, "remote config: " + AutoTrackEventType.autoTrackEventName(autoTrackEventType) + " is ignored by remote config");
                 }
                 return isIgnored;
             }
@@ -2080,7 +2079,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             //请求远程配置
             if (isRequestRemoteConfig && mRemoteManager != null) {
                 try {
-                    mRemoteManager.requestRemoteConfig(SensorsDataRemoteManager.RemoteConfigHandleRandomTimeType.RandomTimeTypeWrite, false);
+                    mRemoteManager.requestRemoteConfig(BaseSensorsDataSDKRemoteManager.RandomTimeType.RandomTimeTypeWrite, false);
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }
@@ -2218,17 +2217,21 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         });
     }
 
-    @Override
-    public void setSSLSocketFactory(SSLSocketFactory sf) {
-        mSSLSocketFactory = sf;
+    /**
+     * 不能动位置，因为 SF 反射获取使用
+     *
+     * @return ServerUrl
+     */
+    public String getServerUrl() {
+        return mServerUrl;
     }
 
     /**
-     *  不能动位置，因为 SF 反射获取使用
-     * @return ServerUrl
+     * 获取 SDK 的版本号
+     * @return SDK 的版本号
      */
-    String getServerUrl() {
-        return mServerUrl;
+    public String getSDKVersion() {
+        return VERSION;
     }
 
     /**
@@ -2296,6 +2299,21 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             }
 
             return null;
+        }
+
+        static String autoTrackEventName(int eventType) {
+            switch (eventType) {
+                case 1:
+                    return "$AppStart";
+                case 2:
+                    return "$AppEnd";
+                case 4:
+                    return "$AppClick";
+                case 8:
+                    return "$AppViewScreen";
+                default:
+                    return "";
+            }
         }
 
         static boolean isAutoTrackType(String eventName) {

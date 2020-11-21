@@ -1,5 +1,5 @@
 /*
- * Created by wangzhuozhou on 2015/08/01.
+ * Created by yuejianzhong on 2020/11/04.
  * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,9 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.remote;
+
+import com.sensorsdata.analytics.android.sdk.SensorsAnalyticsAutoTrackEventType;
 
 import org.json.JSONArray;
 import org.json.JSONObject;

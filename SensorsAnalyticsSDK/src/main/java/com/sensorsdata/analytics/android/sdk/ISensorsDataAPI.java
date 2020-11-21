@@ -32,8 +32,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import javax.net.ssl.SSLSocketFactory;
-
 public interface ISensorsDataAPI extends IFragmentAPI {
     /**
      * 返回预置属性
@@ -1085,13 +1083,6 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * @param pushTypeKey 属性名称（例如 jgId）
      */
     void profileUnsetPushId(String pushTypeKey);
-
-    /**
-     * 设置 SSLSocketFactory，HTTPS 请求连接时需要使用
-     *
-     * @param sf SSLSocketFactory 对象
-     */
-    void setSSLSocketFactory(SSLSocketFactory sf);
 
     /**
      * 设置 item

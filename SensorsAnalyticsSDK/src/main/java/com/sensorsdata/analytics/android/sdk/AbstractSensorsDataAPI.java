@@ -45,6 +45,8 @@ import com.sensorsdata.analytics.android.sdk.internal.FragmentAPI;
 import com.sensorsdata.analytics.android.sdk.internal.IFragmentAPI;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.listener.SAJSListener;
+import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
+import com.sensorsdata.analytics.android.sdk.remote.SensorsDataRemoteManager;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.util.DeviceUtils;
@@ -70,8 +72,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import javax.net.ssl.SSLSocketFactory;
 
 import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertKey;
 import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertPropertyTypes;
@@ -132,14 +132,13 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     protected SensorsDataScreenOrientationDetector mOrientationDetector;
     protected SensorsDataDynamicSuperProperties mDynamicSuperPropertiesCallBack;
     protected SimpleDateFormat mIsFirstDayDateFormat;
-    SSLSocketFactory mSSLSocketFactory;
     protected SensorsDataTrackEventCallBack mTrackEventCallBack;
     protected List<SAEventListener> mEventListenerList;
     private CopyOnWriteArrayList<SAJSListener> mSAJSListeners;
     protected IFragmentAPI mFragmentAPI;
     SensorsDataEncrypt mSensorsDataEncrypt;
     protected SensorsDataDeepLinkCallback mDeepLinkCallback;
-    SensorsDataRemoteManager mRemoteManager;
+    BaseSensorsDataSDKRemoteManager mRemoteManager;
     /**
      * 标记是否已经采集了带有插件版本号的事件
      */
@@ -167,8 +166,8 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         new Thread(mTrackTaskManagerThread, ThreadNameConstants.THREAD_TASK_QUEUE).start();
         SensorsDataExceptionHandler.init();
 
-        mMessages = AnalyticsMessages.getInstance(mContext);
-        mRemoteManager = new SensorsDataRemoteManager(mContext, mSAConfigOptions, mSensorsDataEncrypt, mDisableDefaultRemoteConfig, (SensorsDataAPI) this);
+        mMessages = AnalyticsMessages.getInstance(mContext, (SensorsDataAPI) this);
+        mRemoteManager = new SensorsDataRemoteManager((SensorsDataAPI) this);
         //先从缓存中读取 SDKConfig
         mRemoteManager.applySDKConfigFromCache();
 
@@ -222,7 +221,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     public static boolean isSDKDisabled() {
         boolean isSDKDisabled = SensorsDataRemoteManager.isSDKDisabledByRemote();
         if (isSDKDisabled) {
-            SALog.i(TAG, "DisableSDK is true");
+            SALog.i(TAG, "remote config: SDK is disabled");
         }
         return isSDKDisabled;
     }
@@ -275,15 +274,11 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    public SSLSocketFactory getSSLSocketFactory() {
-        return mSSLSocketFactory;
-    }
-
-    SAConfigOptions getConfigOptions() {
+    public static SAConfigOptions getConfigOptions() {
         return mSAConfigOptions;
     }
 
-    Context getContext() {
+    public Context getContext() {
         return mContext;
     }
 
@@ -330,7 +325,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
      * @param eventName 事件名称
      * @param properties 事件属性
      */
-    void trackInternal(final String eventName, final JSONObject properties) {
+    public void trackInternal(final String eventName, final JSONObject properties) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
@@ -343,11 +338,11 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-    SensorsDataAPI.DebugMode getDebugMode() {
+    public SensorsDataAPI.DebugMode getDebugMode() {
         return mDebugMode;
     }
 
-    void setDebugMode(SensorsDataAPI.DebugMode debugMode) {
+    public void setDebugMode(SensorsDataAPI.DebugMode debugMode) {
         mDebugMode = debugMode;
         if (debugMode == SensorsDataAPI.DebugMode.DEBUG_OFF) {
             enableLog(false);
@@ -377,12 +372,28 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
      *
      * @return true 代表开启了点击图的提示框， false 代表关闭了点击图的提示框
      */
-    boolean isAppHeatMapConfirmDialogEnabled() {
+    public boolean isAppHeatMapConfirmDialogEnabled() {
         return mSAConfigOptions.mHeatMapConfirmDialogEnabled;
     }
 
-    boolean isVisualizedAutoTrackConfirmDialogEnabled() {
+    public boolean isVisualizedAutoTrackConfirmDialogEnabled() {
         return mSAConfigOptions.mVisualizedConfirmDialogEnabled;
+    }
+
+    public BaseSensorsDataSDKRemoteManager getRemoteManager() {
+        return mRemoteManager;
+    }
+
+    public void setRemoteManager(BaseSensorsDataSDKRemoteManager remoteManager) {
+        this.mRemoteManager = remoteManager;
+    }
+
+    public SensorsDataEncrypt getSensorsDataEncrypt() {
+        return mSensorsDataEncrypt;
+    }
+
+    public boolean isDisableDefaultRemoteConfig() {
+        return mDisableDefaultRemoteConfig;
     }
 
     /**

@@ -94,7 +94,6 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private long messageReceiveTime = 0L;
 
     private DeepLinkProcessor mDeepLinkInfo;
-    private SensorsDataRemoteManager mRemoteManager;
     // $AppEnd 消息标记位
     private final int MESSAGE_CODE_APP_END = 0;
     private final int MESSAGE_CODE_TIMER = 100;
@@ -112,7 +111,6 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         this.mContext = context;
         this.mDbAdapter = DbAdapter.getInstance();
         this.isMultiProcess = mSensorsDataInstance.isMultiProcess();
-        this.mRemoteManager = mSensorsDataInstance.mRemoteManager;
         try {
             final PackageManager manager = mContext.getPackageManager();
             final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
@@ -163,12 +161,12 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                     //从后台恢复，从缓存中读取 SDK 控制配置信息
                     if (resumeFromBackground) {
                         //先从缓存中读取 SDKConfig
-                        mRemoteManager.applySDKConfigFromCache();
+                        mSensorsDataInstance.getRemoteManager().applySDKConfigFromCache();
                         mSensorsDataInstance.resumeTrackScreenOrientation();
 //                    mSensorsDataInstance.resumeTrackTaskThread();
                     }
                     //每次启动 App，重新拉取最新的配置信息
-                    mRemoteManager.pullSDKConfigFromServer();
+                    mSensorsDataInstance.getRemoteManager().pullSDKConfigFromServer();
 
                     try {
                         if (mSensorsDataInstance.isAutoTrackEnabled() && !mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_START)) {
@@ -487,7 +485,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private void resetState() {
         try {
             mSensorsDataInstance.stopTrackScreenOrientation();
-            mRemoteManager.resetPullSDKConfigTimer();
+            mSensorsDataInstance.getRemoteManager().resetPullSDKConfigTimer();
             HeatMapService.getInstance().stop();
             VisualizedAutoTrackService.getInstance().stop();
             mSensorsDataInstance.appEnterBackground();

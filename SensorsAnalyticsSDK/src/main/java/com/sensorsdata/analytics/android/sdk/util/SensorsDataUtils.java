@@ -40,9 +40,7 @@ import android.webkit.WebSettings;
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
-import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackAppViewScreenUrl;
-import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackHelper;
 
 import org.json.JSONObject;
 
@@ -802,6 +800,6 @@ public final class SensorsDataUtils {
      * @param intent intent
      */
     public static void handleSchemeUrl(Activity activity, Intent intent) {
-        SensorsDataAutoTrackHelper.handleSchemeUrl(activity, intent);
+        SASchemeHelper.handleSchemeUrl(activity, intent);
     }
 }

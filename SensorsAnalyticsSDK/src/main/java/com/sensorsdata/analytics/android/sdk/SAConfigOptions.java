@@ -20,6 +20,8 @@ package com.sensorsdata.analytics.android.sdk;
 import com.sensorsdata.analytics.android.sdk.encrypt.IPersistentSecretKey;
 import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
 
+import javax.net.ssl.SSLSocketFactory;
+
 public final class SAConfigOptions extends AbstractSAConfigOptions {
     /**
      * 是否设置点击图开关
@@ -390,10 +392,22 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
 
     /**
      * 禁用数据采集
+     *
      * @return SAConfigOptions
      */
     public SAConfigOptions disableDataCollect() {
         this.isDataCollectEnable = false;
+        return this;
+    }
+
+    /**
+     * 设置 SSLSocketFactory，HTTPS 请求连接时需要使用
+     *
+     * @param SSLSocketFactory 证书
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions setSSLSocketFactory(SSLSocketFactory SSLSocketFactory) {
+        this.mSSLSocketFactory = SSLSocketFactory;
         return this;
     }
 }

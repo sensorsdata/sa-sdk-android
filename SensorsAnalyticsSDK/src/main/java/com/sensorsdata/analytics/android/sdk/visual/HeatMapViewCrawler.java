@@ -31,14 +31,15 @@ import android.os.Message;
 import android.os.Process;
 import android.text.TextUtils;
 
-import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceIds;
-import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceReader;
+import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.visual.model.SnapInfo;
 import com.sensorsdata.analytics.android.sdk.visual.snap.EditProtocol;
 import com.sensorsdata.analytics.android.sdk.visual.snap.EditState;
+import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceIds;
+import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceReader;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -310,8 +311,10 @@ class HeatMapViewCrawler implements VTrack {
                 HttpURLConnection connection;
                 final URL url = new URL(mPostUrl);
                 connection = (HttpURLConnection) url.openConnection();
-                if (SensorsDataAPI.sharedInstance().getSSLSocketFactory() != null && connection instanceof HttpsURLConnection) {
-                    ((HttpsURLConnection) connection).setSSLSocketFactory(SensorsDataAPI.sharedInstance().getSSLSocketFactory());
+                SAConfigOptions configOptions = SensorsDataAPI.getConfigOptions();
+                if (configOptions != null && configOptions.mSSLSocketFactory != null
+                        && connection instanceof HttpsURLConnection) {
+                    ((HttpsURLConnection) connection).setSSLSocketFactory(configOptions.mSSLSocketFactory);
                 }
                 connection.setDoOutput(true);
                 connection.setRequestMethod("POST");
