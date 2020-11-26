@@ -43,7 +43,8 @@ public class FragmentActivity extends BaseActivity implements View.OnClickListen
         findViewById(R.id.tv_frg_app_viewpager).setOnClickListener(this);
         findViewById(R.id.tv_frg_app_tab).setOnClickListener(this);
         findViewById(R.id.tv_viewpager_view).setOnClickListener(this);
-
+        findViewById(R.id.tv_multi_fragments).setOnClickListener(this);
+        findViewById(R.id.tv_multi_hori_fragments).setOnClickListener(this);
     }
 
     @Override
@@ -69,6 +70,12 @@ public class FragmentActivity extends BaseActivity implements View.OnClickListen
                 break;
             case R.id.tv_viewpager_view:
                 openVPViewActivity();
+                break;
+            case R.id.tv_multi_fragments:
+                openMultiFragments();
+                break;
+            case R.id.tv_multi_hori_fragments:
+                openMultiHorizFragments();
                 break;
             default:
                 break;
@@ -119,5 +126,13 @@ public class FragmentActivity extends BaseActivity implements View.OnClickListen
      */
     private void openVPViewActivity() {
         startActivity(new Intent(this, VPViewActivity.class));
+    }
+
+    private void openMultiFragments() {
+        startActivity(new Intent(this, VerticalFragmentsActivity.class));
+    }
+
+    private void openMultiHorizFragments() {
+        startActivity(new Intent(this, HorizonFragmentsActivity.class));
     }
 }

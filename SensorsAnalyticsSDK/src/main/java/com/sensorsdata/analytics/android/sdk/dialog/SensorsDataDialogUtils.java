@@ -103,11 +103,12 @@ public class SensorsDataDialogUtils {
                         showDialog(activity, "当前网络不可用，请检查网络！");
                         return;
                     }
+                    String deviceCode = ChannelUtils.getDeviceInfo(activity, androidId, oaid);
                     final SensorsDataLoadingDialog loadingDialog = new SensorsDataLoadingDialog(activity);
                     loadingDialog.show();
-                    requestActiveChannel(context, baseUrl,
+                    requestActiveChannel(baseUrl,
                             monitorId, projectId, accountId,
-                            androidId, oaid, isTrackInstallation,
+                            deviceCode, isTrackInstallation,
                             new HttpCallback.JsonCallback() {
                                 @Override
                                 public void onFailure(int code, String errorMessage) {
@@ -353,9 +354,9 @@ public class SensorsDataDialogUtils {
         }
     }
 
-    private static void requestActiveChannel(Context context, String baseUrl,
-                                             String monitorId, String projectId, String accountId,
-                                             String androidId, String oaid, boolean isActive,
+    private static void requestActiveChannel(String baseUrl, String monitorId,
+                                             String projectId, String accountId,
+                                             String deviceCode, boolean isActive,
                                              HttpCallback callback) {
         try {
             JSONObject json = new JSONObject();
@@ -364,7 +365,7 @@ public class SensorsDataDialogUtils {
             json.put("project_id", projectId);
             json.put("account_id", accountId);
             json.put("has_active", isActive ? "true" : "false");
-            json.put("device_code", ChannelUtils.getDeviceInfo(context, androidId, oaid));
+            json.put("device_code", deviceCode);
             new RequestHelper.Builder(HttpMethod.POST, baseUrl + "/api/sdk/channel_tool/url")
                     .jsonData(json.toString()).callback(callback).execute();
         } catch (Exception e) {

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.sensorsdata.analytics.android.demo" >
+    package="com.sensorsdata.analytics.android.demo">
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -16,10 +16,10 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="true" >
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".activity.TestMainActivity"
-            android:launchMode="singleTask" >
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -52,6 +52,8 @@
         <activity android:name=".activity.ListViewTestActivity" />
         <activity android:name=".activity.FragmentActivity" />
         <activity android:name=".activity.ClickActivity" />
+        <activity android:name=".activity.HorizonFragmentsActivity"/>
+        <activity android:name=".activity.VerticalFragmentsActivity"/>
         <activity android:name=".activity.KotlinActivity" />
         <activity android:name=".activity.TabAppFrgActivity" />
         <activity android:name=".activity.TabFrgActivity" />
@@ -70,7 +72,8 @@
         <activity android:name=".activity.InnerListTestActivity" />
         <activity android:name=".activity.ActionBarAndToolBarTestActivity" />
         <activity android:name=".activity.H5VisualTestActivity" />
-        <activity android:name=".activity.LambdaTestPageActivity"
+        <activity
+            android:name=".activity.LambdaTestPageActivity"
             android:theme="@style/AppThemeNoBar" />
 
         <meta-data

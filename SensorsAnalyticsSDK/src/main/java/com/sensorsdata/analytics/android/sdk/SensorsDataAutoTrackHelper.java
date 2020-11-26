@@ -17,7 +17,6 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
@@ -28,7 +27,7 @@ import android.text.TextUtils;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
+import android.view.Window;
 import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -83,78 +82,22 @@ public class SensorsDataAutoTrackHelper {
         return isDeBounceTrack;
     }
 
-    @TargetApi(12)
-    private static void traverseView(final String fragmentName, final ViewGroup root) {
+    private static void traverseView(String fragmentName, ViewGroup root) {
         try {
             if (TextUtils.isEmpty(fragmentName) || root == null) {
                 return;
             }
-            final View rootView = root.getRootView();
-            if (root.getChildCount() == 0 && (ViewUtil.instanceOfRecyclerView(root) || root instanceof AdapterView) && rootView.getTag(R.id.sensors_analytics_tag_view_tree_observer_listeners) == null) {
-                final ViewTreeObserver.OnGlobalLayoutListener onGlobalLayoutListener = new ViewTreeObserver.OnGlobalLayoutListener() {
-                    @Override
-                    public void onGlobalLayout() {
-                        int width = root.getWidth();
-                        int height = root.getHeight();
-                        if (width > 0 && height > 0) {
-                            setFragmentTag(fragmentName, root);
-                        }
-                    }
-                };
-                final ViewTreeObserver.OnScrollChangedListener onScrollChangedListener = new ViewTreeObserver.OnScrollChangedListener() {
-                    @Override
-                    public void onScrollChanged() {
-                        setFragmentTag(fragmentName, root);
-                    }
-                };
-                final View.OnAttachStateChangeListener onAttachStateChangeListener = new View.OnAttachStateChangeListener() {
-                    @Override
-                    public void onViewAttachedToWindow(View v) {
-
-                    }
-
-                    @Override
-                    public void onViewDetachedFromWindow(View v) {
-                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
-                            root.getViewTreeObserver().removeGlobalOnLayoutListener(onGlobalLayoutListener);
-                        } else {
-                            root.getViewTreeObserver().removeOnGlobalLayoutListener(onGlobalLayoutListener);
-                        }
-                        root.getViewTreeObserver().removeOnScrollChangedListener(onScrollChangedListener);
-                        rootView.setTag(R.id.sensors_analytics_tag_view_tree_observer_listeners, null);
-                    }
-                };
-                root.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        root.getViewTreeObserver().addOnGlobalLayoutListener(onGlobalLayoutListener);
-                        root.getViewTreeObserver().addOnScrollChangedListener(onScrollChangedListener);
-                        root.addOnAttachStateChangeListener(onAttachStateChangeListener);
-                        rootView.setTag(R.id.sensors_analytics_tag_view_tree_observer_listeners, true);
-                    }
-                });
-            } else {
-                setFragmentTag(fragmentName, root);
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-    }
-
-    private static void setFragmentTag(final String fragmentName, final ViewGroup root) {
-        try {
-            ThreadUtils.getSinglePool().execute(new Runnable() {
-                @Override
-                public void run() {
-                    for (int i = 0; i < root.getChildCount(); ++i) {
-                        final View child = root.getChildAt(i);
-                        child.setTag(R.id.sensors_analytics_tag_view_fragment_name, fragmentName);
-                        if (child instanceof ViewGroup && !(child instanceof Spinner || child instanceof RadioGroup)) {
-                            traverseView(fragmentName, (ViewGroup) child);
-                        }
-                    }
+            final int childCount = root.getChildCount();
+            for (int i = 0; i < childCount; ++i) {
+                final View child = root.getChildAt(i);
+                child.setTag(R.id.sensors_analytics_tag_view_fragment_name, fragmentName);
+                if (child instanceof ViewGroup && !(child instanceof ListView ||
+                        child instanceof GridView ||
+                        child instanceof Spinner ||
+                        child instanceof RadioGroup)) {
+                    traverseView(fragmentName, (ViewGroup) child);
                 }
-            });
+            }
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -212,6 +155,17 @@ public class SensorsDataAutoTrackHelper {
 
             if (rootView instanceof ViewGroup) {
                 traverseView(fragmentName, (ViewGroup) rootView);
+            }
+
+            //获取所在的 Context
+            Context context = rootView.getContext();
+            //将 Context 转成 Activity
+            Activity activity = AopUtil.getActivityFromContext(context, rootView);
+            if (activity != null) {
+                Window window = activity.getWindow();
+                if (window != null) {
+                    window.getDecorView().getRootView().setTag(R.id.sensors_analytics_tag_view_fragment_name, "");
+                }
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -501,7 +455,7 @@ public class SensorsDataAutoTrackHelper {
             }
 
             // 获取 view 所在的 fragment
-            Object fragment = AopUtil.getFragmentFromView(expandableListView);
+            Object fragment = AopUtil.getFragmentFromView(expandableListView, activity);
 
             // fragment 忽略
             if (fragment != null) {
@@ -622,7 +576,7 @@ public class SensorsDataAutoTrackHelper {
             }
 
             // 获取 view 所在的 fragment
-            Object fragment = AopUtil.getFragmentFromView(expandableListView);
+            Object fragment = AopUtil.getFragmentFromView(expandableListView, activity);
 
             // fragment 忽略
             if (fragment != null) {
@@ -752,7 +706,7 @@ public class SensorsDataAutoTrackHelper {
                     }
                     SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
 
-                    Object fragment = AopUtil.getFragmentFromView(view);
+                    Object fragment = AopUtil.getFragmentFromView(view, activity);
                     if (fragment != null) {
                         if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(fragment.getClass())) {
                             return;
@@ -1156,7 +1110,7 @@ public class SensorsDataAutoTrackHelper {
             }
 
             // 获取 view 所在的 fragment
-            Object fragment = AopUtil.getFragmentFromView(view);
+            Object fragment = AopUtil.getFragmentFromView(view, activity);
 
             // fragment 忽略
             if (fragment != null) {
@@ -1425,7 +1379,7 @@ public class SensorsDataAutoTrackHelper {
             }
 
             // 获取 view 所在的 fragment
-            Object fragment = AopUtil.getFragmentFromView(adapterView);
+            Object fragment = AopUtil.getFragmentFromView(adapterView, activity);
 
             // fragment 忽略
             if (fragment != null) {
@@ -1592,7 +1546,7 @@ public class SensorsDataAutoTrackHelper {
             }
 
             // 获取 view 所在的 fragment
-            Object fragment = AopUtil.getFragmentFromView(view);
+            Object fragment = AopUtil.getFragmentFromView(view, activity);
 
             // fragment 忽略
             if (fragment != null) {

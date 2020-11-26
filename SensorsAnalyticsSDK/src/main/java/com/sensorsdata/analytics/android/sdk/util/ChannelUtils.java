@@ -483,4 +483,48 @@ public class ChannelUtils {
             SALog.printStackTrace(e);
         }
     }
+
+    /**
+     * 设备信息是否匹配
+     *
+     * @param context Context
+     * @param deviceInfo 设备信息字符串
+     * @return 是否匹配
+     */
+    public static boolean checkDeviceInfo(Context context, String deviceInfo) {
+        if (context == null || TextUtils.isEmpty(deviceInfo)) {
+            return false;
+        }
+        String[] codes = deviceInfo.split("##");
+        Map<String, String> deviceMaps = new HashMap<>();
+        if (codes.length == 0) {
+            return false;
+        }
+        for (String code : codes) {
+            String[] keyValue = code.trim().split("=");
+            if (keyValue.length != 2) {
+                continue;
+            }
+            deviceMaps.put(keyValue[0], keyValue[1]);
+        }
+        if (deviceMaps.isEmpty()) {
+            return false;
+        }
+        return (deviceMaps.containsKey("oaid")//防止都为 null 返回 true
+                        && TextUtils.equals(deviceMaps.get("oaid"), OaidHelper.getOAID(context))) ||
+                       (deviceMaps.containsKey("imei") &&
+                                TextUtils.equals(deviceMaps.get("imei"), SensorsDataUtils.getIMEI(context))) ||
+                       (deviceMaps.containsKey("imei_old") &&
+                                TextUtils.equals(deviceMaps.get("imei_old"), SensorsDataUtils.getIMEIOld(context))) ||
+                       (deviceMaps.containsKey("imei_slot1") &&
+                                TextUtils.equals(deviceMaps.get("imei_slot1"), SensorsDataUtils.getSlot(context, 0))) ||
+                       (deviceMaps.containsKey("imei_slot2") &&
+                                TextUtils.equals(deviceMaps.get("imei_slot2"), SensorsDataUtils.getSlot(context, 1))) ||
+                       (deviceMaps.containsKey("imei_meid") &&
+                                TextUtils.equals(deviceMaps.get("imei_meid"), SensorsDataUtils.getMEID(context))) ||
+                       (deviceMaps.containsKey("android_id") &&
+                                TextUtils.equals(deviceMaps.get("android_id"), SensorsDataUtils.getAndroidID(context))) ||
+                       (deviceMaps.containsKey("mac") &&
+                                TextUtils.equals(deviceMaps.get("mac"), SensorsDataUtils.getMacAddress(context)));
+    }
 }

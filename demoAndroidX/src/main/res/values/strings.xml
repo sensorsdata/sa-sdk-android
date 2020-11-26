@@ -5,7 +5,7 @@
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
     <string name="hello_blank_fragment">Hello blank fragment</string>
-    <item type="id" name="fragment_root_view"/>
+    <item name="fragment_root_view" type="id" />
 
     <string-array name="spinner_test">
         <item>Beijing</item>

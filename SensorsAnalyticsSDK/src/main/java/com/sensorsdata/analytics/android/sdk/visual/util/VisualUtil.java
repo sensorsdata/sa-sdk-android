@@ -57,7 +57,7 @@ public class VisualUtil {
     }
 
     public static boolean isForbiddenClick(View v) {
-        if (v instanceof WebView || ViewUtil.instanceOfX5WebView(v) || v instanceof AdapterView) {
+        if (ViewUtil.instanceOfWebView(v) || v instanceof AdapterView) {
             return true;
         }
         if (v instanceof TextView) {
@@ -128,7 +128,7 @@ public class VisualUtil {
         Activity activity = AppStateManager.getInstance().getForegroundActivity();
         if (activity != null) {
             object = new JSONObject();
-            Object fragment = AopUtil.getFragmentFromView(view);
+            Object fragment = AopUtil.getFragmentFromView(view, activity);
             if (fragment != null) {
                 AopUtil.getScreenNameAndTitleFromFragment(object, fragment, activity);
                 if (!info.hasFragment) {

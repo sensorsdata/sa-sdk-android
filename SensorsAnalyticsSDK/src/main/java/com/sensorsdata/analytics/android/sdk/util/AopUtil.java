@@ -28,6 +28,8 @@ import android.text.TextUtils;
 import android.util.LruCache;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CheckedTextView;
@@ -676,7 +678,7 @@ public class AopUtil {
             properties.put(AopConstants.ELEMENT_TYPE, viewNode.getViewType());
 
             //fragmentName
-            Object fragment = AopUtil.getFragmentFromView(view);
+            Object fragment = AopUtil.getFragmentFromView(view, activity);
             if (fragment != null) {
                 AopUtil.getScreenNameAndTitleFromFragment(properties, fragment, activity);
             }
@@ -701,6 +703,15 @@ public class AopUtil {
         return false;
     }
 
+    /**
+     * 获取点击 view 的 fragment 对象
+     *
+     * @param view 点击的 view
+     * @return object 这里是 fragment 实例对象
+     */
+    public static Object getFragmentFromView(View view) {
+        return getFragmentFromView(view,  null);
+    }
 
     /**
      * 获取点击 view 的 fragment 对象
@@ -709,13 +720,30 @@ public class AopUtil {
      * @return object 这里是 fragment 实例对象
      */
     @SuppressLint("NewApi")
-    public static Object getFragmentFromView(View view) {
+    public static Object getFragmentFromView(View view, Activity activity) {
         try {
             if (view != null) {
                 String fragmentName = (String) view.getTag(R.id.sensors_analytics_tag_view_fragment_name);
                 String fragmentName2 = (String) view.getTag(R.id.sensors_analytics_tag_view_fragment_name2);
                 if (!TextUtils.isEmpty(fragmentName2)) {
                     fragmentName = fragmentName2;
+                }
+                if (TextUtils.isEmpty(fragmentName)) {
+                    if (activity == null) {
+                        //获取所在的 Context
+                        Context context = view.getContext();
+                        //将 Context 转成 Activity
+                        activity = AopUtil.getActivityFromContext(context, view);
+                    }
+                    if (activity != null) {
+                        Window window = activity.getWindow();
+                        if (window != null) {
+                            Object tag = window.getDecorView().getRootView().getTag(R.id.sensors_analytics_tag_view_fragment_name);
+                            if (tag != null) {
+                                fragmentName = traverseParentViewTag(view);
+                            }
+                        }
+                    }
                 }
                 if (!TextUtils.isEmpty(fragmentName)) {
                     if (sLruCache == null) {
@@ -769,5 +797,20 @@ public class AopUtil {
         } catch (JSONException e) {
             SALog.printStackTrace(e);
         }
+    }
+
+    private static String traverseParentViewTag(View view) {
+        try {
+            ViewParent parentView = view.getParent();
+            String fragmentName = null;
+            while (TextUtils.isEmpty(fragmentName) && parentView instanceof View) {
+                fragmentName = (String) ((View) parentView).getTag(R.id.sensors_analytics_tag_view_fragment_name);
+                parentView = parentView.getParent();
+            }
+            return fragmentName;
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+        return "";
     }
 }

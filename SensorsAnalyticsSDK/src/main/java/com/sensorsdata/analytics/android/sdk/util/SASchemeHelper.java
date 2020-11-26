@@ -25,12 +25,11 @@ import android.widget.Toast;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackHelper;
 import com.sensorsdata.analytics.android.sdk.ServerUrl;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
 import com.sensorsdata.analytics.android.sdk.remote.SensorsDataRemoteManagerDebug;
-
-import static com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils.showChannelDebugDialog;
 
 public class SASchemeHelper {
 
@@ -120,7 +119,17 @@ public class SASchemeHelper {
                     if (serverUrl.getProject().equals(projectName)) {
                         String projectId = uri.getQueryParameter("project_id");
                         String accountId = uri.getQueryParameter("account_id");
-                        showChannelDebugDialog(activity, serverUrl.getBaseUrl(), monitorId, projectId, accountId);
+                        String isReLink = uri.getQueryParameter("is_relink");
+                        if ("1".equals(isReLink)) {//续连标识 1 :续连
+                            String deviceCode = uri.getQueryParameter("device_code");
+                            if (ChannelUtils.checkDeviceInfo(activity, deviceCode)) {//比较设备信息是否匹配
+                                SensorsDataAutoTrackHelper.showChannelDebugActiveDialog(activity);
+                            } else {
+                                SensorsDataDialogUtils.showDialog(activity, "无法重连，请检查是否更换了联调手机");
+                            }
+                        } else {
+                            SensorsDataDialogUtils.showChannelDebugDialog(activity, serverUrl.getBaseUrl(), monitorId, projectId, accountId);
+                        }
                     } else {
                         SensorsDataDialogUtils.showDialog(activity, "App 集成的项目与电脑浏览器打开的项目不同，无法使用联调诊断工具");
                     }

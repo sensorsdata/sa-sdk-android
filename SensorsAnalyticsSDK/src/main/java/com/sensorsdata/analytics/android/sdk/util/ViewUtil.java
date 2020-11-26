@@ -27,6 +27,7 @@ import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.webkit.WebView;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -229,10 +230,23 @@ public class ViewUtil {
         return null;
     }
 
-    public static boolean instanceOfX5WebView(Object view) {
-        Class clazz = null;
+    public static boolean instanceOfWebView(Object view) {
+        return view instanceof WebView || instanceOfX5WebView(view) || instanceOfUCWebView(view);
+    }
+
+    private static boolean instanceOfX5WebView(Object view) {
         try {
-            clazz = Class.forName("com.tencent.smtt.sdk.WebView");
+            Class<?> clazz = Class.forName("com.tencent.smtt.sdk.WebView");
+            return clazz.isInstance(view);
+        } catch (ClassNotFoundException th) {
+            //ignored
+        }
+        return false;
+    }
+
+    private static boolean instanceOfUCWebView(Object view) {
+        try {
+            Class<?> clazz = Class.forName("com.alipay.mobile.nebulauc.impl.UCWebView$WebViewEx");
             return clazz.isInstance(view);
         } catch (ClassNotFoundException th) {
             //ignored

@@ -216,7 +216,7 @@ public class ViewSnapshot {
         // 处理内嵌 H5 页面
         if (ViewUtil.isViewSelfVisible(view)) {
             List<String> webNodeIds = null;
-            if (view instanceof WebView || ViewUtil.instanceOfX5WebView(view)) {
+            if (ViewUtil.instanceOfWebView(view)) {
                 mSnapInfo.isWebView = true;
                 final CountDownLatch latch = new CountDownLatch(1);
                 try {
