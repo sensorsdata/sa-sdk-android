@@ -23,7 +23,7 @@ import android.view.View;
 import android.webkit.WebView;
 
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
-import com.sensorsdata.analytics.android.sdk.internal.IFragmentAPI;
+import com.sensorsdata.analytics.android.sdk.internal.api.IFragmentAPI;
 
 import org.json.JSONObject;
 

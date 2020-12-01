@@ -55,73 +55,23 @@ public class NetworkUtils {
                 return "NULL";
             }
 
-            // Wifi
-            ConnectivityManager manager = (ConnectivityManager)
+            ConnectivityManager connectivityManager = (ConnectivityManager)
                     context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            if (manager != null) {
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                    Network network = manager.getActiveNetwork();
-                    if (network != null) {
-                        NetworkCapabilities capabilities = manager.getNetworkCapabilities(network);
-                        if (capabilities != null) {
-                            if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                                return "WIFI";
-                            } else if (!isNetworkValid(capabilities)) {
-                                return "NULL";
-                            }
-                        }
-                    } else {
-                        return "NULL";
-                    }
-                } else {
-                    NetworkInfo networkInfo = manager.getActiveNetworkInfo();
-                    if (networkInfo == null || !networkInfo.isConnected()) {
-                        return "NULL";
-                    }
-
-                    networkInfo = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-                    if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
-                        return "WIFI";
-                    }
+            if (connectivityManager != null) {
+                // 网络不可用返回 NULL
+                if (!isNetworkAvailable(connectivityManager)) {
+                    return "NULL";
+                }
+                // WIFI 网络
+                if (isWiFiNetwork(connectivityManager)) {
+                    return "WIFI";
                 }
             }
-
-            // Mobile network
-            TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context
-                    .TELEPHONY_SERVICE);
-
-            if (telephonyManager == null) {
-                return "NULL";
-            }
-
-            int networkType = telephonyManager.getNetworkType();
-            switch (networkType) {
-                case TelephonyManager.NETWORK_TYPE_GPRS:
-                case TelephonyManager.NETWORK_TYPE_EDGE:
-                case TelephonyManager.NETWORK_TYPE_CDMA:
-                case TelephonyManager.NETWORK_TYPE_1xRTT:
-                case TelephonyManager.NETWORK_TYPE_IDEN:
-                    return "2G";
-                case TelephonyManager.NETWORK_TYPE_UMTS:
-                case TelephonyManager.NETWORK_TYPE_EVDO_0:
-                case TelephonyManager.NETWORK_TYPE_EVDO_A:
-                case TelephonyManager.NETWORK_TYPE_HSDPA:
-                case TelephonyManager.NETWORK_TYPE_HSUPA:
-                case TelephonyManager.NETWORK_TYPE_HSPA:
-                case TelephonyManager.NETWORK_TYPE_EVDO_B:
-                case TelephonyManager.NETWORK_TYPE_EHRPD:
-                case TelephonyManager.NETWORK_TYPE_HSPAP:
-                    return "3G";
-                case TelephonyManager.NETWORK_TYPE_LTE:
-                case TelephonyManager.NETWORK_TYPE_IWLAN:
-                case 19:  //目前已知有车机客户使用该标记作为 4G 网络类型 TelephonyManager.NETWORK_TYPE_LTE_CA:
-                    return "4G";
-                case TelephonyManager.NETWORK_TYPE_NR:
-                    return "5G";
-                default:
-                    return "NULL";
-            }
+            //读取移动网络类型
+            TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+            return mobileNetworkType(context, telephonyManager, connectivityManager);
         } catch (Exception e) {
+            SALog.printStackTrace(e);
             return "NULL";
         }
     }
@@ -140,21 +90,7 @@ public class NetworkUtils {
         }
         try {
             ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            if (cm != null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    Network network = cm.getActiveNetwork();
-                    if (network != null) {
-                        NetworkCapabilities capabilities = cm.getNetworkCapabilities(network);
-                        if (capabilities != null) {
-                            return isNetworkValid(capabilities);
-                        }
-                    }
-                } else {
-                    NetworkInfo networkInfo = cm.getActiveNetworkInfo();
-                    return networkInfo != null && networkInfo.isConnected();
-                }
-            }
-            return false;
+            return isNetworkAvailable(cm);
         } catch (Exception e) {
             SALog.printStackTrace(e);
             return false;
@@ -227,4 +163,114 @@ public class NetworkUtils {
         return location;
     }
 
+    /**
+     * 判断网络是否可用
+     *
+     * @param connectivityManager ConnectivityManager
+     * @return true：可用；false：不可用
+     */
+    private static boolean isNetworkAvailable(ConnectivityManager connectivityManager) {
+        if (connectivityManager != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Network network = connectivityManager.getActiveNetwork();
+                if (network != null) {
+                    NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(network);
+                    if (capabilities != null) {
+                        return isNetworkValid(capabilities);
+                    }
+                }
+            } else {
+                NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+                return networkInfo != null && networkInfo.isConnected();
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 判断当前网络是否是 wifi
+     *
+     * @param connectivityManager ConnectivityManager
+     * @return true：是 wifi；false：不是 wifi
+     */
+    private static boolean isWiFiNetwork(ConnectivityManager connectivityManager) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            Network network = connectivityManager.getActiveNetwork();
+            if (network != null) {
+                NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(network);
+                if (capabilities != null) {
+                    return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
+                }
+            }
+        } else {
+            NetworkInfo networkInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+            return networkInfo != null && networkInfo.isConnectedOrConnecting();
+        }
+        return false;
+    }
+
+    /**
+     * 获取当前移动网络类型
+     *
+     * @param telephonyManager TelephonyManager
+     * @param connectivityManager ConnectivityManager
+     * @return 移动网络类型
+     */
+    @SuppressLint("MissingPermission")
+    private static String mobileNetworkType(Context context, TelephonyManager telephonyManager, ConnectivityManager connectivityManager) {
+        // Mobile network
+        int networkType = TelephonyManager.NETWORK_TYPE_UNKNOWN;
+        if (telephonyManager != null) {
+            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                    && (SensorsDataUtils.checkHasPermission(context, Manifest.permission.READ_PHONE_STATE) || telephonyManager.hasCarrierPrivileges())) {
+                networkType = telephonyManager.getDataNetworkType();
+            } else {
+                try {
+                    networkType = telephonyManager.getNetworkType();
+                } catch (Exception ex) {
+                    SALog.printStackTrace(ex);
+                }
+            }
+        }
+
+        if (networkType == TelephonyManager.NETWORK_TYPE_UNKNOWN) {
+            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // 在 Android 11 平台上，没有 READ_PHONE_STATE 权限时
+                return "NULL";
+            }
+
+            if (connectivityManager != null) {
+                NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+                if (networkInfo != null) {
+                    networkType = networkInfo.getSubtype();
+                }
+            }
+        }
+
+        switch (networkType) {
+            case TelephonyManager.NETWORK_TYPE_GPRS:
+            case TelephonyManager.NETWORK_TYPE_EDGE:
+            case TelephonyManager.NETWORK_TYPE_CDMA:
+            case TelephonyManager.NETWORK_TYPE_1xRTT:
+            case TelephonyManager.NETWORK_TYPE_IDEN:
+                return "2G";
+            case TelephonyManager.NETWORK_TYPE_UMTS:
+            case TelephonyManager.NETWORK_TYPE_EVDO_0:
+            case TelephonyManager.NETWORK_TYPE_EVDO_A:
+            case TelephonyManager.NETWORK_TYPE_HSDPA:
+            case TelephonyManager.NETWORK_TYPE_HSUPA:
+            case TelephonyManager.NETWORK_TYPE_HSPA:
+            case TelephonyManager.NETWORK_TYPE_EVDO_B:
+            case TelephonyManager.NETWORK_TYPE_EHRPD:
+            case TelephonyManager.NETWORK_TYPE_HSPAP:
+                return "3G";
+            case TelephonyManager.NETWORK_TYPE_LTE:
+            case TelephonyManager.NETWORK_TYPE_IWLAN:
+            case 19:  //目前已知有车机客户使用该标记作为 4G 网络类型 TelephonyManager.NETWORK_TYPE_LTE_CA:
+                return "4G";
+            case TelephonyManager.NETWORK_TYPE_NR:
+                return "5G";
+        }
+        return "NULL";
+    }
 }

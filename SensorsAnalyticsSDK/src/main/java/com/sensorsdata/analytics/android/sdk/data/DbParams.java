@@ -37,6 +37,7 @@ public class DbParams {
     public static final String TABLE_SUB_PROCESS_FLUSH_DATA = "sub_process_flush_data";
     public static final String TABLE_FIRST_PROCESS_START = "first_process_start";
     static final String TABLE_SESSION_INTERVAL_TIME = "session_interval_time";
+    static final String TABLE_DATA_COLLECT = "data_collect";
     static final String TABLE_LOGIN_ID = "events_login_id";
     /* Event 表字段 */
     static final String KEY_DATA = "data";
@@ -49,7 +50,7 @@ public class DbParams {
     /* 删除所有数据 */
     static final String DB_DELETE_ALL = "DB_DELETE_ALL";
     private static DbParams instance;
-    private final Uri mUri, mActivityStartCountUri, mAppStartTimeUri, mAppEndUri,
+    private final Uri mUri, mActivityStartCountUri, mAppStartTimeUri, mAppEndUri, mDataCollectUri,
             mAppEndDataUri, mSessionTimeUri, mLoginIdUri, mChannelPersistentUri, mSubProcessUri, mFirstProcessUri;
 
     private DbParams(String packageName) {
@@ -63,6 +64,7 @@ public class DbParams {
         mChannelPersistentUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_CHANNEL_PERSISTENT);
         mSubProcessUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_SUB_PROCESS_FLUSH_DATA);
         mFirstProcessUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_FIRST_PROCESS_START);
+        mDataCollectUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_DATA_COLLECT);
     }
 
     public static DbParams getInstance(String packageName) {
@@ -167,5 +169,13 @@ public class DbParams {
      */
     public Uri getFirstProcessUri() {
         return mFirstProcessUri;
+    }
+
+    /**
+     * 开启数据采集 Uri
+     * @return Uri
+     */
+    public Uri getDataCollectUri() {
+        return mDataCollectUri;
     }
 }

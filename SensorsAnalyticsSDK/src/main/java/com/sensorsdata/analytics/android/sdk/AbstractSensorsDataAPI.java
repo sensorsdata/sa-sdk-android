@@ -31,6 +31,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
+import com.sensorsdata.analytics.android.sdk.data.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentDistinctId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
@@ -41,8 +42,9 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProp
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.encrypt.SensorsDataEncrypt;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
-import com.sensorsdata.analytics.android.sdk.internal.FragmentAPI;
-import com.sensorsdata.analytics.android.sdk.internal.IFragmentAPI;
+import com.sensorsdata.analytics.android.sdk.internal.api.FragmentAPI;
+import com.sensorsdata.analytics.android.sdk.internal.api.IFragmentAPI;
+import com.sensorsdata.analytics.android.sdk.internal.rpc.SensorsDataContentObserver;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.listener.SAJSListener;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
@@ -188,6 +190,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             app.registerActivityLifecycleCallbacks(AppStateManager.getInstance());
         }
 
+        registerObserver();
         SALog.i(TAG, String.format(Locale.CHINA, "Initialized the instance of Sensors Analytics SDK with server"
                 + " url '%s', flush interval %d ms, debugMode: %s", mServerUrl, mSAConfigOptions.mFlushInterval, debugMode));
         if (mSAConfigOptions.isDataCollectEnable) {
@@ -1481,5 +1484,12 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             SALog.printStackTrace(e);
         }
         return null;
+    }
+
+    /**
+     * 注册 ContentObserver 监听
+     */
+    private void registerObserver() {
+        mContext.getContentResolver().registerContentObserver(DbParams.getInstance().getDataCollectUri(), false, new SensorsDataContentObserver());
     }
 }

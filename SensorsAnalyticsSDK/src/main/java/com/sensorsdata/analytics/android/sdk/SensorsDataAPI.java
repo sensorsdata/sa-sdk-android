@@ -30,6 +30,7 @@ import android.view.Window;
 import android.webkit.WebView;
 
 import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
+import com.sensorsdata.analytics.android.sdk.data.DbParams;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
@@ -1829,6 +1830,9 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public void enableDataCollect() {
+        if (!mSAConfigOptions.isDataCollectEnable) {
+            mContext.getContentResolver().notifyChange(DbParams.getInstance().getDataCollectUri(), null);
+        }
         mSAConfigOptions.isDataCollectEnable = true;
         mAndroidId = SensorsDataUtils.getAndroidID(mContext);
         mDeviceInfo = setupDeviceInfo();

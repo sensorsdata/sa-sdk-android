@@ -31,8 +31,6 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
     private static final String TAG = "AppStateManager";
     private volatile static AppStateManager mSingleton = null;
 
-    private int mActivityCount;
-
     private AppStateManager() {
     }
 
@@ -50,7 +48,6 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
         }
         return mSingleton;
     }
-
 
     public Activity getForegroundActivity() {
         return this.mForeGroundActivity.get();
@@ -82,10 +79,6 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
         return mCurrentFragmentName;
     }
 
-    public boolean isInBackground() {
-        return mActivityCount <= 0;
-    }
-
     public int getCurrentRootWindowsHashCode() {
         if (this.mCurrentRootWindowsHashCode == -1 && this.mForeGroundActivity != null && this.mForeGroundActivity.get() != null) {
             this.mCurrentRootWindowsHashCode = (this.mForeGroundActivity.get()).getWindow().getDecorView().hashCode();
@@ -104,7 +97,7 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
 
     @Override
     public void onActivityStarted(Activity activity) {
-        mActivityCount++;
+
     }
 
     @Override
@@ -124,7 +117,7 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
 
     @Override
     public void onActivityStopped(Activity activity) {
-        mActivityCount--;
+
     }
 
     @Override

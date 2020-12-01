@@ -529,9 +529,6 @@ public class ViewSnapshot {
         @Override
         public List<RootViewInfo> call() throws Exception {
             mRootViews.clear();
-            if (AppStateManager.getInstance().isInBackground()) {
-                return mRootViews;
-            }
             Activity activity = AppStateManager.getInstance().getForegroundActivity();
             if (activity != null) {
                 JSONObject object = AopUtil.buildTitleAndScreenName(activity);
