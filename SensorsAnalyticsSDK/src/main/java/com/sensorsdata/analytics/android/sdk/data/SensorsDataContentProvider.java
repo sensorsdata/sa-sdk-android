@@ -35,7 +35,6 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppPaused
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppStartTime;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFlushDataState;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSessionIntervalTime;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -60,13 +59,13 @@ public class SensorsDataContentProvider extends ContentProvider {
     private PersistentAppStartTime persistentAppStartTime;
     private PersistentAppEndData persistentAppEndData;
     private PersistentAppPaused persistentAppPaused;
-    private PersistentSessionIntervalTime persistentSessionIntervalTime;
     private PersistentLoginId persistentLoginId;
     private PersistentFlushDataState persistentFlushDataState;
 
     private boolean isDbWritable = true;
     private boolean isFirstProcessStarted = true;
     private int startActivityCount = 0;
+    private int mSessionTime = 30 * 1000;
 
     @Override
     public boolean onCreate() {
@@ -125,7 +124,6 @@ public class SensorsDataContentProvider extends ContentProvider {
             persistentAppEndData = (PersistentAppEndData) PersistentLoader.loadPersistent(DbParams.TABLE_APP_END_DATA);
             persistentAppStartTime = (PersistentAppStartTime) PersistentLoader.loadPersistent(DbParams.TABLE_APP_START_TIME);
             persistentAppPaused = (PersistentAppPaused) PersistentLoader.loadPersistent(DbParams.TABLE_APP_END_TIME);
-            persistentSessionIntervalTime = (PersistentSessionIntervalTime) PersistentLoader.loadPersistent(DbParams.TABLE_SESSION_INTERVAL_TIME);
             persistentLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(DbParams.TABLE_LOGIN_ID);
             persistentFlushDataState = (PersistentFlushDataState) PersistentLoader.loadPersistent(DbParams.TABLE_SUB_PROCESS_FLUSH_DATA);
         }
@@ -304,7 +302,7 @@ public class SensorsDataContentProvider extends ContentProvider {
                 persistentAppEndData.commit(values.getAsString(DbParams.TABLE_APP_END_DATA));
                 break;
             case SESSION_INTERVAL_TIME:
-                persistentSessionIntervalTime.commit(values.getAsInteger(DbParams.TABLE_SESSION_INTERVAL_TIME));
+                mSessionTime = values.getAsInteger(DbParams.TABLE_SESSION_INTERVAL_TIME);
                 contentResolver.notifyChange(uri, null);
                 break;
             case LOGIN_ID:
@@ -348,7 +346,7 @@ public class SensorsDataContentProvider extends ContentProvider {
                 column = DbParams.TABLE_APP_END_DATA;
                 break;
             case SESSION_INTERVAL_TIME:
-                data = persistentSessionIntervalTime.get();
+                data = mSessionTime;
                 column = DbParams.TABLE_SESSION_INTERVAL_TIME;
                 break;
             case LOGIN_ID:

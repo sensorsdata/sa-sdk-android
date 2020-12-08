@@ -100,11 +100,13 @@ public abstract class HttpCallback<T> {
         @Override
         public JSONObject onParseResponse(String result) {
             try {
-                return new JSONObject(result);
+                if (!TextUtils.isEmpty(result)) {
+                    return new JSONObject(result);
+                }
             } catch (JSONException e) {
                 SALog.printStackTrace(e);
-                return null;
             }
+            return null;
         }
 
         @Override

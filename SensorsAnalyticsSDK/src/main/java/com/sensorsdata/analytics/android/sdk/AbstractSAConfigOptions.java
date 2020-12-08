@@ -126,11 +126,6 @@ abstract class AbstractSAConfigOptions {
     String mAnonymousId;
 
     /**
-     * 是否开启多进程
-     */
-    boolean mEnableMultiProcess = true;
-
-    /**
      * 是否使用上次启动时保存的 utm 属性.
      */
     boolean mEnableSaveDeepLinkInfo = false;

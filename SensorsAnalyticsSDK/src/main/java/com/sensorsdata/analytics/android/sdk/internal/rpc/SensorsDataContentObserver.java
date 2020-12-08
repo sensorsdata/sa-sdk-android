@@ -24,6 +24,7 @@ import android.os.Looper;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.DbParams;
 
 /**
@@ -40,6 +41,8 @@ public class SensorsDataContentObserver extends ContentObserver {
         try {
             if (DbParams.getInstance().getDataCollectUri().equals(uri)) {
                 SensorsDataAPI.sharedInstance().enableDataCollect();
+            } else if (DbParams.getInstance().getSessionTimeUri().equals(uri)) {
+                SensorsDataAPI.sharedInstance().setSessionIntervalTime(DbAdapter.getInstance().getSessionIntervalTime());
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);

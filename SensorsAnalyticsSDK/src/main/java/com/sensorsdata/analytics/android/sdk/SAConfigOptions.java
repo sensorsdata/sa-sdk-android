@@ -292,17 +292,6 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
     }
 
     /**
-     * 是否开启多进程
-     *
-     * @param enableMultiProcess 是否开启多进程
-     * @return SAConfigOptions
-     */
-    public SAConfigOptions enableMultiProcess(boolean enableMultiProcess) {
-        this.mEnableMultiProcess = enableMultiProcess;
-        return this;
-    }
-
-    /**
      * 设置是否保存 utm 属性
      *
      * @param enableSave boolean 默认 false 不保存

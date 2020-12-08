@@ -33,7 +33,6 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFlushData
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentIdentity;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSessionIntervalTime;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProperties;
 
 import java.util.concurrent.Future;
@@ -70,8 +69,6 @@ public class PersistentLoader {
                 return new PersistentAppEndData(storedPreferences);
             case PersistentName.APP_PAUSED_TIME:
                 return new PersistentAppPaused(storedPreferences);
-            case PersistentName.APP_SESSION_TIME:
-                return new PersistentSessionIntervalTime(storedPreferences);
             case PersistentName.APP_START_TIME:
                 return new PersistentAppStartTime(storedPreferences);
             case PersistentName.DISTINCT_ID:
@@ -101,7 +98,6 @@ public class PersistentLoader {
         String APP_END_DATA = DbParams.TABLE_APP_END_DATA;
         String APP_PAUSED_TIME = DbParams.TABLE_APP_END_TIME;
         String APP_START_TIME = DbParams.TABLE_APP_START_TIME;
-        String APP_SESSION_TIME = DbParams.TABLE_SESSION_INTERVAL_TIME;
         String SUB_PROCESS_FLUSH_DATA = DbParams.TABLE_SUB_PROCESS_FLUSH_DATA;
         String DISTINCT_ID = "events_distinct_id";
         String FIRST_DAY = "first_day";

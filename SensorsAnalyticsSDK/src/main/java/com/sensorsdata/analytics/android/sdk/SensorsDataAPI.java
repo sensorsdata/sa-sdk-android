@@ -290,12 +290,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public int getSessionIntervalTime() {
-        if (DbAdapter.getInstance() == null) {
-            SALog.i(TAG, "The static method sharedInstance(context, serverURL, debugMode) should be called before calling sharedInstance()");
-            return 30 * 1000;
-        }
-
-        return DbAdapter.getInstance().getSessionIntervalTime();
+        return mSessionTime;
     }
 
     @Override
@@ -309,8 +304,10 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             SALog.i(TAG, "SessionIntervalTime:" + sessionIntervalTime + " is invalid, session interval time is between 10s and 300s.");
             return;
         }
-
-        DbAdapter.getInstance().commitSessionIntervalTime(sessionIntervalTime);
+        if (sessionIntervalTime != mSessionTime) {
+            mSessionTime = sessionIntervalTime;
+            DbAdapter.getInstance().commitSessionIntervalTime(sessionIntervalTime);
+        }
     }
 
     @Override

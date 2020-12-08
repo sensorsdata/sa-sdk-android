@@ -38,8 +38,7 @@ import java.util.Set;
 
 public class DeepLinkManager {
     public static final String IS_ANALYTICS_DEEPLINK = "is_analytics_deeplink";
-    public static final String IS_RESUMED_ANALYTICS_DEEPLINK = "is_resumed_analytics_deeplink";
-
+    private static DeepLinkProcessor mDeepLinkProcessor;
     public enum DeepLinkType {
         CHANNEL,
         SENSORSDATA
@@ -96,7 +95,7 @@ public class DeepLinkManager {
         return false;
     }
 
-    public static DeepLinkProcessor createDeepLink(Intent intent, String serverUrl) {
+    private static DeepLinkProcessor createDeepLink(Intent intent, String serverUrl) {
         if (intent == null) {
             return null;
         }
@@ -125,25 +124,55 @@ public class DeepLinkManager {
         void onFinish(DeepLinkType deepLinkStatus, String pageParams, boolean success, long duration);
     }
 
-    public static void parseDeepLink(DeepLinkProcessor deepLink, final Activity activity, final JSONObject properties, final JSONObject endDataProperty, final boolean isSaveDeepLinkInfo, final SensorsDataDeepLinkCallback callback) {
-        Intent intent = activity.getIntent();
-        // 注册 DeepLink 解析完成 callback.
-        deepLink.setDeepLinkParseFinishCallback(new OnDeepLinkParseFinishCallback() {
-            @Override
-            public void onFinish(DeepLinkType deepLinkStatus, String params, boolean success, long duration) {
-                ChannelUtils.mergeUtmToEndData(ChannelUtils.getLatestUtmProperties(), endDataProperty);
-                if (isSaveDeepLinkInfo) {
-                    ChannelUtils.saveDeepLinkInfo(activity.getApplicationContext());
-                }
-                if (callback != null && deepLinkStatus == DeepLinkType.SENSORSDATA) {
-                    callback.onReceive(params, success, duration);
-                }
+    public static boolean parseDeepLink(final Activity activity, final boolean isSaveDeepLinkInfo, final SensorsDataDeepLinkCallback callback) {
+        try {
+            Intent intent = activity.getIntent();
+            mDeepLinkProcessor = createDeepLink(intent, SensorsDataAPI.sharedInstance().getServerUrl());
+            if (mDeepLinkProcessor == null) {
+                return false;
             }
-        });
-        deepLink.parseDeepLink(intent);
-        // 合并 utm 属性到 properties 中
-        deepLink.mergeDeepLinkProperty(properties);
-        //触发 $AppDeeplinkLaunch 事件
-        DeepLinkManager.trackDeepLinkLaunchEvent(deepLink);
+            //清除本地 utm 属性
+            ChannelUtils.clearUtm(activity.getApplicationContext());
+            // 注册 DeepLink 解析完成 callback.
+            mDeepLinkProcessor.setDeepLinkParseFinishCallback(new OnDeepLinkParseFinishCallback() {
+                @Override
+                public void onFinish(DeepLinkType deepLinkStatus, String params, boolean success, long duration) {
+                    if (isSaveDeepLinkInfo) {
+                        ChannelUtils.saveDeepLinkInfo(activity.getApplicationContext());
+                    }
+                    if (callback != null && deepLinkStatus == DeepLinkType.SENSORSDATA) {
+                        callback.onReceive(params, success, duration);
+                    }
+                }
+            });
+            mDeepLinkProcessor.parseDeepLink(intent);
+            //触发 $AppDeeplinkLaunch 事件
+            DeepLinkManager.trackDeepLinkLaunchEvent(mDeepLinkProcessor);
+            return true;
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+        return false;
+    }
+
+    /**
+     * 合并 utm 属性到 properties 中
+     * @param properties 属性
+     */
+    public static void mergeDeepLinkProperty(JSONObject properties) {
+        try {
+            if (mDeepLinkProcessor != null) {
+                mDeepLinkProcessor.mergeDeepLinkProperty(properties);
+            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+    }
+
+    /**
+     * 重置 DeepLink 解析器
+     */
+    public static void resetDeepLinkProcessor() {
+        mDeepLinkProcessor = null;
     }
 }

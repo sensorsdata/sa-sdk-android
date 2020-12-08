@@ -18,6 +18,7 @@
 package com.sensorsdata.analytics.android.sdk;
 
 import android.app.Application;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
@@ -123,6 +124,8 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     protected boolean mClearReferrerWhenAppEnd = false;
     protected boolean mDisableDefaultRemoteConfig = false;
     protected boolean mDisableTrackDeviceId = false;
+    // Session 时长
+    protected int mSessionTime = 30 * 1000;
     protected List<Integer> mAutoTrackIgnoredActivities;
     protected List<Integer> mHeatMapActivities;
     protected List<Integer> mVisualizedAutoTrackActivities;
@@ -295,10 +298,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
 
     boolean isMultiProcessFlushData() {
         return mSAConfigOptions.isSubProcessFlushData;
-    }
-
-    boolean isMultiProcess() {
-        return mSAConfigOptions.mEnableMultiProcess;
     }
 
     boolean _trackEventFromH5(String eventInfo) {
@@ -1490,6 +1489,10 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
      * 注册 ContentObserver 监听
      */
     private void registerObserver() {
-        mContext.getContentResolver().registerContentObserver(DbParams.getInstance().getDataCollectUri(), false, new SensorsDataContentObserver());
+        // 注册跨进程业务的 ContentObserver 监听
+        SensorsDataContentObserver contentObserver = new SensorsDataContentObserver();
+        ContentResolver contentResolver = mContext.getContentResolver();
+        contentResolver.registerContentObserver(DbParams.getInstance().getDataCollectUri(), false, contentObserver);
+        contentResolver.registerContentObserver(DbParams.getInstance().getSessionTimeUri(), false, contentObserver);
     }
 }
