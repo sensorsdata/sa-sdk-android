@@ -52,6 +52,11 @@ public class SADataHelper {
             try {
                 Object value = properties.get(key);
 
+                if (value == JSONObject.NULL) {
+                    iterator.remove();
+                    continue;
+                }
+
                 if (!(value instanceof CharSequence || value instanceof Number || value
                         instanceof JSONArray || value instanceof Boolean || value instanceof Date)) {
                     throw new InvalidDataException("The property value must be an instance of "

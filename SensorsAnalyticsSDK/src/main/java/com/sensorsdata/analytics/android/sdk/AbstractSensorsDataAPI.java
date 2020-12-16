@@ -763,6 +763,10 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                 eventObject.remove("server_url");
             }
 
+            if (eventObject.has("_flush_time")) {
+                eventObject.remove("_flush_time");
+            }
+
             if (propertiesObject.has("$project")) {
                 eventObject.put("project", propertiesObject.optString("$project"));
                 propertiesObject.remove("$project");

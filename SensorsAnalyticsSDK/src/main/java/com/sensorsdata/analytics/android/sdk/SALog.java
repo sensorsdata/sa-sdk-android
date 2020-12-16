@@ -23,6 +23,7 @@ import android.util.Log;
 public class SALog {
     private static boolean debug;
     private static boolean enableLog;
+    private static final int CHUNK_SIZE = 4000;
 
     public static void d(String tag, String msg) {
         if (debug) {
@@ -65,10 +66,53 @@ public class SALog {
      */
     public static void info(String tag, String msg, Throwable tr) {
         try {
-            Log.i(tag, msg, tr);
+            if (msg != null) {
+                byte[] bytes = msg.getBytes();
+                int length = bytes.length;
+                if (length <= CHUNK_SIZE) {
+                    Log.i(tag, msg, tr);
+                } else {
+                    int index = 0, lastIndexOfLF = 0;
+                    //当最后一次剩余值小于 CHUNK_SIZE 时，不需要再截断
+                    while (index < length - CHUNK_SIZE) {
+                        lastIndexOfLF = lastIndexOfLF(bytes, index);
+                        int chunkLength = lastIndexOfLF - index;
+                        Log.i(tag, new String(bytes, index, chunkLength), null);
+                        if (chunkLength < CHUNK_SIZE) {
+                            //跳过换行符
+                            index = lastIndexOfLF + 1;
+                        } else {
+                            index = lastIndexOfLF;
+                        }
+                    }
+                    if (length > index) {
+                        Log.i(tag, new String(bytes, index, length - index), tr);
+                    }
+                }
+            } else {
+                Log.i(tag, null, tr);
+            }
         } catch (Exception e) {
             printStackTrace(e);
         }
+    }
+
+    /**
+     * 获取从 fromIndex 开始，最靠近尾部的换行符
+     *
+     * @param bytes 日志转化的 bytes 数组
+     * @param fromIndex 从 bytes 开始的下标
+     * @return 换行符的下标
+     */
+    private static int lastIndexOfLF(byte[] bytes, int fromIndex) {
+        int index = Math.min(fromIndex + CHUNK_SIZE, bytes.length - 1);
+        for (int i = index; i > index - CHUNK_SIZE; i--) {
+            //返回换行符的位置
+            if (bytes[i] == (byte) 10) {
+                return i;
+            }
+        }
+        return index;
     }
 
     /**
