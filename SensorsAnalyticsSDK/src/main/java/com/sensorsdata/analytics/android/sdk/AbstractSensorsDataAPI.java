@@ -1260,6 +1260,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             } catch (Exception e) {
                 SALog.printStackTrace(e);
             }
+            SensorsDataUtils.mergeJSONObject(properties, sendProperties);
             if (eventType.isTrack()) {
                 if ("autoTrack".equals(properties.optString("$lib_method"))) {
                     libProperties.put("$lib_method", "autoTrack");
@@ -1270,7 +1271,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             } else {
                 libProperties.put("$lib_method", "code");
             }
-            SensorsDataUtils.mergeJSONObject(properties, sendProperties);
         } else {
             libProperties.put("$lib_method", "code");
             if (eventType.isTrack()) {
