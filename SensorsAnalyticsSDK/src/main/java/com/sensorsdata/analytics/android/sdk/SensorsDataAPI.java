@@ -1630,6 +1630,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             public void run() {
                 try {
                     if (!TextUtils.isEmpty(url) || properties != null) {
+                        String currentUrl = url;
                         JSONObject trackProperties = new JSONObject();
                         mLastScreenTrackProperties = properties;
 
@@ -1637,15 +1638,26 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                             trackProperties.put("$referrer", mLastScreenUrl);
                         }
 
-                        trackProperties.put("$url", url);
-                        mLastScreenUrl = url;
+                        mReferrerScreenTitle = mCurrentScreenTitle;
+                        if (properties != null) {
+                            if (properties.has("$title")) {
+                                mCurrentScreenTitle = properties.getString("$title");
+                            } else {
+                                mCurrentScreenTitle = null;
+                            }
+                            if (properties.has("$url")) {
+                                currentUrl = properties.optString("$url");
+                            }
+                        }
+                        trackProperties.put("$url", currentUrl);
+                        mLastScreenUrl = currentUrl;
                         if (properties != null) {
                             SensorsDataUtils.mergeJSONObject(properties, trackProperties);
                         }
-                        trackInternal("$AppViewScreen", trackProperties);
+                        trackEvent(EventType.TRACK, "$AppViewScreen", trackProperties, null);
                     }
                 } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                    SALog.printStackTrace(e);
                 }
             }
         });

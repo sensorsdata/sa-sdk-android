@@ -169,4 +169,9 @@ abstract class AbstractSAConfigOptions {
      * 关闭数据采集，默认开启数据采集
      */
     boolean isDataCollectEnable = true;
+
+    /**
+     * 开启前向标题采集
+     */
+    boolean mEnableReferrerTitle = false;
 }

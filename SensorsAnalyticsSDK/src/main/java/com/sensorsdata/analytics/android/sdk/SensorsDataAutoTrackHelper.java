@@ -47,6 +47,7 @@ import android.widget.TextView;
 
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
+import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.ThreadUtils;
 import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
@@ -226,7 +227,7 @@ public class SensorsDataAutoTrackHelper {
                     }
                 }
             }
-            SensorsDataAPI.sharedInstance().trackInternal(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -260,7 +261,8 @@ public class SensorsDataAutoTrackHelper {
                     SensorsDataUtils.mergeJSONObject(otherProperties, properties);
                 }
             }
-            SensorsDataAPI.sharedInstance().trackViewScreen(SensorsDataUtils.getScreenUrl(fragment), properties);
+            JSONObject eventProperties = SADataHelper.appendLibMethodAutoTrack(properties);
+            SensorsDataAPI.sharedInstance().trackViewScreen(SensorsDataUtils.getScreenUrl(fragment), eventProperties);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -536,7 +538,7 @@ public class SensorsDataAutoTrackHelper {
                 }
             }
 
-            SensorsDataAPI.sharedInstance().trackInternal(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -663,7 +665,7 @@ public class SensorsDataAutoTrackHelper {
                 AopUtil.mergeJSONObject(p, properties);
             }
 
-            SensorsDataAPI.sharedInstance().trackInternal(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties);
 
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -723,7 +725,7 @@ public class SensorsDataAutoTrackHelper {
             }
             properties.put(AopConstants.ELEMENT_CONTENT, elementContent);
             properties.put(AopConstants.ELEMENT_TYPE, "TabHost");
-            SensorsDataAPI.sharedInstance().trackInternal(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -960,7 +962,7 @@ public class SensorsDataAutoTrackHelper {
             //Type
             properties.put(AopConstants.ELEMENT_TYPE, "TabLayout");
 
-            SensorsDataAPI.sharedInstance().trackInternal(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -1061,7 +1063,7 @@ public class SensorsDataAutoTrackHelper {
                         //Type
                         properties.put(AopConstants.ELEMENT_TYPE, "MenuItem");
 
-                        SensorsDataAPI.sharedInstance().trackInternal(AopConstants.APP_CLICK_EVENT_NAME, properties);
+                        SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties);
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
                     }
@@ -1173,7 +1175,7 @@ public class SensorsDataAutoTrackHelper {
                 AopUtil.mergeJSONObject(p, properties);
             }
 
-            SensorsDataAPI.sharedInstance().trackInternal(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -1340,7 +1342,7 @@ public class SensorsDataAutoTrackHelper {
                 }
             }
 
-            SensorsDataAPI.sharedInstance().trackInternal(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -1473,7 +1475,7 @@ public class SensorsDataAutoTrackHelper {
                 AopUtil.mergeJSONObject(p, properties);
             }
 
-            SensorsDataAPI.sharedInstance().trackInternal(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -1567,7 +1569,7 @@ public class SensorsDataAutoTrackHelper {
             JSONObject properties = new JSONObject();
 
             if (AopUtil.injectClickInfo(view, properties, isFromUser)) {
-                SensorsDataAPI.sharedInstance().trackInternal(AopConstants.APP_CLICK_EVENT_NAME, properties);
+                SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties);
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);

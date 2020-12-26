@@ -38,6 +38,7 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStar
 import com.sensorsdata.analytics.android.sdk.deeplink.DeepLinkManager;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
+import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 import com.sensorsdata.analytics.android.sdk.visual.HeatMapService;
@@ -147,7 +148,8 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                 // 合并 utm 属性到 properties 中
                 DeepLinkManager.mergeDeepLinkProperty(properties);
                 DeepLinkManager.resetDeepLinkProcessor();
-                mSensorsDataInstance.trackViewScreen(SensorsDataUtils.getScreenUrl(activity), properties);
+                JSONObject eventProperties = SADataHelper.appendLibMethodAutoTrack(properties);
+                mSensorsDataInstance.trackViewScreen(SensorsDataUtils.getScreenUrl(activity), eventProperties);
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -279,7 +281,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                             // 读取 Message 中的时间戳
                             long eventTime = bundle.getLong(TIME);
                             properties.put("event_time", eventTime > 0 ? eventTime : System.currentTimeMillis());
-                            mSensorsDataInstance.trackInternal("$AppStart", properties);
+                            mSensorsDataInstance.trackAutoEvent("$AppStart", properties);
                         }
                     } catch (Exception e) {
                         SALog.i(TAG, e);
@@ -337,6 +339,8 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
              * 所以会引起的计数器小于 0 的情况。
              */
             if (mStartActivityCount <= 0) {
+                // 主动 flush 数据
+                mSensorsDataInstance.flushSync();
                 Bundle bundle = message.getData();
                 generateAppEndData(bundle.getLong(TIME), bundle.getLong(ELAPSE_TIME));
                 mHandler.sendMessageDelayed(obtainAppEndMessage(true), mSensorsDataInstance.mSessionTime);
@@ -367,7 +371,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                 properties.put("event_duration", Double.valueOf(duration(startTime, endTime)));
                 properties.put("event_time", endTrackTime == 0 ? pausedTime : endTrackTime);
                 ChannelUtils.mergeUtmToEndData(endDataJsonObject, properties);
-                mSensorsDataInstance.trackInternal("$AppEnd", properties);
+                mSensorsDataInstance.trackAutoEvent("$AppEnd", properties);
                 mDbAdapter.commitAppEndData(""); // 保存的信息只使用一次就置空，防止后面状态错乱再次发送。
                 mSensorsDataInstance.flushSync();
             }

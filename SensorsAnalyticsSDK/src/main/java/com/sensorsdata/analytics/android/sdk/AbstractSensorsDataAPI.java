@@ -56,6 +56,7 @@ import com.sensorsdata.analytics.android.sdk.util.DeviceUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.OaidHelper;
+import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
@@ -116,8 +117,12 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     protected SensorsDataAPI.DebugMode mDebugMode = SensorsDataAPI.DebugMode.DEBUG_OFF;
     /* SDK 自动采集事件 */
     protected boolean mAutoTrack;
-    /* 上个页面的 Url*/
+    /* 上个页面的 Url */
     protected String mLastScreenUrl;
+    /* 上个页面的 Title */
+    protected String mReferrerScreenTitle;
+    /* 当前页面的 Title */
+    protected String mCurrentScreenTitle;
     protected JSONObject mLastScreenTrackProperties;
     /* 是否请求网络 */
     protected boolean mEnableNetworkRequest = true;
@@ -476,6 +481,19 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
+
+    /**
+     * SDK 全埋点调用方法
+     *
+     * @param eventName 事件名
+     * @param properties 事件属性
+     */
+    void trackAutoEvent(final String eventName, final JSONObject properties) {
+        //添加 $lib_method 属性
+        JSONObject eventProperties = SADataHelper.appendLibMethodAutoTrack(properties);
+        trackInternal(eventName, eventProperties);
+    }
+    
     protected void addTimeProperty(JSONObject jsonObject) {
         if (!jsonObject.has("$time")) {
             try {
@@ -616,6 +634,10 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                         SensorsDataUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), sendProperties);
                     }
                     mergerDynamicAndSuperProperties(sendProperties);
+
+                    if (mSAConfigOptions.mEnableReferrerTitle && mReferrerScreenTitle != null) {
+                        sendProperties.put("$referrer_title", mReferrerScreenTitle);
+                    }
 
                     // 当前网络状况
                     String networkType = NetworkUtils.networkType(mContext);
@@ -1194,6 +1216,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         String lib_version = VERSION;
         String app_version = mDeviceInfo.containsKey("$app_version") ? (String) mDeviceInfo.get("$app_version") : "";
         long eventTime = System.currentTimeMillis();
+        JSONObject libProperties = new JSONObject();
         if (null != properties) {
             try {
                 if (properties.has("$lib_detail")) {
@@ -1237,7 +1260,22 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             } catch (Exception e) {
                 SALog.printStackTrace(e);
             }
+            if (eventType.isTrack()) {
+                if ("autoTrack".equals(properties.optString("$lib_method"))) {
+                    libProperties.put("$lib_method", "autoTrack");
+                } else {
+                    libProperties.put("$lib_method", "code");
+                    sendProperties.put("$lib_method", "code");
+                }
+            } else {
+                libProperties.put("$lib_method", "code");
+            }
             SensorsDataUtils.mergeJSONObject(properties, sendProperties);
+        } else {
+            libProperties.put("$lib_method", "code");
+            if (eventType.isTrack()) {
+                sendProperties.put("$lib_method", "code");
+            }
         }
 
         if (null != eventTimer) {
@@ -1251,7 +1289,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             }
         }
 
-        JSONObject libProperties = new JSONObject();
         libProperties.put("$lib", "Android");
         libProperties.put("$lib_version", lib_version);
         libProperties.put("$app_version", app_version);
@@ -1324,8 +1361,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             dataObj.put("event", eventName);
             dataObj.put("original_id", originalDistinctId);
         }
-
-        libProperties.put("$lib_method", "code");
 
         if (mAutoTrack && properties != null) {
             if (SensorsDataAPI.AutoTrackEventType.isAutoTrackType(eventName)) {

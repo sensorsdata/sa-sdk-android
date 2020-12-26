@@ -399,4 +399,15 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
         this.mSSLSocketFactory = SSLSocketFactory;
         return this;
     }
+
+    /**
+     * 是否开启前向标题采集.
+     *
+     * @param enable 是否开启前向标题采集
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions enableReferrerTitle(boolean enable) {
+        this.mEnableReferrerTitle = enable;
+        return this;
+    }
 }

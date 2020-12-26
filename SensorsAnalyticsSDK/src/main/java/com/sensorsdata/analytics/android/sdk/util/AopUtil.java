@@ -630,6 +630,9 @@ public class AopUtil {
 
     /**
      * properties 注入点击事件信息
+     * 属性的优先级为：预置属性低于 {@link ScreenAutoTracker#getTrackProperties()} 低于
+     * {@link SensorsDataAPI#setViewProperties(View, JSONObject)} 低于
+     * {@link SensorsDataAPI#trackViewAppClick(View, JSONObject)}
      *
      * @param view 点击的 view
      * @param properties 事件属性
@@ -641,61 +644,46 @@ public class AopUtil {
             return false;
         }
         try {
-            //获取所在的 Context
+            if (!ViewUtil.isTrackEvent(view, isFromUser)) {
+                return false;
+            }
             Context context = view.getContext();
-
-            //将 Context 转成 Activity
+            JSONObject eventJson = new JSONObject();
             Activity activity = AopUtil.getActivityFromContext(context, view);
-
-            AopUtil.addViewPathProperties(activity, view, properties);
-
+            AopUtil.addViewPathProperties(activity, view, eventJson);
+            //1.获取预置属性
             //ViewId
             String idString = AopUtil.getViewId(view);
             if (!TextUtils.isEmpty(idString)) {
-                properties.put(AopConstants.ELEMENT_ID, idString);
+                eventJson.put(AopConstants.ELEMENT_ID, idString);
             }
-
-            final String screenName = properties.optString(AopConstants.SCREEN_NAME);
-            final String title = properties.optString(AopConstants.TITLE);
-
-            //$screen_name & $title
-            if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
-            }
-
-            boolean isTrackEvent = ViewUtil.isTrackEvent(view, isFromUser);
-            if (!isTrackEvent)
-                return false;
 
             ViewNode viewNode = ViewUtil.getViewContentAndType(view);
             String viewText = viewNode.getViewContent();
             //$element_content
             if (!TextUtils.isEmpty(viewText)) {
-                properties.put(AopConstants.ELEMENT_CONTENT, viewText);
+                eventJson.put(AopConstants.ELEMENT_CONTENT, viewText);
             }
-
             //$element_type
-            properties.put(AopConstants.ELEMENT_TYPE, viewNode.getViewType());
+            eventJson.put(AopConstants.ELEMENT_TYPE, viewNode.getViewType());
+
+            //2.获取 Activity 页面信息及 ScreenAutoTracker 定义的属性
+            if (activity != null) {
+                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), eventJson);
+            }
 
             //fragmentName
             Object fragment = AopUtil.getFragmentFromView(view, activity);
             if (fragment != null) {
-                AopUtil.getScreenNameAndTitleFromFragment(properties, fragment, activity);
+                AopUtil.getScreenNameAndTitleFromFragment(eventJson, fragment, activity);
             }
-            // 最终 property 中的 $screen_name 为最终值
-            if (!TextUtils.isEmpty(screenName)) {
-                properties.put(AopConstants.SCREEN_NAME, screenName);
-            }
-            // 最终 property 中的 $title 为最终值
-            if (!TextUtils.isEmpty(title)) {
-                properties.put(AopConstants.TITLE, title);
-            }
-
-            //获取 View 自定义属性
+            //3.获取 View 自定义属性
             JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
             if (p != null) {
-                AopUtil.mergeJSONObject(p, properties);
+                AopUtil.mergeJSONObject(p, eventJson);
             }
+            //4.事件传入的自定义属性
+            JSONUtils.mergeDistinctProperty(eventJson, properties);
             return true;
         } catch (JSONException e) {
             SALog.printStackTrace(e);
@@ -717,6 +705,7 @@ public class AopUtil {
      * 获取点击 view 的 fragment 对象
      *
      * @param view 点击的 view
+     * @param activity Activity
      * @return object 这里是 fragment 实例对象
      */
     @SuppressLint("NewApi")

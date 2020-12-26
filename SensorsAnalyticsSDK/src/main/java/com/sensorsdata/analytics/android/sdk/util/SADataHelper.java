@@ -100,4 +100,16 @@ public class SADataHelper {
             throw new InvalidDataException("The " + value + " is too long, max length is 255.");
         }
     }
+
+    public static JSONObject appendLibMethodAutoTrack(JSONObject jsonObject) {
+        if (jsonObject == null) {
+            jsonObject = new JSONObject();
+        }
+        try {
+            jsonObject.put("$lib_method", "autoTrack");
+        } catch (JSONException e) {
+            SALog.printStackTrace(e);
+        }
+        return jsonObject;
+    }
 }
