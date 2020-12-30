@@ -16,7 +16,6 @@
  */
 package com.sensorsdata.analytics.android.sdk;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.view.View;
@@ -231,7 +230,6 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * @param isSupportJellyBean 是否支持 API level 16 及以下的版本。
      * 因为 API level 16 及以下的版本, addJavascriptInterface 有安全漏洞,请谨慎使用
      */
-    @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     void showUpWebView(WebView webView, boolean isSupportJellyBean);
 
     /**
@@ -242,7 +240,6 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * @param enableVerify 是否开启认证
      * 因为 API level 16 及以下的版本, addJavascriptInterface 有安全漏洞,请谨慎使用
      */
-    @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     void showUpWebView(WebView webView, boolean isSupportJellyBean, boolean enableVerify);
 
     /**
@@ -255,7 +252,6 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * 因为 API level 16 及以下的版本, addJavascriptInterface 有安全漏洞,请谨慎使用。
      * 此方法谨慎修改，插件配置 disableJsInterface 会修改此方法。
      */
-    @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     @Deprecated
     void showUpWebView(WebView webView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify);
 
@@ -267,7 +263,6 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * 因为 API level 16 及以下的版本, addJavascriptInterface 有安全漏洞,请谨慎使用
      * @param properties 用户自定义属性
      */
-    @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     @Deprecated
     void showUpWebView(WebView webView, boolean isSupportJellyBean, JSONObject properties);
 

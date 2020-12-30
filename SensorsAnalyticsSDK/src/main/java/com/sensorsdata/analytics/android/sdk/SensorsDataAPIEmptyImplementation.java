@@ -17,7 +17,6 @@
 package com.sensorsdata.analytics.android.sdk;
 
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.view.View;
 import android.webkit.WebView;
@@ -192,26 +191,22 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
         return false;
     }
 
-    @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     @Override
     public void showUpWebView(WebView webView, boolean isSupportJellyBean) {
 
     }
 
-    @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     @Override
     public void showUpWebView(WebView webView, boolean isSupportJellyBean, boolean enableVerify) {
 
     }
 
-    @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     @Override
     @Deprecated
     public void showUpWebView(WebView webView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify) {
 
     }
 
-    @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     @Override
     @Deprecated
     public void showUpWebView(WebView webView, boolean isSupportJellyBean, JSONObject properties) {

@@ -16,7 +16,6 @@
  */
 package com.sensorsdata.analytics.android.sdk;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -485,19 +484,16 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         return mSAConfigOptions.mRNAutoTrackEnabled;
     }
 
-    @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     @Override
     public void showUpWebView(WebView webView, boolean isSupportJellyBean) {
         showUpWebView(webView, isSupportJellyBean, null);
     }
 
-    @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     @Override
     public void showUpWebView(WebView webView, boolean isSupportJellyBean, boolean enableVerify) {
         showUpWebView(webView, null, isSupportJellyBean, enableVerify);
     }
 
-    @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     @Override
     @Deprecated
     public void showUpWebView(WebView webView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify) {
@@ -513,7 +509,6 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         }
     }
 
-    @SuppressLint(value = {"SetJavaScriptEnabled", "addJavascriptInterface"})
     @Override
     @Deprecated
     public void showUpWebView(WebView webView, boolean isSupportJellyBean, JSONObject properties) {
