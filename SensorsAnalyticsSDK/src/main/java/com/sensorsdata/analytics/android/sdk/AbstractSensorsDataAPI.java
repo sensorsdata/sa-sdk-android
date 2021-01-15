@@ -1,6 +1,6 @@
 /*
  * Created by dengshiwei on 2020/10/20.
- * Copyright 2015－2020 Sensors Data Inc.
+ * Copyright 2015－2021 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     /* 远程配置 */
     protected static SAConfigOptions mSAConfigOptions;
     protected final Context mContext;
-    protected final AnalyticsMessages mMessages;
+    protected AnalyticsMessages mMessages;
     protected final PersistentDistinctId mDistinctId;
     protected final PersistentSuperProperties mSuperProperties;
     protected final PersistentFirstStart mFirstStart;
@@ -168,45 +168,46 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         mFirstTrackInstallation = (PersistentFirstTrackInstallation) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.FIRST_INSTALL);
         mFirstTrackInstallationWithCallback = (PersistentFirstTrackInstallationWithCallback) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.FIRST_INSTALL_CALLBACK);
         mFirstDay = (PersistentFirstDay) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.FIRST_DAY);
-
-        initSAConfig(serverURL, packageName);
-        mTrackTaskManager = TrackTaskManager.getInstance();
-        mTrackTaskManager.setDataCollectEnable(mSAConfigOptions.isDataCollectEnable);
-        mTrackTaskManagerThread = new TrackTaskManagerThread();
-        new Thread(mTrackTaskManagerThread, ThreadNameConstants.THREAD_TASK_QUEUE).start();
-        SensorsDataExceptionHandler.init();
-
-        mMessages = AnalyticsMessages.getInstance(mContext, (SensorsDataAPI) this);
-        mRemoteManager = new SensorsDataRemoteManager((SensorsDataAPI) this);
-        //先从缓存中读取 SDKConfig
-        mRemoteManager.applySDKConfigFromCache();
-
-        //打开 debug 模式，弹出提示
-        if (mDebugMode != SensorsDataAPI.DebugMode.DEBUG_OFF && mIsMainProcess) {
-            if (SHOW_DEBUG_INFO_VIEW) {
-                if (!isSDKDisabled()) {
-                    showDebugModeWarning();
-                }
-            }
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-            final Application app = (Application) context.getApplicationContext();
-            final SensorsDataActivityLifecycleCallbacks lifecycleCallbacks =
-                    new SensorsDataActivityLifecycleCallbacks((SensorsDataAPI) this, mFirstStart, mFirstDay, context);
-            app.registerActivityLifecycleCallbacks(lifecycleCallbacks);
-            app.registerActivityLifecycleCallbacks(AppStateManager.getInstance());
-        }
-
-        registerObserver();
-        SALog.i(TAG, String.format(Locale.CHINA, "Initialized the instance of Sensors Analytics SDK with server"
-                + " url '%s', flush interval %d ms, debugMode: %s", mServerUrl, mSAConfigOptions.mFlushInterval, debugMode));
-        if (mSAConfigOptions.isDataCollectEnable) {
-            mAndroidId = SensorsDataUtils.getAndroidID(mContext);
-            mDeviceInfo = setupDeviceInfo();
-        }
         mTrackTimer = new HashMap<>();
         mFragmentAPI = new FragmentAPI();
+        try {
+            mTrackTaskManager = TrackTaskManager.getInstance();
+            mTrackTaskManagerThread = new TrackTaskManagerThread();
+            new Thread(mTrackTaskManagerThread, ThreadNameConstants.THREAD_TASK_QUEUE).start();
+            SensorsDataExceptionHandler.init();
+            initSAConfig(serverURL, packageName);
+            mMessages = AnalyticsMessages.getInstance(mContext, (SensorsDataAPI) this);
+            mRemoteManager = new SensorsDataRemoteManager((SensorsDataAPI) this);
+            //先从缓存中读取 SDKConfig
+            mRemoteManager.applySDKConfigFromCache();
+
+            //打开 debug 模式，弹出提示
+            if (mDebugMode != SensorsDataAPI.DebugMode.DEBUG_OFF && mIsMainProcess) {
+                if (SHOW_DEBUG_INFO_VIEW) {
+                    if (!isSDKDisabled()) {
+                        showDebugModeWarning();
+                    }
+                }
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+                final Application app = (Application) context.getApplicationContext();
+                final SensorsDataActivityLifecycleCallbacks lifecycleCallbacks =
+                        new SensorsDataActivityLifecycleCallbacks((SensorsDataAPI) this, mFirstStart, mFirstDay, context);
+                app.registerActivityLifecycleCallbacks(lifecycleCallbacks);
+                app.registerActivityLifecycleCallbacks(AppStateManager.getInstance());
+            }
+
+            registerObserver();
+            SALog.i(TAG, String.format(Locale.CHINA, "Initialized the instance of Sensors Analytics SDK with server"
+                    + " url '%s', flush interval %d ms, debugMode: %s", mServerUrl, mSAConfigOptions.mFlushInterval, debugMode));
+            if (mSAConfigOptions.isDataCollectEnable) {
+                mAndroidId = SensorsDataUtils.getAndroidID(mContext);
+                mDeviceInfo = setupDeviceInfo();
+            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
     }
 
     protected AbstractSensorsDataAPI() {
@@ -493,7 +494,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         JSONObject eventProperties = SADataHelper.appendLibMethodAutoTrack(properties);
         trackInternal(eventName, eventProperties);
     }
-    
+
     protected void addTimeProperty(JSONObject jsonObject) {
         if (!jsonObject.has("$time")) {
             try {
@@ -928,6 +929,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         }
 
         DbAdapter.getInstance(mContext, packageName, mSensorsDataEncrypt);
+        mTrackTaskManager.setDataCollectEnable(mSAConfigOptions.isDataCollectEnable);
 
         if (mSAConfigOptions.mInvokeLog) {
             enableLog(mSAConfigOptions.mLogEnabled);
@@ -937,7 +939,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         }
 
         setServerUrl(serverURL);
-
         if (mSAConfigOptions.mEnableTrackAppCrash) {
             SensorsDataExceptionHandler.enableAppCrash();
         }

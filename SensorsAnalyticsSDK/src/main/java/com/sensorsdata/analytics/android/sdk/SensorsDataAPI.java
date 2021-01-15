@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2015/08/01.
- * Copyright 2015－2020 Sensors Data Inc.
+ * Copyright 2015－2021 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,6 +75,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
      * 插件版本号，插件会用到此属性，请谨慎修改
      */
     static String ANDROID_PLUGIN_VERSION = "";
+
     //private
     SensorsDataAPI() {
         super();
@@ -1117,13 +1118,14 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         try {
             assertValue(distinctId);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
             return;
         }
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
+
+        try {
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
                     synchronized (mDistinctId) {
                         mDistinctId.commit(distinctId);
                         // 通知调用 identify 接口
@@ -1137,11 +1139,11 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                             SALog.printStackTrace(e);
                         }
                     }
-                } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
-            }
-        });
+            });
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override
@@ -1154,13 +1156,14 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         try {
             assertValue(loginId);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
             return;
         }
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
+
+        try {
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
                     synchronized (mLoginIdLock) {
                         if (!loginId.equals(DbAdapter.getInstance().getLoginId()) && !loginId.equals(getAnonymousId())) {
                             mLoginId = loginId;
@@ -1178,19 +1181,19 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                             }
                         }
                     }
-                } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
-            }
-        });
+            });
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override
     public void logout() {
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
+        try {
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
                     synchronized (mLoginIdLock) {
                         DbAdapter.getInstance().commitLoginId(null);
                         mLoginId = null;
@@ -1205,52 +1208,52 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                             SALog.printStackTrace(e);
                         }
                     }
-                } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
-            }
-        });
+            });
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Deprecated
     @Override
     public void trackSignUp(final String newDistinctId, final JSONObject properties) {
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
+        try {
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
                     String originalDistinctId = getAnonymousId();
-
                     synchronized (mDistinctId) {
                         mDistinctId.commit(newDistinctId);
                     }
 
                     trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, originalDistinctId);
-                } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+
                 }
-            }
-        });
+            });
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Deprecated
     @Override
     public void trackSignUp(final String newDistinctId) {
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
+        try {
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
                     String originalDistinctId = getAnonymousId();
                     synchronized (mDistinctId) {
                         mDistinctId.commit(newDistinctId);
                     }
 
                     trackEvent(EventType.TRACK_SIGNUP, "$SignUp", null, originalDistinctId);
-                } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
-            }
-        });
+            });
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override
@@ -1368,6 +1371,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
+
                 try {
                     JSONObject _properties = new JSONObject();
                     _properties.put("$ios_install_source", ChannelUtils.getDeviceInfo(mContext,
@@ -1443,17 +1447,17 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public void track(final String eventName, final JSONObject properties) {
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
+        try {
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
                     JSONObject _properties = ChannelUtils.checkOrSetChannelCallbackEvent(getConfigOptions().isAutoAddChannelCallbackEvent, eventName, properties, mContext);
                     trackEvent(EventType.TRACK, eventName, _properties, null);
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
                 }
-            }
-        });
+            });
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override
@@ -2236,6 +2240,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     /**
      * 获取 SDK 的版本号
+     *
      * @return SDK 的版本号
      */
     public String getSDKVersion() {
