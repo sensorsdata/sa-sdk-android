@@ -17,7 +17,8 @@
 
 package com.sensorsdata.analytics.android.sdk.visual;
 
-import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
+import android.os.Build;
 import android.text.TextUtils;
 import android.util.LruCache;
 
@@ -35,7 +36,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
 
 public class WebNodesManager {
 
@@ -68,10 +68,10 @@ public class WebNodesManager {
         return mSingleton;
     }
 
-    @SuppressLint("NewApi")
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
     void handlerMessage(String message) {
         Dispatcher.getInstance().removeCallbacksAndMessages();
-        if (!VisualizedAutoTrackService.getInstance().isVisualizedAutoTrackRunning()) {
+        if (!VisualizedAutoTrackService.getInstance().isServiceRunning() && !HeatMapService.getInstance().isServiceRunning()) {
             return;
         }
         if (TextUtils.isEmpty(message)) {
@@ -115,10 +115,10 @@ public class WebNodesManager {
         }
     }
 
-    @SuppressLint("NewApi")
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
     void handlerFailure(String webViewUrl, String message) {
         Dispatcher.getInstance().removeCallbacksAndMessages();
-        if (!VisualizedAutoTrackService.getInstance().isVisualizedAutoTrackRunning()) {
+        if (!VisualizedAutoTrackService.getInstance().isServiceRunning() && !HeatMapService.getInstance().isServiceRunning()) {
             return;
         }
         if (TextUtils.isEmpty(message)) {
@@ -206,7 +206,6 @@ public class WebNodesManager {
         return null;
     }
 
-
     private List<WebNodeInfo.AlertInfo> parseAlertResult(String msg) {
         if (TextUtils.isEmpty(msg))
             return null;
@@ -239,8 +238,8 @@ public class WebNodesManager {
      * 前端是根据相对坐标来定位的，但 H5 所有的坐标都是绝对坐标；当存在 subviews 属性时，需要做坐标系修正。
      * 需要考虑到 scrollY、scrollX
      *
-     * @param webNodeList
-     * @return 经过坐标修正的 WebNode
+     * @param webNodeList 原始的 web node 节点
+     * @param hashMap subviews 集合
      */
     private void modifyWebNodes(List<WebNode> webNodeList, Map<String, WebNode> hashMap) {
         if (webNodeList == null || webNodeList.size() == 0) {
@@ -260,9 +259,9 @@ public class WebNodesManager {
         }
     }
 
-    @SuppressLint("NewApi")
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
     WebNodeInfo getWebNodes(String webViewUrl) {
-        if (!VisualizedAutoTrackService.getInstance().isVisualizedAutoTrackRunning()) {
+        if (!VisualizedAutoTrackService.getInstance().isServiceRunning() && !HeatMapService.getInstance().isServiceRunning()) {
             return null;
         }
         if (sWebNodesCache == null) {
@@ -271,9 +270,9 @@ public class WebNodesManager {
         return sWebNodesCache.get(webViewUrl);
     }
 
-    @SuppressLint("NewApi")
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
     WebNodeInfo getWebPageInfo(String webViewUrl) {
-        if (!VisualizedAutoTrackService.getInstance().isVisualizedAutoTrackRunning()) {
+        if (!VisualizedAutoTrackService.getInstance().isServiceRunning() && !HeatMapService.getInstance().isServiceRunning()) {
             return null;
         }
         if (sPageInfoCache == null) {

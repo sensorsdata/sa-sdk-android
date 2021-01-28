@@ -87,9 +87,9 @@ public class VisualizedAutoTrackService {
         }
     }
 
-    public boolean isVisualizedAutoTrackRunning() {
+    public boolean isServiceRunning() {
         if (mVTrack != null) {
-            return mVTrack.isVisualizedAutoTrackRunning();
+            return mVTrack.isServiceRunning();
         }
         return false;
     }

@@ -519,7 +519,7 @@ public class ViewUtil {
         return null;
     }
 
-    static String getElementSelector(View view) {
+    public static String getElementSelector(View view) {
         ViewParent viewParent;
         List<String> viewPath = new ArrayList<>();
         do {

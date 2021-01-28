@@ -40,6 +40,13 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     JSONObject getPresetProperties();
 
     /**
+     * 获取当前 serverUrl
+     *
+     * @return  当前 serverUrl
+     */
+    String getServerUrl();
+
+    /**
      * 设置当前 serverUrl
      *
      * @param serverUrl 当前 serverUrl
@@ -645,6 +652,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
 
     /**
      * 记录 $AppInstall 事件，用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
+     * 注意：如果之前使用 trackInstallation 触发的激活事件，需要继续保持原来的调用，无需改成 trackAppInstall，否则会导致激活事件数据分离。
      * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
      *
      * @param properties 渠道追踪事件的属性
@@ -654,6 +662,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
 
     /**
      * 记录 $AppInstall 事件，用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
+     * 注意：如果之前使用 trackInstallation 触发的激活事件，需要继续保持原来的调用，无需改成 trackAppInstall，否则会导致激活事件数据分离。
      * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
      *
      * @param properties 渠道追踪事件的属性
@@ -662,6 +671,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
 
     /**
      * 记录 $AppInstall 事件，用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
+     * 注意：如果之前使用 trackInstallation 触发的激活事件，需要继续保持原来的调用，无需改成 trackAppInstall，否则会导致激活事件数据分离。
      * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
      */
     void trackAppInstall();

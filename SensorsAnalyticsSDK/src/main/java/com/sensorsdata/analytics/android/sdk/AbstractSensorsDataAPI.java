@@ -977,7 +977,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
 
         if (!mSAConfigOptions.mInvokeHeatMapConfirmDialog) {
             mSAConfigOptions.mHeatMapConfirmDialogEnabled = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableHeatMapConfirmDialog",
-                    true);
+                    false);
         }
 
         if (!mSAConfigOptions.mInvokeVisualizedEnabled) {
@@ -987,7 +987,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
 
         if (!mSAConfigOptions.mInvokeVisualizedConfirmDialog) {
             mSAConfigOptions.mVisualizedConfirmDialogEnabled = configBundle.getBoolean("com.sensorsdata.analytics.android.EnableVisualizedAutoTrackConfirmDialog",
-                    true);
+                    false);
         }
 
         enableTrackScreenOrientation(mSAConfigOptions.mTrackScreenOrientationEnabled);
@@ -1180,7 +1180,10 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                         if (!(value instanceof CharSequence || value instanceof Number || value
                                 instanceof JSONArray || value instanceof Boolean || value instanceof Date)) {
                             SALog.d(TAG, String.format("The property value must be an instance of " +
-                                    "CharSequence/Number/Boolean/JSONArray. [key='%s', value='%s']", key, value == null ? "" : value.toString()));
+                                    "CharSequence/Number/Boolean/JSONArray/Date. [key='%s', value='%s', class='%s']",
+                                    key,
+                                    value == null ? "" : value.toString(),
+                                    value == null ? "" : value.getClass().getCanonicalName()));
                             return false;
                         }
 

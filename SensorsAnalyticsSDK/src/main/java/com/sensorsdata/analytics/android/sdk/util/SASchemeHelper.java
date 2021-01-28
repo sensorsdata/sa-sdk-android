@@ -23,6 +23,7 @@ import android.net.Uri;
 import android.text.TextUtils;
 import android.widget.Toast;
 
+import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackHelper;
@@ -50,7 +51,11 @@ public class SASchemeHelper {
                 if ("heatmap".equals(host)) {
                     String featureCode = uri.getQueryParameter("feature_code");
                     String postUrl = uri.getQueryParameter("url");
-                    SensorsDataDialogUtils.showOpenHeatMapDialog(activity, featureCode, postUrl);
+                    if (checkProjectIsValid(postUrl)) {
+                        SensorsDataDialogUtils.showOpenHeatMapDialog(activity, featureCode, postUrl);
+                    } else {
+                        SensorsDataDialogUtils.showDialog(activity, "App 集成的项目与电脑浏览器打开的项目不同，无法进行点击分析");
+                    }
                     intent.setData(null);
                 } else if ("debugmode".equals(host)) {
                     String infoId = uri.getQueryParameter("info_id");
@@ -61,22 +66,7 @@ public class SASchemeHelper {
                 } else if ("visualized".equals(host)) {
                     String featureCode = uri.getQueryParameter("feature_code");
                     String postUrl = uri.getQueryParameter("url");
-                    String serverUrl = SensorsDataAPI.sharedInstance().getServerUrl();
-                    String visualizedProject = null, serverProject = null;
-                    if (!TextUtils.isEmpty(postUrl)) {
-                        Uri visualizedUri = Uri.parse(postUrl);
-                        if (visualizedUri != null) {
-                            visualizedProject = visualizedUri.getQueryParameter("project");
-                        }
-                    }
-                    if (!TextUtils.isEmpty(serverUrl)) {
-                        Uri serverUri = Uri.parse(serverUrl);
-                        if (serverUri != null) {
-                            serverProject = serverUri.getQueryParameter("project");
-                        }
-                    }
-                    if (!TextUtils.isEmpty(visualizedProject) && !TextUtils.isEmpty(serverProject) && TextUtils.equals(visualizedProject, serverProject)
-                    ) {
+                    if (checkProjectIsValid(postUrl)) {
                         SensorsDataDialogUtils.showOpenVisualizedAutoTrackDialog(activity, featureCode, postUrl);
                     } else {
                         SensorsDataDialogUtils.showDialog(activity, "App 集成的项目与电脑浏览器打开的项目不同，无法进行可视化全埋点。");
@@ -153,6 +143,15 @@ public class SASchemeHelper {
                     SALog.i(TAG, "Start debugging remote config");
                     sensorsDataRemoteManagerDebug.checkRemoteConfig(uri, activity);
                     intent.setData(null);
+                } else if ("assistant".equals(host)) {
+                    SAConfigOptions configOptions = SensorsDataAPI.getConfigOptions();
+                    if (configOptions != null && configOptions.mDisableDebugAssistant) {
+                        return;
+                    }
+                    String service = uri.getQueryParameter("service");
+                    if ("pairingCode".equals(service)) {
+                        SensorsDataDialogUtils.showPairingCodeInputDialog(activity);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -160,4 +159,21 @@ public class SASchemeHelper {
         }
     }
 
+    private static boolean checkProjectIsValid(String url) {
+        String serverUrl = SensorsDataAPI.sharedInstance().getServerUrl();
+        String sdkProject = null, serverProject = null;
+        if (!TextUtils.isEmpty(url)) {
+            Uri schemeUri = Uri.parse(url);
+            if (schemeUri != null) {
+                sdkProject = schemeUri.getQueryParameter("project");
+            }
+        }
+        if (!TextUtils.isEmpty(serverUrl)) {
+            Uri serverUri = Uri.parse(serverUrl);
+            if (serverUri != null) {
+                serverProject = serverUri.getQueryParameter("project");
+            }
+        }
+        return !TextUtils.isEmpty(sdkProject) && !TextUtils.isEmpty(serverProject) && TextUtils.equals(sdkProject, serverProject);
+    }
 }

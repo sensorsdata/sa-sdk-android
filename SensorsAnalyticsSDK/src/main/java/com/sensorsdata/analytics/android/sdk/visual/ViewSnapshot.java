@@ -204,7 +204,7 @@ public class ViewSnapshot {
             WebNodeInfo webNodeInfo = WebNodesManager.getInstance().getWebNodes(url);
             if (webNodeInfo == null) {
                 SALog.i(TAG, "H5 页面未集成 Web JS SDK");
-                String msg = "{\"callType\":\"app_alert\",\"data\":[{\"title\":\"当前页面无法进行可视化全埋点\",\"message\":\"此页面未集成 Web JS SDK 或者 Web JS SDK 版本过低，请集成最新版 Web JS SDK\",\"link_text\":\"配置文档\",\"link_url\":\"https://manual.sensorsdata.cn/sa/latest/tech_sdk_client_web_access-7545017.html\"}]}";
+                String msg = "{\"callType\":\"app_alert\",\"data\":[{\"title\":\"当前页面无法进行可视化全埋点\",\"message\":\"此页面未集成 Web JS SDK 或者 Web JS SDK 版本过低，请集成最新版 Web JS SDK\",\"link_text\":\"配置文档\",\"link_url\":\"https://manual.sensorsdata.cn/sa/latest/tech_sdk_client_web_use-7545346.html\"}]}";
                 WebNodesManager.getInstance().handlerFailure(url, msg);
             }
         }
@@ -280,6 +280,7 @@ public class ViewSnapshot {
             j.name("id").value(view.getId());
             j.name("index").value(VisualUtil.getChildIndex(view.getParent(), view));
             j.name("element_level").value(++mSnapInfo.elementLevel);
+            j.name("element_selector").value(ViewUtil.getElementSelector(view));
 
             JSONObject object = VisualUtil.getScreenNameAndTitle(view, mSnapInfo);
             if (object != null) {

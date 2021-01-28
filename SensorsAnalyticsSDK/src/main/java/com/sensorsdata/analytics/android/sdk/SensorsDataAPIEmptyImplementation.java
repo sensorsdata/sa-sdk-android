@@ -76,6 +76,11 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
+    public String getServerUrl() {
+        return null;
+    }
+
+    @Override
     public void setServerUrl(String serverUrl) {
 
     }

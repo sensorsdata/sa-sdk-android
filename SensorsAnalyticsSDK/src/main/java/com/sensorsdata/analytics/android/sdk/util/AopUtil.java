@@ -775,7 +775,8 @@ public class AopUtil {
             ViewNode viewNode = ViewUtil.getViewPathAndPosition(view);
             if (viewNode != null) {
                 if (!TextUtils.isEmpty(viewNode.getViewPath())) {
-                    if (SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled() && SensorsDataAPI.sharedInstance().isVisualizedAutoTrackActivity(activity.getClass())) {
+                    if ((SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled() && SensorsDataAPI.sharedInstance().isVisualizedAutoTrackActivity(activity.getClass()))
+                    || (SensorsDataAPI.sharedInstance().isHeatMapEnabled() && SensorsDataAPI.sharedInstance().isHeatMapActivity(activity.getClass()))) {
                         properties.put(AopConstants.ELEMENT_PATH, viewNode.getViewPath());
                     }
                 }

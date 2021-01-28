@@ -23,8 +23,10 @@ package com.sensorsdata.analytics.android.sdk.visual;
  **/
 public interface VTrack {
 
-    /**
-     * 获取 VTrack 配置
-     */
     void startUpdates();
+
+    void stopUpdates(boolean clear);
+
+    boolean isServiceRunning();
+
 }

@@ -72,21 +72,21 @@ class DebugModeSelectDialog extends Dialog implements View.OnClickListener {
         //标题:SDK 调试模式选择
         TextView debugModeTitle = findViewById(R.id.sensors_analytics_debug_mode_title);
         debugModeTitle.setText("SDK 调试模式选择");
-
         //取消
         TextView debugModeCancel = findViewById(R.id.sensors_analytics_debug_mode_cancel);
         debugModeCancel.setText("取消");
         debugModeCancel.setOnClickListener(this);
-
+        debugModeCancel.setFocusable(true);
         //开启调试模式(不导入数据)
         TextView debugModeOnly = findViewById(R.id.sensors_analytics_debug_mode_only);
         debugModeOnly.setText("开启调试模式（不导入数据）");
         debugModeOnly.setOnClickListener(this);
-
+        debugModeOnly.setFocusable(true);
         //"开启调试模式(导入数据)"
         TextView debugModeTrack = findViewById(R.id.sensors_analytics_debug_mode_track);
         debugModeTrack.setText("开启调试模式（导入数据）");
         debugModeTrack.setOnClickListener(this);
+        debugModeTrack.setFocusable(true);
 
         String msg = "调试模式已关闭";
         if (currentDebugMode == SensorsDataAPI.DebugMode.DEBUG_ONLY) {
@@ -120,6 +120,7 @@ class DebugModeSelectDialog extends Dialog implements View.OnClickListener {
 
         StateListDrawable stateListDrawable = new StateListDrawable();
         stateListDrawable.addState(new int[]{android.R.attr.state_pressed}, pressDrawable);
+        stateListDrawable.addState(new int[]{android.R.attr.state_focused}, pressDrawable);
         stateListDrawable.addState(new int[]{}, normalDrawable);
         return stateListDrawable;
     }

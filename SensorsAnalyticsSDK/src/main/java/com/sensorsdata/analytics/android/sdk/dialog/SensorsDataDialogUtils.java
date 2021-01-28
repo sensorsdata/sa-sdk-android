@@ -23,7 +23,11 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.text.TextUtils;
 import android.widget.Toast;
 
@@ -41,6 +45,7 @@ import com.sensorsdata.analytics.android.sdk.util.OaidHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.visual.HeatMapService;
 import com.sensorsdata.analytics.android.sdk.visual.VisualizedAutoTrackService;
+import com.sensorsdata.analytics.android.sdk.visual.view.PairingCodeEditDialog;
 
 import org.json.JSONObject;
 
@@ -270,12 +275,34 @@ public class SensorsDataDialogUtils {
                 dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundColor(Color.WHITE);
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.RED);
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundColor(Color.WHITE);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackground(getDrawable());
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackground(getDrawable());
+                } else {
+                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundDrawable(getDrawable());
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundDrawable(getDrawable());
+                }
             } catch (Exception e) {
                 SALog.printStackTrace(e);
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
+    }
+
+    static StateListDrawable getDrawable() {
+        GradientDrawable pressDrawable = new GradientDrawable();
+        pressDrawable.setShape(GradientDrawable.RECTANGLE);
+        pressDrawable.setColor(Color.parseColor("#dddddd"));
+
+        GradientDrawable normalDrawable = new GradientDrawable();
+        normalDrawable.setShape(GradientDrawable.RECTANGLE);
+        normalDrawable.setColor(Color.WHITE);
+
+        StateListDrawable stateListDrawable = new StateListDrawable();
+        stateListDrawable.addState(new int[]{android.R.attr.state_focused}, pressDrawable);
+        stateListDrawable.addState(new int[]{}, normalDrawable);
+        return stateListDrawable;
     }
 
     public static void showOpenVisualizedAutoTrackDialog(final Activity context, final String featureCode, final String postUrl) {
@@ -330,6 +357,13 @@ public class SensorsDataDialogUtils {
                 dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundColor(Color.WHITE);
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.RED);
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundColor(Color.WHITE);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackground(getDrawable());
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackground(getDrawable());
+                } else {
+                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundDrawable(getDrawable());
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundDrawable(getDrawable());
+                }
             } catch (Exception e) {
                 SALog.printStackTrace(e);
             }
@@ -352,6 +386,25 @@ public class SensorsDataDialogUtils {
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
+    }
+
+    public static void showPairingCodeInputDialog(final Context context) {
+        if (context == null) {
+            SALog.i(TAG, "The argument context can't be null");
+            return;
+        }
+        if (!(context instanceof Activity)) {
+            SALog.i(TAG, "The static method showPairingCodeEditDialog(Context context) only accepts Activity as a parameter");
+            return;
+        }
+        Activity activity = (Activity) context;
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                final PairingCodeEditDialog dialog = new PairingCodeEditDialog(context);
+                dialog.show();
+            }
+        });
     }
 
     private static void requestActiveChannel(String baseUrl, String monitorId,

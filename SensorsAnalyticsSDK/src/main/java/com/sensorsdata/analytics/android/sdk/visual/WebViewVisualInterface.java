@@ -34,13 +34,13 @@ public class WebViewVisualInterface {
     }
 
     /**
-     * 提供给 JS 判断当前是否正在使用可视化埋点
+     * 提供给 JS 判断当前是否正在使用可视化埋点或者点击图
      *
      * @return true 表示正在进行可视化埋点
      */
     @JavascriptInterface
     public boolean sensorsdata_visualized_mode() {
-        return VisualizedAutoTrackService.getInstance().isVisualizedAutoTrackRunning();
+        return VisualizedAutoTrackService.getInstance().isServiceRunning() || HeatMapService.getInstance().isServiceRunning();
     }
 
 

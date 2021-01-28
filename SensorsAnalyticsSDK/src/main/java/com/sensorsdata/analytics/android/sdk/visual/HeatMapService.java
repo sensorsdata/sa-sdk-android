@@ -80,4 +80,11 @@ public class HeatMapService {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
     }
+
+    public boolean isServiceRunning() {
+        if (mVTrack != null) {
+            return mVTrack.isServiceRunning();
+        }
+        return false;
+    }
 }

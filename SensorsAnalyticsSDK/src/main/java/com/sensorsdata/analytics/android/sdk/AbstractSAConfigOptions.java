@@ -51,6 +51,11 @@ abstract class AbstractSAConfigOptions {
     public SSLSocketFactory mSSLSocketFactory;
 
     /**
+     * 禁用辅助工具
+     */
+    public boolean mDisableDebugAssistant;
+
+    /**
      * 数据上报服务器地址
      */
     String mServerUrl;

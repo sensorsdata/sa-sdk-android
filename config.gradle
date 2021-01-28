@@ -1,6 +1,6 @@
 /*
- * Created by renqingyou on 2019/04/13.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Created by zhangxiangwei on 2020/11/27.
+ * Copyright 2015－2020 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package com.sensorsdata.analytics.android.sdk.visual;
-
-import android.annotation.TargetApi;
-import android.app.Activity;
-
-
-@TargetApi(16)
-class VisualizedAutoTrackViewCrawler extends AbstractViewCrawler {
-
-    VisualizedAutoTrackViewCrawler(Activity activity, String resourcePackageName, String featureCode, String postUrl) {
-        super(activity, resourcePackageName, featureCode, postUrl, TYPE_VISUAL);
-    }
+ext {
+    scheme = project.hasProperty("scheme") ? scheme : "123"
+    serverUrl = project.hasProperty("server_url") ? server_url : "https://test"
 }

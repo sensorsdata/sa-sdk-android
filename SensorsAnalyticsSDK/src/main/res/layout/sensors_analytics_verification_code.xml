@@ -1,0 +1,37 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/sensors_analytics_verification_code_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:gravity="center_horizontal"
+        android:text="请输入神策分析页面上的配对码"
+        android:textColor="#000000"
+        android:textSize="18sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:layout_marginBottom="10dp"
+        android:background="#000000"
+        android:gravity="center_horizontal" />
+
+    <com.sensorsdata.analytics.android.sdk.visual.view.PairingCodeEditText
+        android:id="@+id/sensors_analytics_pairing_code"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:layout_marginBottom="20dp"
+        android:imeOptions="flagNoExtractUi"
+        android:inputType="number"
+        android:textColor="#00c48e"
+        android:textSize="40sp" />
+
+</LinearLayout>
+

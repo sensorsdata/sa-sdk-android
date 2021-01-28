@@ -188,6 +188,16 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
     }
 
     /**
+     * 禁用辅助工具
+     *
+     * @return SAOptionsConfig
+     */
+    public SAConfigOptions disableDebugAssistant() {
+        this.mDisableDebugAssistant = true;
+        return this;
+    }
+
+    /**
      * 设置点击图是否可用
      *
      * @param enableHeatMap 点击图是否可用
