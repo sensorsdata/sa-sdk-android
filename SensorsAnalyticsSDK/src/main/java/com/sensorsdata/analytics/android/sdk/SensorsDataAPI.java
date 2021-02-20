@@ -39,6 +39,7 @@ import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.OaidHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -1838,13 +1839,21 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public void enableDataCollect() {
-        if (!mSAConfigOptions.isDataCollectEnable) {
-            mContext.getContentResolver().notifyChange(DbParams.getInstance().getDataCollectUri(), null);
+        try {
+            if (!mSAConfigOptions.isDataCollectEnable) {
+                mContext.getContentResolver().notifyChange(DbParams.getInstance().getDataCollectUri(), null);
+            }
+            mSAConfigOptions.isDataCollectEnable = true;
+            mAndroidId = SensorsDataUtils.getAndroidID(mContext);
+            mDeviceInfo = setupDeviceInfo();
+            mTrackTaskManager.setDataCollectEnable(true);
+            // 同意合规时更新首日首次
+            if (mFirstDay.get() == null) {
+                mFirstDay.commit(TimeUtils.formatTime(System.currentTimeMillis(), TimeUtils.YYYY_MM_DD));
+            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
         }
-        mSAConfigOptions.isDataCollectEnable = true;
-        mAndroidId = SensorsDataUtils.getAndroidID(mContext);
-        mDeviceInfo = setupDeviceInfo();
-        mTrackTaskManager.setDataCollectEnable(true);
     }
 
     @Override

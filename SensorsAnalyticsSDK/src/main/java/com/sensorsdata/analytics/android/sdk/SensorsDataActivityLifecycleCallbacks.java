@@ -61,11 +61,10 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private final SensorsDataAPI mSensorsDataInstance;
     private final PersistentFirstStart mFirstStart;
     private final PersistentFirstDay mFirstDay;
-    private Context mContext;
     private boolean resumeFromBackground = false;
-    private DbAdapter mDbAdapter;
+    private final DbAdapter mDbAdapter;
     private JSONObject activityProperty = new JSONObject();
-    private JSONObject endDataProperty = new JSONObject();
+    private final JSONObject endDataProperty = new JSONObject();
     private JSONObject mDeepLinkProperty = new JSONObject();
     private int mStartActivityCount;
     private int mStartTimerCount;
@@ -103,11 +102,10 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         this.mSensorsDataInstance = instance;
         this.mFirstStart = firstStart;
         this.mFirstDay = firstDay;
-        this.mContext = context;
         this.mDbAdapter = DbAdapter.getInstance();
         try {
-            final PackageManager manager = mContext.getPackageManager();
-            final PackageInfo info = manager.getPackageInfo(mContext.getPackageName(), 0);
+            final PackageManager manager = context.getPackageManager();
+            final PackageInfo info = manager.getPackageInfo(context.getPackageName(), 0);
             app_version = info.versionName;
             lib_version = SensorsDataAPI.VERSION;
         } catch (final Exception e) {
@@ -406,15 +404,18 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
      */
     private void generateAppEndData(long messageTime, long endElapsedTime) {
         try {
-            long timer = messageTime == 0 ? System.currentTimeMillis() : messageTime;
-            endDataProperty.put(EVENT_TIMER, endElapsedTime == 0 ? SystemClock.elapsedRealtime() : endElapsedTime);
-            endDataProperty.put(TRACK_TIMER, timer);
-            endDataProperty.put(APP_VERSION, app_version);
-            endDataProperty.put(LIB_VERSION, lib_version);
-            // 合并 $utm 信息
-            ChannelUtils.mergeUtmToEndData(ChannelUtils.getLatestUtmProperties(), endDataProperty);
-            mDbAdapter.commitAppEndData(endDataProperty.toString());
-            mDbAdapter.commitAppEndTime(timer);
+            // 同意合规时进行打点记录
+            if (SensorsDataAPI.getConfigOptions().isDataCollectEnable) {
+                long timer = messageTime == 0 ? System.currentTimeMillis() : messageTime;
+                endDataProperty.put(EVENT_TIMER, endElapsedTime == 0 ? SystemClock.elapsedRealtime() : endElapsedTime);
+                endDataProperty.put(TRACK_TIMER, timer);
+                endDataProperty.put(APP_VERSION, app_version);
+                endDataProperty.put(LIB_VERSION, lib_version);
+                // 合并 $utm 信息
+                ChannelUtils.mergeUtmToEndData(ChannelUtils.getLatestUtmProperties(), endDataProperty);
+                mDbAdapter.commitAppEndData(endDataProperty.toString());
+                mDbAdapter.commitAppEndTime(timer);
+            }
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -498,10 +499,10 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     }
 
     /**
-     * 检查 DateFormat 是否为空，如果为空则进行初始化
+     * 检查更新首日逻辑
      */
     private void checkFirstDay() {
-        if (mFirstDay.get() == null) {
+        if (mFirstDay.get() == null && SensorsDataAPI.getConfigOptions().isDataCollectEnable) {
             mFirstDay.commit(TimeUtils.formatTime(System.currentTimeMillis(), TimeUtils.YYYY_MM_DD));
         }
     }

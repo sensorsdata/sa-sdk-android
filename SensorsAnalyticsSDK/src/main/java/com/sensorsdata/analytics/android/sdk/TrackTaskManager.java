@@ -62,7 +62,7 @@ public class TrackTaskManager {
      */
     void transformTaskQueue(Runnable runnable) {
         try {
-            if (mTrackEventTasks.size() <= 50) {// 最多只处理 50 条
+            if (mTrackEventTasks.size() < 50) {// 最多只处理 50 条
                 mTrackEventTasks.put(runnable);
             }
         } catch (InterruptedException e) {
