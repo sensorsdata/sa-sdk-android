@@ -1449,11 +1449,12 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Override
     public void track(final String eventName, final JSONObject properties) {
         try {
+            final JSONObject dynamicProperty = getDynamicProperty();
             mTrackTaskManager.addTrackEventTask(new Runnable() {
                 @Override
                 public void run() {
                     JSONObject _properties = ChannelUtils.checkOrSetChannelCallbackEvent(getConfigOptions().isAutoAddChannelCallbackEvent, eventName, properties, mContext);
-                    trackEvent(EventType.TRACK, eventName, _properties, null);
+                    trackEvent(EventType.TRACK, eventName, _properties, dynamicProperty, null);
                 }
             });
         } catch (Exception e) {
@@ -1858,7 +1859,12 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public void deleteAll() {
-        mMessages.deleteAll();
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                mMessages.deleteAll();
+            }
+        });
     }
 
     @Override

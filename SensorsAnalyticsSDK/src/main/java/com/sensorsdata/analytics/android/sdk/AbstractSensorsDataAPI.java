@@ -587,6 +587,11 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
 
     protected void trackEvent(final EventType eventType, String eventName, final JSONObject properties, final String
             originalDistinctId) {
+        trackEvent(eventType, eventName, properties, null, originalDistinctId);
+    }
+
+    protected void trackEvent(final EventType eventType, String eventName, final JSONObject properties, JSONObject dynamicProperty, final String
+            originalDistinctId) {
         try {
             EventTimer eventTimer = null;
             if (!TextUtils.isEmpty(eventName)) {
@@ -634,7 +639,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                         //合并 $latest_utm 属性
                         SensorsDataUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), sendProperties);
                     }
-                    mergerDynamicAndSuperProperties(sendProperties);
+                    mergerDynamicAndSuperProperties(sendProperties, dynamicProperty);
 
                     if (mSAConfigOptions.mEnableReferrerTitle && mReferrerScreenTitle != null) {
                         sendProperties.put("$referrer_title", mReferrerScreenTitle);
@@ -769,7 +774,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                 propertiesObject.put("$network_type", networkType);
 
                 // SuperProperties
-                mergerDynamicAndSuperProperties(propertiesObject);
+                mergerDynamicAndSuperProperties(propertiesObject, getDynamicProperty());
 
                 //是否首日访问
                 if (eventType.isTrack()) {
@@ -1101,24 +1106,36 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     }
 
     /**
-     * 合并、去重静态公共属性与动态公共属性
+     * 读取动态公共属性
      *
-     * @param propertiesObject 保存合并后属性的 JSON
+     * @return 动态公共属性
      */
-    private void mergerDynamicAndSuperProperties(JSONObject propertiesObject) {
-        JSONObject superProperties = getSuperProperties();
-        JSONObject dynamicSuperProperties = null;
+    protected JSONObject getDynamicProperty() {
+        JSONObject dynamicProperty = null;
         try {
             if (mDynamicSuperPropertiesCallBack != null) {
-                dynamicSuperProperties = mDynamicSuperPropertiesCallBack.getDynamicSuperProperties();
-                assertPropertyTypes(dynamicSuperProperties);
+                dynamicProperty = mDynamicSuperPropertiesCallBack.getDynamicSuperProperties();
+                assertPropertyTypes(dynamicProperty);
             }
         } catch (Exception e) {
-            dynamicSuperProperties = null;
             SALog.printStackTrace(e);
         }
-        JSONObject removeDuplicateSuperProperties = SensorsDataUtils.mergeSuperJSONObject(dynamicSuperProperties, superProperties);
-        SensorsDataUtils.mergeJSONObject(removeDuplicateSuperProperties, propertiesObject);
+        return dynamicProperty;
+    }
+
+    /**
+     * 合并、去重静态公共属性与动态公共属性
+     *
+     * @param eventProperty 保存合并后属性的 JSON
+     * @param dynamicProperty 动态公共属性
+     */
+    private void mergerDynamicAndSuperProperties(JSONObject eventProperty, JSONObject dynamicProperty) {
+        JSONObject superProperties = getSuperProperties();
+        if (dynamicProperty == null) {
+            dynamicProperty = getDynamicProperty();
+        }
+        JSONObject removeDuplicateSuperProperties = SensorsDataUtils.mergeSuperJSONObject(dynamicProperty, superProperties);
+        SensorsDataUtils.mergeJSONObject(removeDuplicateSuperProperties, eventProperty);
     }
 
     private void showDebugModeWarning() {
@@ -1180,7 +1197,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                         if (!(value instanceof CharSequence || value instanceof Number || value
                                 instanceof JSONArray || value instanceof Boolean || value instanceof Date)) {
                             SALog.d(TAG, String.format("The property value must be an instance of " +
-                                    "CharSequence/Number/Boolean/JSONArray/Date. [key='%s', value='%s', class='%s']",
+                                            "CharSequence/Number/Boolean/JSONArray/Date. [key='%s', value='%s', class='%s']",
                                     key,
                                     value == null ? "" : value.toString(),
                                     value == null ? "" : value.getClass().getCanonicalName()));

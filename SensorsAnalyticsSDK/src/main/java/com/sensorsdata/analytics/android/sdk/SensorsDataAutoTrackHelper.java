@@ -821,6 +821,8 @@ public class SensorsDataAutoTrackHelper {
             }
 
             JSONObject properties = new JSONObject();
+            //Type
+            properties.put(AopConstants.ELEMENT_TYPE, "TabLayout");
 
             //$screen_name & $title
             if (isFragment) {
@@ -953,14 +955,19 @@ public class SensorsDataAutoTrackHelper {
                                 properties.put(AopConstants.ELEMENT_ID, resourceId);
                             }
                         }
+
+                        if(view != null){
+                            //获取 View 自定义属性
+                            JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
+                            if (p != null) {
+                                AopUtil.mergeJSONObject(p, properties);
+                            }
+                        }
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
                     }
                 }
             }
-
-            //Type
-            properties.put(AopConstants.ELEMENT_TYPE, "TabLayout");
 
             SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties);
         } catch (Exception e) {
