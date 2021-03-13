@@ -56,6 +56,11 @@ abstract class AbstractSAConfigOptions {
     public boolean mDisableDebugAssistant;
 
     /**
+     * 是否开启推送点击采集
+     */
+    public boolean mEnableTrackPush;
+
+    /**
      * 数据上报服务器地址
      */
     String mServerUrl;

@@ -28,6 +28,7 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackHelper;
 import com.sensorsdata.analytics.android.sdk.ServerUrl;
+import com.sensorsdata.analytics.android.sdk.aop.push.PushAutoTrackHelper;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
 import com.sensorsdata.analytics.android.sdk.remote.SensorsDataRemoteManagerDebug;
@@ -42,6 +43,7 @@ public class SASchemeHelper {
             return;
         }
         try {
+            PushAutoTrackHelper.trackJPushOpenActivity(intent);
             Uri uri = null;
             if (activity != null && intent != null) {
                 uri = intent.getData();

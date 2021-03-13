@@ -420,4 +420,15 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
         this.mEnableReferrerTitle = enable;
         return this;
     }
+
+    /**
+     * 是否开启 push 点击的采集
+     *
+     * @param enableTrackPush 是否开启 push 点击的采集
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions enableTrackPush(boolean enableTrackPush) {
+        this.mEnableTrackPush = enableTrackPush;
+        return this;
+    }
 }
