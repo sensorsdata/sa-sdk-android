@@ -22,7 +22,7 @@ import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
 
 import javax.net.ssl.SSLSocketFactory;
 
-public final class SAConfigOptions extends AbstractSAConfigOptions {
+public final class SAConfigOptions extends AbstractSAConfigOptions implements Cloneable {
     /**
      * 是否设置点击图开关
      */
@@ -430,5 +430,16 @@ public final class SAConfigOptions extends AbstractSAConfigOptions {
     public SAConfigOptions enableTrackPush(boolean enableTrackPush) {
         this.mEnableTrackPush = enableTrackPush;
         return this;
+    }
+
+    @Override
+    protected SAConfigOptions clone()  {
+        SAConfigOptions copyObject = this;
+        try {
+            copyObject = (SAConfigOptions) super.clone();
+        } catch (CloneNotSupportedException e) {
+            SALog.printStackTrace(e);
+        }
+        return copyObject;
     }
 }

@@ -48,7 +48,14 @@ public class VisualUtil {
         if (view instanceof Spinner) {
             return View.GONE;
         }
-        return ViewUtil.isViewSelfVisible(view) ? View.VISIBLE : View.GONE;
+        if (!ViewUtil.isViewSelfVisible(view)) {
+            return View.GONE;
+        }
+        if (!view.isShown()) {
+            return View.GONE;
+        }
+        return View.VISIBLE;
+
     }
 
     @SuppressLint("NewApi")
@@ -125,8 +132,11 @@ public class VisualUtil {
             return null;
         }
         JSONObject object = null;
-        Activity activity = AppStateManager.getInstance().getForegroundActivity();
-        if (activity != null) {
+        Activity activity = AopUtil.getActivityFromContext(view.getContext(), view);
+        if (activity == null) {
+            activity = AppStateManager.getInstance().getForegroundActivity();
+        }
+        if (activity != null && activity.hasWindowFocus()) {
             object = new JSONObject();
             Object fragment = AopUtil.getFragmentFromView(view, activity);
             if (fragment != null) {

@@ -1232,7 +1232,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     }
 
     private void trackEventInternal(final EventType eventType, final String eventName, final JSONObject properties, final JSONObject sendProperties,
-                                    final String originalDistinctId, final String distinctId, final String loginId, final EventTimer eventTimer) throws JSONException {
+                                    final String originalDistinctId, String distinctId, String loginId, final EventTimer eventTimer) throws JSONException {
         String libDetail = null;
         String lib_version = VERSION;
         String app_version = mDeviceInfo.containsKey("$app_version") ? (String) mDeviceInfo.get("$app_version") : "";
@@ -1333,7 +1333,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
 
         dataObj.put("time", eventTime);
         dataObj.put("type", eventType.getEventType());
-
+        String anonymousId = getAnonymousId();
         try {
             if (sendProperties.has("$project")) {
                 dataObj.put("project", sendProperties.optString("$project"));
@@ -1358,8 +1358,26 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                 }
                 sendProperties.remove("$time");
             }
+
+            //针对 SF 弹窗展示事件特殊处理
+            if ("$PlanPopupDisplay".equals(eventName)) {
+                if (sendProperties.has("$sf_internal_anonymous_id")) {
+                    anonymousId = sendProperties.optString("$sf_internal_anonymous_id");
+                    sendProperties.remove("$sf_internal_anonymous_id");
+                }
+
+                if (sendProperties.has("$sf_internal_login_id")) {
+                    loginId = sendProperties.optString("$sf_internal_login_id");
+                    sendProperties.remove("$sf_internal_login_id");
+                }
+                if (!TextUtils.isEmpty(loginId)) {
+                    distinctId = loginId;
+                } else {
+                    distinctId = anonymousId;
+                }
+            }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
 
         if (TextUtils.isEmpty(distinctId)) {// 如果为空，则说明没有 loginId，所以重新设置当时状态的匿名 Id
@@ -1371,7 +1389,8 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         if (!TextUtils.isEmpty(loginId)) {
             dataObj.put("login_id", loginId);
         }
-        dataObj.put("anonymous_id", getAnonymousId());
+        dataObj.put("anonymous_id", anonymousId);
+
         dataObj.put("lib", libProperties);
 
         if (eventType == EventType.TRACK) {

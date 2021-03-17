@@ -87,7 +87,9 @@ public class AopUtil {
             final int childCount = root.getChildCount();
             for (int i = 0; i < childCount; ++i) {
                 final View child = root.getChildAt(i);
-
+                if (child == null) {
+                    continue;
+                }
                 if (child.getVisibility() != View.VISIBLE) {
                     continue;
                 }

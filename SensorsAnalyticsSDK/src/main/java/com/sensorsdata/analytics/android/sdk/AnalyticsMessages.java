@@ -314,7 +314,10 @@ class AnalyticsMessages {
                 connection.addRequestProperty("Dry-Run", "true");
             }
 
-            connection.setRequestProperty("Cookie", mSensorsDataAPI.getCookie(false));
+            String cookie = mSensorsDataAPI.getCookie(false);
+            if (!TextUtils.isEmpty(cookie)) {
+                connection.setRequestProperty("Cookie", cookie);
+            }
 
             Uri.Builder builder = new Uri.Builder();
             //先校验crc

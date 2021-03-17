@@ -148,8 +148,8 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
      */
     @Deprecated
     public static SensorsDataAPI sharedInstance(Context context, SAConfigOptions saConfigOptions) {
-        mSAConfigOptions = saConfigOptions;
-        SensorsDataAPI sensorsDataAPI = getInstance(context, saConfigOptions.mServerUrl, DebugMode.DEBUG_OFF);
+        mSAConfigOptions = saConfigOptions.clone();
+        SensorsDataAPI sensorsDataAPI = getInstance(context, mSAConfigOptions.mServerUrl, DebugMode.DEBUG_OFF);
         if (!sensorsDataAPI.mSDKConfigInit) {
             sensorsDataAPI.applySAConfigOptions();
         }
@@ -166,8 +166,8 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         if (context == null || saConfigOptions == null) {
             throw new NullPointerException("Context、SAConfigOptions 不可以为 null");
         }
-        mSAConfigOptions = saConfigOptions;
-        SensorsDataAPI sensorsDataAPI = getInstance(context, saConfigOptions.mServerUrl, DebugMode.DEBUG_OFF);
+        mSAConfigOptions = saConfigOptions.clone();
+        SensorsDataAPI sensorsDataAPI = getInstance(context, mSAConfigOptions.mServerUrl, DebugMode.DEBUG_OFF);
         if (!sensorsDataAPI.mSDKConfigInit) {
             sensorsDataAPI.applySAConfigOptions();
         }
@@ -1089,23 +1089,32 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public void resetAnonymousId() {
-        synchronized (mDistinctId) {
-            if (SensorsDataUtils.isValidAndroidId(mAndroidId)) {
-                mDistinctId.commit(mAndroidId);
-            } else {
-                mDistinctId.commit(UUID.randomUUID().toString());
-            }
+        try {
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
+                    synchronized (mDistinctId) {
+                        if (SensorsDataUtils.isValidAndroidId(mAndroidId)) {
+                            mDistinctId.commit(mAndroidId);
+                        } else {
+                            mDistinctId.commit(UUID.randomUUID().toString());
+                        }
 
-            // 通知调用 resetAnonymousId 接口
-            try {
-                if (mEventListenerList != null) {
-                    for (SAEventListener eventListener : mEventListenerList) {
-                        eventListener.resetAnonymousId();
+                        // 通知调用 resetAnonymousId 接口
+                        try {
+                            if (mEventListenerList != null) {
+                                for (SAEventListener eventListener : mEventListenerList) {
+                                    eventListener.resetAnonymousId();
+                                }
+                            }
+                        } catch (Exception e) {
+                            SALog.printStackTrace(e);
+                        }
                     }
                 }
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
-            }
+            });
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
     }
 

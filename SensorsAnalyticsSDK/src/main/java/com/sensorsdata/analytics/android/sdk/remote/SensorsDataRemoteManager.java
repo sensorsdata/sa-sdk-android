@@ -31,7 +31,7 @@ import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONObject;
 
-import java.util.Random;
+import java.security.SecureRandom;
 
 /**
  * SDK 初始化及线上使用时，采集控制管理类
@@ -91,7 +91,7 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
         long currentTime = SystemClock.elapsedRealtime();
         //最大时间间隔大于最小时间间隔时，生成随机时间
         if (mSAConfigOptions.mMaxRequestInterval > mSAConfigOptions.mMinRequestInterval) {
-            randomTime += new Random().nextInt(mSAConfigOptions.mMaxRequestInterval - mSAConfigOptions.mMinRequestInterval + 1);
+            randomTime += new SecureRandom().nextInt(mSAConfigOptions.mMaxRequestInterval - mSAConfigOptions.mMinRequestInterval + 1);
         }
         mSharedPreferences.edit()
                 .putLong(SHARED_PREF_REQUEST_TIME, currentTime)

@@ -34,11 +34,11 @@ import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
+import java.security.SecureRandom;
 import java.security.Security;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.KeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Random;
 import java.util.zip.GZIPOutputStream;
 
 import javax.crypto.Cipher;
@@ -192,7 +192,7 @@ public class SensorsDataEncrypt {
      */
     private String aesEncrypt(byte[] key, String content) {
         try {
-            Random random = new Random();
+            SecureRandom random = new SecureRandom();
             // 随机生成初始化向量
             byte[] ivBytes = new byte[16];
             random.nextBytes(ivBytes);

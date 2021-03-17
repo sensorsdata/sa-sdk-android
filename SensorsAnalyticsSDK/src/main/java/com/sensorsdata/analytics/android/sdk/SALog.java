@@ -123,7 +123,7 @@ public class SALog {
      */
     public static void printStackTrace(Exception e) {
         if (enableLog && e != null) {
-            e.printStackTrace();
+            Log.e("SA.Exception", "", e);
         }
     }
 
