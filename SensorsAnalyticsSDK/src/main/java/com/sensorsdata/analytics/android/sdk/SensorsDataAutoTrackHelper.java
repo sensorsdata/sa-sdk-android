@@ -672,60 +672,70 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    public static void trackTabHost(String tabName) {
+    public static void trackTabHost(final String tabName) {
         try {
-            //关闭 AutoTrack
-            if (!SensorsDataAPI.sharedInstance().isAutoTrackEnabled()) {
-                return;
-            }
-
-            //$AppClick 被过滤
-            if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_CLICK)) {
-                return;
-            }
-
-            //TabHost 被忽略
-            if (AopUtil.isViewIgnored(TabHost.class)) {
-                return;
-            }
-
-            JSONObject properties = new JSONObject();
-            String elementContent = null;
-            // 2020/4/27 新增  1. 解决 TabHost 点击取不到 element_content 2. 可视化增加 $element_path
-            View view = WindowHelper.getClickView(tabName);
-            if (view != null) {
-                Context context = view.getContext();
-                if (context == null) {
-                    return;
-                }
-                Activity activity = null;
-                if (context instanceof Activity) {
-                    activity = (Activity) context;
-                }
-                if (activity != null) {
-                    if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(activity.getClass())) {
-                        return;
-                    }
-                    SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
-
-                    Object fragment = AopUtil.getFragmentFromView(view, activity);
-                    if (fragment != null) {
-                        if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(fragment.getClass())) {
+            ThreadUtils.getSinglePool().execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        //关闭 AutoTrack
+                        if (!SensorsDataAPI.sharedInstance().isAutoTrackEnabled()) {
                             return;
                         }
-                        AopUtil.getScreenNameAndTitleFromFragment(properties, fragment, activity);
-                    }
 
-                    AopUtil.addViewPathProperties(activity, view, properties);
+                        //$AppClick 被过滤
+                        if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_CLICK)) {
+                            return;
+                        }
+
+                        //TabHost 被忽略
+                        if (AopUtil.isViewIgnored(TabHost.class)) {
+                            return;
+                        }
+
+                        JSONObject properties = new JSONObject();
+                        String elementContent = null;
+                        // 2020/4/27 新增  1. 解决 TabHost 点击取不到 element_content 2. 可视化增加 $element_path
+                        View view = WindowHelper.getClickView(tabName);
+                        if (view != null) {
+                            Context context = view.getContext();
+                            if (context == null) {
+                                return;
+                            }
+                            Activity activity = null;
+                            if (context instanceof Activity) {
+                                activity = (Activity) context;
+                            }
+                            if (activity != null) {
+                                if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(activity.getClass())) {
+                                    return;
+                                }
+                                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
+
+                                Object fragment = AopUtil.getFragmentFromView(view, activity);
+                                if (fragment != null) {
+                                    if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(fragment.getClass())) {
+                                        return;
+                                    }
+                                    AopUtil.getScreenNameAndTitleFromFragment(properties, fragment, activity);
+                                }
+
+                                AopUtil.addViewPathProperties(activity, view, properties);
+                            }
+                            elementContent = ViewUtil.getViewContentAndType(view).getViewContent();
+                        }
+                        if (TextUtils.isEmpty(elementContent)) {
+                            elementContent = tabName;
+                        }
+                        properties.put(AopConstants.ELEMENT_CONTENT, elementContent);
+                        properties.put(AopConstants.ELEMENT_TYPE, "TabHost");
+
+                        SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties);
+                    } catch (Exception e) {
+                        SALog.printStackTrace(e);
+                    }
                 }
-                elementContent = ViewUtil.getViewContentAndType(view).getViewContent();
-            }
-            if (TextUtils.isEmpty(elementContent)) {
-                elementContent = tabName;
-            }
-            properties.put(AopConstants.ELEMENT_CONTENT, elementContent);
-            properties.put(AopConstants.ELEMENT_TYPE, "TabHost");
-            SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            });
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -956,7 +966,7 @@ public class SensorsDataAutoTrackHelper {
                             }
                         }
 
-                        if(view != null){
+                        if (view != null) {
                             //获取 View 自定义属性
                             JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
                             if (p != null) {

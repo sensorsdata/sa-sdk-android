@@ -1850,17 +1850,22 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Override
     public void enableDataCollect() {
         try {
-            if (!mSAConfigOptions.isDataCollectEnable) {
-                mContext.getContentResolver().notifyChange(DbParams.getInstance().getDataCollectUri(), null);
-            }
-            mSAConfigOptions.isDataCollectEnable = true;
-            mAndroidId = SensorsDataUtils.getAndroidID(mContext);
-            mDeviceInfo = setupDeviceInfo();
-            mTrackTaskManager.setDataCollectEnable(true);
-            // 同意合规时更新首日首次
-            if (mFirstDay.get() == null) {
-                mFirstDay.commit(TimeUtils.formatTime(System.currentTimeMillis(), TimeUtils.YYYY_MM_DD));
-            }
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
+                    if (!mSAConfigOptions.isDataCollectEnable) {
+                        mContext.getContentResolver().notifyChange(DbParams.getInstance().getDataCollectUri(), null);
+                    }
+                    mSAConfigOptions.isDataCollectEnable = true;
+                    mAndroidId = SensorsDataUtils.getAndroidID(mContext);
+                    mDeviceInfo = setupDeviceInfo();
+                    mTrackTaskManager.setDataCollectEnable(true);
+                    // 同意合规时更新首日首次
+                    if (mFirstDay.get() == null) {
+                        mFirstDay.commit(TimeUtils.formatTime(System.currentTimeMillis(), TimeUtils.YYYY_MM_DD));
+                    }
+                }
+            });
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
         }

@@ -625,16 +625,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                     }
 
                     //之前可能会因为没有权限无法获取运营商信息，检测再次获取
-                    try {
-                        if (TextUtils.isEmpty(sendProperties.optString("$carrier")) && mSAConfigOptions.isDataCollectEnable) {
-                            String carrier = SensorsDataUtils.getCarrier(mContext);
-                            if (!TextUtils.isEmpty(carrier)) {
-                                sendProperties.put("$carrier", carrier);
-                            }
-                        }
-                    } catch (Exception e) {
-                        SALog.printStackTrace(e);
-                    }
+                    getCarrier(sendProperties);
                     if (!"$AppEnd".equals(eventName)) {
                         //合并 $latest_utm 属性
                         SensorsDataUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), sendProperties);
@@ -767,7 +758,8 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                         }
                     }
                 }
-
+                //之前可能会因为没有权限无法获取运营商信息，检测再次获取
+                getCarrier(propertiesObject);
                 // 当前网络状况
                 String networkType = NetworkUtils.networkType(mContext);
                 propertiesObject.put("$wifi", "WIFI".equals(networkType));
@@ -1573,5 +1565,23 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         ContentResolver contentResolver = mContext.getContentResolver();
         contentResolver.registerContentObserver(DbParams.getInstance().getDataCollectUri(), false, contentObserver);
         contentResolver.registerContentObserver(DbParams.getInstance().getSessionTimeUri(), false, contentObserver);
+    }
+
+    /**
+     * 重新读取运营商信息
+     *
+     * @param property Property
+     */
+    private void getCarrier(JSONObject property) {
+        try {
+            if (TextUtils.isEmpty(property.optString("$carrier")) && mSAConfigOptions.isDataCollectEnable) {
+                String carrier = SensorsDataUtils.getCarrier(mContext);
+                if (!TextUtils.isEmpty(carrier)) {
+                    property.put("$carrier", carrier);
+                }
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 }
