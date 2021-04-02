@@ -136,7 +136,7 @@ public class VisualUtil {
         if (activity == null) {
             activity = AppStateManager.getInstance().getForegroundActivity();
         }
-        if (activity != null && activity.hasWindowFocus()) {
+        if (activity != null && activity.getWindow() != null && activity.getWindow().isActive()) {
             object = new JSONObject();
             Object fragment = AopUtil.getFragmentFromView(view, activity);
             if (fragment != null) {
