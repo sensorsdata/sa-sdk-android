@@ -159,7 +159,7 @@ public class PushAutoTrackHelper {
      */
     private static boolean isRepeatEvent() {
         long currentTime = SystemClock.elapsedRealtime();
-        SALog.i(TAG,"currentTime: " + currentTime + ",lastPushClickTime: " + lastPushClickTime);
+        SALog.i(TAG, "currentTime: " + currentTime + ",lastPushClickTime: " + lastPushClickTime);
         if (currentTime - lastPushClickTime > 2000) {
             lastPushClickTime = currentTime;
             return false;

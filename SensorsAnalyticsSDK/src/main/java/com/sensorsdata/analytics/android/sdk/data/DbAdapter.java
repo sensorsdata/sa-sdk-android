@@ -196,9 +196,13 @@ public class DbAdapter {
      * @return Activity End 的信息
      */
     public String getAppEndData() {
-        String[] values = mPersistentOperation.queryData(mDbParams.getAppEndDataUri(), 1);
-        if (values != null && values.length > 0) {
-            return values[0];
+        try {
+            String[] values = mPersistentOperation.queryData(mDbParams.getAppEndDataUri(), 1);
+            if (values != null && values.length > 0) {
+                return values[0];
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
         return "";
     }
@@ -222,9 +226,13 @@ public class DbAdapter {
      * @return LoginId
      */
     public String getLoginId() {
-        String[] values = mPersistentOperation.queryData(mDbParams.getLoginIdUri(), 1);
-        if (values != null && values.length > 0) {
-            return values[0];
+        try {
+            String[] values = mPersistentOperation.queryData(mDbParams.getLoginIdUri(), 1);
+            if (values != null && values.length > 0) {
+                return values[0];
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
         return "";
     }
@@ -266,7 +274,12 @@ public class DbAdapter {
      * @return false 表示已存在，true 表示不存在，是首次
      */
     public boolean isFirstChannelEvent(String eventName) {
-        return mTrackEventOperation.queryDataCount(mDbParams.getChannelPersistentUri(), null, DbParams.KEY_CHANNEL_EVENT_NAME + " = ? ", new String[]{eventName}, null) <= 0;
+        try {
+            return mTrackEventOperation.queryDataCount(mDbParams.getChannelPersistentUri(), null, DbParams.KEY_CHANNEL_EVENT_NAME + " = ? ", new String[]{eventName}, null) <= 0;
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return false;
     }
 
     /**
@@ -275,10 +288,14 @@ public class DbAdapter {
      * @param eventName 事件名
      */
     public void addChannelEvent(String eventName) {
-        ContentValues values = new ContentValues();
-        values.put(DbParams.KEY_CHANNEL_EVENT_NAME, eventName);
-        values.put(DbParams.KEY_CHANNEL_RESULT, true);
-        mTrackEventOperation.insertData(mDbParams.getChannelPersistentUri(), values);
+        try {
+            ContentValues values = new ContentValues();
+            values.put(DbParams.KEY_CHANNEL_EVENT_NAME, eventName);
+            values.put(DbParams.KEY_CHANNEL_RESULT, true);
+            mTrackEventOperation.insertData(mDbParams.getChannelPersistentUri(), values);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     /**
@@ -349,6 +366,11 @@ public class DbAdapter {
      * @return 数据
      */
     public String[] generateDataString(String tableName, int limit) {
-        return mTrackEventOperation.queryData(mDbParams.getEventUri(), limit);
+        try {
+            return mTrackEventOperation.queryData(mDbParams.getEventUri(), limit);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return null;
     }
 }

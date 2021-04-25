@@ -31,6 +31,7 @@ import android.content.res.AssetManager;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
+import android.os.SystemClock;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -745,10 +746,9 @@ public final class SensorsDataUtils {
             return false;
         }
         try {
-            long currentOnClickTimestamp = System.currentTimeMillis();
+            long currentOnClickTimestamp = SystemClock.elapsedRealtime();
             String tag = (String) view.getTag(R.id.sensors_analytics_tag_view_onclick_timestamp);
             if (!TextUtils.isEmpty(tag)) {
-
                 long lastOnClickTimestamp = Long.parseLong(tag);
                 if ((currentOnClickTimestamp - lastOnClickTimestamp) < 500) {
                     return true;

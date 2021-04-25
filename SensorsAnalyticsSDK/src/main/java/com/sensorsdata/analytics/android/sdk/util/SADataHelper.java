@@ -28,6 +28,7 @@ import org.json.JSONObject;
 
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.regex.Pattern;
 
 public class SADataHelper {
@@ -57,13 +58,38 @@ public class SADataHelper {
                     continue;
                 }
 
-                if (!(value instanceof CharSequence || value instanceof Number || value
-                        instanceof JSONArray || value instanceof Boolean || value instanceof Date)) {
+                if (value instanceof List<?>) {
+                    List<?> list = (List<?>) value;
+                    int size = list.size();
+                    JSONArray array = new JSONArray();
+                    for (int i = 0; i < size; i++) {
+                        array.put(list.get(i));
+                    }
+                    value = array;
+                    properties.put(key, value);
+                }
+
+                if (!(value instanceof CharSequence || value instanceof Number || value instanceof JSONArray ||
+                        value instanceof Boolean || value instanceof Date)) {
                     throw new InvalidDataException("The property value must be an instance of "
-                            + "CharSequence/Number/Boolean/JSONArray/Date. [key='" + key
+                            + "CharSequence/Number/Boolean/JSONArray/Date/List<String>. [key='" + key
                             + "', value='" + value.toString()
-                            + "', class='" +  value.getClass().getCanonicalName()
+                            + "', class='" + value.getClass().getCanonicalName()
                             + "']");
+                }
+
+                if (value instanceof JSONArray) {
+                    JSONArray array = (JSONArray) value;
+                    int size = array.length();
+                    for (int i = 0; i < size; i++) {
+                        if (!(array.get(i) instanceof CharSequence)) {
+                            throw new InvalidDataException("The array property value must be an instance of "
+                                    + "List<String> or JSONArray only contains String. [key='" + key
+                                    + "', value='" + value.toString()
+                                    + "']");
+                        }
+                    }
+                    continue;
                 }
 
                 if ("app_crashed_reason".equals(key)) {

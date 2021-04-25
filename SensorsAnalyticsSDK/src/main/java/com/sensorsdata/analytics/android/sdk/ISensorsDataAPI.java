@@ -792,8 +792,6 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      */
     void clearLastScreenUrl();
 
-    String getMainProcessName();
-
     /**
      * 获取 LastScreenTrackProperties
      *

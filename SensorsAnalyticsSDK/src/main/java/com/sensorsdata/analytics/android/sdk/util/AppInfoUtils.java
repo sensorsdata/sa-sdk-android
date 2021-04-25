@@ -22,6 +22,7 @@ import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.os.Bundle;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
@@ -104,13 +105,19 @@ public class AppInfoUtils {
      * 判断当前进程名称是否为主进程
      *
      * @param context Context
-     * @param mainProcessName 进程名
+     * @param bundle Bundle
      * @return 是否主进程
      */
-    public static boolean isMainProcess(Context context, String mainProcessName) {
+    public static boolean isMainProcess(Context context, Bundle bundle) {
         if (context == null) {
             return false;
         }
+
+        String mainProcessName = AppInfoUtils.getMainProcessName(context);
+        if (TextUtils.isEmpty(mainProcessName) && bundle != null) {
+            mainProcessName = bundle.getString("com.sensorsdata.analytics.android.MainProcessName");
+        }
+
         if (TextUtils.isEmpty(mainProcessName)) {
             return true;
         }

@@ -386,11 +386,10 @@ public abstract class AbstractViewCrawler implements VTrack {
             if (TextUtils.isEmpty(mFeatureCode) || TextUtils.isEmpty(mPostUrl)) {
                 return;
             }
-
+            InputStream in = null;
+            OutputStream out2 = null;
+            BufferedOutputStream bout = null;
             try {
-                InputStream in;
-                OutputStream out2;
-                BufferedOutputStream bout;
                 HttpURLConnection connection;
                 final URL url = new URL(mPostUrl);
                 connection = (HttpURLConnection) url.openConnection();
@@ -407,8 +406,6 @@ public abstract class AbstractViewCrawler implements VTrack {
                 bout = new BufferedOutputStream(out2);
                 bout.write(out.toString().getBytes(CHARSET_UTF8));
                 bout.flush();
-                bout.close();
-                out.close();
 
                 int responseCode = connection.getResponseCode();
                 try {
@@ -417,8 +414,6 @@ public abstract class AbstractViewCrawler implements VTrack {
                     in = connection.getErrorStream();
                 }
                 byte[] responseBody = slurp(in);
-                in.close();
-                out2.close();
 
                 String response = new String(responseBody, CHARSET_UTF8);
                 SALog.i(TAG, "responseCode=" + responseCode);
@@ -432,6 +427,35 @@ public abstract class AbstractViewCrawler implements VTrack {
                 }
             } catch (Exception e) {
                 SALog.printStackTrace(e);
+            } finally {
+                try {
+                    if (bout != null) {
+                        bout.close();
+                    }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
+                try {
+                    if (in != null) {
+                        in.close();
+                    }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
+                try{
+                    if (out2 != null) {
+                        out2.close();
+                    }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
+                try{
+                    if (out != null) {
+                        out.close();
+                    }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
             }
 
             if (rePostSnapshot) {

@@ -69,63 +69,40 @@ public class SensorsDataContentProvider extends ContentProvider {
 
     @Override
     public boolean onCreate() {
-        Context context = getContext();
-        if (context != null) {
-            //这里是为了使用 ProviderTestRule
-            String packageName;
-            try {
-                packageName = context.getApplicationContext().getPackageName();
-            } catch (UnsupportedOperationException e) {
-                packageName = "com.sensorsdata.analytics.android.sdk.test";
-            }
-            String authority = packageName + ".SensorsDataContentProvider";
-            contentResolver = context.getContentResolver();
-            uriMatcher.addURI(authority, DbParams.TABLE_EVENTS, EVENTS);
-            uriMatcher.addURI(authority, DbParams.TABLE_ACTIVITY_START_COUNT, ACTIVITY_START_COUNT);
-            uriMatcher.addURI(authority, DbParams.TABLE_APP_START_TIME, APP_START_TIME);
-            uriMatcher.addURI(authority, DbParams.TABLE_APP_END_DATA, APP_END_DATA);
-            uriMatcher.addURI(authority, DbParams.TABLE_APP_END_TIME, APP_PAUSED_TIME);
-            uriMatcher.addURI(authority, DbParams.TABLE_SESSION_INTERVAL_TIME, SESSION_INTERVAL_TIME);
-            uriMatcher.addURI(authority, DbParams.TABLE_LOGIN_ID, LOGIN_ID);
-            uriMatcher.addURI(authority, DbParams.TABLE_CHANNEL_PERSISTENT, CHANNEL_PERSISTENT);
-            uriMatcher.addURI(authority, DbParams.TABLE_SUB_PROCESS_FLUSH_DATA, FLUSH_DATA);
-            uriMatcher.addURI(authority, DbParams.TABLE_FIRST_PROCESS_START, FIRST_PROCESS_START);
-            dbHelper = new SensorsDataDBHelper(context);
-
-            /* 迁移数据，并删除老的数据库 */
-            try {
-                File oldDatabase = context.getDatabasePath(packageName);
-                if (oldDatabase.exists()) {
-                    OldBDatabaseHelper oldBDatabaseHelper = new OldBDatabaseHelper(context, packageName);
-
-                    JSONArray oldEvents = oldBDatabaseHelper.getAllEvents();
-                    for (int i = 0; i < oldEvents.length(); i++) {
-                        JSONObject jsonObject = oldEvents.getJSONObject(i);
-                        final ContentValues cv = new ContentValues();
-                        cv.put(DbParams.KEY_DATA, jsonObject.getString(DbParams.KEY_DATA));
-                        cv.put(DbParams.KEY_CREATED_AT, jsonObject.getString(DbParams.KEY_CREATED_AT));
-
-                        try {
-                            SQLiteDatabase database = dbHelper.getWritableDatabase();
-                            database.insert(DbParams.TABLE_EVENTS, "_id", cv);
-                        } catch (SQLiteException e) {
-                            isDbWritable = false;
-                            SALog.printStackTrace(e);
-                        }
-                    }
+        try {
+            Context context = getContext();
+            if (context != null) {
+                //这里是为了使用 ProviderTestRule
+                String packageName;
+                try {
+                    packageName = context.getApplicationContext().getPackageName();
+                } catch (UnsupportedOperationException e) {
+                    packageName = "com.sensorsdata.analytics.android.sdk.test";
                 }
-                if (isDbWritable) {
-                    context.deleteDatabase(packageName);
-                }
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
+                String authority = packageName + ".SensorsDataContentProvider";
+                contentResolver = context.getContentResolver();
+                uriMatcher.addURI(authority, DbParams.TABLE_EVENTS, EVENTS);
+                uriMatcher.addURI(authority, DbParams.TABLE_ACTIVITY_START_COUNT, ACTIVITY_START_COUNT);
+                uriMatcher.addURI(authority, DbParams.TABLE_APP_START_TIME, APP_START_TIME);
+                uriMatcher.addURI(authority, DbParams.TABLE_APP_END_DATA, APP_END_DATA);
+                uriMatcher.addURI(authority, DbParams.TABLE_APP_END_TIME, APP_PAUSED_TIME);
+                uriMatcher.addURI(authority, DbParams.TABLE_SESSION_INTERVAL_TIME, SESSION_INTERVAL_TIME);
+                uriMatcher.addURI(authority, DbParams.TABLE_LOGIN_ID, LOGIN_ID);
+                uriMatcher.addURI(authority, DbParams.TABLE_CHANNEL_PERSISTENT, CHANNEL_PERSISTENT);
+                uriMatcher.addURI(authority, DbParams.TABLE_SUB_PROCESS_FLUSH_DATA, FLUSH_DATA);
+                uriMatcher.addURI(authority, DbParams.TABLE_FIRST_PROCESS_START, FIRST_PROCESS_START);
+                dbHelper = new SensorsDataDBHelper(context);
+                migratingDB(context, packageName);
+
+                PersistentLoader.initLoader(context);
+                persistentAppEndData = (PersistentAppEndData) PersistentLoader.loadPersistent(DbParams.TABLE_APP_END_DATA);
+                persistentAppStartTime = (PersistentAppStartTime) PersistentLoader.loadPersistent(DbParams.TABLE_APP_START_TIME);
+                persistentAppPaused = (PersistentAppPaused) PersistentLoader.loadPersistent(DbParams.TABLE_APP_END_TIME);
+                persistentLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(DbParams.TABLE_LOGIN_ID);
+                persistentFlushDataState = (PersistentFlushDataState) PersistentLoader.loadPersistent(DbParams.TABLE_SUB_PROCESS_FLUSH_DATA);
             }
-            PersistentLoader.initLoader(context);
-            persistentAppEndData = (PersistentAppEndData) PersistentLoader.loadPersistent(DbParams.TABLE_APP_END_DATA);
-            persistentAppStartTime = (PersistentAppStartTime) PersistentLoader.loadPersistent(DbParams.TABLE_APP_START_TIME);
-            persistentAppPaused = (PersistentAppPaused) PersistentLoader.loadPersistent(DbParams.TABLE_APP_END_TIME);
-            persistentLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(DbParams.TABLE_LOGIN_ID);
-            persistentFlushDataState = (PersistentFlushDataState) PersistentLoader.loadPersistent(DbParams.TABLE_SUB_PROCESS_FLUSH_DATA);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
         return true;
     }
@@ -375,5 +352,41 @@ public class SensorsDataContentProvider extends ContentProvider {
         MatrixCursor matrixCursor = new MatrixCursor(new String[]{column});
         matrixCursor.addRow(new Object[]{data});
         return matrixCursor;
+    }
+
+    private void migratingDB(final Context context, final String packageName) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                /* 迁移数据，并删除老的数据库 */
+                try {
+                    File oldDatabase = context.getDatabasePath(packageName);
+                    if (oldDatabase.exists()) {
+                        OldBDatabaseHelper oldBDatabaseHelper = new OldBDatabaseHelper(context, packageName);
+
+                        JSONArray oldEvents = oldBDatabaseHelper.getAllEvents();
+                        for (int i = 0; i < oldEvents.length(); i++) {
+                            JSONObject jsonObject = oldEvents.getJSONObject(i);
+                            final ContentValues cv = new ContentValues();
+                            cv.put(DbParams.KEY_DATA, jsonObject.getString(DbParams.KEY_DATA));
+                            cv.put(DbParams.KEY_CREATED_AT, jsonObject.getString(DbParams.KEY_CREATED_AT));
+
+                            try {
+                                SQLiteDatabase database = dbHelper.getWritableDatabase();
+                                database.insert(DbParams.TABLE_EVENTS, "_id", cv);
+                            } catch (SQLiteException e) {
+                                isDbWritable = false;
+                                SALog.printStackTrace(e);
+                            }
+                        }
+                    }
+                    if (isDbWritable) {
+                        context.deleteDatabase(packageName);
+                    }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
+            }
+        }).start();
     }
 }

@@ -134,8 +134,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     protected List<Integer> mAutoTrackIgnoredActivities;
     protected List<Integer> mHeatMapActivities;
     protected List<Integer> mVisualizedAutoTrackActivities;
-    /* 主进程名称 */
-    protected String mMainProcessName;
     protected String mCookie;
     protected TrackTaskManager mTrackTaskManager;
     protected TrackTaskManagerThread mTrackTaskManagerThread;
@@ -154,7 +152,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
      */
     private boolean isTrackEventWithPluginVersion = false;
 
-    public AbstractSensorsDataAPI(Context context, String serverURL, SensorsDataAPI.DebugMode debugMode) {
+    public AbstractSensorsDataAPI(Context context, SAConfigOptions configOptions, SensorsDataAPI.DebugMode debugMode) {
         mContext = context;
         setDebugMode(debugMode);
         final String packageName = context.getApplicationContext().getPackageName();
@@ -171,11 +169,12 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         mTrackTimer = new HashMap<>();
         mFragmentAPI = new FragmentAPI();
         try {
+            mSAConfigOptions = configOptions.clone();
             mTrackTaskManager = TrackTaskManager.getInstance();
             mTrackTaskManagerThread = new TrackTaskManagerThread();
             new Thread(mTrackTaskManagerThread, ThreadNameConstants.THREAD_TASK_QUEUE).start();
             SensorsDataExceptionHandler.init();
-            initSAConfig(serverURL, packageName);
+            initSAConfig(mSAConfigOptions.mServerUrl, packageName);
             mMessages = AnalyticsMessages.getInstance(mContext, (SensorsDataAPI) this);
             mRemoteManager = new SensorsDataRemoteManager((SensorsDataAPI) this);
             //先从缓存中读取 SDKConfig
@@ -221,7 +220,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         mFirstTrackInstallationWithCallback = null;
         mDeviceInfo = null;
         mTrackTimer = null;
-        mMainProcessName = null;
         mSensorsDataEncrypt = null;
     }
 
@@ -871,7 +869,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                 }
                 mMessages.enqueueEventMessage(type, eventObject);
                 if (SALog.isLogEnabled()) {
-                    SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(eventObject.toString()));
+                    SALog.i(TAG, "track event from H5:\n" + JSONUtils.formatJson(eventObject.toString()));
                 }
             }
         } catch (Exception e) {
@@ -999,11 +997,9 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         this.mDisableDefaultRemoteConfig = configBundle.getBoolean("com.sensorsdata.analytics.android.DisableDefaultRemoteConfig",
                 false);
 
-        this.mMainProcessName = AppInfoUtils.getMainProcessName(mContext);
-        if (TextUtils.isEmpty(this.mMainProcessName)) {
-            this.mMainProcessName = configBundle.getString("com.sensorsdata.analytics.android.MainProcessName");
+        if (mSAConfigOptions.isDataCollectEnable) {
+            mIsMainProcess = AppInfoUtils.isMainProcess(mContext, configBundle);
         }
-        mIsMainProcess = AppInfoUtils.isMainProcess(mContext, mMainProcessName);
 
         this.mDisableTrackDeviceId = configBundle.getBoolean("com.sensorsdata.analytics.android.DisableTrackDeviceId",
                 false);

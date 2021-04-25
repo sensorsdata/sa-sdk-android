@@ -280,6 +280,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                             long eventTime = bundle.getLong(TIME);
                             properties.put("event_time", eventTime > 0 ? eventTime : System.currentTimeMillis());
                             mSensorsDataInstance.trackAutoEvent("$AppStart", properties);
+                            SensorsDataAPI.sharedInstance().flushSync();
                         }
                     } catch (Exception e) {
                         SALog.i(TAG, e);

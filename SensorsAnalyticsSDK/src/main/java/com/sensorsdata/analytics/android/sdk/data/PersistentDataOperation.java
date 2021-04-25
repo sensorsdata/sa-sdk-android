@@ -51,39 +51,44 @@ class PersistentDataOperation extends DataOperation {
 
     private int handleInsertUri(Uri uri, JSONObject jsonObject) {
         if (uri == null) return -1;
-        ContentValues contentValues = new ContentValues();
-        String path = uri.getPath();
-        if (!TextUtils.isEmpty(path)) {
-            path = path.substring(1);
-            switch (path) {
-                case DbParams.TABLE_ACTIVITY_START_COUNT:
-                    contentValues.put(DbParams.TABLE_ACTIVITY_START_COUNT, jsonObject.optInt(DbParams.VALUE));
-                    break;
-                case DbParams.TABLE_APP_END_DATA:
-                    contentValues.put(DbParams.TABLE_APP_END_DATA, jsonObject.optString(DbParams.VALUE));
-                    break;
-                case DbParams.TABLE_APP_END_TIME:
-                    contentValues.put(DbParams.TABLE_APP_END_TIME, jsonObject.optLong(DbParams.VALUE));
-                    break;
-                case DbParams.TABLE_APP_START_TIME:
-                    contentValues.put(DbParams.TABLE_APP_START_TIME, jsonObject.optLong(DbParams.VALUE));
-                    break;
-                case DbParams.TABLE_SESSION_INTERVAL_TIME:
-                    contentValues.put(DbParams.TABLE_SESSION_INTERVAL_TIME, jsonObject.optLong(DbParams.VALUE));
-                    break;
-                case DbParams.TABLE_LOGIN_ID:
-                    contentValues.put(DbParams.TABLE_LOGIN_ID, jsonObject.optString(DbParams.VALUE));
-                    break;
-                case DbParams.TABLE_SUB_PROCESS_FLUSH_DATA:
-                    contentValues.put(DbParams.TABLE_SUB_PROCESS_FLUSH_DATA, jsonObject.optBoolean(DbParams.VALUE));
-                    break;
-                case DbParams.TABLE_FIRST_PROCESS_START:
-                    contentValues.put(DbParams.TABLE_FIRST_PROCESS_START, jsonObject.optBoolean(DbParams.VALUE));
-                    break;
-                default:
-                    return -1;
+
+        try {
+            ContentValues contentValues = new ContentValues();
+            String path = uri.getPath();
+            if (!TextUtils.isEmpty(path)) {
+                path = path.substring(1);
+                switch (path) {
+                    case DbParams.TABLE_ACTIVITY_START_COUNT:
+                        contentValues.put(DbParams.TABLE_ACTIVITY_START_COUNT, jsonObject.optInt(DbParams.VALUE));
+                        break;
+                    case DbParams.TABLE_APP_END_DATA:
+                        contentValues.put(DbParams.TABLE_APP_END_DATA, jsonObject.optString(DbParams.VALUE));
+                        break;
+                    case DbParams.TABLE_APP_END_TIME:
+                        contentValues.put(DbParams.TABLE_APP_END_TIME, jsonObject.optLong(DbParams.VALUE));
+                        break;
+                    case DbParams.TABLE_APP_START_TIME:
+                        contentValues.put(DbParams.TABLE_APP_START_TIME, jsonObject.optLong(DbParams.VALUE));
+                        break;
+                    case DbParams.TABLE_SESSION_INTERVAL_TIME:
+                        contentValues.put(DbParams.TABLE_SESSION_INTERVAL_TIME, jsonObject.optLong(DbParams.VALUE));
+                        break;
+                    case DbParams.TABLE_LOGIN_ID:
+                        contentValues.put(DbParams.TABLE_LOGIN_ID, jsonObject.optString(DbParams.VALUE));
+                        break;
+                    case DbParams.TABLE_SUB_PROCESS_FLUSH_DATA:
+                        contentValues.put(DbParams.TABLE_SUB_PROCESS_FLUSH_DATA, jsonObject.optBoolean(DbParams.VALUE));
+                        break;
+                    case DbParams.TABLE_FIRST_PROCESS_START:
+                        contentValues.put(DbParams.TABLE_FIRST_PROCESS_START, jsonObject.optBoolean(DbParams.VALUE));
+                        break;
+                    default:
+                        return -1;
+                }
+                contentResolver.insert(uri, contentValues);
             }
-            contentResolver.insert(uri, contentValues);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
         return 0;
     }

@@ -535,11 +535,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
-    public String getMainProcessName() {
-        return "";
-    }
-
-    @Override
     public JSONObject getLastScreenTrackProperties() {
         return new JSONObject();
     }

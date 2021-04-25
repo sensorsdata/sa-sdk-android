@@ -135,6 +135,9 @@ public class ReflectUtil {
                     break;
                 }
             }
+            if(field == null){
+                return null;
+            }
             field.setAccessible(true);
             return field;
         } catch (Exception e) {

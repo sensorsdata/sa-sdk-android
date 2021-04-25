@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.text.TextUtils;
 import android.view.MenuItem;
 import android.view.View;
@@ -69,18 +70,16 @@ public class SensorsDataAutoTrackHelper {
     private static HashMap<Integer, Long> eventTimestamp = new HashMap<>();
 
     private static boolean isDeBounceTrack(Object object) {
-        boolean isDeBounceTrack = false;
-        long currentOnClickTimestamp = System.currentTimeMillis();
+        long currentOnClickTimestamp = SystemClock.elapsedRealtime();
         Object targetObject = eventTimestamp.get(object.hashCode());
         if (targetObject != null) {
             long lastOnClickTimestamp = (long) targetObject;
             if ((currentOnClickTimestamp - lastOnClickTimestamp) < 500) {
-                isDeBounceTrack = true;
+                return true;
             }
         }
-
         eventTimestamp.put(object.hashCode(), currentOnClickTimestamp);
-        return isDeBounceTrack;
+        return false;
     }
 
     private static void traverseView(String fragmentName, ViewGroup root) {
