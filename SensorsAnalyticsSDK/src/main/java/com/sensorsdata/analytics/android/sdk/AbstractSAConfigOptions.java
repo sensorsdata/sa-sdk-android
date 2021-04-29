@@ -109,7 +109,7 @@ abstract class AbstractSAConfigOptions {
      * 可视化全埋点对话框是否可用
      */
     boolean mVisualizedConfirmDialogEnabled;
-
+    
     /**
      * 是否开启打印日志
      */

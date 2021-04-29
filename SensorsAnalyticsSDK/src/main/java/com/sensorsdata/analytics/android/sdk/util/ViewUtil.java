@@ -481,7 +481,11 @@ public class ViewUtil {
         return false;
     }
 
-    static ViewNode getViewPathAndPosition(View clickView) {
+    public static ViewNode getViewPathAndPosition(View clickView) {
+        return getViewPathAndPosition(clickView, false);
+    }
+
+    public static ViewNode getViewPathAndPosition(View clickView, boolean fromVisual) {
         ArrayList<View> arrayList = new ArrayList<View>(8);
         arrayList.add(clickView);
         for (ViewParent parent = clickView.getParent(); parent instanceof ViewGroup; parent = parent.getParent()) {
@@ -490,6 +494,7 @@ public class ViewUtil {
         int endIndex = arrayList.size() - 1;
         View rootView = arrayList.get(endIndex);
         String listPosition = null;
+        String elementContent = null;
         StringBuilder opx = new StringBuilder();
         StringBuilder px = new StringBuilder();
         if (rootView instanceof ViewGroup) {
@@ -497,7 +502,7 @@ public class ViewUtil {
             for (int i = endIndex - 1; i >= 0; i--) {
                 final View childView = arrayList.get(i);
                 final int viewPosition = parentView.indexOfChild(childView);
-                final ViewNode viewNode = getViewNode(childView, viewPosition);
+                final ViewNode viewNode = getViewNode(childView, viewPosition, fromVisual);
                 if (viewNode != null) {
                     if (!TextUtils.isEmpty(viewNode.getViewPath()) && viewNode.getViewPath().contains("-") && !TextUtils.isEmpty(listPosition)) {
                         int replacePosition = px.indexOf("-");
@@ -508,13 +513,14 @@ public class ViewUtil {
                     opx.append(viewNode.getViewOriginalPath());
                     px.append(viewNode.getViewPath());
                     listPosition = viewNode.getViewPosition();
+                    elementContent = viewNode.getViewContent();
                 }
                 if (!(childView instanceof ViewGroup)) {
                     break;
                 }
                 parentView = (ViewGroup) childView;
             }
-            return new ViewNode(listPosition, opx.toString(), px.toString());
+            return new ViewNode(clickView, listPosition, opx.toString(), px.toString(), elementContent);
         }
         return null;
     }
@@ -560,7 +566,7 @@ public class ViewUtil {
         return idx;
     }
 
-    public static ViewNode getViewNode(View view, int viewIndex) {
+    public static ViewNode getViewNode(View view, int viewIndex, boolean fromVisual) {
         int viewPosition = getViewPosition(view, viewIndex);
         ViewParent parentObject = view.getParent();
         if (parentObject == null) {
@@ -574,6 +580,7 @@ public class ViewUtil {
                 String viewName = ViewUtil.getCanonicalName(view.getClass());
                 Object fragment = null;
                 String listPos = null;
+                boolean isListView = false;
                 // 处理嵌套场景，如果父 View 是列表类型控件，将父 View 的列表位置传递给非列表类型子控件; 列表类型子控件则直接用自身位置。
                 ViewParent parent = parentView.getParent();
                 if (parent instanceof View) {
@@ -590,6 +597,7 @@ public class ViewUtil {
                     ExpandableListView listParent = (ExpandableListView) parentView;
                     long elp = listParent.getExpandableListPosition(viewPosition);
                     if (ExpandableListView.getPackedPositionType(elp) != 2) {
+                        isListView = true;
                         int groupIdx = ExpandableListView.getPackedPositionGroup(elp);
                         int childIdx = ExpandableListView.getPackedPositionChild(elp);
                         if (childIdx != -1) {
@@ -610,6 +618,7 @@ public class ViewUtil {
                         px.append("/ELF[").append(footerIndex).append("]/").append(viewName).append("[0]");
                     }
                 } else if (ViewUtil.isListView(parentView)) {
+                    isListView = true;
                     listPos = String.format(Locale.CHINA, "%d", viewPosition);
                     px.append(opx).append("/").append(viewName).append("[-]");
                     opx.append("/").append(viewName).append("[").append(listPos).append("]");
@@ -639,8 +648,8 @@ public class ViewUtil {
                     }
                     sViewCache.put(parentView.hashCode(), listPos);
                 }
-                ViewNode viewNode = getViewContentAndType(view);
-                return new ViewNode(listPos, opx.toString(), px.toString(), viewNode.getViewContent(), viewNode.getViewType());
+                ViewNode viewNode = getViewContentAndType(view, fromVisual);
+                return new ViewNode(view, listPos, opx.toString(), px.toString(), viewNode.getViewContent(), viewNode.getViewType(), isListView);
             }
         }
         return null;
@@ -679,6 +688,10 @@ public class ViewUtil {
     }
 
     public static ViewNode getViewContentAndType(View view) {
+        return getViewContentAndType(view, false);
+    }
+
+    public static ViewNode getViewContentAndType(View view, boolean fromVisual) {
         String viewType = view.getClass().getCanonicalName();
         CharSequence viewText = null;
         Object tab = null;
@@ -779,7 +792,12 @@ public class ViewUtil {
         }
 
         if (view instanceof EditText) {
-            viewText = "";
+            // 自定义属性时需要放开 EditText
+            if (fromVisual) {
+                viewText = ((EditText) view).getText();
+            } else {
+                viewText = "";
+            }
         }
 
         if (TextUtils.isEmpty(viewText)) {

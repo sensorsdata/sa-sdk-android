@@ -141,7 +141,7 @@ public class VisualUtil {
             Object fragment = AopUtil.getFragmentFromView(view, activity);
             if (fragment != null) {
                 AopUtil.getScreenNameAndTitleFromFragment(object, fragment, activity);
-                if (!info.hasFragment) {
+                if (info != null && !info.hasFragment) {
                     info.hasFragment = true;
                 }
             } else {

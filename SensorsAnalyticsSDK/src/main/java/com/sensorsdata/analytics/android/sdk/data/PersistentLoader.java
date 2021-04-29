@@ -34,6 +34,7 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentIdentity;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProperties;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentVisualConfig;
 
 import java.util.concurrent.Future;
 
@@ -89,6 +90,8 @@ public class PersistentLoader {
                 return new PersistentSuperProperties(storedPreferences);
             case PersistentName.SUB_PROCESS_FLUSH_DATA:
                 return new PersistentFlushDataState(storedPreferences);
+            case PersistentName.VISUAL_PROPERTIES:
+                return new PersistentVisualConfig(storedPreferences);
             default:
                 return null;
         }
@@ -107,5 +110,6 @@ public class PersistentLoader {
         String LOGIN_ID = "events_login_id";
         String REMOTE_CONFIG = "sensorsdata_sdk_configuration";
         String SUPER_PROPERTIES = "super_properties";
+        String VISUAL_PROPERTIES = "visual_properties";
     }
 }

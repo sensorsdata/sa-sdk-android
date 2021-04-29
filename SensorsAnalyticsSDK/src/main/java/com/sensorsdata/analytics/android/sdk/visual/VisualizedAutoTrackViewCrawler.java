@@ -20,11 +20,41 @@ package com.sensorsdata.analytics.android.sdk.visual;
 import android.annotation.TargetApi;
 import android.app.Activity;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
+
 
 @TargetApi(16)
 class VisualizedAutoTrackViewCrawler extends AbstractViewCrawler {
 
-    VisualizedAutoTrackViewCrawler(Activity activity, String resourcePackageName, String featureCode, String postUrl) {
+    private VisualDebugHelper mVisualDebugHelper;
+
+    VisualizedAutoTrackViewCrawler(Activity activity, String resourcePackageName, String featureCode, String postUrl, VisualDebugHelper visualDebugHelper) {
         super(activity, resourcePackageName, featureCode, postUrl, TYPE_VISUAL);
+        mVisualDebugHelper = visualDebugHelper;
+    }
+
+    @Override
+    public void startUpdates() {
+        try {
+            super.startUpdates();
+            if (mVisualDebugHelper != null) {
+                mVisualDebugHelper.stopMonitor();
+                mVisualDebugHelper.startMonitor();
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
+    @Override
+    public void stopUpdates(boolean clear) {
+        try {
+            super.stopUpdates(clear);
+            if (mVisualDebugHelper != null) {
+                mVisualDebugHelper.stopMonitor();
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 }

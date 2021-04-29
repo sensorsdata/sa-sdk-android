@@ -36,9 +36,11 @@ import com.sensorsdata.analytics.android.sdk.BuildConfig;
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.visual.model.SnapInfo;
 import com.sensorsdata.analytics.android.sdk.visual.model.WebNodeInfo;
+import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
 import com.sensorsdata.analytics.android.sdk.visual.snap.EditProtocol;
 import com.sensorsdata.analytics.android.sdk.visual.snap.EditState;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceIds;
@@ -195,6 +197,7 @@ public abstract class AbstractViewCrawler implements VTrack {
         private ViewSnapshot mSnapshot;
         private boolean mUseGzip;
         private StringBuilder mLastImageHash;
+        private String mAppId;
 
         private ViewCrawlerHandler(Context context, Looper looper, String resourcePackageName) {
             super(looper);
@@ -203,6 +206,7 @@ public abstract class AbstractViewCrawler implements VTrack {
             mProtocol = new EditProtocol(resourceIds);
             mLastImageHash = new StringBuilder();
             mUseGzip = true;
+            mAppId = AppInfoUtils.getProcessName(context);
         }
 
         public void start() {
@@ -243,6 +247,9 @@ public abstract class AbstractViewCrawler implements VTrack {
 
             final ByteArrayOutputStream out = new ByteArrayOutputStream();
             final OutputStreamWriter writer = new OutputStreamWriter(out);
+            ByteArrayOutputStream payload_out = null;
+            GZIPOutputStream gos = null;
+            ByteArrayOutputStream os = null;
             SnapInfo info = null;
             try {
                 writer.write("{");
@@ -252,24 +259,41 @@ public abstract class AbstractViewCrawler implements VTrack {
                 writer.write("\"lib_version\": \"" + BuildConfig.SDK_VERSION + "\",");
                 writer.write("\"os\": \"Android\",");
                 writer.write("\"lib\": \"Android\",");
-
+                writer.write("\"app_id\": \"" + mAppId + "\",");
+                // 添加可视化配置的版本号
+                String version = VisualPropertiesManager.getInstance().getVisualConfigVersion();
+                if (!TextUtils.isEmpty(version)) {
+                    writer.write("\"config_version\": \"" + version + "\",");
+                }
                 if (mUseGzip) {
-                    final ByteArrayOutputStream payload_out = new ByteArrayOutputStream();
+                    payload_out = new ByteArrayOutputStream();
                     final OutputStreamWriter payload_writer = new OutputStreamWriter(payload_out);
-
                     payload_writer.write("{\"activities\":");
                     payload_writer.flush();
                     info = mSnapshot.snapshots(mEditState, payload_out, mLastImageHash);
                     final long snapshotTime = System.currentTimeMillis() - startSnapshot;
                     payload_writer.write(",\"snapshot_time_millis\": ");
                     payload_writer.write(Long.toString(snapshotTime));
+                    // 添加调试信息
+                    String visualDebugInfo = VisualizedAutoTrackService.getInstance().getDebugInfo();
+                    if (!TextUtils.isEmpty(visualDebugInfo)) {
+                        payload_writer.write(",");
+                        payload_writer.write("\"event_debug\": ");
+                        payload_writer.write(visualDebugInfo);
+                    }
+                    // 添加诊断信息日志
+                    String visualLogInfo = VisualizedAutoTrackService.getInstance().getVisualLogInfo();
+                    if (!TextUtils.isEmpty(visualLogInfo)) {
+                        payload_writer.write(",");
+                        payload_writer.write("\"log_info\":");
+                        payload_writer.write(visualLogInfo);
+                    }
                     payload_writer.write("}");
                     payload_writer.flush();
-
                     payload_out.close();
                     byte[] payloadData = payload_out.toString().getBytes();
-                    ByteArrayOutputStream os = new ByteArrayOutputStream(payloadData.length);
-                    GZIPOutputStream gos = new GZIPOutputStream(os);
+                    os = new ByteArrayOutputStream(payloadData.length);
+                    gos = new GZIPOutputStream(os);
                     gos.write(payloadData);
                     gos.close();
                     byte[] compressed = os.toByteArray();
@@ -366,6 +390,27 @@ public abstract class AbstractViewCrawler implements VTrack {
                 SALog.i(TAG, "Can't write snapshot request to server", e);
             } finally {
                 try {
+                    if (os != null) {
+                        os.close();
+                    }
+                } catch (final Exception e) {
+                    SALog.i(TAG, "Can't close os.", e);
+                }
+                try {
+                    if (gos != null) {
+                        gos.close();
+                    }
+                } catch (final Exception e) {
+                    SALog.i(TAG, "Can't close gos.", e);
+                }
+                try {
+                    if (payload_out != null) {
+                        payload_out.close();
+                    }
+                } catch (final Exception e) {
+                    SALog.i(TAG, "Can't close payload_out.", e);
+                }
+                try {
                     writer.close();
                 } catch (final IOException e) {
                     SALog.i(TAG, "Can't close writer.", e);
@@ -424,6 +469,14 @@ public abstract class AbstractViewCrawler implements VTrack {
                     if (delay < 0) {
                         rePostSnapshot = false;
                     }
+                    String visualizedConfig = responseJson.optString("visualized_sdk_config");
+                    boolean visualizedConfigDisabled = responseJson.optBoolean("visualized_config_disabled");
+                    // 自定义属性配置被禁用时，需要覆盖本地缓存
+                    if (!TextUtils.isEmpty(visualizedConfig) || visualizedConfigDisabled) {
+                        VisualPropertiesManager.getInstance().save2Cache(visualizedConfig);
+                    }
+                    // 是否处于 debug = 1 状态
+                    VisualizedAutoTrackService.getInstance().setDebugModeEnabled(responseJson.optBoolean("visualized_debug_mode_enabled"));
                 }
             } catch (Exception e) {
                 SALog.printStackTrace(e);

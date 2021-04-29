@@ -17,7 +17,11 @@
 
 package com.sensorsdata.analytics.android.sdk.visual.model;
 
+import android.text.Editable;
+import android.view.View;
+
 import java.io.Serializable;
+import java.lang.ref.WeakReference;
 
 public class ViewNode implements Serializable {
     private static final long serialVersionUID = -1242947408632673572L;
@@ -26,22 +30,25 @@ public class ViewNode implements Serializable {
     private String viewPath;
     private String viewContent;
     private String viewType;
-
+    private boolean isListView;
+    private WeakReference<View> view;
 
     public ViewNode(String viewContent, String viewType) {
-        this(null, null, null, viewContent, viewType);
+        this(null, null, null, null, viewContent, viewType, false);
     }
 
-    public ViewNode(String viewPosition,  String viewOriginalPath, String viewPath) {
-        this(viewPosition, viewOriginalPath, viewPath, null, null);
+    public ViewNode(View view, String viewPosition, String viewOriginalPath, String viewPath, String elementContent) {
+        this(view, viewPosition, viewOriginalPath, viewPath, elementContent, null, false);
     }
 
-    public ViewNode(String viewPosition, String viewOriginalPath, String viewPath, String viewContent, String viewType) {
+    public ViewNode(View view, String viewPosition, String viewOriginalPath, String viewPath, String viewContent, String viewType, boolean isListView) {
+        this.view = new WeakReference<>(view);
         this.viewPosition = viewPosition;
         this.viewOriginalPath = viewOriginalPath;
         this.viewPath = viewPath;
         this.viewContent = viewContent;
         this.viewType = viewType;
+        this.isListView = isListView;
     }
 
     public String getViewPosition() {
@@ -82,6 +89,18 @@ public class ViewNode implements Serializable {
 
     public void setViewType(String viewType) {
         this.viewType = viewType;
+    }
+
+    public boolean isListView() {
+        return isListView;
+    }
+
+    public void setListView(boolean listView) {
+        isListView = listView;
+    }
+
+    public WeakReference<View> getView() {
+        return view;
     }
 
 }

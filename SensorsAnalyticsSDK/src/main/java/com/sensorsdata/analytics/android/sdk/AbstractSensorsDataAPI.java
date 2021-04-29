@@ -59,6 +59,8 @@ import com.sensorsdata.analytics.android.sdk.util.OaidHelper;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
+import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
+import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -179,7 +181,10 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             mRemoteManager = new SensorsDataRemoteManager((SensorsDataAPI) this);
             //先从缓存中读取 SDKConfig
             mRemoteManager.applySDKConfigFromCache();
-
+            // 可视化自定义属性拉取配置
+            if (isVisualizedAutoTrackEnabled()) {
+                VisualPropertiesManager.getInstance().requestVisualConfig(mContext);
+            }
             //打开 debug 模式，弹出提示
             if (mDebugMode != SensorsDataAPI.DebugMode.DEBUG_OFF && mIsMainProcess) {
                 if (SHOW_DEBUG_INFO_VIEW) {
@@ -247,6 +252,21 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                 this.mEventListenerList = new ArrayList<>();
             }
             this.mEventListenerList.add(eventListener);
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+    }
+
+    /**
+     * 移除 SDK 事件回调监听
+     *
+     * @param eventListener 事件监听
+     */
+    public void removeEventListener(SAEventListener eventListener) {
+        try {
+            if (mEventListenerList != null && mEventListenerList.contains(eventListener)) {
+                this.mEventListenerList.remove(eventListener);
+            }
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
         }
@@ -332,10 +352,24 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
      * @param properties 事件属性
      */
     public void trackInternal(final String eventName, final JSONObject properties) {
+        trackInternal(eventName, properties, null);
+    }
+
+    /**
+     * SDK 内部用来调用触发事件
+     *
+     * @param eventName 事件名称
+     * @param properties 事件属性
+     * @param viewNode ViewTree 中的 View 节点
+     */
+    public void trackInternal(final String eventName, final JSONObject properties, final ViewNode viewNode) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
                 try {
+                    if (viewNode != null) {
+                        VisualPropertiesManager.getInstance().mergeVisualProperties(VisualPropertiesManager.VisualEventType.APP_CLICK, properties, viewNode);
+                    }
                     trackEvent(EventType.TRACK, eventName, properties, null);
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
@@ -480,7 +514,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         });
     }
 
-
     /**
      * SDK 全埋点调用方法
      *
@@ -488,9 +521,19 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
      * @param properties 事件属性
      */
     void trackAutoEvent(final String eventName, final JSONObject properties) {
+        trackAutoEvent(eventName, properties, null);
+    }
+
+    /**
+     * SDK 全埋点调用方法，支持可视化自定义属性
+     *
+     * @param eventName 事件名
+     * @param properties 事件属性
+     */
+    void trackAutoEvent(final String eventName, final JSONObject properties, final ViewNode viewNode) {
         //添加 $lib_method 属性
         JSONObject eventProperties = SADataHelper.appendLibMethodAutoTrack(properties);
-        trackInternal(eventName, eventProperties);
+        trackInternal(eventName, eventProperties, viewNode);
     }
 
     protected void addTimeProperty(JSONObject jsonObject) {

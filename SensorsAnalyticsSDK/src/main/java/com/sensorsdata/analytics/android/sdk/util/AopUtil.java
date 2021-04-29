@@ -652,7 +652,6 @@ public class AopUtil {
             Context context = view.getContext();
             JSONObject eventJson = new JSONObject();
             Activity activity = AopUtil.getActivityFromContext(context, view);
-            AopUtil.addViewPathProperties(activity, view, eventJson);
             //1.获取预置属性
             //ViewId
             String idString = AopUtil.getViewId(view);
@@ -700,7 +699,7 @@ public class AopUtil {
      * @return object 这里是 fragment 实例对象
      */
     public static Object getFragmentFromView(View view) {
-        return getFragmentFromView(view,  null);
+        return getFragmentFromView(view, null);
     }
 
     /**
@@ -755,13 +754,13 @@ public class AopUtil {
         return null;
     }
 
-    public static void addViewPathProperties(Activity activity, View view, JSONObject properties) {
+    public static ViewNode addViewPathProperties(Activity activity, View view, JSONObject properties) {
         try {
             if (view == null) {
-                return;
+                return null;
             }
             if (activity == null) {
-                return;
+                return null;
             }
             if (properties == null) {
                 properties = new JSONObject();
@@ -773,22 +772,23 @@ public class AopUtil {
                     properties.put(AopConstants.ELEMENT_SELECTOR, elementSelector);
                 }
             }
-
             ViewNode viewNode = ViewUtil.getViewPathAndPosition(view);
             if (viewNode != null) {
                 if (!TextUtils.isEmpty(viewNode.getViewPath())) {
                     if ((SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled() && SensorsDataAPI.sharedInstance().isVisualizedAutoTrackActivity(activity.getClass()))
-                    || (SensorsDataAPI.sharedInstance().isHeatMapEnabled() && SensorsDataAPI.sharedInstance().isHeatMapActivity(activity.getClass()))) {
+                            || (SensorsDataAPI.sharedInstance().isHeatMapEnabled() && SensorsDataAPI.sharedInstance().isHeatMapActivity(activity.getClass()))) {
                         properties.put(AopConstants.ELEMENT_PATH, viewNode.getViewPath());
                     }
                 }
                 if (!TextUtils.isEmpty(viewNode.getViewPosition())) {
                     properties.put(AopConstants.ELEMENT_POSITION, viewNode.getViewPosition());
                 }
+                return viewNode;
             }
         } catch (JSONException e) {
             SALog.printStackTrace(e);
         }
+        return null;
     }
 
     private static String traverseParentViewTag(View view) {

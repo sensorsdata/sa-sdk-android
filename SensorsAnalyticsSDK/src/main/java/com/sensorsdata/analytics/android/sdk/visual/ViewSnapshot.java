@@ -294,7 +294,7 @@ public class ViewSnapshot {
                 }
             }
 
-            ViewNode viewNode = ViewUtil.getViewNode(view, viewIndex);
+            ViewNode viewNode = ViewUtil.getViewNode(view, viewIndex, true);
             if (viewNode != null) {
                 if (!TextUtils.isEmpty(viewNode.getViewPath())) {
                     j.name("element_path").value(viewNode.getViewPath());
@@ -305,6 +305,7 @@ public class ViewSnapshot {
                 if (!TextUtils.isEmpty(viewNode.getViewContent()) && VisualUtil.isSupportElementContent(view)) {
                     j.name("element_content").value(viewNode.getViewContent());
                 }
+                j.name("is_list_view").value(viewNode.isListView());
             }
 
             j.name("sa_id_name").value(getResName(view));
@@ -568,7 +569,7 @@ public class ViewSnapshot {
                 int[] screenSize = DeviceUtils.getDeviceSize(SensorsDataAPI.sharedInstance().getContext());
                 width = screenSize[0];
                 height = screenSize[1];
-                if (width == 0 || height == 0)return null;
+                if (width == 0 || height == 0) return null;
             }
             Bitmap fullScreenBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
             SoftWareCanvas canvas = new SoftWareCanvas(fullScreenBitmap);
@@ -653,25 +654,37 @@ public class ViewSnapshot {
                 try {
                     final ByteArrayOutputStream imageByte = new ByteArrayOutputStream();
                     mCached.compress(Bitmap.CompressFormat.PNG, 100, imageByte);
-                    byte[] array = null;
-                    byte[] byteArray = imageByte.toByteArray();
+                    byte[] array = imageByte.toByteArray();
+
                     final String msg = WebNodesManager.getInstance().getLastWebNodeMsg();
                     if (!TextUtils.isEmpty(msg)) {
                         byte[] webNodesArray = msg.getBytes();
                         if (webNodesArray != null && webNodesArray.length > 0) {
-                            array = new byte[byteArray.length + webNodesArray.length];
-                            System.arraycopy(byteArray, 0, array, 0, byteArray.length);
-                            System.arraycopy(webNodesArray, 0, array, byteArray.length, webNodesArray.length);
+                            array = concat(array, webNodesArray);
                         }
-                    } else {
-                        array = byteArray;
                     }
+
+                    final String debugInfo = VisualizedAutoTrackService.getInstance().getLastDebugInfo();
+                    if (!TextUtils.isEmpty(debugInfo)) {
+                        byte[] debugInfoBytes = debugInfo.getBytes();
+                        if (debugInfoBytes != null && debugInfoBytes.length > 0) {
+                            array = concat(array, debugInfoBytes);
+                        }
+                    }
+
                     byte[] md5 = MessageDigest.getInstance("MD5").digest(array);
                     mImageHash = toHex(md5);
                 } catch (Exception e) {
                     SALog.i(TAG, "CachedBitmap.recreate;Create image_hash error=" + e);
                 }
             }
+        }
+
+        private static byte[] concat(byte[] first, byte[] second) {
+            byte[] result = new byte[first.length + second.length];
+            System.arraycopy(first, 0, result, 0, first.length);
+            System.arraycopy(second, 0, result, first.length, second.length);
+            return result;
         }
 
         // Writes a QUOTED base64 string (or the string null) to the output stream

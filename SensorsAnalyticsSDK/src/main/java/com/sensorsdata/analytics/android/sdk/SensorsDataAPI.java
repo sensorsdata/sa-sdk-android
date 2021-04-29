@@ -41,6 +41,7 @@ import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.OaidHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
+import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -998,6 +999,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Override
     public void enableVisualizedAutoTrack() {
         mSAConfigOptions.enableVisualizedAutoTrack(true);
+        VisualPropertiesManager.getInstance().requestVisualConfig();
     }
 
     @Override
@@ -1821,7 +1823,8 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             properties = new JSONObject();
         }
         if (AopUtil.injectClickInfo(view, properties, true)) {
-            trackInternal(AopConstants.APP_CLICK_EVENT_NAME, properties);
+            Activity activity = AopUtil.getActivityFromContext(view.getContext(), view);
+            trackInternal(AopConstants.APP_CLICK_EVENT_NAME, properties, AopUtil.addViewPathProperties(activity, view, properties));
         }
     }
 
@@ -2153,6 +2156,15 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                     SALog.printStackTrace(e);
                 }
             }
+            //请求可视化全埋点自定义属性配置
+            if (!TextUtils.equals(serverUrl, mOriginServerUrl) && SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled()) {
+                try {
+                    VisualPropertiesManager.getInstance().requestVisualConfig();
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
+            }
+
             mOriginServerUrl = serverUrl;
             if (TextUtils.isEmpty(serverUrl)) {
                 mServerUrl = serverUrl;
