@@ -18,6 +18,9 @@
 package com.sensorsdata.analytics.android.sdk;
 
 import com.sensorsdata.analytics.android.sdk.encrypt.IPersistentSecretKey;
+import com.sensorsdata.analytics.android.sdk.encrypt.SAEncryptListener;
+
+import java.util.List;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -184,4 +187,9 @@ abstract class AbstractSAConfigOptions {
      * 开启前向标题采集
      */
     boolean mEnableReferrerTitle = false;
+
+    /**
+     * 自定义加密实现接口
+     */
+    List<SAEncryptListener> mEncryptListeners;
 }

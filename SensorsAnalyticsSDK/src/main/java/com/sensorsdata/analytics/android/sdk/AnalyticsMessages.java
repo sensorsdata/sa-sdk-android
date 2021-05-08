@@ -66,6 +66,7 @@ class AnalyticsMessages {
     private static final String TAG = "SA.AnalyticsMessages";
     private static final int FLUSH_QUEUE = 3;
     private static final int DELETE_ALL = 4;
+    private static final int FLUSH_SCHEDULE = 5;
     private static final Map<Context, AnalyticsMessages> S_INSTANCES = new HashMap<>();
     private final Worker mWorker;
     private final Context mContext;
@@ -152,24 +153,36 @@ class AnalyticsMessages {
     }
 
     void flush() {
-        final Message m = Message.obtain();
-        m.what = FLUSH_QUEUE;
+        try {
+            final Message m = Message.obtain();
+            m.what = FLUSH_QUEUE;
 
-        mWorker.runMessage(m);
+            mWorker.runMessage(m);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
-    void flush(long timeDelayMills) {
-        final Message m = Message.obtain();
-        m.what = FLUSH_QUEUE;
+    void flushScheduled() {
+        try {
+            final Message m = Message.obtain();
+            m.what = FLUSH_SCHEDULE;
 
-        mWorker.runMessageOnce(m, timeDelayMills);
+            mWorker.runMessageOnce(m, mSensorsDataAPI.getFlushInterval());
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     void deleteAll() {
-        final Message m = Message.obtain();
-        m.what = DELETE_ALL;
+        try {
+            final Message m = Message.obtain();
+            m.what = DELETE_ALL;
 
-        mWorker.runMessage(m);
+            mWorker.runMessage(m);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     private void sendData() {
@@ -514,8 +527,11 @@ class AnalyticsMessages {
                         try {
                             mDbAdapter.deleteAllEvents();
                         } catch (Exception e) {
-                            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                            SALog.printStackTrace(e);
                         }
+                    } else if (msg.what == FLUSH_SCHEDULE) {
+                        flushScheduled();
+                        sendData();
                     } else {
                         SALog.i(TAG, "Unexpected message received by SensorsData worker: " + msg);
                     }

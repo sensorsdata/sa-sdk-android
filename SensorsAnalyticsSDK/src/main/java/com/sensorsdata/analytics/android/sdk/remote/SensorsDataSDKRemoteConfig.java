@@ -18,6 +18,7 @@
 package com.sensorsdata.analytics.android.sdk.remote;
 
 import com.sensorsdata.analytics.android.sdk.SensorsAnalyticsAutoTrackEventType;
+import com.sensorsdata.analytics.android.sdk.encrypt.SecreteKey;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -42,14 +43,9 @@ public class SensorsDataSDKRemoteConfig {
     private boolean disableSDK;
 
     /**
-     * RSA 公钥
+     * 加密信息
      */
-    private String publicKey;
-
-    /**
-     * 公钥版本名称
-     */
-    private int pkv;
+    private SecreteKey mSecretKey;
 
     /**
      * 禁用事件名列表
@@ -98,20 +94,12 @@ public class SensorsDataSDKRemoteConfig {
         this.disableSDK = disableSDK;
     }
 
-    public String getPublicKey() {
-        return publicKey;
+    public SecreteKey getSecretKey() {
+        return mSecretKey;
     }
 
-    public void setPublicKey(String publicKey) {
-        this.publicKey = publicKey;
-    }
-
-    public int getPkv() {
-        return pkv;
-    }
-
-    public void setPkv(int pkv) {
-        this.pkv = pkv;
+    public void setSecretKey(SecreteKey mSecretKey) {
+        this.mSecretKey = mSecretKey;
     }
 
     int getAutoTrackMode() {

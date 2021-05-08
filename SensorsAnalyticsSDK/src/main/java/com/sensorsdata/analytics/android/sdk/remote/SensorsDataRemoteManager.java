@@ -186,8 +186,8 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
                         if (!TextUtils.isEmpty(response)) {
                             SensorsDataSDKRemoteConfig sdkRemoteConfig = toSDKRemoteConfig(response);
                             try {
-                                if (mSensorsDataEncrypt != null && sdkRemoteConfig.getPublicKey() != null) {
-                                    mSensorsDataEncrypt.saveSecretKey(sdkRemoteConfig.getPublicKey(), sdkRemoteConfig.getPkv());
+                                if (mSensorsDataEncrypt != null) {
+                                    mSensorsDataEncrypt.saveSecretKey(sdkRemoteConfig.getSecretKey());
                                 }
                             } catch (Exception e) {
                                 SALog.printStackTrace(e);
@@ -238,7 +238,7 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
             String remoteConfigString = sdkRemoteConfig.toJson().toString();
             eventProperties.put("$app_remote_config", remoteConfigString);
             SensorsDataAPI.sharedInstance().trackInternal("$AppRemoteConfigChanged", eventProperties);
-            SensorsDataAPI.sharedInstance().flushSync();
+            SensorsDataAPI.sharedInstance().flush();
             mPersistentRemoteSDKConfig.commit(remoteConfigString);
             SALog.i(TAG, "Save remote data");
             //值为 1 时，表示在线控制立即生效

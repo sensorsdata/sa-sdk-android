@@ -1107,12 +1107,17 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 @Override
                 public void run() {
                     synchronized (mDistinctId) {
+                        SALog.i(TAG, "resetAnonymousId is called");
+                        if (mAndroidId.equals(mDistinctId.get())) {
+                            SALog.i(TAG, "DistinctId not change");
+                            return;
+                        }
+
                         if (SensorsDataUtils.isValidAndroidId(mAndroidId)) {
                             mDistinctId.commit(mAndroidId);
                         } else {
                             mDistinctId.commit(UUID.randomUUID().toString());
                         }
-
                         // 通知调用 resetAnonymousId 接口
                         try {
                             if (mEventListenerList != null) {
@@ -1156,12 +1161,14 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 public void run() {
                     try {
                         synchronized (mDistinctId) {
-                            mDistinctId.commit(distinctId);
-                            // 通知调用 identify 接口
                             try {
-                                if (mEventListenerList != null) {
-                                    for (SAEventListener eventListener : mEventListenerList) {
-                                        eventListener.identify();
+                                SALog.i(TAG, "identify is called");
+                                if (!distinctId.equals(mDistinctId.get())) {
+                                    mDistinctId.commit(distinctId);
+                                    if (mEventListenerList != null) {
+                                        for (SAEventListener eventListener : mEventListenerList) {
+                                            eventListener.identify();
+                                        }
                                     }
                                 }
                             } catch (Exception e) {
@@ -1232,17 +1239,21 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 public void run() {
                     try {
                         synchronized (mLoginIdLock) {
-                            DbAdapter.getInstance().commitLoginId(null);
-                            mLoginId = null;
-                            // 进行通知调用 logout 接口
-                            try {
-                                if (mEventListenerList != null) {
-                                    for (SAEventListener eventListener : mEventListenerList) {
-                                        eventListener.logout();
+                            SALog.i(TAG, "logout is called");
+                            if (!TextUtils.isEmpty(getLoginId())) {
+                                DbAdapter.getInstance().commitLoginId(null);
+                                mLoginId = null;
+                                // 进行通知调用 logout 接口
+                                try {
+                                    if (mEventListenerList != null) {
+                                        for (SAEventListener eventListener : mEventListenerList) {
+                                            eventListener.logout();
+                                        }
                                     }
+                                } catch (Exception e) {
+                                    SALog.printStackTrace(e);
                                 }
-                            } catch (Exception e) {
-                                SALog.printStackTrace(e);
+                                SALog.i(TAG, "Clean loginId");
                             }
                         }
                     } catch (Exception e) {
@@ -1377,7 +1388,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                         }
                         ChannelUtils.saveCorrectTrackInstallation(mContext, isCorrectTrackInstallation);
                     }
-                    flushSync();
+                    flush();
                 } catch (Exception e) {
                     com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                 }
@@ -1431,7 +1442,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                     } else {
                         trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null);
                     }
-                    flushSync();
+                    flush();
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }
@@ -1830,17 +1841,25 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public void flush() {
-        mMessages.flush();
-    }
-
-    @Override
-    public void flushSync() {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
-                mMessages.flush();
+                try {
+                    mMessages.flush();
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
             }
         });
+    }
+
+    @Override
+    public void flushScheduled() {
+        try {
+            mMessages.flushScheduled();
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override
@@ -1896,7 +1915,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                     }
                 }
             });
-            flushSync();
+            flush();
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
         }

@@ -506,7 +506,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                     } else {
                         trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null);
                     }
-                    flushSync();
+                    flush();
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }
@@ -963,7 +963,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         }
 
         if (mSAConfigOptions.mEnableEncrypt) {
-            mSensorsDataEncrypt = new SensorsDataEncrypt(mContext, mSAConfigOptions.mPersistentSecretKey);
+            mSensorsDataEncrypt = new SensorsDataEncrypt(mContext, mSAConfigOptions.mPersistentSecretKey, mSAConfigOptions.mEncryptListeners);
         }
 
         DbAdapter.getInstance(mContext, packageName, mSensorsDataEncrypt);

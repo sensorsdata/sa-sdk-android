@@ -25,6 +25,7 @@ import android.util.Patterns;
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.encrypt.SecreteKey;
 import com.sensorsdata.analytics.android.sdk.encrypt.SensorsDataEncrypt;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
@@ -71,7 +72,7 @@ public abstract class BaseSensorsDataSDKRemoteManager {
 
     protected abstract void setSDKRemoteConfig(SensorsDataSDKRemoteConfig sdkRemoteConfig);
 
-    public boolean ignoreEvent(String eventName){
+    public boolean ignoreEvent(String eventName) {
         if (mSDKRemoteConfig != null && mSDKRemoteConfig.getEventBlacklist() != null) {
             try {
                 int size = mSDKRemoteConfig.getEventBlacklist().length();
@@ -102,6 +103,7 @@ public abstract class BaseSensorsDataSDKRemoteManager {
                 sdkRemoteConfig.setOldVersion(jsonObject.optString("v"));
 
                 String configs = jsonObject.optString("configs");
+                SecreteKey secreteKey = new SecreteKey("", -1);
                 if (!TextUtils.isEmpty(configs)) {
                     JSONObject configObject = new JSONObject(configs);
                     sdkRemoteConfig.setDisableDebugMode(configObject.optBoolean("disableDebugMode", false));
@@ -119,20 +121,22 @@ public abstract class BaseSensorsDataSDKRemoteManager {
                             }
                         }
 
-                        String publicKey = keyObject.optString("public_key");
+                        secreteKey.key = keyObject.optString("public_key");
+
                         if (keyObject.has("type")) {
-                            publicKey = keyObject.optString("type") + ":" + publicKey;
+                            String type = keyObject.optString("type");
+                            secreteKey.key = type + ":" + secreteKey.key;
+                            secreteKey.asymmetricEncryptType = type;
                         }
-                        sdkRemoteConfig.setPublicKey(publicKey);
-                        sdkRemoteConfig.setPkv(keyObject.optInt("pkv"));
+                        secreteKey.version = keyObject.optInt("pkv");
+                        sdkRemoteConfig.setSecretKey(secreteKey);
                     }
                 } else {
                     //默认配置
                     sdkRemoteConfig.setDisableDebugMode(false);
                     sdkRemoteConfig.setDisableSDK(false);
                     sdkRemoteConfig.setAutoTrackMode(-1);
-                    sdkRemoteConfig.setPublicKey("");
-                    sdkRemoteConfig.setPkv(-1);
+                    sdkRemoteConfig.setSecretKey(secreteKey);
                     sdkRemoteConfig.setEventBlacklist(new JSONArray());
                     sdkRemoteConfig.setNewVersion("");
                     sdkRemoteConfig.setEffectMode(0);

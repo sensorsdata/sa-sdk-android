@@ -27,13 +27,41 @@ public class SecreteKey {
      */
     public int version;
 
+    /**
+     * 对称加密类型
+     */
+    public String symmetricEncryptType;
+
+    /**
+     * 非对称加密类型
+     */
+    public String asymmetricEncryptType;
+
     public SecreteKey(String secretKey, int secretVersion) {
         this.key = secretKey;
         this.version = secretVersion;
+        this.symmetricEncryptType = "AES";
+        this.asymmetricEncryptType = "RSA";
+        if(!secretKey.isEmpty()){
+            if(secretKey.startsWith("EC:")) {
+                this.asymmetricEncryptType = "EC";
+            }
+        }
+    }
+
+    SecreteKey(String secretKey, int secretVersion, String symmetricEncryptType, String asymmetricEncryptType) {
+        this.key = secretKey;
+        this.version = secretVersion;
+        this.symmetricEncryptType = symmetricEncryptType;
+        this.asymmetricEncryptType = asymmetricEncryptType;
     }
 
     @Override
     public String toString() {
-        return "{\"key\":\"" + key + "\",\"version\":" + version + "}";
+        return "{\"key\":\"" + key +
+                "\",\"version\":\"" + version +
+                "\",\"symmetricEncryptType\":\"" + symmetricEncryptType +
+                "\",\"asymmetricEncryptType\":\"" + asymmetricEncryptType + "\"}";
+
     }
 }

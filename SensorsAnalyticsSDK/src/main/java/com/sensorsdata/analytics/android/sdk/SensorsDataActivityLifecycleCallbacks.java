@@ -280,7 +280,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                             long eventTime = bundle.getLong(TIME);
                             properties.put("event_time", eventTime > 0 ? eventTime : System.currentTimeMillis());
                             mSensorsDataInstance.trackAutoEvent("$AppStart", properties);
-                            SensorsDataAPI.sharedInstance().flushSync();
+                            SensorsDataAPI.sharedInstance().flush();
                         }
                     } catch (Exception e) {
                         SALog.i(TAG, e);
@@ -339,7 +339,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
              */
             if (mStartActivityCount <= 0) {
                 // 主动 flush 数据
-                mSensorsDataInstance.flushSync();
+                mSensorsDataInstance.flush();
                 Bundle bundle = message.getData();
                 generateAppEndData(bundle.getLong(TIME), bundle.getLong(ELAPSE_TIME));
                 mHandler.sendMessageDelayed(obtainAppEndMessage(true), mSensorsDataInstance.mSessionTime);
@@ -372,7 +372,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                 ChannelUtils.mergeUtmToEndData(endDataJsonObject, properties);
                 mSensorsDataInstance.trackAutoEvent("$AppEnd", properties);
                 mDbAdapter.commitAppEndData(""); // 保存的信息只使用一次就置空，防止后面状态错乱再次发送。
-                mSensorsDataInstance.flushSync();
+                mSensorsDataInstance.flush();
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);

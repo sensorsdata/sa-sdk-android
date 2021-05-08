@@ -74,7 +74,7 @@ public class SensorsDataRemoteManagerDebug extends BaseSensorsDataSDKRemoteManag
             String remoteConfigString = remoteConfigJson.toString();
             eventProperties.put("$app_remote_config", remoteConfigString);
             SensorsDataAPI.sharedInstance().trackInternal("$AppRemoteConfigChanged", eventProperties);
-            SensorsDataAPI.sharedInstance().flushSync();
+            SensorsDataAPI.sharedInstance().flush();
             mSDKRemoteConfig = sdkRemoteConfig;
             SALog.i(TAG, "remote config: The remote configuration takes effect immediately");
         } catch (Exception e) {

@@ -432,8 +432,24 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
         return this;
     }
 
+//    /**
+//     * 注册自定义加密插件
+//     *
+//     * @param encryptListener 自定义加密实现接口
+//     * @return SAConfigOptions
+//     */
+//    public SAConfigOptions registerEncryptor(SAEncryptListener encryptListener) {
+//        if(mEncryptListeners == null){
+//            mEncryptListeners = new ArrayList<>();
+//        }
+//        if(!mEncryptListeners.contains(encryptListener)){
+//            mEncryptListeners.add(0, encryptListener);
+//        }
+//        return this;
+//    }
+
     @Override
-    protected SAConfigOptions clone()  {
+    protected SAConfigOptions clone() {
         SAConfigOptions copyObject = this;
         try {
             copyObject = (SAConfigOptions) super.clone();
