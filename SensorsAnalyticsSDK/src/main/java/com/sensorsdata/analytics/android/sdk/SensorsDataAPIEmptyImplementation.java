@@ -570,6 +570,11 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
+    public void flushSync() {
+
+    }
+
+    @Override
     public void flushScheduled() {
 
     }

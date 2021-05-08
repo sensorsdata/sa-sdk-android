@@ -842,6 +842,11 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     void flush();
 
     /**
+     * 将所有本地缓存的日志发送到 Sensors Analytics.
+     */
+    void flushSync();
+
+    /**
      * 以轮询形式将所有本地缓存的日志发送到 Sensors Analytics.
      */
     void flushScheduled();

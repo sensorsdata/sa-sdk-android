@@ -1854,6 +1854,11 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     }
 
     @Override
+    public void flushSync() {
+        flush();
+    }
+
+    @Override
     public void flushScheduled() {
         try {
             mMessages.flushScheduled();
