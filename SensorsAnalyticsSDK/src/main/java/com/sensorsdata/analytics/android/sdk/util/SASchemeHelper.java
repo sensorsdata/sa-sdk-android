@@ -90,6 +90,7 @@ public class SASchemeHelper {
                         tip = "当前 App 未开启加密，请开启加密后再试";
                     }
                     Toast.makeText(activity, tip, Toast.LENGTH_LONG).show();
+                    SensorsDataDialogUtils.startLaunchActivity(activity);
                     intent.setData(null);
                 } else if ("channeldebug".equals(host)) {
                     if (ChannelUtils.hasUtmByMetaData(activity)) {
@@ -99,6 +100,7 @@ public class SASchemeHelper {
 
                     String monitorId = uri.getQueryParameter("monitor_id");
                     if (TextUtils.isEmpty(monitorId)) {
+                        SensorsDataDialogUtils.startLaunchActivity(activity);
                         return;
                     }
                     String url = SensorsDataAPI.sharedInstance().getServerUrl();
@@ -127,7 +129,12 @@ public class SASchemeHelper {
                     }
                     intent.setData(null);
                 } else if ("abtest".equals(host)) {
-                    ReflectUtil.callStaticMethod(Class.forName("com.sensorsdata.abtest.core.SensorsABTestSchemeHandler"), "handleSchemeUrl", uri.toString());
+                    try {
+                        ReflectUtil.callStaticMethod(Class.forName("com.sensorsdata.abtest.core.SensorsABTestSchemeHandler"), "handleSchemeUrl", uri.toString());
+                    } catch (Exception e) {
+                        SALog.printStackTrace(e);
+                    }
+                    SensorsDataDialogUtils.startLaunchActivity(activity);
                     intent.setData(null);
                 } else if ("sensorsdataremoteconfig".equals(host)) {
                     // 开启日志
@@ -154,6 +161,8 @@ public class SASchemeHelper {
                     if ("pairingCode".equals(service)) {
                         SensorsDataDialogUtils.showPairingCodeInputDialog(activity);
                     }
+                } else {
+                    SensorsDataDialogUtils.startLaunchActivity(activity);
                 }
             }
         } catch (Exception e) {

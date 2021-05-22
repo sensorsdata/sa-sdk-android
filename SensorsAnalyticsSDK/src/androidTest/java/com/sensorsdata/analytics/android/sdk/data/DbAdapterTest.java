@@ -7,6 +7,9 @@ import android.database.Cursor;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
+
 import org.json.JSONObject;
 import org.junit.BeforeClass;
 import org.junit.Test;

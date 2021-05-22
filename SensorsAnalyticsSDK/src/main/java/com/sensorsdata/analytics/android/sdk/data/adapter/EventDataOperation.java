@@ -1,5 +1,5 @@
 /*
- * Created by dengshiwei on 2020/05/19.
+ * Created by dengshiwei on 2021/04/07.
  * Copyright 2015－2021 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.data;
+package com.sensorsdata.analytics.android.sdk.data.adapter;
 
 import android.content.ContentValues;
 import android.content.Context;

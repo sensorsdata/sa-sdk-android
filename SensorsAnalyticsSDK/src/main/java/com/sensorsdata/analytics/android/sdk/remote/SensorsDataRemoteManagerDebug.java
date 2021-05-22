@@ -95,7 +95,7 @@ public class SensorsDataRemoteManagerDebug extends BaseSensorsDataSDKRemoteManag
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             final SensorsDataLoadingDialog loadingDialog = new SensorsDataLoadingDialog(activity);
-                            loadingDialog.show();
+                            SensorsDataDialogUtils.dialogShowDismissOld(loadingDialog);
                             // 发起请求
                             requestRemoteConfig(false, new HttpCallback.StringCallback() {
                                 @Override
@@ -116,7 +116,12 @@ public class SensorsDataRemoteManagerDebug extends BaseSensorsDataSDKRemoteManag
                                             SensorsDataDialogUtils.showDialog(activity, "信息版本不一致", "获取到采集控制信息的版本：" +
                                                             sdkRemoteConfig.getNewVersion() +
                                                             "，二维码信息的版本：" + nv + "，请稍后重新扫描二维码", "确认",
-                                                    null, null, null).show();
+                                                    new DialogInterface.OnClickListener() {
+                                                        @Override
+                                                        public void onClick(DialogInterface dialog, int which) {
+                                                            SensorsDataDialogUtils.startLaunchActivity(activity);
+                                                        }
+                                                    }, null, null);
                                         } else {
                                             SensorsDataDialogUtils.showDialog(activity, "采集控制加载完成，可以通过 Android Studio 控制台日志来调试");
                                             setSDKRemoteConfig(sdkRemoteConfig);
@@ -133,7 +138,12 @@ public class SensorsDataRemoteManagerDebug extends BaseSensorsDataSDKRemoteManag
                                 }
                             });
                         }
-                    }, "取消", null).show();
+                    }, "取消", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            SensorsDataDialogUtils.startLaunchActivity(activity);
+                        }
+                    });
         } else {
             // 没有校验通过
             SensorsDataDialogUtils.showDialog(activity, errorMsg);

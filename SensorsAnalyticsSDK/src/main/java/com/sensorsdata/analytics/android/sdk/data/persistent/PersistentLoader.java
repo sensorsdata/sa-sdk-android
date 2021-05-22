@@ -15,26 +15,13 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.data;
+package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.text.TextUtils;
 
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndData;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppPaused;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppStartTime;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentDistinctId;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallation;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallationWithCallback;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFlushDataState;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentIdentity;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProperties;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentVisualConfig;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 
 import java.util.concurrent.Future;
 

@@ -24,7 +24,7 @@ import android.content.pm.PackageManager;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 
 import org.json.JSONException;

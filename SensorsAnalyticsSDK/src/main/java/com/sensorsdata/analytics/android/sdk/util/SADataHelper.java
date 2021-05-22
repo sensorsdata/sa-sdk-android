@@ -129,6 +129,14 @@ public class SADataHelper {
         }
     }
 
+    public static String assertPropertyLength(String property) {
+        if (property != null && property.length() > 8191) {
+            property = property.substring(0, 8191) + "$";
+            SALog.d(TAG, "The property value is too long. property=" + property);
+        }
+        return property;
+    }
+
     public static JSONObject appendLibMethodAutoTrack(JSONObject jsonObject) {
         if (jsonObject == null) {
             jsonObject = new JSONObject();

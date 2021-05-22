@@ -21,7 +21,7 @@ package com.sensorsdata.analytics.android.sdk;
 import android.os.SystemClock;
 import android.text.TextUtils;
 
-import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 
 import org.json.JSONObject;
 

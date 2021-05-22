@@ -24,8 +24,8 @@ import android.os.Looper;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
-import com.sensorsdata.analytics.android.sdk.data.DbParams;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 
 /**
  * 用于跨进程业务的数据通信

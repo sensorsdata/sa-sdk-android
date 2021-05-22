@@ -63,6 +63,26 @@ public class ReflectUtil {
         return currentClass;
     }
 
+    static boolean isInstance(Object object, String... args) {
+        if (args == null || args.length == 0) {
+            return false;
+        }
+        Class clazz = null;
+        boolean result = false;
+        for (String arg : args) {
+            try {
+                clazz = Class.forName(arg);
+                result = clazz.isInstance(object);
+            } catch (Exception e) {
+                //ignored
+            }
+            if (result) {
+                break;
+            }
+        }
+        return result;
+    }
+
     public static <T> T callMethod(Object instance, String methodName, Object... args) {
         Class[] argsClass = new Class[args.length];
         for (int i = 0; i < args.length; i++) {

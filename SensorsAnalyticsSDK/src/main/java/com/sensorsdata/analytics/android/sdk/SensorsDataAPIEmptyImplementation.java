@@ -725,6 +725,11 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
+    public void setGPSLocation(double latitude, double longitude, String coordinate) {
+
+    }
+
+    @Override
     public void clearGPSLocation() {
 
     }

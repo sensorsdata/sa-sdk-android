@@ -28,36 +28,34 @@ import android.view.WindowManager;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class DeviceUtils {
-    private static final List<String> sManufacturer = new ArrayList<String>() {
-        {
-            add("HUAWEI");
-            add("OPPO");
-            add("vivo");
-        }
-    };
 
     public static String getOS() {
         return Build.VERSION.RELEASE == null ? "UNKNOWN" : Build.VERSION.RELEASE;
     }
 
     public static String getManufacturer() {
-        String manufacturer = Build.MANUFACTURER == null ? "UNKNOWN" : Build.MANUFACTURER.trim();
         try {
-            if (!TextUtils.isEmpty(manufacturer)) {
-                for (String item : sManufacturer) {
-                    if (item.equalsIgnoreCase(manufacturer)) {
-                        return item;
-                    }
-                }
+            String manufacturer = Build.MANUFACTURER;
+            if (manufacturer != null) {
+                return manufacturer.trim().toUpperCase();
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
-        return manufacturer;
+        return "UNKNOWN";
+    }
+
+    public static String getBrand() {
+        try {
+            String brand = Build.BRAND;
+            if (brand != null) {
+                return brand.trim().toUpperCase();
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return "UNKNOWN";
     }
 
     public static String getModel() {

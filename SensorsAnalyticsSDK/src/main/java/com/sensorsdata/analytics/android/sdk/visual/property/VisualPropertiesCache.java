@@ -20,7 +20,7 @@ package com.sensorsdata.analytics.android.sdk.visual.property;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.data.PersistentLoader;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentVisualConfig;
 import com.sensorsdata.analytics.android.sdk.visual.model.VisualConfig;
 

@@ -25,22 +25,6 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.BROWSABLE" />
-                <category android:name="android.intent.category.DEFAULT" />
-
-                <data
-                    android:host="debugmode"
-                    android:scheme="sf20191010nb" />
-                <data
-                    android:host="heatmap"
-                    android:scheme="sf20191010nb" />
-                <data
-                    android:host="visualized"
-                    android:scheme="sf20191010nb" />
-            </intent-filter>
         </activity>
         <activity android:name=".activity.BasePropertyActivity" />
         <activity android:name=".activity.TrackProfileSettingsActivity" />
@@ -75,6 +59,19 @@
         <activity
             android:name=".activity.LambdaTestPageActivity"
             android:theme="@style/AppThemeNoBar" />
+
+        <activity android:name="com.sensorsdata.analytics.android.sdk.dialog.SchemeActivity"
+            android:configChanges="orientation|screenSize"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:scheme="sf20191010nb" />
+            </intent-filter>
+        </activity>
 
         <meta-data
             android:name="com.sensorsdata.analytics.android.EnableLogging"

@@ -20,7 +20,6 @@ package com.sensorsdata.analytics.android.sdk.data.persistent;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import com.sensorsdata.analytics.android.sdk.data.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import java.util.UUID;

@@ -1,5 +1,5 @@
 /*
- * Created by wangzhuozhou on 2019/02/01.
+ * Created by dengshiwei on 2021/04/07.
  * Copyright 2015－2021 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.data;
+package com.sensorsdata.analytics.android.sdk.data.adapter;
 
 import android.net.Uri;
 
@@ -27,21 +27,21 @@ public class DbParams {
     public static final String KEY_CHANNEL_EVENT_NAME = "event_name";
     public static final String KEY_CHANNEL_RESULT = "result";
     /* 数据库名称 */
-    static final String DATABASE_NAME = "sensorsdata";
+    public static final String DATABASE_NAME = "sensorsdata";
     /* 数据库版本号 */
-    static final int DATABASE_VERSION = 5;
-    static final String TABLE_ACTIVITY_START_COUNT = "activity_started_count";
-    static final String TABLE_APP_START_TIME = "app_start_time";
-    static final String TABLE_APP_END_TIME = "app_end_time";
-    static final String TABLE_APP_END_DATA = "app_end_data";
+    public static final int DATABASE_VERSION = 5;
+    public static final String TABLE_ACTIVITY_START_COUNT = "activity_started_count";
+    public static final String TABLE_APP_START_TIME = "app_start_time";
+    public static final String TABLE_APP_END_TIME = "app_end_time";
+    public static final String TABLE_APP_END_DATA = "app_end_data";
     public static final String TABLE_SUB_PROCESS_FLUSH_DATA = "sub_process_flush_data";
     public static final String TABLE_FIRST_PROCESS_START = "first_process_start";
-    static final String TABLE_SESSION_INTERVAL_TIME = "session_interval_time";
-    static final String TABLE_DATA_COLLECT = "data_collect";
-    static final String TABLE_LOGIN_ID = "events_login_id";
+    public static final String TABLE_SESSION_INTERVAL_TIME = "session_interval_time";
+    public static final String TABLE_DATA_COLLECT = "data_collect";
+    public static final String TABLE_LOGIN_ID = "events_login_id";
     /* Event 表字段 */
-    static final String KEY_DATA = "data";
-    static final String KEY_CREATED_AT = "created_at";
+    public static final String KEY_DATA = "data";
+    public static final String KEY_CREATED_AT = "created_at";
     /* 数据库状态 */
     static final int DB_UPDATE_ERROR = -1;
     static final String VALUE = "value";

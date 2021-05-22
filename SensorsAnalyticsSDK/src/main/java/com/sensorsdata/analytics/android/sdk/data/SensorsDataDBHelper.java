@@ -21,6 +21,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 
 class SensorsDataDBHelper extends SQLiteOpenHelper {
     private static final String TAG = "SA.SQLiteOpenHelper";

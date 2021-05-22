@@ -17,6 +17,9 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 public class SensorsDataGPSLocation {
     /**
      * 纬度
@@ -27,6 +30,11 @@ public class SensorsDataGPSLocation {
      * 经度
      */
     private long longitude;
+
+    /**
+     * 坐标系
+     */
+    private String coordinate;
 
     public long getLatitude() {
         return latitude;
@@ -42,5 +50,41 @@ public class SensorsDataGPSLocation {
 
     public void setLongitude(long longitude) {
         this.longitude = longitude;
+    }
+
+    public String getCoordinate() {
+        return coordinate;
+    }
+
+    public void setCoordinate(String coordinate) {
+        this.coordinate = coordinate;
+    }
+
+    public void toJSON(JSONObject jsonObject) {
+        try {
+            jsonObject.put("$latitude", latitude);
+            jsonObject.put("$longitude", longitude);
+            jsonObject.put("$geo_coordinate_system", coordinate);
+        } catch (JSONException e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
+    /**
+     * 坐标系
+     */
+    public final class CoordinateType {
+        /**
+         * 地球坐标系
+         */
+        public static final String WGS84 = "WGS84";
+        /**
+         * 火星坐标系
+         */
+        public static final String GCJ02 = "GCJ02";
+        /**
+         * 百度坐标系
+         */
+        public static final String BD09 = "BD09";
     }
 }

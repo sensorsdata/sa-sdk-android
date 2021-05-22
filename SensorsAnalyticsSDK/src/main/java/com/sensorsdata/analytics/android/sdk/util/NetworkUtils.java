@@ -20,10 +20,12 @@ package com.sensorsdata.analytics.android.sdk.util;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
+import android.net.NetworkRequest;
 import android.os.Build;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -43,6 +45,13 @@ public class NetworkUtils {
     private static final int HTTP_307 = 307;
 
     /**
+     * 缓存的网络状态
+     */
+    private static String networkType;
+
+    private static final String TAG = "SA.NetworkUtils";
+
+    /**
      * 获取网络类型
      *
      * @param context Context
@@ -50,9 +59,14 @@ public class NetworkUtils {
      */
     public static String networkType(Context context) {
         try {
+            if (!TextUtils.isEmpty(networkType)) {
+                return networkType;
+            }
+
             // 检测权限
             if (!SensorsDataUtils.checkHasPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
-                return "NULL";
+                networkType = "NULL";
+                return networkType;
             }
 
             ConnectivityManager connectivityManager = (ConnectivityManager)
@@ -60,19 +74,23 @@ public class NetworkUtils {
             if (connectivityManager != null) {
                 // 网络不可用返回 NULL
                 if (!isNetworkAvailable(connectivityManager)) {
-                    return "NULL";
+                    networkType = "NULL";
+                    return networkType;
                 }
                 // WIFI 网络
                 if (isWiFiNetwork(connectivityManager)) {
-                    return "WIFI";
+                    networkType = "WIFI";
+                    return networkType;
                 }
             }
             //读取移动网络类型
             TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-            return mobileNetworkType(context, telephonyManager, connectivityManager);
+            networkType = mobileNetworkType(context, telephonyManager, connectivityManager);
+            return networkType;
         } catch (Exception e) {
             SALog.printStackTrace(e);
-            return "NULL";
+            networkType = "NULL";
+            return networkType;
         }
     }
 
@@ -161,6 +179,34 @@ public class NetworkUtils {
                     + originUrl.getHost() + location;
         }
         return location;
+    }
+
+
+    public static void registerNetworkListener(Context context) {
+        try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+                SensorsDataNetworkListener.SABroadcastReceiver mReceiver = new SensorsDataNetworkListener.SABroadcastReceiver();
+                IntentFilter intentFilter = new IntentFilter();
+                intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+                context.registerReceiver(mReceiver, intentFilter);
+                SALog.i(TAG, "Register BroadcastReceiver");
+            } else {
+                SensorsDataNetworkListener.SANetworkCallbackImpl networkCallback = new SensorsDataNetworkListener.SANetworkCallbackImpl();
+                NetworkRequest request = new NetworkRequest.Builder().build();
+                ConnectivityManager connectivityManager = (ConnectivityManager) context
+                        .getSystemService(Context.CONNECTIVITY_SERVICE);
+                if (connectivityManager != null) {
+                    connectivityManager.registerNetworkCallback(request, networkCallback);
+                    SALog.i(TAG, "Register ConnectivityManager");
+                }
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
+    public static void cleanNetworkTypeCache() {
+        networkType = null;
     }
 
     /**

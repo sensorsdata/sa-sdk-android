@@ -29,6 +29,8 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.rule.provider.ProviderTestRule;
 
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
+
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;

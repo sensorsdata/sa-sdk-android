@@ -22,6 +22,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 

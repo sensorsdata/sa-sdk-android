@@ -65,6 +65,73 @@ public class ViewUtil {
     private static LruCache<Class, String> sClassNameCache;
     private static SparseArray sViewCache;
 
+    private static boolean instanceOfSupportSwipeRefreshLayout(Object view) {
+        return ReflectUtil.isInstance(view, "android.support.v4.widget.SwipeRefreshLayout", "androidx.swiperefreshlayout.widget.SwipeRefreshLayout");
+    }
+
+    static boolean instanceOfSupportListMenuItemView(Object view) {
+        return ReflectUtil.isInstance(view, "android.support.v7.view.menu.ListMenuItemView");
+    }
+
+    static boolean instanceOfAndroidXListMenuItemView(Object view) {
+        return ReflectUtil.isInstance(view, "androidx.appcompat.view.menu.ListMenuItemView");
+    }
+
+    static boolean instanceOfBottomNavigationItemView(Object view) {
+        return ReflectUtil.isInstance(view, "com.google.android.material.bottomnavigation.BottomNavigationItemView", "android.support.design.internal.NavigationMenuItemView");
+    }
+
+    static boolean instanceOfActionMenuItem(Object view) {
+        return ReflectUtil.isInstance(view, "androidx.appcompat.view.menu.ActionMenuItem");
+    }
+
+    static boolean instanceOfToolbar(Object view) {
+        return ReflectUtil.isInstance(view, "androidx.appcompat.widget.Toolbar", "android.support.v7.widget.Toolbar", "android.widget.Toolbar");
+    }
+
+    private static boolean instanceOfNavigationView(Object view) {
+        return ReflectUtil.isInstance(view, "android.support.design.widget.NavigationView", "com.google.android.material.navigation.NavigationView");
+    }
+
+    private static boolean instanceOfSupportViewPager(Object view) {
+        return ReflectUtil.isInstance(view, "android.support.v4.view.ViewPager");
+    }
+
+    private static boolean instanceOfAndroidXViewPager(Object view) {
+        return ReflectUtil.isInstance(view, "androidx.viewpager.widget.ViewPager");
+    }
+
+    public static boolean instanceOfWebView(Object view) {
+        return view instanceof WebView || instanceOfX5WebView(view) || instanceOfUCWebView(view);
+    }
+
+    public static boolean instanceOfX5WebView(Object view) {
+        return ReflectUtil.isInstance(view, "com.tencent.smtt.sdk.WebView");
+    }
+
+    private static boolean instanceOfUCWebView(Object view) {
+        return ReflectUtil.isInstance(view, "com.alipay.mobile.nebulauc.impl.UCWebView$WebViewEx");
+    }
+
+    public static boolean instanceOfRecyclerView(Object view) {
+        boolean result = ReflectUtil.isInstance(view, "android.support.v7.widget.RecyclerView", "androidx.recyclerview.widget.RecyclerView");
+        if (!result) {
+            result = sHaveCustomRecyclerView && view != null && sRecyclerViewClass != null && sRecyclerViewClass.isAssignableFrom(view.getClass());
+        }
+        return result;
+    }
+
+    private static Object instanceOfTabView(View tabView) {
+        try {
+            Class<?> currentTabViewClass = ReflectUtil.getCurrentClass(new String[]{"android.support.design.widget.TabLayout$TabView", "com.google.android.material.tabs.TabLayout$TabView"});
+            if (currentTabViewClass != null && currentTabViewClass.isAssignableFrom(tabView.getClass())) {
+                return ReflectUtil.findField(currentTabViewClass, tabView, "mTab", "tab");
+            }
+        } catch (Exception e) {
+        }
+        return null;
+    }
+
     /**
      * 获取 class name
      */
@@ -91,133 +158,6 @@ public class ViewUtil {
         return name;
     }
 
-    private static boolean instanceOfSupportViewPager(Object view) {
-        Class clazz;
-        try {
-            clazz = Class.forName("android.support.v4.view.ViewPager");
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-        return clazz.isInstance(view);
-    }
-
-    private static boolean instanceOfAndroidXViewPager(Object view) {
-        Class clazz;
-        try {
-            clazz = Class.forName("androidx.viewpager.widget.ViewPager");
-        } catch (ClassNotFoundException e2) {
-            return false;
-        }
-        return clazz.isInstance(view);
-    }
-
-    public static boolean instanceOfRecyclerView(Object view) {
-        Class clazz;
-        try {
-            clazz = Class.forName("android.support.v7.widget.RecyclerView");
-        } catch (ClassNotFoundException th) {
-            try {
-                clazz = Class.forName("androidx.recyclerview.widget.RecyclerView");
-            } catch (ClassNotFoundException e2) {
-                return sHaveCustomRecyclerView
-                        && view != null
-                        && sRecyclerViewClass != null
-                        && sRecyclerViewClass.isAssignableFrom(view.getClass());
-            }
-        }
-        return clazz.isInstance(view);
-    }
-
-    private static boolean instanceOfSupportSwipeRefreshLayout(Object view) {
-        Class clazz;
-        try {
-            clazz = Class.forName("android.support.v4.widget.SwipeRefreshLayout");
-        } catch (ClassNotFoundException th) {
-            try {
-                clazz = Class.forName("androidx.swiperefreshlayout.widget.SwipeRefreshLayout");
-            } catch (ClassNotFoundException e2) {
-                return false;
-            }
-        }
-        return clazz.isInstance(view);
-    }
-
-    static boolean instanceOfSupportListMenuItemView(Object view) {
-        Class clazz = null;
-        try {
-            clazz = Class.forName("android.support.v7.view.menu.ListMenuItemView");
-            return clazz.isInstance(view);
-        } catch (ClassNotFoundException th) {
-            //ignored
-        }
-        return false;
-    }
-
-    static boolean instanceOfAndroidXListMenuItemView(Object view) {
-        Class clazz = null;
-        try {
-            clazz = Class.forName("androidx.appcompat.view.menu.ListMenuItemView");
-            return clazz.isInstance(view);
-        } catch (ClassNotFoundException th) {
-            //ignored
-        }
-        return false;
-    }
-
-    static boolean instanceOfBottomNavigationItemView(Object view) {
-        Class clazz = null;
-        try {
-            clazz = Class.forName("com.google.android.material.bottomnavigation.BottomNavigationItemView");
-            return clazz.isInstance(view);
-        } catch (ClassNotFoundException e) {
-            //ignored
-        }
-        return false;
-    }
-
-    static boolean instanceOfActionMenuItem(Object view) {
-        Class clazz = null;
-        try {
-            clazz = Class.forName("androidx.appcompat.view.menu.ActionMenuItem");
-            return clazz.isInstance(view);
-        } catch (ClassNotFoundException e) {
-            //ignored
-        }
-        return false;
-    }
-
-    static boolean instanceOfToolbar(Object view) {
-        Class clazz = null;
-        try {
-            clazz = Class.forName("androidx.appcompat.widget.Toolbar");
-        } catch (ClassNotFoundException e) {
-            try {
-                clazz = Class.forName("android.support.v7.widget.Toolbar");
-            } catch (ClassNotFoundException e2) {
-                try {
-                    clazz = Class.forName("android.widget.Toolbar");
-                } catch (ClassNotFoundException e3) {
-                    return false;
-                }
-            }
-        }
-        return clazz.isInstance(view);
-    }
-
-    private static boolean instanceOfNavigationView(Object view) {
-        Class clazz = null;
-        try {
-            clazz = Class.forName("android.support.design.widget.NavigationView");
-        } catch (ClassNotFoundException th) {
-            try {
-                clazz = Class.forName("com.google.android.material.navigation.NavigationView");
-            } catch (ClassNotFoundException e2) {
-                return false;
-            }
-        }
-        return clazz.isInstance(view);
-    }
-
     /**
      * view 是否为 Fragment 中的顶层 View
      */
@@ -228,30 +168,6 @@ public class ViewUtil {
             return childFragment;
         }
         return null;
-    }
-
-    public static boolean instanceOfWebView(Object view) {
-        return view instanceof WebView || instanceOfX5WebView(view) || instanceOfUCWebView(view);
-    }
-
-    private static boolean instanceOfX5WebView(Object view) {
-        try {
-            Class<?> clazz = Class.forName("com.tencent.smtt.sdk.WebView");
-            return clazz.isInstance(view);
-        } catch (ClassNotFoundException th) {
-            //ignored
-        }
-        return false;
-    }
-
-    private static boolean instanceOfUCWebView(Object view) {
-        try {
-            Class<?> clazz = Class.forName("com.alipay.mobile.nebulauc.impl.UCWebView$WebViewEx");
-            return clazz.isInstance(view);
-        } catch (ClassNotFoundException th) {
-            //ignored
-        }
-        return false;
     }
 
     /**
@@ -806,16 +722,6 @@ public class ViewUtil {
         return new ViewNode(viewText.toString(), viewType);
     }
 
-    private static Object instanceOfTabView(View tabView) {
-        try {
-            Class<?> currentTabViewClass = ReflectUtil.getCurrentClass(new String[]{"android.support.design.widget.TabLayout$TabView", "com.google.android.material.tabs.TabLayout$TabView"});
-            if (currentTabViewClass != null && currentTabViewClass.isAssignableFrom(tabView.getClass())) {
-                return ReflectUtil.findField(currentTabViewClass, tabView, new String[]{"mTab", "tab"});
-            }
-        } catch (Exception e) {
-        }
-        return null;
-    }
 
     private static String getTabLayoutContent(Object tab) {
         String viewText = null;

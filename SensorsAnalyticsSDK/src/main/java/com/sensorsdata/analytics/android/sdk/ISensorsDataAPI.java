@@ -104,7 +104,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     void enableNetworkRequest(boolean isRequest);
 
     /**
-     * 设置 flush 时网络发送策略，默认 3G、4G、WI-FI 环境下都会尝试 flush
+     * 设置 flush 时网络发送策略，默认 3G、4G、5G、WI-FI 环境下都会尝试 flush
      *
      * @param networkType int 网络类型
      */
@@ -1000,6 +1000,15 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * @param longitude 经度
      */
     void setGPSLocation(double latitude, double longitude);
+
+    /**
+     * 更新 GPS 位置信息及对应坐标系
+     *
+     * @param latitude   纬度
+     * @param longitude  经度
+     * @param coordinate 坐标系，坐标系类型请参照 {@link SensorsDataGPSLocation.CoordinateType}
+     */
+    void setGPSLocation(double latitude, double longitude, final String coordinate);
 
     /**
      * 清除 GPS 位置信息

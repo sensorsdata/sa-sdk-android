@@ -32,10 +32,11 @@ import android.os.Message;
 import android.os.SystemClock;
 import android.text.TextUtils;
 
-import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
 import com.sensorsdata.analytics.android.sdk.deeplink.DeepLinkManager;
+import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
@@ -116,16 +117,20 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
     @Override
     public void onActivityCreated(Activity activity, Bundle bundle) {
-        SensorsDataUtils.handleSchemeUrl(activity, activity.getIntent());
+        if (!SensorsDataDialogUtils.isSchemeActivity(activity)) {
+            SensorsDataUtils.handleSchemeUrl(activity, activity.getIntent());
+        }
     }
 
     @Override
     public void onActivityStarted(Activity activity) {
-        if (mStartActivityCount == 0) {
-            // 第一个页面进行页面信息解析
-            buildScreenProperties(activity);
+        if (!SensorsDataDialogUtils.isSchemeActivity(activity)) {
+            if (mStartActivityCount == 0) {
+                // 第一个页面进行页面信息解析
+                buildScreenProperties(activity);
+            }
+            sendActivityHandleMessage(MESSAGE_CODE_START);
         }
-        sendActivityHandleMessage(MESSAGE_CODE_START);
     }
 
     @Override
@@ -160,7 +165,9 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
 
     @Override
     public void onActivityStopped(Activity activity) {
-        sendActivityHandleMessage(MESSAGE_CODE_STOP);
+        if (!SensorsDataDialogUtils.isSchemeActivity(activity)) {
+            sendActivityHandleMessage(MESSAGE_CODE_STOP);
+        }
     }
 
     @Override

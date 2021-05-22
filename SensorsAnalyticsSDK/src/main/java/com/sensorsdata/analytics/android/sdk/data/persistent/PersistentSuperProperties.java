@@ -20,7 +20,6 @@ package com.sensorsdata.analytics.android.sdk.data.persistent;
 import android.content.SharedPreferences;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.data.PersistentLoader;
 
 import org.json.JSONException;
 import org.json.JSONObject;

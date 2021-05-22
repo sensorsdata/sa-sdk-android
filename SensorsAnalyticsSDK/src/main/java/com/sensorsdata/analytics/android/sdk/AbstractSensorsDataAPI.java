@@ -31,9 +31,9 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.Toast;
 
-import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
-import com.sensorsdata.analytics.android.sdk.data.DbParams;
-import com.sensorsdata.analytics.android.sdk.data.PersistentLoader;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentDistinctId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
@@ -203,6 +203,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             }
 
             registerObserver();
+            NetworkUtils.registerNetworkListener(mContext);
             SALog.i(TAG, String.format(Locale.CHINA, "Initialized the instance of Sensors Analytics SDK with server"
                     + " url '%s', flush interval %d ms, debugMode: %s", mServerUrl, mSAConfigOptions.mFlushInterval, debugMode));
             if (mSAConfigOptions.isDataCollectEnable) {
@@ -685,8 +686,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                     // GPS
                     try {
                         if (mGPSLocation != null) {
-                            sendProperties.put("$latitude", mGPSLocation.getLatitude());
-                            sendProperties.put("$longitude", mGPSLocation.getLongitude());
+                            mGPSLocation.toJSON(sendProperties);
                         }
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
@@ -1112,6 +1112,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         deviceInfo.put("$os_version", DeviceUtils.getOS());
         deviceInfo.put("$manufacturer", DeviceUtils.getManufacturer());
         deviceInfo.put("$model", DeviceUtils.getModel());
+        deviceInfo.put("$brand", DeviceUtils.getBrand());
         deviceInfo.put("$app_version", AppInfoUtils.getAppVersionName(mContext));
         int[] size = DeviceUtils.getDeviceSize(mContext);
         deviceInfo.put("$screen_width", size[0]);

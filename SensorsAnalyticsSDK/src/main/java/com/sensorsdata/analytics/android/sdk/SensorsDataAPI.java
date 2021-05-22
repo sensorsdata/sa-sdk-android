@@ -28,9 +28,10 @@ import android.view.View;
 import android.view.Window;
 import android.webkit.WebView;
 
-import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
-import com.sensorsdata.analytics.android.sdk.data.DbParams;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
+import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
@@ -61,6 +62,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
 import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertKey;
+import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertPropertyLength;
 import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertPropertyTypes;
 import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertValue;
 
@@ -223,6 +225,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             properties.put("$lib_version", VERSION);
             properties.put("$manufacturer", mDeviceInfo.get("$manufacturer"));
             properties.put("$model", mDeviceInfo.get("$model"));
+            properties.put("$brand", mDeviceInfo.get("$brand"));
             properties.put("$os", "Android");
             properties.put("$os_version", mDeviceInfo.get("$os_version"));
             properties.put("$screen_height", mDeviceInfo.get("$screen_height"));
@@ -314,22 +317,45 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     }
 
     @Override
-    public void setGPSLocation(double latitude, double longitude) {
-        try {
-            if (mGPSLocation == null) {
-                mGPSLocation = new SensorsDataGPSLocation();
-            }
+    public void setGPSLocation(final double latitude, final double longitude) {
+        setGPSLocation(latitude, longitude, null);
+    }
 
-            mGPSLocation.setLatitude((long) (latitude * Math.pow(10, 6)));
-            mGPSLocation.setLongitude((long) (longitude * Math.pow(10, 6)));
+    @Override
+    public void setGPSLocation(final double latitude, final double longitude, final String coordinate) {
+        try {
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (mGPSLocation == null) {
+                            mGPSLocation = new SensorsDataGPSLocation();
+                        }
+                        mGPSLocation.setLatitude((long) (latitude * Math.pow(10, 6)));
+                        mGPSLocation.setLongitude((long) (longitude * Math.pow(10, 6)));
+                        mGPSLocation.setCoordinate(assertPropertyLength(coordinate));
+                    } catch (Exception e) {
+                        SALog.printStackTrace(e);
+                    }
+                }
+            });
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
     @Override
     public void clearGPSLocation() {
-        mGPSLocation = null;
+        try {
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
+                    mGPSLocation = null;
+                }
+            });
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override
@@ -1421,6 +1447,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         trackAppInstall(null, false);
     }
 
+    @Override
     void trackChannelDebugInstallation() {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
@@ -2327,6 +2354,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
      *
      * @return ServerUrl
      */
+    @Override
     public String getServerUrl() {
         return mServerUrl;
     }

@@ -54,10 +54,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public final class SensorsDataUtils {
 
@@ -66,6 +68,8 @@ public final class SensorsDataUtils {
     private static final String SHARED_PREF_DEVICE_ID_KEY = "sensorsdata.device.id";
     private static final String SHARED_PREF_USER_AGENT_KEY = "sensorsdata.user.agent";
     private static final String SHARED_PREF_APP_VERSION = "sensorsdata.app.version";
+    private static final Map<String, String> deviceUniqueIdentifiersMap = new HashMap<>();
+    private static final Set<String> mPermissionGrantedSet = new HashSet<>();
     private static final Map<String, String> sCarrierMap = new HashMap<String, String>() {
         {
             //中国移动
@@ -466,6 +470,9 @@ public final class SensorsDataUtils {
      */
     public static boolean checkHasPermission(Context context, String permission) {
         try {
+            if (mPermissionGrantedSet.contains(permission)) {
+                return true;
+            }
             Class<?> contextCompat = null;
             try {
                 contextCompat = Class.forName("android.support.v4.content.ContextCompat");
@@ -482,6 +489,7 @@ public final class SensorsDataUtils {
             }
 
             if (contextCompat == null) {
+                mPermissionGrantedSet.add(permission);
                 return true;
             }
 
@@ -492,7 +500,7 @@ public final class SensorsDataUtils {
                         + "<uses-permission android:name=\"" + permission + "\" />");
                 return false;
             }
-
+            mPermissionGrantedSet.add(permission);
             return true;
         } catch (Exception e) {
             SALog.i(TAG, e.toString());
@@ -512,22 +520,22 @@ public final class SensorsDataUtils {
     public static String getIMEI(Context context) {
         String imei = "";
         try {
-            if (!hasReadPhoneStatePermission(context)) {
-                return imei;
+            if (deviceUniqueIdentifiersMap.containsKey("IMEI")) {
+                imei = deviceUniqueIdentifiersMap.get("IMEI");
             }
-
-            TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-            if (tm != null) {
-                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-                    if (tm.hasCarrierPrivileges()) {
+            if (TextUtils.isEmpty(imei) && hasReadPhoneStatePermission(context)) {
+                TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+                if (tm != null) {
+                    if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+                        if (tm.hasCarrierPrivileges()) {
+                            imei = tm.getImei();
+                        }
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         imei = tm.getImei();
                     } else {
-                        SALog.d(TAG, "Can not get IMEI info.");
+                        imei = tm.getDeviceId();
                     }
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    imei = tm.getImei();
-                } else {
-                    imei = tm.getDeviceId();
+                    deviceUniqueIdentifiersMap.put("IMEI", imei);
                 }
             }
         } catch (Exception e) {
@@ -578,18 +586,21 @@ public final class SensorsDataUtils {
     private static String getDeviceID(Context context, int number) {
         String deviceId = "";
         try {
-            if (!hasReadPhoneStatePermission(context)) {
-                return deviceId;
+            String deviceIDKey = "deviceID" + number;
+            if (deviceUniqueIdentifiersMap.containsKey(deviceIDKey)) {
+                deviceId = deviceUniqueIdentifiersMap.get(deviceIDKey);
             }
-
-            TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-            if (tm != null) {
-                if (number == -1) {
-                    deviceId = tm.getDeviceId();
-                } else if (number == -2 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    deviceId = tm.getMeid();
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    deviceId = tm.getDeviceId(number);
+            if (TextUtils.isEmpty(deviceId) && hasReadPhoneStatePermission(context)) {
+                TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+                if (tm != null) {
+                    if (number == -1) {
+                        deviceId = tm.getDeviceId();
+                    } else if (number == -2 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        deviceId = tm.getMeid();
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        deviceId = tm.getDeviceId(number);
+                    }
+                    deviceUniqueIdentifiersMap.put(deviceIDKey, deviceId);
                 }
             }
         } catch (Exception e) {
@@ -668,40 +679,31 @@ public final class SensorsDataUtils {
      */
     @SuppressLint("HardwareIds")
     public static String getMacAddress(Context context) {
+        String macAddress = "";
         try {
-            if (!checkHasPermission(context, Manifest.permission.ACCESS_WIFI_STATE)) {
-                return "";
+            if (deviceUniqueIdentifiersMap.containsKey("macAddress")) {
+                macAddress = deviceUniqueIdentifiersMap.get("macAddress");
             }
-
-            WifiManager wifiMan = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-            if (wifiMan == null) {
-                return "";
-            }
-
-            WifiInfo wifiInfo = wifiMan.getConnectionInfo();
-
-            if (wifiInfo != null && marshmallowMacAddress.equals(wifiInfo.getMacAddress())) {
-                String result;
-                try {
-                    result = getMacAddressByInterface();
-                    if (result != null) {
-                        return result;
+            if (TextUtils.isEmpty(macAddress) && checkHasPermission(context, Manifest.permission.ACCESS_WIFI_STATE)) {
+                WifiManager wifiMan = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                if (wifiMan != null) {
+                    WifiInfo wifiInfo = wifiMan.getConnectionInfo();
+                    if (wifiInfo != null && wifiInfo.getMacAddress() != null) {
+                        macAddress = wifiInfo.getMacAddress();
+                        if (marshmallowMacAddress.equals(macAddress)) {
+                            macAddress = getMacAddressByInterface();
+                            if (macAddress == null) {
+                                macAddress = marshmallowMacAddress;
+                            }
+                        }
+                        deviceUniqueIdentifiersMap.put("macAddress", macAddress);
                     }
-                } catch (Exception e) {
-                    //ignore
-                }
-            } else {
-                if (wifiInfo != null && wifiInfo.getMacAddress() != null) {
-                    return wifiInfo.getMacAddress();
-                } else {
-                    return "";
                 }
             }
-            return marshmallowMacAddress;
         } catch (Exception e) {
-            //ignore
+            SALog.printStackTrace(e);
         }
-        return "";
+        return macAddress;
     }
 
     public static boolean isValidAndroidId(String androidId) {

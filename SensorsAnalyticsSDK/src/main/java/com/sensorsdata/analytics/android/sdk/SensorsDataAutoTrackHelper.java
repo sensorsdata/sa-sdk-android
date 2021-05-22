@@ -55,7 +55,6 @@ import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
 import com.sensorsdata.analytics.android.sdk.visual.WebViewVisualInterface;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
-import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 import com.sensorsdata.analytics.android.sdk.visual.util.VisualUtil;
 
 import org.json.JSONException;
@@ -1626,7 +1625,12 @@ public class SensorsDataAutoTrackHelper {
                         SensorsDataAPI.sharedInstance().trackChannelDebugInstallation();
                         showChannelDebugActiveDialog(activity);
                     }
-                }, "取消", null).show();
+                }, "取消", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        SensorsDataDialogUtils.startLaunchActivity(activity);
+                    }
+                });
     }
 
     public static void loadUrl(View webView, String url) {

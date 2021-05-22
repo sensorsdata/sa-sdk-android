@@ -27,8 +27,8 @@ import android.os.Message;
 import android.text.TextUtils;
 import android.widget.Toast;
 
-import com.sensorsdata.analytics.android.sdk.data.DbAdapter;
-import com.sensorsdata.analytics.android.sdk.data.DbParams;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.exceptions.ConnectErrorException;
 import com.sensorsdata.analytics.android.sdk.exceptions.DebugModeException;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
@@ -349,6 +349,10 @@ class AnalyticsMessages {
             connection.setFixedLengthStreamingMode(query.getBytes(CHARSET_UTF8).length);
             connection.setDoOutput(true);
             connection.setRequestMethod("POST");
+            //设置连接超时时间
+            connection.setConnectTimeout(30 * 1000);
+            //设置读取超时时间
+            connection.setReadTimeout(30 * 1000);
             out = connection.getOutputStream();
             bout = new BufferedOutputStream(out);
             bout.write(query.getBytes(CHARSET_UTF8));

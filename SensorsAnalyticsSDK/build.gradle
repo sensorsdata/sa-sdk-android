@@ -1,9 +1,9 @@
 apply plugin: 'com.android.library'
 
-apply plugin: 'com.github.dcendents.android-maven'
-apply plugin: 'com.jfrog.bintray'
+apply plugin: 'signing'
+apply plugin: 'maven-publish'
 
-version = "5.2.1"
+version = "5.2.2"
 def min_plugin_version = "3.0.0"
 
 android {
@@ -85,45 +85,7 @@ dependencies {
 
 }
 
-def siteUrl = 'https://github.com/sensorsdata/sa-sdk-android'
-def gitUrl = 'https://github.com/sensorsdata/sa-sdk-android.git'
-group = "com.sensorsdata.analytics.android"
-project.archivesBaseName = "SensorsAnalyticsSDK"
-
-install {
-    repositories.mavenInstaller {
-        // generates POM.xml with proper parameters
-        pom {
-            project {
-                packaging 'aar'
-                name 'The official Android SDK for Sensors Analytics.'
-                description 'The official Android SDK for Sensors Analytics.'
-                url siteUrl
-                // Set your license
-                licenses {
-                    license {
-                        name 'The Apache Software License, Version 2.0'
-                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    }
-                }
-                developers {
-                    developer {
-                        id 'zouyuhan'
-                        name 'Yuhan ZOU'
-                        email 'zouyuhan@sensorsdata.cn'
-                    }
-                }
-                scm {
-                    connection gitUrl
-                    developerConnection gitUrl
-                    url siteUrl
-                }
-            }
-        }
-    }
-}
-
-task sourcesJar(type: Jar) {
+task sourceJar(type: Jar) {
     from android.sourceSets.main.java.srcDirs
     classifier = 'sources'
 }
@@ -147,54 +109,59 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
     from javadoc.destinationDir
 }
 
-task makeJar(type: Copy) {
-    def jarName = 'SensorsAnalytics-Android-SDK-Release-' + version + '.jar'
-    delete 'build/libs/' + jarName
-    from('build/intermediates/packaged-classes/release/')
-    into('build/libs/')
-    include('classes.jar')
-    rename('classes.jar', jarName)
-}
-
-makeJar.dependsOn(build)
-
-artifacts {
-    archives javadocJar
-    archives sourcesJar
-}
-
-Properties properties = new Properties()
-properties.load(project.rootProject.file('local.properties').newDataInputStream())
-bintray {
-    user = properties.getProperty("bintray.user")
-    key = properties.getProperty("bintray.apikey")
-
-    def mavenUser = properties.getProperty("maven.user")
-    def mavenPassword = properties.getProperty("maven.password")
-
-    configurations = ['archives']
-    pkg {
-        repo = "maven"
-        name = "SensorsAnalyticsSDK"
-        desc = 'The official Android SDK for Sensors Analytics.'
-        websiteUrl = siteUrl
-        vcsUrl = gitUrl
-        licenses = ["Apache-2.0"]
-        labels = ['android']
-        publish = true
-        publicDownloadNumbers = true
-        version {
-
-            mavenCentralSync {
-                sync = true
-                //Optional (true by default). Determines whether to sync the version to Maven Central.
-                user = mavenUser //OSS user token
-                password = mavenPassword //OSS user password
-                close = '1'
-                //Optional property. By default the staging repository is closed and artifacts are released to Maven Central.
-                // You can optionally turn this behaviour off (by putting 0 as value) and release the version manually.
+publishing {
+    publications {
+        mavenAndroid(MavenPublication) {
+            groupId = 'com.sensorsdata.analytics.android'
+            artifactId = 'SensorsAnalyticsSDK'
+            version = version
+            artifact sourceJar
+            artifact javadocJar
+            artifact('build/outputs/aar/SensorsAnalyticsSDK-release.aar')
+            // 配置 pop 文件格式
+            pom {
+                packaging 'aar'
+                name = 'The official Android SDK for Sensors Analytics.'
+                description = 'The official Android SDK for Sensors Analytics.'
+                url = 'The official Android SDK for Sensors Analytics.'
+                licenses {
+                    license {
+                        name='The Apache Software License, Version 2.0'
+                        url='http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'dengshiwei'
+                        name = 'dengshiwei'
+                        email = 'dengshiwei@sensorsdata.com'
+                    }
+                }
+                scm {
+                    connection = 'https://github.com/sensorsdata/sa-sdk-android'
+                    developerConnection = 'https://github.com/sensorsdata/sa-sdk-android.git'
+                    url = 'https://github.com/sensorsdata/sa-sdk-android'
+                }
             }
         }
-
     }
+    // 配置远程仓库
+    repositories {
+        Properties properties = new Properties()
+        properties.load(project.rootProject.file('local.properties').newDataInputStream())
+        def mavenUser = properties.getProperty("maven.user")
+        def mavenPassword = properties.getProperty("maven.password")
+        maven {
+            url = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+            credentials {
+                username mavenUser
+                password mavenPassword
+            }
+        }
+    }
+}
+
+// 对 mavenAndroid 发布内容进行签名
+signing {
+    sign publishing.publications.mavenAndroid
 }
