@@ -542,11 +542,13 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private boolean isDeepLinkParseSuccess(Activity activity) {
         try {
             Intent intent = activity.getIntent();
-            //判断 deepLink 信息是否已处理过
-            if (!intent.getBooleanExtra(IS_ANALYTICS_DEEPLINK, false)) {
-                if (DeepLinkManager.parseDeepLink(activity, mSensorsDataInstance.isSaveDeepLinkInfo(), mSensorsDataInstance.getDeepLinkCallback())) {
-                    intent.putExtra(IS_ANALYTICS_DEEPLINK, true);
-                    return true;
+            if (intent != null && intent.getData() != null) {
+                //判断 deepLink 信息是否已处理过
+                if (!intent.getBooleanExtra(IS_ANALYTICS_DEEPLINK, false)) {
+                    if (DeepLinkManager.parseDeepLink(activity, mSensorsDataInstance.isSaveDeepLinkInfo(), mSensorsDataInstance.getDeepLinkCallback())) {
+                        intent.putExtra(IS_ANALYTICS_DEEPLINK, true);
+                        return true;
+                    }
                 }
             }
         } catch (Exception ex) {

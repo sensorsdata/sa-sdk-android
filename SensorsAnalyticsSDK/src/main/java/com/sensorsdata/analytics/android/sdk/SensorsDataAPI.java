@@ -31,7 +31,6 @@ import android.webkit.WebView;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
-import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
@@ -1341,7 +1340,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         //只在主进程触发 trackInstallation
         final JSONObject _properties = JSONUtils.makeNewObject(properties);
         addTimeProperty(_properties);
-        transformInstallationTaskQueue(new Runnable() {
+        transformTaskQueue(new Runnable() {
             @Override
             public void run() {
                 if (!mIsMainProcess) {
@@ -1490,7 +1489,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         }
         final JSONObject _properties = JSONUtils.makeNewObject(properties);
         addTimeProperty(_properties);
-        transformInstallationTaskQueue(new Runnable() {
+        transformTaskQueue(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -2282,7 +2281,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public void profilePushId(final String pushTypeKey, final String pushId) {
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
+        transformTaskQueue(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -2308,7 +2307,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public void profileUnsetPushId(final String pushTypeKey) {
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
+        transformTaskQueue(new Runnable() {
             @Override
             public void run() {
                 try {

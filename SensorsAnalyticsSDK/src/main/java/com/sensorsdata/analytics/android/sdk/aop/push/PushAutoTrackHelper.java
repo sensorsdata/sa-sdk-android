@@ -131,17 +131,17 @@ public class PushAutoTrackHelper {
                 if (sfDataProperties != null) {
                     eventProperties.put("$sf_msg_title", title);
                     eventProperties.put("$sf_msg_content", content);
-                    eventProperties.put("$sf_msg_id", sfDataProperties.optString("sf_msg_id", null));
-                    eventProperties.put("$sf_plan_id", sfDataProperties.optString("sf_plan_id", null));
-                    eventProperties.put("$sf_audience_id", sfDataProperties.optString("sf_audience_id", null));
-                    eventProperties.put("$sf_link_url", sfDataProperties.optString("sf_link_url", null));
-                    eventProperties.put("$sf_plan_strategy_id", sfDataProperties.optString("sf_plan_strategy_id", null));
-                    eventProperties.put("$sf_plan_type", sfDataProperties.optString("sf_plan_type", null));
-                    eventProperties.put("$sf_strategy_unit_id", sfDataProperties.optString("sf_strategy_unit_id", null));
-                    eventProperties.put("$sf_enter_plan_time", sfDataProperties.optString("sf_enter_plan_time", null));
-                    eventProperties.put("$sf_channel_id", sfDataProperties.optString("sf_channel_id", null));
-                    eventProperties.put("$sf_channel_category", sfDataProperties.optString("sf_channel_category", null));
-                    eventProperties.put("$sf_channel_service_name", sfDataProperties.optString("sf_channel_service_name", null));
+                    eventProperties.put("$sf_msg_id", sfDataProperties.opt("sf_msg_id"));
+                    eventProperties.put("$sf_plan_id", sfDataProperties.opt("sf_plan_id"));
+                    eventProperties.put("$sf_audience_id", sfDataProperties.opt("sf_audience_id"));
+                    eventProperties.put("$sf_link_url", sfDataProperties.opt("sf_link_url"));
+                    eventProperties.put("$sf_plan_strategy_id", sfDataProperties.opt("sf_plan_strategy_id"));
+                    eventProperties.put("$sf_plan_type", sfDataProperties.opt("sf_plan_type"));
+                    eventProperties.put("$sf_strategy_unit_id", sfDataProperties.opt("sf_strategy_unit_id"));
+                    eventProperties.put("$sf_enter_plan_time", sfDataProperties.opt("sf_enter_plan_time"));
+                    eventProperties.put("$sf_channel_id", sfDataProperties.opt("sf_channel_id"));
+                    eventProperties.put("$sf_channel_category", sfDataProperties.opt("sf_channel_category"));
+                    eventProperties.put("$sf_channel_service_name", sfDataProperties.opt("sf_channel_service_name"));
                 }
             } catch (Exception e) {
                 SALog.printStackTrace(e);

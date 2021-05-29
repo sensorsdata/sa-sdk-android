@@ -489,7 +489,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     void trackChannelDebugInstallation() {
         final JSONObject _properties = new JSONObject();
         addTimeProperty(_properties);
-        transformInstallationTaskQueue(new Runnable() {
+        transformTaskQueue(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -922,11 +922,11 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     }
 
     /**
-     * 处理渠道相关的事件
+     * 在未同意合规时转换队列
      *
      * @param runnable 任务
      */
-    protected void transformInstallationTaskQueue(final Runnable runnable) {
+    protected void transformTaskQueue(final Runnable runnable) {
         // 禁用采集事件时，先计算基本信息存储到缓存中
         if (!mSAConfigOptions.isDataCollectEnable) {
             mTrackTaskManager.addTrackEventTask(new Runnable() {
