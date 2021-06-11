@@ -120,26 +120,6 @@ public class JSONUtils {
     }
 
     /**
-     * 创建新的 JSONObject 对象,防止 SDK  内部修改对传入的 property 做出改变
-     * @param properties JSONObject
-     * @return 新的 JSONObject
-     */
-    public static JSONObject makeNewObject(JSONObject properties) {
-        JSONObject _properties;
-        try {
-            if (properties != null) {
-                _properties = new JSONObject(properties.toString());
-            } else {
-                _properties = new JSONObject();
-            }
-        } catch (JSONException e) {
-            SALog.printStackTrace(e);
-            _properties = new JSONObject();
-        }
-        return _properties;
-    }
-
-    /**
      * 合并非重复的属性
      * @param source 源
      * @param dest 目标

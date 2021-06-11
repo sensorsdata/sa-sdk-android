@@ -36,7 +36,7 @@ public class OaidHelper {
     private static Class<?> mIdSupplier;
     private static Class<?> jLibrary;
     private static Class<?> mMidSDKHelper;
-    
+
     /**
      * 获取 OAID 接口，注意该接口是同步接口，可能会导致线程阻塞，建议在子线程中使用
      *
@@ -44,6 +44,12 @@ public class OaidHelper {
      * @return OAID
      */
     public static String getOAID(final Context context) {
+        String romOAID = getRomOAID(context);
+        SALog.i(TAG, "romOAID is " + romOAID);
+        return ("00000000-0000-0000-0000-000000000000".equals(romOAID)) ? "" : romOAID;
+    }
+
+    private static String getRomOAID(final Context context) {
         try {
             mCountDownLatch = new CountDownLatch(1);
             initInvokeListener();
@@ -63,8 +69,8 @@ public class OaidHelper {
             }
             SALog.d(TAG, "CountDownLatch await");
             return mOAID;
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
+        } catch (Throwable ex) {
+            SALog.d(TAG, ex.getMessage());
         }
         return "";
     }
@@ -117,8 +123,8 @@ public class OaidHelper {
                     mCountDownLatch.countDown();
                 }
             }).start();
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
+        } catch (Throwable ex) {
+            SALog.d(TAG, ex.getMessage());
             getOAIDReflect(context, --retryCount);
             if (retryCount == 0) {
                 mCountDownLatch.countDown();
@@ -140,7 +146,7 @@ public class OaidHelper {
 
                     mCountDownLatch.countDown();
                 }
-            } catch (Exception ex) {
+            } catch (Throwable ex) {
                 mCountDownLatch.countDown();
             }
             return null;

@@ -1338,8 +1338,11 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Override
     public void trackInstallation(final String eventName, final JSONObject properties, final boolean disableCallback) {
         //只在主进程触发 trackInstallation
-        final JSONObject _properties = JSONUtils.makeNewObject(properties);
-        addTimeProperty(_properties);
+        final JSONObject eventProperties = new JSONObject();
+        if (properties != null) {
+            SensorsDataUtils.mergeJSONObject(properties, eventProperties);
+        }
+        addTimeProperty(eventProperties);
         transformTaskQueue(new Runnable() {
             @Override
             public void run() {
@@ -1356,15 +1359,15 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                     if (firstTrackInstallation) {
                         boolean isCorrectTrackInstallation = false;
                         try {
-                            if (!ChannelUtils.hasUtmProperties(_properties)) {
-                                ChannelUtils.mergeUtmByMetaData(mContext, _properties);
+                            if (!ChannelUtils.hasUtmProperties(eventProperties)) {
+                                ChannelUtils.mergeUtmByMetaData(mContext, eventProperties);
                             }
 
-                            if (!ChannelUtils.hasUtmProperties(_properties)) {
+                            if (!ChannelUtils.hasUtmProperties(eventProperties)) {
                                 String installSource;
                                 String oaid;
-                                if (_properties.has("$oaid")) {
-                                    oaid = _properties.optString("$oaid");
+                                if (eventProperties.has("$oaid")) {
+                                    oaid = eventProperties.optString("$oaid");
                                     installSource = ChannelUtils.getDeviceInfo(mContext, mAndroidId, oaid);
                                     SALog.i(TAG, "properties has oaid " + oaid);
                                 } else {
@@ -1372,33 +1375,33 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                                     installSource = ChannelUtils.getDeviceInfo(mContext, mAndroidId, oaid);
                                 }
 
-                                if (_properties.has("$gaid")) {
-                                    installSource = String.format("%s##gaid=%s", installSource, _properties.optString("$gaid"));
+                                if (eventProperties.has("$gaid")) {
+                                    installSource = String.format("%s##gaid=%s", installSource, eventProperties.optString("$gaid"));
                                 }
                                 isCorrectTrackInstallation = ChannelUtils.isGetDeviceInfo(mContext, mAndroidId, oaid);
-                                _properties.put("$ios_install_source", installSource);
+                                eventProperties.put("$ios_install_source", installSource);
                             }
-                            if (_properties.has("$oaid")) {
-                                _properties.remove("$oaid");
+                            if (eventProperties.has("$oaid")) {
+                                eventProperties.remove("$oaid");
                             }
 
-                            if (_properties.has("$gaid")) {
-                                _properties.remove("$gaid");
+                            if (eventProperties.has("$gaid")) {
+                                eventProperties.remove("$gaid");
                             }
 
                             if (disableCallback) {
-                                _properties.put("$ios_install_disable_callback", disableCallback);
+                                eventProperties.put("$ios_install_disable_callback", disableCallback);
                             }
                         } catch (Exception e) {
                             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
                         }
                         // 先发送 track
-                        trackEvent(EventType.TRACK, eventName, _properties, null);
+                        trackEvent(EventType.TRACK, eventName, eventProperties, null);
                         // 再发送 profile_set_once 或者 profile_set
                         JSONObject profileProperties = new JSONObject();
                         // 用户属性需要去掉 $ios_install_disable_callback 字段
-                        _properties.remove("$ios_install_disable_callback");
-                        SensorsDataUtils.mergeJSONObject(_properties, profileProperties);
+                        eventProperties.remove("$ios_install_disable_callback");
+                        SensorsDataUtils.mergeJSONObject(eventProperties, profileProperties);
                         profileProperties.put("$first_visit_time", new java.util.Date());
                         if (mSAConfigOptions.mEnableMultipleChannelMatch) {
                             trackEvent(EventType.PROFILE_SET, null, profileProperties, null);
@@ -1487,37 +1490,40 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             track(eventName, properties);
             return;
         }
-        final JSONObject _properties = JSONUtils.makeNewObject(properties);
-        addTimeProperty(_properties);
+        final JSONObject eventProperties = new JSONObject();
+        if (properties != null) {
+            SensorsDataUtils.mergeJSONObject(properties, eventProperties);
+        }
+        addTimeProperty(eventProperties);
         transformTaskQueue(new Runnable() {
             @Override
             public void run() {
                 try {
                     try {
-                        _properties.put("$is_channel_callback_event", ChannelUtils.isFirstChannelEvent(eventName));
-                        if (!ChannelUtils.hasUtmProperties(_properties)) {
-                            ChannelUtils.mergeUtmByMetaData(mContext, _properties);
+                        eventProperties.put("$is_channel_callback_event", ChannelUtils.isFirstChannelEvent(eventName));
+                        if (!ChannelUtils.hasUtmProperties(eventProperties)) {
+                            ChannelUtils.mergeUtmByMetaData(mContext, eventProperties);
                         }
-                        if (!ChannelUtils.hasUtmProperties(_properties)) {
-                            if (_properties.has("$oaid")) {
-                                String oaid = _properties.optString("$oaid");
-                                _properties.put("$channel_device_info",
+                        if (!ChannelUtils.hasUtmProperties(eventProperties)) {
+                            if (eventProperties.has("$oaid")) {
+                                String oaid = eventProperties.optString("$oaid");
+                                eventProperties.put("$channel_device_info",
                                         ChannelUtils.getDeviceInfo(mContext, mAndroidId, oaid));
                                 SALog.i(TAG, "properties has oaid " + oaid);
                             } else {
-                                _properties.put("$channel_device_info",
+                                eventProperties.put("$channel_device_info",
                                         ChannelUtils.getDeviceInfo(mContext, mAndroidId, OaidHelper.getOAID(mContext)));
                             }
                         }
-                        if (_properties.has("$oaid")) {
-                            _properties.remove("$oaid");
+                        if (eventProperties.has("$oaid")) {
+                            eventProperties.remove("$oaid");
                         }
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
                     }
 
                     // 先发送 track
-                    trackEvent(EventType.TRACK, eventName, _properties, null);
+                    trackEvent(EventType.TRACK, eventName, eventProperties, null);
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }

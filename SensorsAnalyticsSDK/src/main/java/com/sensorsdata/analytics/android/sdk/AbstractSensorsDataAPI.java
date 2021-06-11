@@ -210,8 +210,8 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                 mAndroidId = SensorsDataUtils.getAndroidID(mContext);
                 mDeviceInfo = setupDeviceInfo();
             }
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
+        } catch (Throwable ex) {
+            SALog.d(TAG, ex.getMessage());
         }
     }
 
