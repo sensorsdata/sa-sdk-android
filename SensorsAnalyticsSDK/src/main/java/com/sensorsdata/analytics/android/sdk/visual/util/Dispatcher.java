@@ -28,12 +28,11 @@ public class Dispatcher {
     }
 
     public void postDelayed(Runnable r, long delayMillis) {
-        removeCallbacksAndMessages();
+        mHandler.removeCallbacks(r);
         mHandler.postDelayed(r, delayMillis);
     }
 
     public void removeCallbacksAndMessages() {
         mHandler.removeCallbacksAndMessages(null);
     }
-
 }

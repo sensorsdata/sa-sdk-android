@@ -128,7 +128,7 @@ public class ViewSnapshot {
             if (i > 0) {
                 writer.write(",");
             }
-            if (info != null && info.screenshot != null && isSnapShotUpdated(info.screenshot.getImageHash(), lastImageHash)) {
+            if (info != null && info.screenshot != null && (isSnapShotUpdated(info.screenshot.getImageHash(), lastImageHash) || i > 0)) {
                 writer.write("{");
                 writer.write("\"activity\":");
                 screenName = info.screenName;
@@ -574,7 +574,7 @@ public class ViewSnapshot {
             Bitmap fullScreenBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
             SoftWareCanvas canvas = new SoftWareCanvas(fullScreenBitmap);
             int[] windowOffset = new int[2];
-            boolean skipOther;
+            boolean skipOther, isDrawBackground = false;
             if (ViewUtil.getMainWindowCount(views) > 1) {
                 skipOther = true;
             } else {
@@ -588,10 +588,11 @@ public class ViewSnapshot {
                     if (!WindowHelper.isMainWindow(view)) {
                         view.getLocationOnScreen(windowOffset);
                         canvas.translate((float) windowOffset[0], (float) windowOffset[1]);
-                        if (WindowHelper.isDialogOrPopupWindow(view)) {
-                            Paint mMaskPaint = new Paint();
-                            mMaskPaint.setColor(0xA0000000);
-                            canvas.drawRect(-(float) windowOffset[0], -(float) windowOffset[1], canvas.getWidth(), canvas.getHeight(), mMaskPaint);
+                        if (WindowHelper.isDialogOrPopupWindow(view) && !isDrawBackground) {
+                            isDrawBackground = true;
+                            Paint paint = new Paint();
+                            paint.setColor(0xA0000000);
+                            canvas.drawRect(-(float) windowOffset[0], -(float) windowOffset[1], canvas.getWidth(), canvas.getHeight(), paint);
                         }
                     }
                     view.draw(canvas);

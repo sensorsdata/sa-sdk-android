@@ -184,6 +184,14 @@
                         android:gravity="center"
                         android:text="fragment dialog"
                         android:textColor="#000000" />
+
+                    <TextView
+                        android:id="@+id/custom_dialog_view"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:gravity="center"
+                        android:text="自定义Dialog"
+                        android:textColor="#000000" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
         </LinearLayout>

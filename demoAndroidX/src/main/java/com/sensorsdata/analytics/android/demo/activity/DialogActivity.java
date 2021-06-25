@@ -21,8 +21,11 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
@@ -31,6 +34,7 @@ import android.widget.Toast;
 
 import com.sensorsdata.analytics.android.demo.R;
 import com.sensorsdata.analytics.android.demo.utils.DialogUtil;
+import com.sensorsdata.analytics.android.demo.widget.CustomDialog;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -69,6 +73,7 @@ public class DialogActivity extends BaseActivity implements View.OnClickListener
         findViewById(R.id.dialog_input_lambda).setOnClickListener(this);
         findViewById(R.id.dialog_custom_lambda).setOnClickListener(this);
         findViewById(R.id.dialog_fragment).setOnClickListener(this);
+        findViewById(R.id.custom_dialog_view).setOnClickListener(this);
     }
 
     @Override
@@ -137,6 +142,9 @@ public class DialogActivity extends BaseActivity implements View.OnClickListener
                 ShareDialog dialog = new ShareDialog();
                 dialog.show(getSupportFragmentManager().beginTransaction(), "hello");
                 break;
+            case R.id.custom_dialog_view:
+                showCustomDialog();
+                break;
         }
     }
 
@@ -153,12 +161,7 @@ public class DialogActivity extends BaseActivity implements View.OnClickListener
         normalDialog.setTitle("我是一个普通Dialog");
         normalDialog.setMessage("你要点击哪一个按钮呢?");
         normalDialog.setPositiveButton("确定",
-                new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-
-                    }
-                });
+                null);
         normalDialog.setNegativeButton("关闭",
                 new DialogInterface.OnClickListener() {
                     @Override
@@ -167,7 +170,14 @@ public class DialogActivity extends BaseActivity implements View.OnClickListener
                     }
                 });
         // 显示
-        normalDialog.show();
+        AlertDialog dialog = normalDialog.show();
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showCustomDialog();
+            }
+        });
     }
 
     private void showNormalDialogLambda() {
@@ -548,5 +558,32 @@ public class DialogActivity extends BaseActivity implements View.OnClickListener
                             Toast.LENGTH_SHORT).show();
                 });
         customizeDialog.show();
+    }
+
+    private void showCustomDialog() {
+        CustomDialog customDialog;
+        customDialog = new CustomDialog(DialogActivity.this);
+        customDialog.setTitle("提示");
+        customDialog.setMessage("确定退出应用?");
+        customDialog.setYesOnclickListener("确定", new CustomDialog.onYesOnclickListener() {
+            @Override
+            public void onYesClick() {
+                Toast.makeText(DialogActivity.this,"点击了--确定--按钮",Toast.LENGTH_LONG).show();
+                //customDialog.dismiss();
+                showNormalDialog();
+            }
+        });
+        customDialog.setNoOnclickListener("取消", new CustomDialog.onNoOnclickListener() {
+            @Override
+            public void onNoClick() {
+                Toast.makeText(DialogActivity.this,"点击了--取消--按钮",Toast.LENGTH_LONG).show();
+                customDialog.dismiss();
+            }
+        });
+        customDialog.show();
+        Window window = customDialog.getWindow();
+        WindowManager.LayoutParams layoutParams = window.getAttributes();
+        layoutParams.gravity = Gravity.BOTTOM;
+        window.setAttributes(layoutParams);
     }
 }

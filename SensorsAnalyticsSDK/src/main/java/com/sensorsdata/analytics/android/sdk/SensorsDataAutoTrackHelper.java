@@ -54,6 +54,7 @@ import com.sensorsdata.analytics.android.sdk.util.ThreadUtils;
 import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
 import com.sensorsdata.analytics.android.sdk.visual.WebViewVisualInterface;
+
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 import com.sensorsdata.analytics.android.sdk.visual.util.VisualUtil;
 
@@ -731,7 +732,7 @@ public class SensorsDataAutoTrackHelper {
                         properties.put(AopConstants.ELEMENT_CONTENT, elementContent);
                         properties.put(AopConstants.ELEMENT_TYPE, "TabHost");
 
-                        SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties,viewNode);
+                        SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties, viewNode);
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
                     }

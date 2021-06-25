@@ -64,12 +64,16 @@ import java.util.Set;
 public final class SensorsDataUtils {
 
     private static final String marshmallowMacAddress = "02:00:00:00:00:00";
+
     private static final String SHARED_PREF_EDITS_FILE = "sensorsdata";
-    private static final String SHARED_PREF_DEVICE_ID_KEY = "sensorsdata.device.id";
     private static final String SHARED_PREF_USER_AGENT_KEY = "sensorsdata.user.agent";
     private static final String SHARED_PREF_APP_VERSION = "sensorsdata.app.version";
-    private static final Map<String, String> deviceUniqueIdentifiersMap = new HashMap<>();
+    private static final String SHARED_PREF_DEVICE_ID_KEY = "sensorsdata.device.id";
+
+    public static final String COMMAND_HARMONYOS_VERSION = "getprop hw_sc.build.platform.version";
+
     private static final Set<String> mPermissionGrantedSet = new HashSet<>();
+    private static final Map<String, String> deviceUniqueIdentifiersMap = new HashMap<>();
     private static final Map<String, String> sCarrierMap = new HashMap<String, String>() {
         {
             //中国移动

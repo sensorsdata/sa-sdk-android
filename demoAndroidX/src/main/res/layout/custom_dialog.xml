@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#11ffffff">
+
+    <LinearLayout
+        android:layout_width="260dp"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:background="@drawable/dialog_bg"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="15dp"
+            android:gravity="center"
+            android:text="消息提示"
+            android:textColor="#38ADFF"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
+            android:text="提示消息" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1px"
+            android:layout_marginTop="15dp"
+            android:background="#E4E4E4" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/no"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginLeft="10dp"
+                android:layout_weight="1"
+                android:background="@null"
+                android:gravity="center"
+                android:singleLine="true"
+                android:text="No"
+                android:textColor="#7D7D7D"
+                android:textSize="16sp" />
+
+            <View
+                android:layout_width="1px"
+                android:layout_height="match_parent"
+                android:background="#E4E4E4" />
+
+            <Button
+                android:id="@+id/yes"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginRight="10dp"
+                android:layout_weight="1"
+                android:background="@null"
+                android:gravity="center"
+                android:singleLine="true"
+                android:text="Yes"
+                android:textColor="#38ADFF"
+                android:textSize="16sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+</RelativeLayout>

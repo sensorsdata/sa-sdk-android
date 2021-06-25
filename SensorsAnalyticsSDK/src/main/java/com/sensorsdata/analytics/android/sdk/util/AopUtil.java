@@ -46,6 +46,7 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataFragmentTitle;
+import com.sensorsdata.analytics.android.sdk.visual.ViewTreeStatusObservable;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 
 import org.json.JSONException;
@@ -772,7 +773,7 @@ public class AopUtil {
                     properties.put(AopConstants.ELEMENT_SELECTOR, elementSelector);
                 }
             }
-            ViewNode viewNode = ViewUtil.getViewPathAndPosition(view);
+            ViewNode viewNode = ViewTreeStatusObservable.getInstance().getViewNode(view);
             if (viewNode != null) {
                 if (!TextUtils.isEmpty(viewNode.getViewPath())) {
                     if ((SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled() && SensorsDataAPI.sharedInstance().isVisualizedAutoTrackActivity(activity.getClass()))

@@ -24,8 +24,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.text.TextUtils;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.Window;
 
 import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.AppStateManager;
@@ -34,6 +32,7 @@ import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
+import com.sensorsdata.analytics.android.sdk.visual.ViewTreeStatusObservable;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 import com.sensorsdata.analytics.android.sdk.visual.model.VisualConfig;
 
@@ -43,7 +42,6 @@ import org.json.JSONObject;
 import java.lang.ref.WeakReference;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -55,8 +53,6 @@ public class VisualPropertiesManager {
 
     private static final String TAG = "SA.VP.VisualPropertiesManager";
     private static final String PROPERTY_TYPE_NUMBER = "NUMBER";
-    // 当属性数大于该值，优先遍历 ViewTree 整体耗时更小；否则优先遍历配置。
-    private static final int MAX_PROPERTY_NUMBER = 5;
     private static VisualPropertiesManager sInstance;
     private VisualConfig mVisualConfig;
     private VisualPropertiesCache mConfigCache;
@@ -251,14 +247,7 @@ public class VisualPropertiesManager {
                     SALog.i(TAG, "properties is empty ");
                     return;
                 }
-
-                boolean isByViewTree = properties.size() >= MAX_PROPERTY_NUMBER;
-                HashMap<String, ViewNode> viewTreeHashMap = new HashMap<>();
-                View rootView = getRootView(eventType, viewNode != null ? viewNode.getView() : null);
-                if (isByViewTree) {
-                    findTargetView(rootView, viewTreeHashMap);
-                }
-                mergeVisualProperty(rootView, properties, event, srcObject, viewNode, isByViewTree, viewTreeHashMap);
+                mergeVisualProperty(properties, event, srcObject, viewNode);
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -339,51 +328,7 @@ public class VisualPropertiesManager {
         return true;
     }
 
-    @TargetApi(17)
-    private View getRootView(VisualEventType eventType, WeakReference<View> view) {
-        View rootView = null;
-        if (view != null && view.get() != null) {
-            rootView = view.get().getRootView();
-        }
-        if (rootView == null) {
-            Activity activity = AppStateManager.getInstance().getForegroundActivity();
-            if (activity == null || activity.isDestroyed() || activity.isFinishing()) {
-                SALog.i(TAG, "findPropertyTargetView activity == null and return");
-                return null;
-            }
-            SALog.i(TAG, "activity class name: " + activity.getClass().getCanonicalName());
-            final Window window = activity.getWindow();
-            rootView = window.getDecorView().getRootView();
-        }
-        if (rootView == null) {
-            SALog.i(TAG, "don't find any root view");
-            return null;
-        }
-        return rootView;
-    }
-
-    private String findTargetView(final View view, String elementPath, String elementPosition) {
-        ViewNode viewNode = ViewUtil.getViewPathAndPosition(view, true);
-        if (viewNode != null && !TextUtils.isEmpty(viewNode.getViewContent()) && TextUtils.equals(elementPath, viewNode.getViewPath()) && (TextUtils.isEmpty(elementPosition) | TextUtils.equals(elementPosition, viewNode.getViewPosition()))) {
-            return viewNode.getViewContent();
-        }
-        if (view instanceof ViewGroup) {
-            final ViewGroup group = (ViewGroup) view;
-            final int childCount = group.getChildCount();
-            for (int i = 0; i < childCount; i++) {
-                final View child = group.getChildAt(i);
-                if (child != null) {
-                    String elementContent = findTargetView(child, elementPath, elementPosition);
-                    if (!TextUtils.isEmpty(elementContent)) {
-                        return elementContent;
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-    private void mergeVisualProperty(final View view, List<VisualConfig.VisualProperty> properties, VisualConfig.VisualEvent event, JSONObject srcObject, ViewNode clickViewNode, boolean isByViewTree, HashMap<String, ViewNode> viewTreeHashMap) {
+    private void mergeVisualProperty(List<VisualConfig.VisualProperty> properties, VisualConfig.VisualEvent event, JSONObject srcObject, ViewNode clickViewNode) {
         try {
             for (VisualConfig.VisualProperty visualProperty : properties) {
                 // 属性名非法校验
@@ -408,19 +353,23 @@ public class VisualPropertiesManager {
                 }
 
                 String propertyElementContent = null;
-                if (isByViewTree) {
-                    String key = generateKey(visualProperty.elementPath, visualProperty.elementPosition);
-                    if (!viewTreeHashMap.containsKey(key)) {
-                        continue;
-                    }
-                    ViewNode viewTreeNode = viewTreeHashMap.get(key);
+                try {
+                    ViewNode viewTreeNode = ViewTreeStatusObservable.getInstance().getViewNode(clickViewNode != null ? clickViewNode.getView() : null, visualProperty.elementPath, visualProperty.elementPosition, visualProperty.screenName);
                     if (viewTreeNode != null && TextUtils.equals(visualProperty.elementPath, viewTreeNode.getViewPath()) && (TextUtils.isEmpty(visualProperty.elementPosition) | TextUtils.equals(visualProperty.elementPosition, viewTreeNode.getViewPosition()))) {
+                        // 默认是已缓存的 viewNode content，优先从 view 引用中再次获取 element_content，保持数据最新
                         propertyElementContent = viewTreeNode.getViewContent();
+                        WeakReference<View> targetView = null;
+                        if (viewTreeNode.getView() != null) {
+                            targetView = viewTreeNode.getView();
+                        }
+                        if (targetView != null && targetView.get() != null) {
+                            // 为保证获取到的 element_content 是最新的，这里从 view 引用再次获取
+                            propertyElementContent = ViewUtil.getViewContentAndType(targetView.get(), true).getViewContent();
+                        }
                     }
-                } else {
-                    propertyElementContent = findTargetView(view, visualProperty.elementPath, visualProperty.elementPosition);
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
                 }
-
                 if (propertyElementContent == null || TextUtils.isEmpty(propertyElementContent)) {
                     if (mCollectLogListener != null) {
                         mCollectLogListener.onFindPropertyElementFailure(visualProperty.name, visualProperty.elementPath, visualProperty.elementPosition);
@@ -481,31 +430,5 @@ public class VisualPropertiesManager {
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
-    }
-
-    private void findTargetView(final View view, HashMap<String, ViewNode> hashMap) {
-        ViewNode viewNode = ViewUtil.getViewPathAndPosition(view, true);
-        if (viewNode != null && !TextUtils.isEmpty(viewNode.getViewContent()) && !TextUtils.isEmpty(viewNode.getViewPath())) {
-            hashMap.put(generateKey(viewNode.getViewPath(), viewNode.getViewPosition()), viewNode);
-        }
-        if (view instanceof ViewGroup) {
-            final ViewGroup group = (ViewGroup) view;
-            final int childCount = group.getChildCount();
-            for (int i = 0; i < childCount; i++) {
-                final View child = group.getChildAt(i);
-                if (child != null) {
-                    findTargetView(child, hashMap);
-                }
-            }
-        }
-    }
-
-    private String generateKey(String elementPath, String elementPosition) {
-        StringBuilder key = new StringBuilder();
-        key.append(elementPath);
-        if (!TextUtils.isEmpty(elementPosition)) {
-            key.append(elementPosition);
-        }
-        return key.toString();
     }
 }

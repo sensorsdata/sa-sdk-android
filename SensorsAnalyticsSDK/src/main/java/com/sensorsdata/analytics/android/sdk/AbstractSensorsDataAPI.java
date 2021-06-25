@@ -1106,10 +1106,18 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
      */
     protected Map<String, Object> setupDeviceInfo() {
         final Map<String, Object> deviceInfo = new HashMap<>();
+
+        String osVersion = DeviceUtils.exec(SensorsDataUtils.COMMAND_HARMONYOS_VERSION);
+        if(!TextUtils.isEmpty(osVersion)){
+            deviceInfo.put("$os", "HarmonyOS");
+            deviceInfo.put("$os_version", osVersion);
+        }else{
+            deviceInfo.put("$os", "Android");
+            deviceInfo.put("$os_version", DeviceUtils.getOS());
+        }
+
         deviceInfo.put("$lib", "Android");
         deviceInfo.put("$lib_version", VERSION);
-        deviceInfo.put("$os", "Android");
-        deviceInfo.put("$os_version", DeviceUtils.getOS());
         deviceInfo.put("$manufacturer", DeviceUtils.getManufacturer());
         deviceInfo.put("$model", DeviceUtils.getModel());
         deviceInfo.put("$brand", DeviceUtils.getBrand());

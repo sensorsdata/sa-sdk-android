@@ -225,7 +225,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             properties.put("$manufacturer", mDeviceInfo.get("$manufacturer"));
             properties.put("$model", mDeviceInfo.get("$model"));
             properties.put("$brand", mDeviceInfo.get("$brand"));
-            properties.put("$os", "Android");
+            properties.put("$os", mDeviceInfo.get("$os"));
             properties.put("$os_version", mDeviceInfo.get("$os_version"));
             properties.put("$screen_height", mDeviceInfo.get("$screen_height"));
             properties.put("$screen_width", mDeviceInfo.get("$screen_width"));
