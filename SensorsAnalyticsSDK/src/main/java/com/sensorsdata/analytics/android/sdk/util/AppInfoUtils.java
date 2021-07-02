@@ -30,6 +30,7 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import java.util.List;
 
 public class AppInfoUtils {
+    private static Bundle mConfigBundle;
     /**
      * 获取应用名称
      *
@@ -124,6 +125,28 @@ public class AppInfoUtils {
 
         String currentProcess = getCurrentProcessName(context.getApplicationContext());
         return TextUtils.isEmpty(currentProcess) || mainProcessName.equals(currentProcess);
+    }
+
+    /**
+     * 获取 Application 标签的 Bundle 对象
+     * @param context Context
+     * @return Bundle
+     */
+    public static Bundle getAppInfoBundle(Context context) {
+        if (mConfigBundle == null) {
+            try {
+                final ApplicationInfo appInfo = context.getApplicationContext().getPackageManager()
+                        .getApplicationInfo(context.getPackageName(), PackageManager.GET_META_DATA);
+                mConfigBundle = appInfo.metaData;
+            } catch (final PackageManager.NameNotFoundException e) {
+                SALog.printStackTrace(e);
+            }
+        }
+
+        if (mConfigBundle == null) {
+            return new Bundle();
+        }
+        return mConfigBundle;
     }
 
     /**

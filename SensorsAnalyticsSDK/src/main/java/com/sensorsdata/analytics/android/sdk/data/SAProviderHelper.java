@@ -37,6 +37,7 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppStartT
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFlushDataState;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
+import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -81,6 +82,10 @@ class SAProviderHelper {
      */
     public void migratingDB(final Context context, final String packageName) {
         try {
+            boolean isMigrating = AppInfoUtils.getAppInfoBundle(context).getBoolean("com.sensorsdata.analytics.android.EnableMigratingDB", true);
+            if (!isMigrating) {
+                return;
+            }
             new Thread(new Runnable() {
                 @Override
                 public void run() {

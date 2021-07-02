@@ -942,19 +942,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     }
 
     protected void initSAConfig(String serverURL, String packageName) {
-        Bundle configBundle = null;
-        try {
-            final ApplicationInfo appInfo = mContext.getApplicationContext().getPackageManager()
-                    .getApplicationInfo(packageName, PackageManager.GET_META_DATA);
-            configBundle = appInfo.metaData;
-        } catch (final PackageManager.NameNotFoundException e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
-
-        if (null == configBundle) {
-            configBundle = new Bundle();
-        }
-
+        Bundle configBundle = AppInfoUtils.getAppInfoBundle(mContext);
         if (mSAConfigOptions == null) {
             this.mSDKConfigInit = false;
             mSAConfigOptions = new SAConfigOptions(serverURL);
