@@ -140,7 +140,7 @@ public class DbParams {
      *
      * @return Uri
      */
-    Uri getLoginIdUri() {
+    public Uri getLoginIdUri() {
         return mLoginIdUri;
     }
 

@@ -236,6 +236,7 @@ class SAProviderHelper {
                     break;
                 case URI_CODE.LOGIN_ID:
                     persistentLoginId.commit(values.getAsString(DbParams.TABLE_LOGIN_ID));
+                    contentResolver.notifyChange(uri, null);
                     break;
                 case URI_CODE.FLUSH_DATA:
                     persistentFlushDataState.commit(values.getAsBoolean(DbParams.TABLE_SUB_PROCESS_FLUSH_DATA));

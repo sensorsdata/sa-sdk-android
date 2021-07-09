@@ -432,6 +432,10 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
         return this;
     }
 
+    public boolean isDataCollectEnable() {
+        return this.isDataCollectEnable;
+    }
+
 //    /**
 //     * 注册自定义加密插件
 //     *

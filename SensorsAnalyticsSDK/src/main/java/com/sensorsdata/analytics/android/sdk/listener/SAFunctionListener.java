@@ -1,5 +1,5 @@
 /*
- * Created by zhangxiangwei on 2019/11/05.
+ * Created by yuejianzhong on 2021/06/09.
  * Copyright 2015－2021 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,11 +15,16 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.listener;
 
-public interface ThreadNameConstants {
-    String THREAD_TASK_QUEUE = "SA.TaskQueueThread";
-    String THREAD_TASK_EXECUTE = "SA.TaskExecuteThread";
-    String THREAD_SEND_DISTINCT_ID = "SA.SendDistinctIDThread";
-    String THREAD_DEEP_LINK_REQUEST = "SA.DeepLinkRequest";
+import org.json.JSONObject;
+
+public interface SAFunctionListener {
+    /**
+     * SDK 方法被调用时的通知
+     *
+     * @param function 被调用的函数名
+     * @param args 被调用函数参数，key 是函数参数名称，value 是函数参数值
+     */
+    void call(String function, JSONObject args);
 }

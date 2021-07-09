@@ -18,7 +18,10 @@
 package com.sensorsdata.analytics.android.sdk;
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 
 public class TrackTaskManagerThread implements Runnable {
@@ -40,7 +43,14 @@ public class TrackTaskManagerThread implements Runnable {
     TrackTaskManagerThread() {
         try {
             this.mTrackTaskManager = TrackTaskManager.getInstance();
-            mPool = Executors.newFixedThreadPool(POOL_SIZE);
+            mPool = new ThreadPoolExecutor(POOL_SIZE, POOL_SIZE,
+                    0L, TimeUnit.MILLISECONDS,
+                    new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, ThreadNameConstants.THREAD_TASK_EXECUTE);
+                }
+            });
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }

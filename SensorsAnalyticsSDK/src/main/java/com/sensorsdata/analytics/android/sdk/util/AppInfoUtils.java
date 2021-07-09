@@ -26,6 +26,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.ThreadNameConstants;
 
 import java.util.List;
 
@@ -125,6 +126,14 @@ public class AppInfoUtils {
 
         String currentProcess = getCurrentProcessName(context.getApplicationContext());
         return TextUtils.isEmpty(currentProcess) || mainProcessName.equals(currentProcess);
+    }
+
+    /**
+     * 判断线程是否埋点执行线程
+     * @return true，埋点执行线程；false，非埋点执行线程
+     */
+    public static boolean isTaskExecuteThread() {
+        return TextUtils.equals(ThreadNameConstants.THREAD_TASK_EXECUTE, Thread.currentThread().getName());
     }
 
     /**

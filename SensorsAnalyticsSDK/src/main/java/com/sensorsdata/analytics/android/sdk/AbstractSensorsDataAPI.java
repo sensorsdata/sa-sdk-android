@@ -47,6 +47,7 @@ import com.sensorsdata.analytics.android.sdk.internal.api.FragmentAPI;
 import com.sensorsdata.analytics.android.sdk.internal.api.IFragmentAPI;
 import com.sensorsdata.analytics.android.sdk.internal.rpc.SensorsDataContentObserver;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
+import com.sensorsdata.analytics.android.sdk.listener.SAFunctionListener;
 import com.sensorsdata.analytics.android.sdk.listener.SAJSListener;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
 import com.sensorsdata.analytics.android.sdk.remote.SensorsDataRemoteManager;
@@ -144,6 +145,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     protected SimpleDateFormat mIsFirstDayDateFormat;
     protected SensorsDataTrackEventCallBack mTrackEventCallBack;
     protected List<SAEventListener> mEventListenerList;
+    protected List<SAFunctionListener> mFunctionListenerList;
     private CopyOnWriteArrayList<SAJSListener> mSAJSListeners;
     protected IFragmentAPI mFragmentAPI;
     SensorsDataEncrypt mSensorsDataEncrypt;
@@ -210,6 +212,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                 mAndroidId = SensorsDataUtils.getAndroidID(mContext);
                 mDeviceInfo = setupDeviceInfo();
             }
+            mLoginId = DbAdapter.getInstance().getLoginId();
         } catch (Throwable ex) {
             SALog.d(TAG, ex.getMessage());
         }
@@ -302,6 +305,39 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                     SALog.printStackTrace(e);
                 }
             }
+        }
+    }
+
+    /**
+     * SDK 函数回调监听
+     *
+     * @param functionListener 事件监听
+     */
+    public void addFunctionListener(SAFunctionListener functionListener) {
+        try {
+            if (this.mFunctionListenerList == null) {
+                mFunctionListenerList = new ArrayList<>();
+            }
+            if (functionListener != null && !mFunctionListenerList.contains(functionListener)) {
+                mFunctionListenerList.add(functionListener);
+            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+    }
+
+    /**
+     * 移除 SDK 事件回调监听
+     *
+     * @param functionListener 事件监听
+     */
+    public void removeFunctionListener(SAFunctionListener functionListener) {
+        try {
+            if (this.mFunctionListenerList != null && functionListener != null) {
+                this.mFunctionListenerList.remove(functionListener);
+            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
         }
     }
 
@@ -880,12 +916,24 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                 String loginId = eventObject.getString("distinct_id");
                 synchronized (mLoginIdLock) {
                     if (!loginId.equals(DbAdapter.getInstance().getLoginId()) && !loginId.equals(getAnonymousId())) {
+                        mLoginId = loginId;
                         DbAdapter.getInstance().commitLoginId(loginId);
                         eventObject.put("login_id", loginId);
                         try {
                             if (mEventListenerList != null) {
                                 for (SAEventListener eventListener : mEventListenerList) {
                                     eventListener.login();
+                                }
+                            }
+                        } catch (Exception e) {
+                            SALog.printStackTrace(e);
+                        }
+                        try {
+                            if (mFunctionListenerList != null) {
+                                JSONObject jsonObject = new JSONObject();
+                                jsonObject.put("distinctId", loginId);
+                                for (SAFunctionListener listener : mFunctionListenerList) {
+                                    listener.call("login", jsonObject);
                                 }
                             }
                         } catch (Exception e) {
@@ -905,6 +953,17 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                     if (mEventListenerList != null && eventType.isTrack()) {
                         for (SAEventListener eventListener : mEventListenerList) {
                             eventListener.trackEvent(eventObject);
+                        }
+                    }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
+                try {
+                    if (mFunctionListenerList != null && eventType.isTrack()) {
+                        JSONObject jsonObject = new JSONObject();
+                        jsonObject.put("eventJSON", eventObject);
+                        for (SAFunctionListener listener : mFunctionListenerList) {
+                            listener.call("trackEvent", jsonObject);
                         }
                     }
                 } catch (Exception e) {
@@ -1499,6 +1558,18 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             SALog.printStackTrace(e);
         }
 
+        try {
+            if (mFunctionListenerList != null && eventType.isTrack()) {
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("eventJSON", dataObj);
+                for (SAFunctionListener listener : mFunctionListenerList) {
+                    listener.call("trackEvent", jsonObject);
+                }
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+
         mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
         if (SALog.isLogEnabled()) {
             SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(dataObj.toString()));
@@ -1601,6 +1672,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         ContentResolver contentResolver = mContext.getContentResolver();
         contentResolver.registerContentObserver(DbParams.getInstance().getDataCollectUri(), false, contentObserver);
         contentResolver.registerContentObserver(DbParams.getInstance().getSessionTimeUri(), false, contentObserver);
+        contentResolver.registerContentObserver(DbParams.getInstance().getLoginIdUri(), false, contentObserver);
     }
 
     /**

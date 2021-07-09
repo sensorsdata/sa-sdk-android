@@ -32,11 +32,11 @@ import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
+import com.sensorsdata.analytics.android.sdk.listener.SAFunctionListener;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
-import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.OaidHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
@@ -1097,9 +1097,6 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     public String getDistinctId() {
         try {
             String loginId = getLoginId();
-            if (TextUtils.isEmpty(loginId)) {// 如果从本地缓存读取失败，则尝试使用内存中的 LoginId 值
-                loginId = mLoginId;
-            }
             if (!TextUtils.isEmpty(loginId)) {
                 return loginId;
             }
@@ -1137,17 +1134,30 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                             SALog.i(TAG, "DistinctId not change");
                             return;
                         }
-
+                        String newDistinctId;
                         if (SensorsDataUtils.isValidAndroidId(mAndroidId)) {
-                            mDistinctId.commit(mAndroidId);
+                            newDistinctId = mAndroidId;
                         } else {
-                            mDistinctId.commit(UUID.randomUUID().toString());
+                            newDistinctId = UUID.randomUUID().toString();
                         }
+                        mDistinctId.commit(newDistinctId);
                         // 通知调用 resetAnonymousId 接口
                         try {
                             if (mEventListenerList != null) {
                                 for (SAEventListener eventListener : mEventListenerList) {
                                     eventListener.resetAnonymousId();
+                                }
+                            }
+                        } catch (Exception e) {
+                            SALog.printStackTrace(e);
+                        }
+
+                        try {
+                            if (mFunctionListenerList != null) {
+                                JSONObject jsonObject = new JSONObject();
+                                jsonObject.put("distinctId", newDistinctId);
+                                for (SAFunctionListener listener : mFunctionListenerList) {
+                                    listener.call("resetAnonymousId", jsonObject);
                                 }
                             }
                         } catch (Exception e) {
@@ -1163,12 +1173,10 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public String getLoginId() {
-        try {
+        if (AppInfoUtils.isTaskExecuteThread()) {
             return DbAdapter.getInstance().getLoginId();
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
         }
-        return "";
+        return mLoginId;
     }
 
     @Override
@@ -1199,6 +1207,18 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                             } catch (Exception e) {
                                 SALog.printStackTrace(e);
                             }
+
+                            try {
+                                if (mFunctionListenerList != null) {
+                                    JSONObject jsonObject = new JSONObject();
+                                    jsonObject.put("distinctId", distinctId);
+                                    for (SAFunctionListener listener : mFunctionListenerList) {
+                                        listener.call("identify", jsonObject);
+                                    }
+                                }
+                            } catch (Exception e) {
+                                SALog.printStackTrace(e);
+                            }
                         }
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
@@ -1219,38 +1239,45 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     public void login(final String loginId, final JSONObject properties) {
         try {
             assertValue(loginId);
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-            return;
-        }
-
-        try {
-            mTrackTaskManager.addTrackEventTask(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        synchronized (mLoginIdLock) {
-                            if (!loginId.equals(DbAdapter.getInstance().getLoginId()) && !loginId.equals(getAnonymousId())) {
-                                DbAdapter.getInstance().commitLoginId(loginId);
-                                mLoginId = loginId;
-                                trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, getAnonymousId());
-                                // 通知调用 login 接口
-                                try {
-                                    if (mEventListenerList != null) {
-                                        for (SAEventListener eventListener : mEventListenerList) {
-                                            eventListener.login();
+            synchronized (mLoginIdLock) {
+                if (!loginId.equals(getAnonymousId())) {
+                    mLoginId = loginId;
+                    mTrackTaskManager.addTrackEventTask(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                if (!loginId.equals(DbAdapter.getInstance().getLoginId())) {
+                                    DbAdapter.getInstance().commitLoginId(loginId);
+                                    trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, getAnonymousId());
+                                    // 通知调用 login 接口
+                                    try {
+                                        if (mEventListenerList != null) {
+                                            for (SAEventListener eventListener : mEventListenerList) {
+                                                eventListener.login();
+                                            }
                                         }
+                                    } catch (Exception e) {
+                                        SALog.printStackTrace(e);
                                     }
-                                } catch (Exception e) {
-                                    SALog.printStackTrace(e);
+                                    try {
+                                        if (mFunctionListenerList != null) {
+                                            JSONObject jsonObject = new JSONObject();
+                                            jsonObject.put("distinctId", loginId);
+                                            for (SAFunctionListener listener : mFunctionListenerList) {
+                                                listener.call("login", jsonObject);
+                                            }
+                                        }
+                                    } catch (Exception e) {
+                                        SALog.printStackTrace(e);
+                                    }
                                 }
+                            } catch (Exception e) {
+                                SALog.printStackTrace(e);
                             }
                         }
-                    } catch (Exception e) {
-                        SALog.printStackTrace(e);
-                    }
+                    });
                 }
-            });
+            }
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -1259,20 +1286,30 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Override
     public void logout() {
         try {
+            mLoginId = null;
             mTrackTaskManager.addTrackEventTask(new Runnable() {
                 @Override
                 public void run() {
                     try {
                         synchronized (mLoginIdLock) {
                             SALog.i(TAG, "logout is called");
-                            if (!TextUtils.isEmpty(getLoginId())) {
+                            if (!TextUtils.isEmpty(DbAdapter.getInstance().getLoginId())) {
                                 DbAdapter.getInstance().commitLoginId(null);
-                                mLoginId = null;
                                 // 进行通知调用 logout 接口
                                 try {
                                     if (mEventListenerList != null) {
                                         for (SAEventListener eventListener : mEventListenerList) {
                                             eventListener.logout();
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    SALog.printStackTrace(e);
+                                }
+
+                                try {
+                                    if (mFunctionListenerList != null) {
+                                        for (SAFunctionListener listener : mFunctionListenerList) {
+                                            listener.call("logout", null);
                                         }
                                     }
                                 } catch (Exception e) {
@@ -1949,6 +1986,15 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                     // 同意合规时更新首日首次
                     if (mFirstDay.get() == null) {
                         mFirstDay.commit(TimeUtils.formatTime(System.currentTimeMillis(), TimeUtils.YYYY_MM_DD));
+                    }
+                    try {
+                        if (mFunctionListenerList != null) {
+                            for (SAFunctionListener functionListener : mFunctionListenerList) {
+                                functionListener.call("enableDataCollect", null);
+                            }
+                        }
+                    } catch (Exception e) {
+                        SALog.printStackTrace(e);
                     }
                 }
             });
