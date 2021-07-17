@@ -192,4 +192,12 @@ abstract class AbstractSAConfigOptions {
      * 自定义加密实现接口
      */
     List<SAEncryptListener> mEncryptListeners;
+
+    /**
+     * 是否开启数据采集
+     * @return true 开启，false 未开启
+     */
+    public boolean isDataCollectEnable() {
+        return isDataCollectEnable;
+    }
 }

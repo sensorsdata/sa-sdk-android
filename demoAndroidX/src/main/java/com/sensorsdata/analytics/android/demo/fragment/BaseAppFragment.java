@@ -20,6 +20,7 @@ package com.sensorsdata.analytics.android.demo.fragment;
 
 import android.app.Fragment;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,7 +30,8 @@ import androidx.annotation.Nullable;
 import com.sensorsdata.analytics.android.demo.R;
 
 public class BaseAppFragment extends Fragment {
-
+    private static final String TAG = "nice ";//过滤关键字
+    private static final String TAG_2 = " ---> :  ";
     public BaseAppFragment() {
     }
 
@@ -37,11 +39,43 @@ public class BaseAppFragment extends Fragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         view.setTag(R.id.fragment_root_view, this);
         super.onViewCreated(view, savedInstanceState);
+        Log.i(TAG + getClass().getSimpleName() + TAG_2, "onCreateView @");
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_base_app, container, false);
+    }
+
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        Log.i(TAG + getClass().getSimpleName() + TAG_2, "onResume");
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        Log.i(TAG + getClass().getSimpleName() + TAG_2, "onPause");
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        Log.i(TAG + getClass().getSimpleName() + TAG_2, "onStop");
+    }
+
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        Log.i(TAG + getClass().getSimpleName() + TAG_2, "onHiddenChanged = " + hidden);
+    }
+
+    @Override
+    public void setUserVisibleHint(boolean isVisibleToUser) {
+        super.setUserVisibleHint(isVisibleToUser);
+        Log.i(TAG + getClass().getSimpleName() + TAG_2, "setUserVisibleHint = " + isVisibleToUser);
     }
 }

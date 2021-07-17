@@ -64,14 +64,20 @@ public class BaseAndroidXFragment extends Fragment {
     }
 
     @Override
+    public void onStop() {
+        super.onStop();
+        Log.i(TAG + getClass().getSimpleName() + TAG_2, "onStop");
+    }
+
+    @Override
     public void onHiddenChanged(boolean hidden) {
         super.onHiddenChanged(hidden);
-        Log.i(TAG + getClass().getSimpleName() + TAG_2, "onHiddenChanged");
+        Log.i(TAG + getClass().getSimpleName() + TAG_2, "onHiddenChanged = " + hidden);
     }
 
     @Override
     public void setUserVisibleHint(boolean isVisibleToUser) {
         super.setUserVisibleHint(isVisibleToUser);
-        Log.i(TAG + getClass().getSimpleName() + TAG_2, "setUserVisibleHint");
+        Log.i(TAG + getClass().getSimpleName() + TAG_2, "setUserVisibleHint = " + isVisibleToUser);
     }
 }

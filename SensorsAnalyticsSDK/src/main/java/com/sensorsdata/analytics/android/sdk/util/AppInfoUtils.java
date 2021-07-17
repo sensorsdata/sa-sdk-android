@@ -31,6 +31,7 @@ import com.sensorsdata.analytics.android.sdk.ThreadNameConstants;
 import java.util.List;
 
 public class AppInfoUtils {
+    private static String mAppVersionName;
     private static Bundle mConfigBundle;
     /**
      * 获取应用名称
@@ -75,14 +76,17 @@ public class AppInfoUtils {
      */
     public static String getAppVersionName(Context context) {
         if (context == null) return "";
+        if (!TextUtils.isEmpty(mAppVersionName)) {
+            return mAppVersionName;
+        }
         try {
             PackageManager packageManager = context.getPackageManager();
             PackageInfo packageInfo = packageManager.getPackageInfo(context.getPackageName(), 0);
-            return packageInfo.versionName;
+            mAppVersionName = packageInfo.versionName;
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
-        return "";
+        return mAppVersionName;
     }
 
     /**

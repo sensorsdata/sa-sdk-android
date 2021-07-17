@@ -38,6 +38,7 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStar
 import com.sensorsdata.analytics.android.sdk.deeplink.DeepLinkManager;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
+import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
@@ -60,6 +61,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private static final String LIB_VERSION = "$lib_version";
     private static final String APP_VERSION = "$app_version";
     private final SensorsDataAPI mSensorsDataInstance;
+    private final Context mContext;
     private final PersistentFirstStart mFirstStart;
     private final PersistentFirstDay mFirstDay;
     private boolean resumeFromBackground = false;
@@ -81,10 +83,6 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private final String APP_RESET_STATE = "app_reset_state";
     private final String TIME = "time";
     private final String ELAPSE_TIME = "elapse_time";
-    // App 版本号
-    private String app_version;
-    // SDK 版本号
-    private String lib_version;
     private Handler mHandler;
     /* 兼容由于在魅族手机上退到后台后，线程会被休眠，导致 $AppEnd 无法触发，造成再次打开重复发送。*/
     private long messageReceiveTime = 0L;
@@ -104,14 +102,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         this.mFirstStart = firstStart;
         this.mFirstDay = firstDay;
         this.mDbAdapter = DbAdapter.getInstance();
-        try {
-            final PackageManager manager = context.getPackageManager();
-            final PackageInfo info = manager.getPackageInfo(context.getPackageName(), 0);
-            app_version = info.versionName;
-            lib_version = SensorsDataAPI.VERSION;
-        } catch (final Exception e) {
-            SALog.i(TAG, "Exception getting version name = ", e);
-        }
+        this.mContext = context;
         initHandler();
     }
 
@@ -422,8 +413,8 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                 long timer = messageTime == 0 ? System.currentTimeMillis() : messageTime;
                 endDataProperty.put(EVENT_TIMER, endElapsedTime == 0 ? SystemClock.elapsedRealtime() : endElapsedTime);
                 endDataProperty.put(TRACK_TIMER, timer);
-                endDataProperty.put(APP_VERSION, app_version);
-                endDataProperty.put(LIB_VERSION, lib_version);
+                endDataProperty.put(APP_VERSION, AppInfoUtils.getAppVersionName(mContext));
+                endDataProperty.put(LIB_VERSION, SensorsDataAPI.VERSION);
                 // 合并 $utm 信息
                 ChannelUtils.mergeUtmToEndData(ChannelUtils.getLatestUtmProperties(), endDataProperty);
                 mDbAdapter.commitAppEndData(endDataProperty.toString());

@@ -184,6 +184,7 @@ public class ViewSnapshot {
         j.beginArray();
         snapshotView(j, rootView, 0);
         j.endArray();
+        WebNodesManager.getInstance().setHasWebView(mSnapInfo.isWebView);
     }
 
     private void reset() {
@@ -231,12 +232,8 @@ public class ViewSnapshot {
                                     mSnapInfo.webViewScale = scale;
                                 }
                                 latch.countDown();
-                                WebNodeInfo webNodeInfo = WebNodesManager.getInstance().getWebNodes(url);
-                                //获取不到页面元素有两种可能 1. 未集成 JS SDK 2. WebView 在扫码前已经打开。这里针对第二种情况尝试通知 JS 获取数据。
-                                if (webNodeInfo == null) {
-                                    //WebView 扫码前已打开，此时需要通知 JS 发送数据
-                                    SensorsDataAutoTrackHelper.loadUrl(view, "javascript:window.sensorsdata_app_call_js('visualized')");
-                                }
+                                // 2021/07/02 修复 Web JS SDK 部分场景下无法监听页面变化 bug
+                                SensorsDataAutoTrackHelper.loadUrl(view, "javascript:window.sensorsdata_app_call_js('visualized')");
                             } else {
                                 latch.countDown();
                             }

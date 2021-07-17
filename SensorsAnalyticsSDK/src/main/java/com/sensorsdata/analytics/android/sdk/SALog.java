@@ -141,11 +141,11 @@ public class SALog {
      *
      * @param isEnableLog Log 状态
      */
-    static void setEnableLog(boolean isEnableLog) {
+    public static void setEnableLog(boolean isEnableLog) {
         enableLog = isEnableLog;
     }
 
-    static boolean isLogEnabled() {
+    public static boolean isLogEnabled() {
         return enableLog;
     }
 }

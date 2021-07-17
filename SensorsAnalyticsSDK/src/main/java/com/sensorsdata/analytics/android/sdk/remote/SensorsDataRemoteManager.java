@@ -52,7 +52,6 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
             SensorsDataAPI sensorsDataAPI) {
         super(sensorsDataAPI);
         this.mPersistentRemoteSDKConfig = (PersistentRemoteSDKConfig) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.REMOTE_CONFIG);
-        this.mSharedPreferences = SensorsDataUtils.getSharedPreferences(mContext);
         SALog.i(TAG, "Construct a SensorsDataRemoteManager");
     }
 
@@ -64,8 +63,8 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
     private boolean isRequestValid() {
         boolean isRequestValid = true;
         try {
-            long lastRequestTime = mSharedPreferences.getLong(SHARED_PREF_REQUEST_TIME, 0);
-            int randomTime = mSharedPreferences.getInt(SHARED_PREF_REQUEST_TIME_RANDOM, 0);
+            long lastRequestTime = getSharedPreferences().getLong(SHARED_PREF_REQUEST_TIME, 0);
+            int randomTime = getSharedPreferences().getInt(SHARED_PREF_REQUEST_TIME_RANDOM, 0);
             if (lastRequestTime != 0 && randomTime != 0) {
                 float requestInterval = SystemClock.elapsedRealtime() - lastRequestTime;
                 // 当前的时间减去上次请求的时间，为间隔时间，当间隔时间小于随机时间，则不请求后端
@@ -93,7 +92,7 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
         if (mSAConfigOptions.mMaxRequestInterval > mSAConfigOptions.mMinRequestInterval) {
             randomTime += new SecureRandom().nextInt(mSAConfigOptions.mMaxRequestInterval - mSAConfigOptions.mMinRequestInterval + 1);
         }
-        mSharedPreferences.edit()
+        getSharedPreferences().edit()
                 .putLong(SHARED_PREF_REQUEST_TIME, currentTime)
                 .putInt(SHARED_PREF_REQUEST_TIME_RANDOM, randomTime)
                 .apply();
@@ -103,7 +102,7 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
      * 清除远程控制随机时间的本地缓存
      */
     private void cleanRemoteRequestRandomTime() {
-        mSharedPreferences.edit()
+        getSharedPreferences().edit()
                 .putLong(SHARED_PREF_REQUEST_TIME, 0)
                 .putInt(SHARED_PREF_REQUEST_TIME_RANDOM, 0)
                 .apply();
@@ -258,7 +257,9 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
     public void applySDKConfigFromCache() {
         try {
             SensorsDataSDKRemoteConfig sdkRemoteConfig = toSDKRemoteConfig(mPersistentRemoteSDKConfig.get());
-            SALog.i(TAG, "Cache remote config is " + sdkRemoteConfig.toString());
+            if (SALog.isLogEnabled()) {
+                SALog.i(TAG, "Cache remote config is " + sdkRemoteConfig.toString());
+            }
             if (mSensorsDataAPI != null) {
                 //关闭 debug 模式
                 if (sdkRemoteConfig.isDisableDebugMode()) {
@@ -279,5 +280,12 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
+    }
+
+    private SharedPreferences getSharedPreferences() {
+        if (this.mSharedPreferences == null) {
+            this.mSharedPreferences = SensorsDataUtils.getSharedPreferences(mContext);
+        }
+        return mSharedPreferences;
     }
 }

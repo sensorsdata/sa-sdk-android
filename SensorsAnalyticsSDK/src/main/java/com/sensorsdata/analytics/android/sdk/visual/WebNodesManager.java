@@ -53,6 +53,8 @@ public class WebNodesManager {
     private boolean mHasH5AlertInfo;
     // 保存最后一次的 WebView url
     private String mWebViewUrl;
+    // 保存当前页面是否包含 WebView 容器
+    private boolean mHasWebView;
 
     private WebNodesManager() {
     }
@@ -294,4 +296,12 @@ public class WebNodesManager {
         mLastWebNodeMsg = null;
     }
 
+    // ImageHash 相同时不会遍历 ViewTree，此时需要用单例来维护页面是否包含 WebView，优化性能。
+    void setHasWebView(boolean hasWebView) {
+        this.mHasWebView = hasWebView;
+    }
+
+    boolean hasWebView(){
+        return mHasWebView;
+    }
 }

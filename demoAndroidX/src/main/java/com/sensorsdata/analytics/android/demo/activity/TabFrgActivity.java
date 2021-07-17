@@ -38,8 +38,8 @@ public class TabFrgActivity extends BaseActivity {
     private FragmentManager fragmentManager = null;
     private FragmentTransaction fragmentTransaction = null;
     private Frg_4 frg_4 = null;
-    private Frg_4 frg_5 = null;
-    private Frg_4 frg_6 = null;
+    private Frg_5 frg_5 = null;
+    private Frg_6 frg_6 = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,8 +48,6 @@ public class TabFrgActivity extends BaseActivity {
         this.setTitle("TabLayout + v4 Fragment");
         initFragment(savedInstanceState);
         initTabLayout();
-
-
     }
 
     private void initFragment(Bundle savedInstanceState) {
@@ -57,12 +55,12 @@ public class TabFrgActivity extends BaseActivity {
         fragmentTransaction = fragmentManager.beginTransaction();
         if (savedInstanceState != null) {
             frg_4 = (Frg_4) fragmentManager.findFragmentByTag(Frg_4.class.getSimpleName());
-            frg_5 = (Frg_4) fragmentManager.findFragmentByTag(Frg_5.class.getSimpleName());
-            frg_6 = (Frg_4) fragmentManager.findFragmentByTag(Frg_6.class.getSimpleName());
+            frg_5 = (Frg_5) fragmentManager.findFragmentByTag(Frg_5.class.getSimpleName());
+            frg_6 = (Frg_6) fragmentManager.findFragmentByTag(Frg_6.class.getSimpleName());
         } else {
             frg_4 = new Frg_4();
-            frg_5 = new Frg_4();
-            frg_6 = new Frg_4();
+            frg_5 = new Frg_5();
+            frg_6 = new Frg_6();
 //            fragmentTransaction.add(R.id.fl_tab_frg, frg_4, Frg_4.class.getSimpleName()).hide(frg_4);
 //            fragmentTransaction.add(R.id.fl_tab_frg, frg_5, Frg_5.class.getSimpleName()).hide(frg_5);
 //            fragmentTransaction.add(R.id.fl_tab_frg, frg_6, Frg_6.class.getSimpleName()).hide(frg_6);

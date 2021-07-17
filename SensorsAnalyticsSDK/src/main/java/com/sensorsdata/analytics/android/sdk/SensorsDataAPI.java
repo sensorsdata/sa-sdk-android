@@ -37,7 +37,6 @@ import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteMana
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
-import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.OaidHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
@@ -219,29 +218,10 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     public JSONObject getPresetProperties() {
         JSONObject properties = new JSONObject();
         try {
-            properties.put("$app_version", mDeviceInfo.get("$app_version"));
-            properties.put("$lib", "Android");
-            properties.put("$lib_version", VERSION);
-            properties.put("$manufacturer", mDeviceInfo.get("$manufacturer"));
-            properties.put("$model", mDeviceInfo.get("$model"));
-            properties.put("$brand", mDeviceInfo.get("$brand"));
-            properties.put("$os", mDeviceInfo.get("$os"));
-            properties.put("$os_version", mDeviceInfo.get("$os_version"));
-            properties.put("$screen_height", mDeviceInfo.get("$screen_height"));
-            properties.put("$screen_width", mDeviceInfo.get("$screen_width"));
-            String networkType = NetworkUtils.networkType(mContext);
-            properties.put("$wifi", "WIFI".equals(networkType));
-            properties.put("$network_type", networkType);
-            properties.put("$carrier", mDeviceInfo.get("$carrier"));
+            properties = mSAContextManager.getPresetProperties();
             properties.put("$is_first_day", isFirstDay(System.currentTimeMillis()));
-            properties.put("$app_id", mDeviceInfo.get("$app_id"));
-            properties.put("$timezone_offset", mDeviceInfo.get("$timezone_offset"));
-            if (mDeviceInfo.containsKey("$device_id")) {
-                properties.put("$device_id", mDeviceInfo.get("$device_id"));
-            }
-            properties.put("$app_name", mDeviceInfo.get("$app_name"));
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
         }
         return properties;
     }
@@ -1130,13 +1110,14 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 public void run() {
                     synchronized (mDistinctId) {
                         SALog.i(TAG, "resetAnonymousId is called");
-                        if (mAndroidId.equals(mDistinctId.get())) {
+                        String androidId = mSAContextManager.getAndroidId();
+                        if (TextUtils.equals(androidId, mDistinctId.get())) {
                             SALog.i(TAG, "DistinctId not change");
                             return;
                         }
                         String newDistinctId;
-                        if (SensorsDataUtils.isValidAndroidId(mAndroidId)) {
-                            newDistinctId = mAndroidId;
+                        if (SensorsDataUtils.isValidAndroidId(androidId)) {
+                            newDistinctId = androidId;
                         } else {
                             newDistinctId = UUID.randomUUID().toString();
                         }
@@ -1401,21 +1382,22 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                             }
 
                             if (!ChannelUtils.hasUtmProperties(eventProperties)) {
+                                String androidId = mSAContextManager.getAndroidId();
                                 String installSource;
                                 String oaid;
                                 if (eventProperties.has("$oaid")) {
                                     oaid = eventProperties.optString("$oaid");
-                                    installSource = ChannelUtils.getDeviceInfo(mContext, mAndroidId, oaid);
+                                    installSource = ChannelUtils.getDeviceInfo(mContext, androidId, oaid);
                                     SALog.i(TAG, "properties has oaid " + oaid);
                                 } else {
                                     oaid = OaidHelper.getOAID(mContext);
-                                    installSource = ChannelUtils.getDeviceInfo(mContext, mAndroidId, oaid);
+                                    installSource = ChannelUtils.getDeviceInfo(mContext, androidId, oaid);
                                 }
 
                                 if (eventProperties.has("$gaid")) {
                                     installSource = String.format("%s##gaid=%s", installSource, eventProperties.optString("$gaid"));
                                 }
-                                isCorrectTrackInstallation = ChannelUtils.isGetDeviceInfo(mContext, mAndroidId, oaid);
+                                isCorrectTrackInstallation = ChannelUtils.isGetDeviceInfo(mContext, androidId, oaid);
                                 eventProperties.put("$ios_install_source", installSource);
                             }
                             if (eventProperties.has("$oaid")) {
@@ -1495,7 +1477,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 try {
                     JSONObject _properties = new JSONObject();
                     _properties.put("$ios_install_source", ChannelUtils.getDeviceInfo(mContext,
-                            mAndroidId, OaidHelper.getOAID(mContext)));
+                            mSAContextManager.getAndroidId(), OaidHelper.getOAID(mContext)));
                     // 先发送 track
                     trackEvent(EventType.TRACK, "$ChannelDebugInstall", _properties, null);
 
@@ -1545,11 +1527,11 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                             if (eventProperties.has("$oaid")) {
                                 String oaid = eventProperties.optString("$oaid");
                                 eventProperties.put("$channel_device_info",
-                                        ChannelUtils.getDeviceInfo(mContext, mAndroidId, oaid));
+                                        ChannelUtils.getDeviceInfo(mContext, mSAContextManager.getAndroidId(), oaid));
                                 SALog.i(TAG, "properties has oaid " + oaid);
                             } else {
                                 eventProperties.put("$channel_device_info",
-                                        ChannelUtils.getDeviceInfo(mContext, mAndroidId, OaidHelper.getOAID(mContext)));
+                                        ChannelUtils.getDeviceInfo(mContext, mSAContextManager.getAndroidId(), OaidHelper.getOAID(mContext)));
                             }
                         }
                         if (eventProperties.has("$oaid")) {
@@ -1980,8 +1962,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                     mSAConfigOptions.isDataCollectEnable = true;
                     // 同意合规时重新判断当前进程是否主进程
                     mIsMainProcess = AppInfoUtils.isMainProcess(mContext, null);
-                    mAndroidId = SensorsDataUtils.getAndroidID(mContext);
-                    mDeviceInfo = setupDeviceInfo();
+                    mSAContextManager.getDeviceInfo();
                     mTrackTaskManager.setDataCollectEnable(true);
                     // 同意合规时更新首日首次
                     if (mFirstDay.get() == null) {
@@ -2248,7 +2229,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     }
 
     @Override
-    public void setServerUrl(String serverUrl, boolean isRequestRemoteConfig) {
+    public void setServerUrl(final String serverUrl, boolean isRequestRemoteConfig) {
         try {
             //请求远程配置
             if (isRequestRemoteConfig && mRemoteManager != null) {
@@ -2259,7 +2240,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 }
             }
             //请求可视化全埋点自定义属性配置
-            if (!TextUtils.equals(serverUrl, mOriginServerUrl) && SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled()) {
+            if (!TextUtils.equals(serverUrl, mOriginServerUrl) && isVisualizedAutoTrackEnabled()) {
                 try {
                     VisualPropertiesManager.getInstance().requestVisualConfig();
                 } catch (Exception e) {
@@ -2274,12 +2255,17 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 return;
             }
 
-            Uri serverURI = Uri.parse(serverUrl);
-            String hostServer = serverURI.getHost();
-            if (!TextUtils.isEmpty(hostServer) && hostServer.contains("_")) {
-                SALog.i(TAG, "Server url " + serverUrl + " contains '_' is not recommend，" +
-                        "see details: https://en.wikipedia.org/wiki/Hostname");
-            }
+            final Uri serverURI = Uri.parse(serverUrl);
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
+                    String hostServer = serverURI.getHost();
+                    if (!TextUtils.isEmpty(hostServer) && hostServer.contains("_")) {
+                        SALog.i(TAG, "Server url " + serverUrl + " contains '_' is not recommend，" +
+                                "see details: https://en.wikipedia.org/wiki/Hostname");
+                    }
+                }
+            });
 
             if (mDebugMode != DebugMode.DEBUG_OFF) {
                 String uriPath = serverURI.getPath();
@@ -2297,7 +2283,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 mServerUrl = serverUrl;
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 

@@ -421,7 +421,8 @@ public abstract class AbstractViewCrawler implements VTrack {
         }
 
         private void onSnapFinished(SnapInfo info) {
-            if (info != null && !info.isWebView) {
+            // 当从 H5 页面切换到原生页面时，需要清除 H5 内缓存的信息。
+            if (info != null && !WebNodesManager.getInstance().hasWebView()) {
                 WebNodesManager.getInstance().clear();
             }
         }

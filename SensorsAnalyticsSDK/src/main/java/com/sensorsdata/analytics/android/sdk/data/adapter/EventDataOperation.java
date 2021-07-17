@@ -32,7 +32,7 @@ class EventDataOperation extends DataOperation {
 
     EventDataOperation(Context context) {
         super(context);
-        TAG = this.getClass().getSimpleName();
+        TAG = "EventDataOperation";
     }
 
     @Override
