@@ -23,6 +23,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
 import android.view.ViewTreeObserver;
+import android.view.Window;
 
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
@@ -71,8 +72,14 @@ public class EditState extends UIThreadSet<Activity> {
 
     private void applyEditsOnActivity(Activity activity) {
         final String activityName = activity.getClass().getCanonicalName();
-        final View rootView = activity.getWindow().getDecorView().getRootView();
-
+        View rootView = null;
+        Window window = activity.getWindow();
+        if (window != null && window.isActive()) {
+            rootView = window.getDecorView().getRootView();
+        }
+        if (rootView == null) {
+            return;
+        }
         final List<ViewVisitor> specificChanges;
         final List<ViewVisitor> wildcardChanges;
         synchronized (mIntendedEdits) {

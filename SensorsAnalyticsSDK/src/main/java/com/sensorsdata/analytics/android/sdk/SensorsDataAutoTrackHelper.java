@@ -165,7 +165,7 @@ public class SensorsDataAutoTrackHelper {
             Activity activity = AopUtil.getActivityFromContext(context, rootView);
             if (activity != null) {
                 Window window = activity.getWindow();
-                if (window != null) {
+                if (window != null && window.isActive()) {
                     window.getDecorView().getRootView().setTag(R.id.sensors_analytics_tag_view_fragment_name, "");
                 }
             }
@@ -1253,7 +1253,8 @@ public class SensorsDataAutoTrackHelper {
             JSONObject properties = new JSONObject();
 
             try {
-                if (dialog.getWindow() != null) {
+                Window window = dialog.getWindow();
+                if (window != null && window.isActive()) {
                     String idString = (String) dialog.getWindow().getDecorView().getTag(R.id.sensors_analytics_tag_view_id);
                     if (!TextUtils.isEmpty(idString)) {
                         properties.put(AopConstants.ELEMENT_ID, idString);

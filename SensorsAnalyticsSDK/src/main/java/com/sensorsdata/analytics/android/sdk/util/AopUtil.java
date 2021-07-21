@@ -728,7 +728,7 @@ public class AopUtil {
                     }
                     if (activity != null) {
                         Window window = activity.getWindow();
-                        if (window != null) {
+                        if (window != null && window.isActive()) {
                             Object tag = window.getDecorView().getRootView().getTag(R.id.sensors_analytics_tag_view_fragment_name);
                             if (tag != null) {
                                 fragmentName = traverseParentViewTag(view);

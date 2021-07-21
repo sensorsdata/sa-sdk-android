@@ -3,7 +3,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'signing'
 apply plugin: 'maven-publish'
 
-version = "5.2.8"
+version = "5.2.9"
 def min_plugin_version = "3.0.0"
 
 android {

@@ -7,6 +7,7 @@ import android.text.TextUtils;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.TabHost;
@@ -119,7 +120,14 @@ public class WindowHelper {
         View[] result = new View[0];
         if (sWindowManger == null) {
             Activity current = AppStateManager.getInstance().getForegroundActivity();
-            return current != null ? new View[]{current.getWindow().getDecorView()} : result;
+            View decorView = null;
+            if (current != null) {
+                Window window = current.getWindow();
+                if (window.isActive()) {
+                    decorView = window.getDecorView();
+                }
+            }
+            return current != null ? new View[]{decorView} : result;
         } else {
             try {
                 View[] views = null;

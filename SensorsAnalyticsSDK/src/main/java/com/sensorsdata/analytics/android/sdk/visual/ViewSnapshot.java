@@ -534,8 +534,14 @@ public class ViewSnapshot {
                 VisualUtil.mergeRnScreenNameAndTitle(object);
                 String screenName = object.optString(AopConstants.SCREEN_NAME);
                 String activityTitle = object.optString(AopConstants.TITLE);
+                View rootView = null;
                 final Window window = activity.getWindow();
-                final View rootView = window.getDecorView().getRootView();
+                if (window != null && window.isActive()) {
+                    rootView = window.getDecorView().getRootView();
+                }
+                if (rootView == null) {
+                    return mRootViews;
+                }
                 final RootViewInfo info = new RootViewInfo(screenName, activityTitle, rootView);
                 final View[] views = WindowHelper.getSortedWindowViews();
                 Bitmap bitmap = null;

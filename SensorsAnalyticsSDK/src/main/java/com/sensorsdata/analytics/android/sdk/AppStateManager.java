@@ -23,6 +23,7 @@ import android.app.Application;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.view.Window;
 
 import com.sensorsdata.analytics.android.sdk.visual.ViewTreeStatusObservable;
 
@@ -85,9 +86,14 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
 
     public int getCurrentRootWindowsHashCode() {
         if (this.mCurrentRootWindowsHashCode == -1 && this.mForeGroundActivity != null && this.mForeGroundActivity.get() != null) {
-            this.mCurrentRootWindowsHashCode = (this.mForeGroundActivity.get()).getWindow().getDecorView().hashCode();
+            Activity activity = this.mForeGroundActivity.get();
+            if (activity != null) {
+                Window window = activity.getWindow();
+                if (window != null && window.isActive()) {
+                    this.mCurrentRootWindowsHashCode = window.getDecorView().hashCode();
+                }
+            }
         }
-
         return this.mCurrentRootWindowsHashCode;
     }
 
@@ -107,18 +113,30 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
     @Override
     public void onActivityResumed(Activity activity) {
         setForegroundActivity(activity);
+        Window window = activity.getWindow();
+        View decorView = null;
+        if (window != null && window.isActive()) {
+            decorView = window.getDecorView();
+        }
         if (SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled() && Build.VERSION.SDK_INT >= 16) {
-            monitorViewTreeChange(activity.getWindow().getDecorView());
+            if (decorView != null) {
+                monitorViewTreeChange(decorView);
+            }
         }
         if (!activity.isChild()) {
-            mCurrentRootWindowsHashCode = activity.getWindow().getDecorView().hashCode();
+            if (decorView != null) {
+                mCurrentRootWindowsHashCode = decorView.hashCode();
+            }
         }
     }
 
     @Override
     public void onActivityPaused(Activity activity) {
         if (Build.VERSION.SDK_INT >= 16) {
-            unRegisterViewTreeChange(activity.getWindow().getDecorView());
+            Window window = activity.getWindow();
+            if (window != null && window.isActive()) {
+                unRegisterViewTreeChange(window.getDecorView());
+            }
         }
         if (!activity.isChild()) {
             mCurrentRootWindowsHashCode = -1;
