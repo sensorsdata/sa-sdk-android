@@ -2313,8 +2313,13 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     }
 
     @Override
-    public void trackEventFromH5(String eventInfo) {
-        trackEventH5(eventInfo);
+    public void trackEventFromH5(final String eventInfo) {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                trackEventH5(eventInfo);
+            }
+        });
     }
 
     @Override
