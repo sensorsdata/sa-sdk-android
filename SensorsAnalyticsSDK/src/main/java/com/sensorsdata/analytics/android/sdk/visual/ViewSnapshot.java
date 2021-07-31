@@ -257,7 +257,7 @@ public class ViewSnapshot {
                                 webNodeIds = new ArrayList<>();
                                 for (WebNode webNode : webNodes) {
                                     mergeWebViewNodes(j, webNode, view, mSnapInfo.webViewScale);
-                                    webNodeIds.add(webNode.getId());
+                                    webNodeIds.add(webNode.getId() + view.hashCode());
                                 }
                             }
                         } else if (webNodeInfo.getStatus() == WebNodeInfo.Status.FAILURE) {
@@ -740,7 +740,7 @@ public class ViewSnapshot {
     private void mergeWebViewNodes(JsonWriter j, WebNode view, View webView, float webViewScale) {
         try {
             j.beginObject();
-            j.name("hashCode").value(view.getId());
+            j.name("hashCode").value(view.getId() + webView.hashCode());
             j.name("index").value(0);
             if (!TextUtils.isEmpty(view.get$element_selector())) {
                 j.name("element_selector").value(view.get$element_selector());
@@ -772,7 +772,9 @@ public class ViewSnapshot {
             j.name("height").value((int) (view.getHeight() * webViewScale));
             j.name("scrollX").value(0);
             j.name("scrollY").value(0);
-            j.name("visibility").value(view.isVisibility() ? View.VISIBLE : View.GONE);
+            // 考虑 H5 元素是否在 WebView 内
+            boolean insideWebView = top <= webView.getHeight() + webView.getScrollY() && view.getTop() + view.getHeight() > 0 && left <= webView.getWidth() + webView.getScrollX() && view.getLeft() + view.getWidth() > 0;
+            j.name("visibility").value(view.isVisibility() && insideWebView ? View.VISIBLE : View.GONE);
             j.name("url").value(view.get$url());
             j.name("clickable").value(true);
             j.name("importantForAccessibility").value(true);
@@ -801,6 +803,5 @@ public class ViewSnapshot {
         } catch (IOException e) {
             SALog.printStackTrace(e);
         }
-
     }
 }

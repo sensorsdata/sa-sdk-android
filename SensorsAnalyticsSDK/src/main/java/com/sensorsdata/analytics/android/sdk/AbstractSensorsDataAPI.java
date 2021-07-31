@@ -145,6 +145,8 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     protected IFragmentAPI mFragmentAPI;
     SensorsDataEncrypt mSensorsDataEncrypt;
     protected SensorsDataDeepLinkCallback mDeepLinkCallback;
+    // $AppDeeplinkLaunch 是否携带设备信息
+    boolean mEnableDeepLinkInstallSource = false;
     BaseSensorsDataSDKRemoteManager mRemoteManager;
     /**
      * 标记是否已经采集了带有插件版本号的事件
@@ -566,6 +568,10 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         trackInternal(eventName, eventProperties, viewNode);
     }
 
+    SAContextManager getSAContextManager() {
+        return mSAContextManager;
+    }
+
     protected void addTimeProperty(JSONObject jsonObject) {
         if (!jsonObject.has("$time")) {
             try {
@@ -694,7 +700,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                     }
                     //之前可能会因为没有权限无法获取运营商信息，检测再次获取
                     getCarrier(sendProperties);
-                    if (!"$AppEnd".equals(eventName)) {
+                    if (!"$AppEnd".equals(eventName) && !"$AppDeeplinkLaunch".equals(eventName)) {
                         //合并 $latest_utm 属性
                         SensorsDataUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), sendProperties);
                     }
@@ -973,7 +979,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
      *
      * @param runnable 任务
      */
-    protected void transformTaskQueue(final Runnable runnable) {
+    public void transformTaskQueue(final Runnable runnable) {
         // 禁用采集事件时，先计算基本信息存储到缓存中
         if (!mSAConfigOptions.isDataCollectEnable) {
             mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -1271,7 +1277,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             } catch (Exception e) {
                 SALog.printStackTrace(e);
             }
-
             try {
                 // 单独处理 $AppStart 和 $AppEnd 的时间戳
                 if ("$AppEnd".equals(eventName)) {
@@ -1508,6 +1513,9 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         }
 
         mMessages.enqueueEventMessage(eventType.getEventType(), dataObj);
+        if ("$AppStart".equals(eventName)) {
+            mSAContextManager.setAppStartSuccess(true);
+        }
         if (SALog.isLogEnabled()) {
             SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(dataObj.toString()));
         }
@@ -1610,6 +1618,15 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         contentResolver.registerContentObserver(DbParams.getInstance().getDataCollectUri(), false, contentObserver);
         contentResolver.registerContentObserver(DbParams.getInstance().getSessionTimeUri(), false, contentObserver);
         contentResolver.registerContentObserver(DbParams.getInstance().getLoginIdUri(), false, contentObserver);
+    }
+
+    /**
+     * $AppDeeplinkLaunch 事件是否包含 $ios_install_source 属性
+     *
+     * @return boolean
+     */
+    public boolean isDeepLinkInstallSource(){
+        return mEnableDeepLinkInstallSource;
     }
 
     /**

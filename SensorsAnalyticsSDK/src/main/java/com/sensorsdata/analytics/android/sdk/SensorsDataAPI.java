@@ -50,6 +50,7 @@ import java.lang.reflect.Method;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -2391,6 +2392,11 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         });
     }
 
+    @Override
+    public void enableDeepLinkInstallSource(boolean enable) {
+        mEnableDeepLinkInstallSource = enable;
+    }
+
     /**
      * 不能动位置，因为 SF 反射获取使用
      *
@@ -2399,6 +2405,37 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Override
     public String getServerUrl() {
         return mServerUrl;
+    }
+
+    @Override
+    public void trackDeepLinkLaunch(String deepLinkUrl) {
+        trackDeepLinkLaunch(deepLinkUrl, null);
+    }
+
+    @Override
+    public void trackDeepLinkLaunch(final String deepLinkUrl, final String oaid) {
+        final JSONObject properties = new JSONObject();
+        final boolean isDeepLinkInstallSource = isDeepLinkInstallSource();
+        try {
+            properties.put("$deeplink_url", deepLinkUrl);
+            properties.put("$time", new Date(System.currentTimeMillis()));
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        SensorsDataAPI.sharedInstance().transformTaskQueue(new Runnable() {
+            @Override
+            public void run() {
+                if (isDeepLinkInstallSource) {
+                    try {
+                        properties.put("$ios_install_source", ChannelUtils.getDeviceInfo(mContext,
+                                mSAContextManager.getAndroidId(), oaid == null ? OaidHelper.getOAID(mContext) : oaid));
+                    } catch (JSONException e) {
+                        SALog.printStackTrace(e);
+                    }
+                }
+                trackInternal("$AppDeeplinkLaunch", properties);
+            }
+        });
     }
 
     /**

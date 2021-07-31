@@ -110,7 +110,7 @@ class SensorsDataDeepLink extends AbsDeepLink {
                             if (mCallBack != null) {
                                 mCallBack.onFinish(DeepLinkManager.DeepLinkType.SENSORSDATA, pageParams, success, duration);
                             }
-                            SensorsDataAPI.sharedInstance().track("$AppDeeplinkMatchedResult", properties);
+                            SensorsDataAPI.sharedInstance().trackInternal("$AppDeeplinkMatchedResult", properties);
                         }
                     }).execute();
         }

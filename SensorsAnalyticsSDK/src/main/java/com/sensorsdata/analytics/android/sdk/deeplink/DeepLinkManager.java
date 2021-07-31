@@ -19,6 +19,7 @@ package com.sensorsdata.analytics.android.sdk.deeplink;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -28,17 +29,20 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.ServerUrl;
 import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
+import com.sensorsdata.analytics.android.sdk.util.OaidHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
 public class DeepLinkManager {
     public static final String IS_ANALYTICS_DEEPLINK = "is_analytics_deeplink";
     private static DeepLinkProcessor mDeepLinkProcessor;
+
     public enum DeepLinkType {
         CHANNEL,
         SENSORSDATA
@@ -109,15 +113,31 @@ public class DeepLinkManager {
         return null;
     }
 
-    private static void trackDeepLinkLaunchEvent(DeepLinkProcessor deepLink) {
-        JSONObject properties = new JSONObject();
+    private static void trackDeepLinkLaunchEvent(final Context context, DeepLinkProcessor deepLink) {
+        final JSONObject properties = new JSONObject();
+        final boolean isDeepLinkInstallSource = deepLink instanceof SensorsDataDeepLink && SensorsDataAPI.sharedInstance().isDeepLinkInstallSource();
         try {
             properties.put("$deeplink_url", deepLink.getDeepLinkUrl());
+            properties.put("$time", new Date(System.currentTimeMillis()));
         } catch (JSONException e) {
             SALog.printStackTrace(e);
         }
+        SensorsDataUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), properties);
         SensorsDataUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
-        SensorsDataAPI.sharedInstance().track("$AppDeeplinkLaunch", properties);
+        SensorsDataAPI.sharedInstance().transformTaskQueue(new Runnable() {
+            @Override
+            public void run() {
+                if (isDeepLinkInstallSource) {
+                    try {
+                        properties.put("$ios_install_source", ChannelUtils.getDeviceInfo(context,
+                                SensorsDataUtils.getAndroidID(context), OaidHelper.getOAID(context)));
+                    } catch (JSONException e) {
+                        SALog.printStackTrace(e);
+                    }
+                }
+                SensorsDataAPI.sharedInstance().trackInternal("$AppDeeplinkLaunch", properties);
+            }
+        });
     }
 
     public interface OnDeepLinkParseFinishCallback {
@@ -147,7 +167,7 @@ public class DeepLinkManager {
             });
             mDeepLinkProcessor.parseDeepLink(intent);
             //触发 $AppDeeplinkLaunch 事件
-            DeepLinkManager.trackDeepLinkLaunchEvent(mDeepLinkProcessor);
+            DeepLinkManager.trackDeepLinkLaunchEvent(activity.getApplicationContext(), mDeepLinkProcessor);
             return true;
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
@@ -156,7 +176,8 @@ public class DeepLinkManager {
     }
 
     /**
-     * 合并 utm 属性到 properties 中
+     * 合并渠道信息到 properties 中
+     *
      * @param properties 属性
      */
     public static void mergeDeepLinkProperty(JSONObject properties) {

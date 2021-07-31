@@ -42,7 +42,6 @@ public class WebNodesManager {
     private static final String TAG = "SA.Visual.WebNodesManager";
     private static final String CALL_TYPE_VISUALIZED_TRACK = "visualized_track";
     private static final String CALL_TYPE_PAGE_INFO = "page_info";
-
     private volatile static WebNodesManager mSingleton = null;
     private static LruCache<String, WebNodeInfo> sWebNodesCache;
     private static LruCache<String, WebNodeInfo> sPageInfoCache;
@@ -80,7 +79,7 @@ public class WebNodesManager {
             return;
         }
         SALog.i(TAG, "handlerMessage: " + message);
-        mLastWebNodeMsg = message;
+        mLastWebNodeMsg = String.valueOf(System.currentTimeMillis());
         mHasH5AlertInfo = false;
         try {
             JSONObject jsonObject = new JSONObject(message);
@@ -128,7 +127,7 @@ public class WebNodesManager {
         }
         SALog.i(TAG, "handlerFailure url " + webViewUrl + ",msg: " + message);
         mHasH5AlertInfo = true;
-        mLastWebNodeMsg = message;
+        mLastWebNodeMsg = String.valueOf(System.currentTimeMillis());
         List<WebNodeInfo.AlertInfo> list = parseAlertResult(message);
         if (list != null && list.size() > 0) {
             if (sWebNodesCache == null) {
@@ -283,6 +282,7 @@ public class WebNodesManager {
         return sPageInfoCache.get(webViewUrl);
     }
 
+    // 为同时支持多 WebView 场景和 JS SDK 页面无法监听到页面变化，修改了 H5 Hash 处理逻辑，只要在 H5 页面需要始终进行上报。
     String getLastWebNodeMsg() {
         return mLastWebNodeMsg;
     }
@@ -292,8 +292,8 @@ public class WebNodesManager {
     }
 
     public void clear() {
-        mHasH5AlertInfo = false;
         mLastWebNodeMsg = null;
+        mHasH5AlertInfo = false;
     }
 
     // ImageHash 相同时不会遍历 ViewTree，此时需要用单例来维护页面是否包含 WebView，优化性能。
@@ -301,7 +301,7 @@ public class WebNodesManager {
         this.mHasWebView = hasWebView;
     }
 
-    boolean hasWebView(){
+    boolean hasWebView() {
         return mHasWebView;
     }
 }

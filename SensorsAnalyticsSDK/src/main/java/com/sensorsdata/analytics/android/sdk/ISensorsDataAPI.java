@@ -42,7 +42,7 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     /**
      * 获取当前 serverUrl
      *
-     * @return  当前 serverUrl
+     * @return 当前 serverUrl
      */
     String getServerUrl();
 
@@ -1004,8 +1004,8 @@ public interface ISensorsDataAPI extends IFragmentAPI {
     /**
      * 更新 GPS 位置信息及对应坐标系
      *
-     * @param latitude   纬度
-     * @param longitude  经度
+     * @param latitude 纬度
+     * @param longitude 经度
      * @param coordinate 坐标系，坐标系类型请参照 {@link SensorsDataGPSLocation.CoordinateType}
      */
     void setGPSLocation(double latitude, double longitude, final String coordinate);
@@ -1132,4 +1132,24 @@ public interface ISensorsDataAPI extends IFragmentAPI {
      * 开启数据采集
      */
     void enableDataCollect();
+
+    /**
+     * DeepLink 是否采集设备信息
+     */
+    void enableDeepLinkInstallSource(boolean enable);
+
+    /**
+     * 记录 $AppDeepLinkLaunch {@link #trackDeepLinkLaunch(String, String)}}事件
+     *
+     * @param deepLinkUrl 唤起应用的 DeepLink 链接
+     */
+    void trackDeepLinkLaunch(String deepLinkUrl);
+
+    /**
+     * 记录 $AppDeepLinkLaunch 事件
+     *
+     * @param deepLinkUrl 唤起应用的 DeepLink 链接
+     * @param oaid oaid
+     */
+    void trackDeepLinkLaunch(String deepLinkUrl, String oaid);
 }

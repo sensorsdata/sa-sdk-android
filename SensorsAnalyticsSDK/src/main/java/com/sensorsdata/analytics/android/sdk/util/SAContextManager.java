@@ -35,6 +35,7 @@ public class SAContextManager {
     private Map<String, Object> mDeviceInfo;
     /* AndroidID */
     private String mAndroidId;
+    private boolean isAppStartSuccess;
 
     public SAContextManager(Context context, boolean isTrackDeviceId) {
         this.mContext = context;
@@ -163,5 +164,13 @@ public class SAContextManager {
         deviceInfo.put("$app_id", AppInfoUtils.getProcessName(mContext));
         deviceInfo.put("$app_name", AppInfoUtils.getAppName(mContext));
         mDeviceInfo =  Collections.unmodifiableMap(deviceInfo);
+    }
+
+    public boolean isAppStartSuccess() {
+        return isAppStartSuccess;
+    }
+
+    public void setAppStartSuccess(boolean appStartSuccess) {
+        isAppStartSuccess = appStartSuccess;
     }
 }

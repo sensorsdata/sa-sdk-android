@@ -836,4 +836,19 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     public void addSAJSListener(SAJSListener listener) {
 
     }
+
+    @Override
+    public void enableDeepLinkInstallSource(boolean enable) {
+
+    }
+
+    @Override
+    public void trackDeepLinkLaunch(String deepLinkUrl) {
+
+    }
+
+    @Override
+    public void trackDeepLinkLaunch(String deepLinkUrl, String oaid) {
+
+    }
 }

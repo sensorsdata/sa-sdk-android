@@ -95,6 +95,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
      * 打点时间间隔：2000 毫秒
      */
     private static final int TIME_INTERVAL = 2000;
+    private boolean mDataCollectState;
 
     SensorsDataActivityLifecycleCallbacks(SensorsDataAPI instance, PersistentFirstStart firstStart,
                                           PersistentFirstDay firstDay, Context context) {
@@ -103,6 +104,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         this.mFirstDay = firstDay;
         this.mDbAdapter = DbAdapter.getInstance();
         this.mContext = context;
+        mDataCollectState = SensorsDataAPI.getConfigOptions().isDataCollectEnable();
         initHandler();
     }
 
@@ -139,7 +141,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                         SensorsDataUtils.mergeJSONObject(otherProperties, properties);
                     }
                 }
-                // 合并 utm 属性到 properties 中
+                // 合并渠道信息到 $AppViewScreen 事件中
                 DeepLinkManager.mergeDeepLinkProperty(properties);
                 DeepLinkManager.resetDeepLinkProcessor();
                 JSONObject eventProperties = SADataHelper.appendLibMethodAutoTrack(properties);
@@ -267,7 +269,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                             properties.put("$resume_from_background", resumeFromBackground);
                             properties.put("$is_first_time", firstStart);
                             SensorsDataUtils.mergeJSONObject(activityProperty, properties);
-                            // 合并 utm 属性到 properties 中
+                            // 合并渠道信息到 $AppStart 事件中
                             if (mDeepLinkProperty != null) {
                                 SensorsDataUtils.mergeJSONObject(mDeepLinkProperty, properties);
                                 mDeepLinkProperty = null;
@@ -408,6 +410,11 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
      */
     private void generateAppEndData(long messageTime, long endElapsedTime) {
         try {
+            // 如果初始未非合规状态，则需要判断同意合规后才打点
+            if (!mDataCollectState && !mSensorsDataInstance.getSAContextManager().isAppStartSuccess()) {
+                return;
+            }
+            mDataCollectState = true;
             // 同意合规时进行打点记录
             if (SensorsDataAPI.getConfigOptions().isDataCollectEnable) {
                 long timer = messageTime == 0 ? System.currentTimeMillis() : messageTime;
@@ -521,7 +528,7 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
         if (isDeepLinkParseSuccess(activity)) {
             // 清除 AppEnd 中的 DeepLink 信息
             ChannelUtils.removeDeepLinkInfo(endDataProperty);
-            // 合并 utm 属性到 properties 中，用于 $AppStart 事件
+            // 合并渠道信息到 $AppStart 事件中
             if (mDeepLinkProperty == null) {
                 mDeepLinkProperty = new JSONObject();
             }
