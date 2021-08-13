@@ -31,6 +31,7 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Method;
 
 public class DeviceUtils {
 
@@ -130,6 +131,56 @@ public class DeviceUtils {
     private static int getNaturalHeight(int rotation, int width, int height) {
         return rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180 ?
                 height : width;
+    }
+
+    /**
+     * 获取鸿蒙系统 Version
+     *
+     * @return HarmonyOS Version
+     */
+    public static String getHarmonyOSVersion() {
+        String version = null;
+        if (isHarmonyOs()) {
+            version = getProp("hw_sc.build.platform.version", "");
+            if(TextUtils.isEmpty(version)){
+                version = exec(SensorsDataUtils.COMMAND_HARMONYOS_VERSION);
+            }
+        }
+        return version;
+    }
+
+    /**
+     * 判断当前是否为鸿蒙系统
+     *
+     * @return 是否是鸿蒙系统，是：true，不是：false
+     */
+    private static boolean isHarmonyOs() {
+        try {
+            Class<?> buildExClass = Class.forName("com.huawei.system.BuildEx");
+            Object osBrand = buildExClass.getMethod("getOsBrand").invoke(buildExClass);
+            if (osBrand == null) {
+                return false;
+            }
+            return "harmony".equalsIgnoreCase(osBrand.toString());
+        } catch (Throwable e) {
+            SALog.i("SA.HasHarmonyOS", e.getMessage());
+            return false;
+        }
+    }
+
+    private static String getProp(String property, String defaultValue) {
+        try {
+            Class spClz = Class.forName("android.os.SystemProperties");
+            Method method = spClz.getDeclaredMethod("get", String.class);
+            String value = (String) method.invoke(spClz, property);
+            if (TextUtils.isEmpty(value)) {
+                return defaultValue;
+            }
+            return value;
+        } catch (Throwable throwable) {
+            SALog.i("SA.SystemProperties", throwable.getMessage());
+        }
+        return defaultValue;
     }
 
     /**

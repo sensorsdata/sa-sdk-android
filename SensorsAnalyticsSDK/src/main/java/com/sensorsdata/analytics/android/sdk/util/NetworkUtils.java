@@ -19,7 +19,10 @@ package com.sensorsdata.analytics.android.sdk.util;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -50,6 +53,9 @@ public class NetworkUtils {
     private static String networkType;
 
     private static final String TAG = "SA.NetworkUtils";
+
+    private static SABroadcastReceiver mReceiver;
+    private static SANetworkCallbackImpl networkCallback;
 
     /**
      * 获取网络类型
@@ -181,23 +187,50 @@ public class NetworkUtils {
         return location;
     }
 
-
     public static void registerNetworkListener(Context context) {
         try {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-                SensorsDataNetworkListener.SABroadcastReceiver mReceiver = new SensorsDataNetworkListener.SABroadcastReceiver();
+                if (mReceiver == null) {
+                    mReceiver = new SABroadcastReceiver();
+                }
                 IntentFilter intentFilter = new IntentFilter();
                 intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
                 context.registerReceiver(mReceiver, intentFilter);
                 SALog.i(TAG, "Register BroadcastReceiver");
             } else {
-                SensorsDataNetworkListener.SANetworkCallbackImpl networkCallback = new SensorsDataNetworkListener.SANetworkCallbackImpl();
+                if (networkCallback == null) {
+                    networkCallback = new SANetworkCallbackImpl();
+                }
                 NetworkRequest request = new NetworkRequest.Builder().build();
                 ConnectivityManager connectivityManager = (ConnectivityManager) context
                         .getSystemService(Context.CONNECTIVITY_SERVICE);
                 if (connectivityManager != null) {
                     connectivityManager.registerNetworkCallback(request, networkCallback);
                     SALog.i(TAG, "Register ConnectivityManager");
+                }
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
+    public static void unregisterNetworkListener(Context context) {
+        try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+                if (mReceiver == null) {
+                    return;
+                }
+                context.unregisterReceiver(mReceiver);
+                SALog.i(TAG, "unregisterReceiver BroadcastReceiver");
+            } else {
+                if (networkCallback == null) {
+                    return;
+                }
+                ConnectivityManager connectivityManager = (ConnectivityManager) context
+                        .getSystemService(Context.CONNECTIVITY_SERVICE);
+                if (connectivityManager != null) {
+                    connectivityManager.unregisterNetworkCallback(networkCallback);
+                    SALog.i(TAG, "unregister ConnectivityManager");
                 }
             }
         } catch (Exception e) {
@@ -318,5 +351,44 @@ public class NetworkUtils {
                 return "5G";
         }
         return "NULL";
+    }
+
+    private static class SABroadcastReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (ConnectivityManager.CONNECTIVITY_ACTION.equals(action)) {
+                NetworkUtils.cleanNetworkTypeCache();
+                SensorsDataAPI.sharedInstance().flushSync();
+                SALog.i(TAG, "SABroadcastReceiver is receiving ConnectivityManager.CONNECTIVITY_ACTION broadcast");
+            }
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    private static class SANetworkCallbackImpl extends ConnectivityManager.NetworkCallback {
+
+        @Override
+        public void onAvailable(Network network) {
+            super.onAvailable(network);
+            NetworkUtils.cleanNetworkTypeCache();
+            SensorsDataAPI.sharedInstance().flushSync();
+            SALog.i(TAG, "onAvailable is calling");
+        }
+
+        @Override
+        public void onCapabilitiesChanged(Network network, NetworkCapabilities networkCapabilities) {
+            super.onCapabilitiesChanged(network, networkCapabilities);
+            NetworkUtils.cleanNetworkTypeCache();
+            SALog.i(TAG, "onCapabilitiesChanged is calling");
+        }
+
+        @Override
+        public void onLost(Network network) {
+            super.onLost(network);
+            NetworkUtils.cleanNetworkTypeCache();
+            SALog.i(TAG, "onLost is calling");
+        }
     }
 }

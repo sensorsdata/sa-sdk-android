@@ -21,6 +21,7 @@ import android.annotation.SuppressLint;
 import android.content.SharedPreferences;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -80,6 +81,9 @@ public abstract class PersistentIdentity<T> {
      */
     @SuppressWarnings("unchecked")
     public void commit(T item) {
+        if (SensorsDataAPI.getConfigOptions().isDisableSDK()) {
+            return;
+        }
         this.item = item;
 
         synchronized (loadStoredPreferences) {

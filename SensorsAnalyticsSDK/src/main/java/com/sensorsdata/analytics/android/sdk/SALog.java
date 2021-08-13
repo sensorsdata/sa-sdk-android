@@ -23,35 +23,36 @@ import android.util.Log;
 public class SALog {
     private static boolean debug;
     private static boolean enableLog;
+    private static boolean disableSDK;
     private static final int CHUNK_SIZE = 4000;
 
     public static void d(String tag, String msg) {
-        if (debug) {
+        if (debug && !disableSDK) {
             info(tag, msg, null);
         }
     }
 
     public static void d(String tag, String msg, Throwable tr) {
-        if (debug) {
+        if (debug && !disableSDK) {
             info(tag, msg, tr);
         }
 
     }
 
     public static void i(String tag, String msg) {
-        if (enableLog) {
+        if (enableLog && !disableSDK) {
             info(tag, msg, null);
         }
     }
 
     public static void i(String tag, Throwable tr) {
-        if (enableLog) {
+        if (enableLog && !disableSDK) {
             info(tag, "", tr);
         }
     }
 
     public static void i(String tag, String msg, Throwable tr) {
-        if (enableLog) {
+        if (enableLog && !disableSDK) {
             info(tag, msg, tr);
         }
     }
@@ -122,7 +123,7 @@ public class SALog {
      * @param e Exception
      */
     public static void printStackTrace(Exception e) {
-        if (enableLog && e != null) {
+        if (enableLog && !disableSDK && e != null) {
             Log.e("SA.Exception", "", e);
         }
     }
@@ -143,6 +144,10 @@ public class SALog {
      */
     public static void setEnableLog(boolean isEnableLog) {
         enableLog = isEnableLog;
+    }
+
+    public static void setDisableSDK(boolean configDisableSDK) {
+        disableSDK = configDisableSDK;
     }
 
     public static boolean isLogEnabled() {

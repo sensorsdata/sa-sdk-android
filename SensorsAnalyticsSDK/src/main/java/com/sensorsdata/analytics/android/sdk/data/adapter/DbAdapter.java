@@ -359,6 +359,36 @@ public class DbAdapter {
     }
 
     /**
+     * 保存远程控制下发字段
+     *
+     * @param config 下发字段
+     */
+    public void commitRemoteConfig(String config) {
+        try {
+            mPersistentOperation.insertData(mDbParams.getRemoteConfigUri(), new JSONObject().put(DbParams.VALUE, config));
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+    }
+
+    /**
+     * 获取远程控制下发字段
+     *
+     * @return 下发字段
+     */
+    public String getRemoteConfig() {
+        try {
+            String[] values = mPersistentOperation.queryData(mDbParams.getRemoteConfigUri(), 1);
+            if (values != null && values.length > 0) {
+                return values[0];
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return "";
+    }
+
+    /**
      * 从 Event 表中读取上报数据
      *
      * @param tableName 表名

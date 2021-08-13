@@ -20,6 +20,7 @@ package com.sensorsdata.analytics.android.sdk;
 import com.sensorsdata.analytics.android.sdk.encrypt.IPersistentSecretKey;
 import com.sensorsdata.analytics.android.sdk.encrypt.SAEncryptListener;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -112,7 +113,7 @@ abstract class AbstractSAConfigOptions {
      * 可视化全埋点对话框是否可用
      */
     boolean mVisualizedConfirmDialogEnabled;
-    
+
     /**
      * 是否开启打印日志
      */
@@ -184,6 +185,11 @@ abstract class AbstractSAConfigOptions {
     boolean isDataCollectEnable = true;
 
     /**
+     * 是否关闭 SDK
+     */
+    boolean isDisableSDK = false;
+
+    /**
      * 开启前向标题采集
      */
     boolean mEnableReferrerTitle = false;
@@ -191,13 +197,32 @@ abstract class AbstractSAConfigOptions {
     /**
      * 自定义加密实现接口
      */
-    List<SAEncryptListener> mEncryptListeners;
+    List<SAEncryptListener> mEncryptors = new ArrayList<>();
 
     /**
      * 是否开启数据采集
+     *
      * @return true 开启，false 未开启
      */
     public boolean isDataCollectEnable() {
         return isDataCollectEnable;
+    }
+
+    /**
+     * 获取注册的加密插件列表
+     *
+     * @return 注册的加密插件列表
+     */
+    public List<SAEncryptListener> getEncryptors() {
+        return mEncryptors;
+    }
+
+    /**
+     * 是否禁止 SDK
+     *
+     * @return true 禁止了 SDK，false 未禁止
+     */
+    public boolean isDisableSDK() {
+        return this.isDisableSDK;
     }
 }

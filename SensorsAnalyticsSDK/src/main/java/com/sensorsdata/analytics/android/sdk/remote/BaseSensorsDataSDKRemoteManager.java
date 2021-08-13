@@ -25,6 +25,7 @@ import android.util.Patterns;
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.encrypt.SAEncryptListener;
 import com.sensorsdata.analytics.android.sdk.encrypt.SecreteKey;
 import com.sensorsdata.analytics.android.sdk.encrypt.SensorsDataEncrypt;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
@@ -103,7 +104,7 @@ public abstract class BaseSensorsDataSDKRemoteManager {
                 sdkRemoteConfig.setOldVersion(jsonObject.optString("v"));
 
                 String configs = jsonObject.optString("configs");
-                SecreteKey secreteKey = new SecreteKey("", -1);
+                SecreteKey secreteKey = new SecreteKey("", -1, "", "");
                 if (!TextUtils.isEmpty(configs)) {
                     JSONObject configObject = new JSONObject(configs);
                     sdkRemoteConfig.setDisableDebugMode(configObject.optBoolean("disableDebugMode", false));
@@ -112,23 +113,27 @@ public abstract class BaseSensorsDataSDKRemoteManager {
                     sdkRemoteConfig.setEventBlacklist(configObject.optJSONArray("event_blacklist"));
                     sdkRemoteConfig.setNewVersion(configObject.optString("nv", ""));
                     sdkRemoteConfig.setEffectMode(configObject.optInt("effect_mode", 0));
-                    JSONObject keyObject = configObject.optJSONObject("key");
-                    if (keyObject != null) {
-                        if (keyObject.has("key_ec") && SensorsDataEncrypt.isECEncrypt()) {
-                            String key_ec = keyObject.optString("key_ec");
-                            if (!TextUtils.isEmpty(key_ec)) {
-                                keyObject = new JSONObject(key_ec);
+                    if (mSAConfigOptions.getEncryptors() != null && !mSAConfigOptions.getEncryptors().isEmpty()) {
+                        JSONObject keyObject = configObject.optJSONObject("key_v2");
+                        if (keyObject != null) {
+                            String[] types = keyObject.optString("type").split("\\+");
+                            if (types.length == 2) {
+                                String asymmetricType = types[0];
+                                String symmetricType = types[1];
+                                for (SAEncryptListener encryptListener : mSAConfigOptions.getEncryptors()) {
+                                    if (asymmetricType.equals(encryptListener.asymmetricEncryptType())
+                                            && symmetricType.equals(encryptListener.symmetricEncryptType())) {
+                                        secreteKey.key = keyObject.optString("public_key");
+                                        secreteKey.version = keyObject.optInt("pkv");
+                                        secreteKey.asymmetricEncryptType = asymmetricType;
+                                        secreteKey.symmetricEncryptType = symmetricType;
+                                    }
+                                }
                             }
                         }
-
-                        secreteKey.key = keyObject.optString("public_key");
-
-                        if (keyObject.has("type")) {
-                            String type = keyObject.optString("type");
-                            secreteKey.key = type + ":" + secreteKey.key;
-                            secreteKey.asymmetricEncryptType = type;
+                        if (TextUtils.isEmpty(secreteKey.key)) {
+                            parseSecreteKey(configObject.optJSONObject("key"), secreteKey);
                         }
-                        secreteKey.version = keyObject.optInt("pkv");
                         sdkRemoteConfig.setSecretKey(secreteKey);
                     }
                 } else {
@@ -147,6 +152,32 @@ public abstract class BaseSensorsDataSDKRemoteManager {
             SALog.printStackTrace(e);
         }
         return sdkRemoteConfig;
+    }
+
+    private void parseSecreteKey(JSONObject keyObject, SecreteKey secreteKey) {
+        if (keyObject != null) {
+            try {
+                if (keyObject.has("key_ec") && SensorsDataEncrypt.isECEncrypt()) {
+                    String key_ec = keyObject.optString("key_ec");
+                    if (!TextUtils.isEmpty(key_ec)) {
+                        keyObject = new JSONObject(key_ec);
+                    }
+                }
+
+                secreteKey.key = keyObject.optString("public_key");
+                secreteKey.symmetricEncryptType = "AES";
+                if (keyObject.has("type")) {
+                    String type = keyObject.optString("type");
+                    secreteKey.key = type + ":" + secreteKey.key;
+                    secreteKey.asymmetricEncryptType = type;
+                } else {
+                    secreteKey.asymmetricEncryptType = "RSA";
+                }
+                secreteKey.version = keyObject.optInt("pkv");
+            } catch (Exception e) {
+                SALog.printStackTrace(e);
+            }
+        }
     }
 
     /**

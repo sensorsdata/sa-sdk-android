@@ -82,6 +82,9 @@ class PersistentDataOperation extends DataOperation {
                     case DbParams.TABLE_FIRST_PROCESS_START:
                         contentValues.put(DbParams.TABLE_FIRST_PROCESS_START, jsonObject.optBoolean(DbParams.VALUE));
                         break;
+                    case DbParams.TABLE_REMOTE_CONFIG:
+                        contentValues.put(DbParams.TABLE_REMOTE_CONFIG, jsonObject.optString(DbParams.VALUE));
+                        break;
                     default:
                         return -1;
                 }
@@ -110,6 +113,7 @@ class PersistentDataOperation extends DataOperation {
                         return new String[]{String.valueOf(cursor.getInt(0))};
                     case DbParams.TABLE_APP_END_DATA:
                     case DbParams.TABLE_LOGIN_ID:
+                    case DbParams.TABLE_REMOTE_CONFIG:
                         return new String[]{cursor.getString(0)};
                     case DbParams.TABLE_APP_END_TIME:
                     case DbParams.TABLE_SESSION_INTERVAL_TIME:

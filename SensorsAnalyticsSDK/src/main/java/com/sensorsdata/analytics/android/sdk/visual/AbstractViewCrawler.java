@@ -440,9 +440,16 @@ public abstract class AbstractViewCrawler implements VTrack {
                 final URL url = new URL(mPostUrl);
                 connection = (HttpURLConnection) url.openConnection();
                 SAConfigOptions configOptions = SensorsDataAPI.getConfigOptions();
-                if (configOptions != null && configOptions.mSSLSocketFactory != null
-                        && connection instanceof HttpsURLConnection) {
-                    ((HttpsURLConnection) connection).setSSLSocketFactory(configOptions.mSSLSocketFactory);
+                if (configOptions != null) {
+                    if (configOptions.isDisableSDK()) {
+                        mMessageThreadHandler.sendMessageDelayed(mMessageThreadHandler.obtainMessage(MESSAGE_SEND_STATE_FOR_EDITING), 1000);
+                        return;
+                    }
+
+                    if (configOptions.mSSLSocketFactory != null
+                            && connection instanceof HttpsURLConnection) {
+                        ((HttpsURLConnection) connection).setSSLSocketFactory(configOptions.mSSLSocketFactory);
+                    }
                 }
                 connection.setDoOutput(true);
                 connection.setRequestMethod("POST");

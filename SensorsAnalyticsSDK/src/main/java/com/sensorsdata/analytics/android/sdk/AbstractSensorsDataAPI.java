@@ -36,6 +36,7 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallation;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallationWithCallback;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentIdentity;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProperties;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
@@ -127,6 +128,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     protected boolean mClearReferrerWhenAppEnd = false;
     protected boolean mDisableDefaultRemoteConfig = false;
     protected boolean mDisableTrackDeviceId = false;
+    protected static boolean isChangeEnableNetworkFlag = false;
     // Session 时长
     protected int mSessionTime = 30 * 1000;
     protected List<Integer> mAutoTrackIgnoredActivities;
@@ -203,7 +205,9 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             }
 
             registerObserver();
-            delayInitTask();
+            if (!mSAConfigOptions.isDisableSDK()) {
+                delayInitTask();
+            }
             if (SALog.isLogEnabled()) {
                 SALog.i(TAG, String.format(Locale.CHINA, "Initialized the instance of Sensors Analytics SDK with server"
                         + " url '%s', flush interval %d ms, debugMode: %s", mServerUrl, mSAConfigOptions.mFlushInterval, debugMode));
@@ -228,16 +232,38 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     }
 
     /**
-     * 返回是否关闭了 SDK
+     * 返回采集控制是否关闭了 SDK
      *
      * @return true：关闭；false：没有关闭
      */
-    public static boolean isSDKDisabled() {
+    private static boolean isSDKDisabledByRemote() {
         boolean isSDKDisabled = SensorsDataRemoteManager.isSDKDisabledByRemote();
         if (isSDKDisabled) {
             SALog.i(TAG, "remote config: SDK is disabled");
         }
         return isSDKDisabled;
+    }
+
+    /**
+     * 返回本地是否关闭了 SDK
+     *
+     * @return true：关闭；false：没有关闭
+     */
+    private static boolean isSDKDisableByLocal() {
+        if (mSAConfigOptions == null) {
+            SALog.i(TAG, "SAConfigOptions is null");
+            return true;
+        }
+        return mSAConfigOptions.isDisableSDK;
+    }
+
+    /**
+     * 返回是否关闭了 SDK
+     *
+     * @return true：关闭；false：没有关闭
+     */
+    public static boolean isSDKDisabled() {
+        return isSDKDisableByLocal() || isSDKDisabledByRemote();
     }
 
     /**
@@ -570,6 +596,24 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
 
     SAContextManager getSAContextManager() {
         return mSAContextManager;
+    }
+
+    void registerNetworkListener() {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                NetworkUtils.registerNetworkListener(mContext);
+            }
+        });
+    }
+
+    void unregisterNetworkListener() {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                NetworkUtils.unregisterNetworkListener(mContext);
+            }
+        });
     }
 
     protected void addTimeProperty(JSONObject jsonObject) {
@@ -1004,7 +1048,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         }
 
         if (mSAConfigOptions.mEnableEncrypt) {
-            mSensorsDataEncrypt = new SensorsDataEncrypt(mContext, mSAConfigOptions.mPersistentSecretKey, mSAConfigOptions.mEncryptListeners);
+            mSensorsDataEncrypt = new SensorsDataEncrypt(mContext, mSAConfigOptions.mPersistentSecretKey, mSAConfigOptions.getEncryptors());
         }
 
         DbAdapter.getInstance(mContext, packageName, mSensorsDataEncrypt);
@@ -1016,6 +1060,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             enableLog(configBundle.getBoolean("com.sensorsdata.analytics.android.EnableLogging",
                     this.mDebugMode != SensorsDataAPI.DebugMode.DEBUG_OFF));
         }
+        SALog.setDisableSDK(mSAConfigOptions.isDisableSDK);
 
         setServerUrl(serverURL);
         if (mSAConfigOptions.mEnableTrackAppCrash) {
@@ -1073,6 +1118,11 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
 
         if (!TextUtils.isEmpty(mSAConfigOptions.mAnonymousId)) {
             identify(mSAConfigOptions.mAnonymousId);
+        }
+
+        if (mSAConfigOptions.isDisableSDK) {
+            mEnableNetworkRequest = false;
+            isChangeEnableNetworkFlag = true;
         }
 
         SHOW_DEBUG_INFO_VIEW = configBundle.getBoolean("com.sensorsdata.analytics.android.ShowDebugInfoView",
@@ -1618,6 +1668,8 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         contentResolver.registerContentObserver(DbParams.getInstance().getDataCollectUri(), false, contentObserver);
         contentResolver.registerContentObserver(DbParams.getInstance().getSessionTimeUri(), false, contentObserver);
         contentResolver.registerContentObserver(DbParams.getInstance().getLoginIdUri(), false, contentObserver);
+        contentResolver.registerContentObserver(DbParams.getInstance().getDisableSDKUri(), false, contentObserver);
+        contentResolver.registerContentObserver(DbParams.getInstance().getEnableSDKUri(), false, contentObserver);
     }
 
     /**
@@ -1632,7 +1684,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     /**
      * 延迟初始化任务
      */
-    private void delayInitTask() {
+    protected void delayInitTask() {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
@@ -1642,8 +1694,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                     } else {
                         ChannelUtils.clearLocalUtm(mContext);
                     }
-                    // 注册网络监听
-                    NetworkUtils.registerNetworkListener(mContext);
+                    registerNetworkListener();
                 } catch (Exception ex) {
                     SALog.printStackTrace(ex);
                 }

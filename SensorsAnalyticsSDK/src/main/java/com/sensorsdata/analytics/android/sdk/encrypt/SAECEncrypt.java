@@ -53,7 +53,7 @@ class SAECEncrypt implements SAEncryptListener {
 
     @Override
     public String encryptEvent(byte[] event) {
-        return EncryptUtils.aesEncrypt(aesKey, event);
+        return EncryptUtils.symmetricEncrypt(aesKey, event, SymmetricEncryptMode.AES);
     }
 
     @Override
@@ -65,7 +65,7 @@ class SAECEncrypt implements SAEncryptListener {
     public String encryptSymmetricKeyWithPublicKey(String publicKey) {
         if (mEncryptKey == null) {
             try {
-                aesKey = EncryptUtils.generateAESKey();
+                aesKey = EncryptUtils.generateSymmetricKey(SymmetricEncryptMode.AES);
                 mEncryptKey = EncryptUtils.encryptAESKey(publicKey, aesKey, "EC");
             } catch (NoSuchAlgorithmException e) {
                 SALog.printStackTrace(e);

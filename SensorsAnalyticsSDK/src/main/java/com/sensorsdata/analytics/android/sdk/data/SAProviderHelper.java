@@ -21,6 +21,7 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.UriMatcher;
 import android.database.Cursor;
 import android.database.MatrixCursor;
@@ -30,6 +31,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndData;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppPaused;
@@ -37,7 +39,9 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppStartT
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFlushDataState;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
+import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -52,6 +56,7 @@ class SAProviderHelper {
     private PersistentAppPaused persistentAppPaused;
     private PersistentLoginId persistentLoginId;
     private PersistentFlushDataState persistentFlushDataState;
+    private PersistentRemoteSDKConfig persistentRemoteSDKConfig;
     private Context mContext;
     private boolean isDbWritable = true;
     private boolean isFirstProcessStarted = true;
@@ -69,6 +74,7 @@ class SAProviderHelper {
             persistentAppPaused = (PersistentAppPaused) PersistentLoader.loadPersistent(DbParams.TABLE_APP_END_TIME);
             persistentLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(DbParams.TABLE_LOGIN_ID);
             persistentFlushDataState = (PersistentFlushDataState) PersistentLoader.loadPersistent(DbParams.TABLE_SUB_PROCESS_FLUSH_DATA);
+            persistentRemoteSDKConfig = (PersistentRemoteSDKConfig) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.REMOTE_CONFIG);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -136,6 +142,8 @@ class SAProviderHelper {
             uriMatcher.addURI(authority, DbParams.TABLE_CHANNEL_PERSISTENT, URI_CODE.CHANNEL_PERSISTENT);
             uriMatcher.addURI(authority, DbParams.TABLE_SUB_PROCESS_FLUSH_DATA, URI_CODE.FLUSH_DATA);
             uriMatcher.addURI(authority, DbParams.TABLE_FIRST_PROCESS_START, URI_CODE.FIRST_PROCESS_START);
+            uriMatcher.addURI(authority, DbParams.TABLE_DATA_DISABLE_SDK, URI_CODE.DISABLE_SDK);
+            uriMatcher.addURI(authority, DbParams.TABLE_REMOTE_CONFIG, URI_CODE.REMOTE_CONFIG);
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
         }
@@ -244,6 +252,9 @@ class SAProviderHelper {
                 case URI_CODE.FIRST_PROCESS_START:
                     isFirstProcessStarted = values.getAsBoolean(DbParams.TABLE_FIRST_PROCESS_START);
                     break;
+                case URI_CODE.REMOTE_CONFIG:
+                    persistentRemoteSDKConfig.commit(values.getAsString(DbParams.TABLE_REMOTE_CONFIG));
+                    break;
                 default:
                     break;
             }
@@ -330,6 +341,9 @@ class SAProviderHelper {
                     data = isFirstProcessStarted ? 1 : 0;
                     column = DbParams.TABLE_FIRST_PROCESS_START;
                     break;
+                case URI_CODE.REMOTE_CONFIG:
+                    data = persistentRemoteSDKConfig.get();
+                    break;
                 default:
                     break;
             }
@@ -381,5 +395,7 @@ class SAProviderHelper {
         int CHANNEL_PERSISTENT = 8;
         int FLUSH_DATA = 9;
         int FIRST_PROCESS_START = 10;
+        int DISABLE_SDK = 11;
+        int REMOTE_CONFIG = 12;
     }
 }

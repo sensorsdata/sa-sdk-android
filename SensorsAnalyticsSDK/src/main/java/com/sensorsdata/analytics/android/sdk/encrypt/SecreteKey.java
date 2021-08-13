@@ -37,19 +37,7 @@ public class SecreteKey {
      */
     public String asymmetricEncryptType;
 
-    public SecreteKey(String secretKey, int secretVersion) {
-        this.key = secretKey;
-        this.version = secretVersion;
-        this.symmetricEncryptType = "AES";
-        this.asymmetricEncryptType = "RSA";
-        if(!secretKey.isEmpty()){
-            if(secretKey.startsWith("EC:")) {
-                this.asymmetricEncryptType = "EC";
-            }
-        }
-    }
-
-    SecreteKey(String secretKey, int secretVersion, String symmetricEncryptType, String asymmetricEncryptType) {
+    public SecreteKey(String secretKey, int secretVersion, String symmetricEncryptType, String asymmetricEncryptType) {
         this.key = secretKey;
         this.version = secretVersion;
         this.symmetricEncryptType = symmetricEncryptType;

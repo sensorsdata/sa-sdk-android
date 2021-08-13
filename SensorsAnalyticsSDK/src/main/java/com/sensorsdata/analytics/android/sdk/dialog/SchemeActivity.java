@@ -24,6 +24,8 @@ import android.os.Bundle;
 import android.view.Window;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAPIEmptyImplementation;
 import com.sensorsdata.analytics.android.sdk.SensorsDataIgnoreTrackAppViewScreen;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
@@ -56,13 +58,23 @@ public class SchemeActivity extends Activity {
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
-        SensorsDataUtils.handleSchemeUrl(this, this.getIntent());
+        //未初始化 SDK 时，直接拉起 LaunchActivity
+        if (SensorsDataAPI.sharedInstance() instanceof SensorsDataAPIEmptyImplementation) {
+            SensorsDataDialogUtils.startLaunchActivity(this);
+        } else {
+            SensorsDataUtils.handleSchemeUrl(this, this.getIntent());
+        }
     }
 
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        SensorsDataUtils.handleSchemeUrl(this, intent);
+        //未初始化 SDK 时，直接拉起 LaunchActivity
+        if (SensorsDataAPI.sharedInstance() instanceof SensorsDataAPIEmptyImplementation) {
+            SensorsDataDialogUtils.startLaunchActivity(this);
+        } else {
+            SensorsDataUtils.handleSchemeUrl(this, this.getIntent());
+        }
     }
 
     @Override

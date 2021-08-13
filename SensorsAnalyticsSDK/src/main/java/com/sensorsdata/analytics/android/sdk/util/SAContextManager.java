@@ -127,7 +127,7 @@ public class SAContextManager {
      */
     private void setupDeviceInfo() {
         final Map<String, Object> deviceInfo = new HashMap<>();
-        String osVersion = DeviceUtils.exec(SensorsDataUtils.COMMAND_HARMONYOS_VERSION);
+        String osVersion = DeviceUtils.getHarmonyOSVersion();
         if (!TextUtils.isEmpty(osVersion)) {
             deviceInfo.put("$os", "HarmonyOS");
             deviceInfo.put("$os_version", osVersion);

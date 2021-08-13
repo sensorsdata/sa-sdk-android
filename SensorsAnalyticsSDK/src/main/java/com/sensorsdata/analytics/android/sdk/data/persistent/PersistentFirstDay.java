@@ -19,6 +19,8 @@ package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import android.content.SharedPreferences;
 
+import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
+
 import java.util.concurrent.Future;
 
 public class PersistentFirstDay extends PersistentIdentity<String> {

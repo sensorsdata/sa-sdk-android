@@ -18,6 +18,7 @@ package com.sensorsdata.analytics.android.sdk;
 
 
 import android.app.Activity;
+import android.content.Context;
 import android.view.View;
 import android.webkit.WebView;
 
@@ -486,7 +487,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public void removeTimer(String eventName) {
-        super.removeTimer(eventName);
     }
 
     @Override
@@ -835,6 +835,25 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     @Override
     public void addSAJSListener(SAJSListener listener) {
 
+    }
+
+    @Override
+    int getFlushNetworkPolicy() {
+        return 0;
+    }
+
+    @Override
+    public String getScreenOrientation() {
+        return "";
+    }
+
+    @Override
+    void trackChannelDebugInstallation() {
+    }
+
+    @Override
+    public boolean isNetworkRequestEnable() {
+        return false;
     }
 
     @Override

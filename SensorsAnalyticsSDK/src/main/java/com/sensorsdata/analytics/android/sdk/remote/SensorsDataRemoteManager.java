@@ -24,8 +24,7 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
@@ -37,21 +36,17 @@ import java.security.SecureRandom;
  * SDK 初始化及线上使用时，采集控制管理类
  */
 public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
-
     private static final String SHARED_PREF_REQUEST_TIME = "sensorsdata.request.time";
     private static final String SHARED_PREF_REQUEST_TIME_RANDOM = "sensorsdata.request.time.random";
     private static final String TAG = "SA.SensorsDataRemoteManager";
+    private SharedPreferences mSharedPreferences;
 
     // 每次启动 App 时，最多尝试三次
     private CountDownTimer mPullSDKConfigCountDownTimer;
 
-    private PersistentRemoteSDKConfig mPersistentRemoteSDKConfig;
-    private SharedPreferences mSharedPreferences;
-
     public SensorsDataRemoteManager(
             SensorsDataAPI sensorsDataAPI) {
         super(sensorsDataAPI);
-        this.mPersistentRemoteSDKConfig = (PersistentRemoteSDKConfig) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.REMOTE_CONFIG);
         SALog.i(TAG, "Construct a SensorsDataRemoteManager");
     }
 
@@ -238,7 +233,7 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
             eventProperties.put("$app_remote_config", remoteConfigString);
             SensorsDataAPI.sharedInstance().trackInternal("$AppRemoteConfigChanged", eventProperties);
             SensorsDataAPI.sharedInstance().flush();
-            mPersistentRemoteSDKConfig.commit(remoteConfigString);
+            DbAdapter.getInstance().commitRemoteConfig(remoteConfigString);
             SALog.i(TAG, "Save remote data");
             //值为 1 时，表示在线控制立即生效
             if (1 == sdkRemoteConfig.getEffectMode()) {
@@ -256,7 +251,7 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
     @Override
     public void applySDKConfigFromCache() {
         try {
-            SensorsDataSDKRemoteConfig sdkRemoteConfig = toSDKRemoteConfig(mPersistentRemoteSDKConfig.get());
+            SensorsDataSDKRemoteConfig sdkRemoteConfig = toSDKRemoteConfig(DbAdapter.getInstance().getRemoteConfig());
             if (SALog.isLogEnabled()) {
                 SALog.i(TAG, "Cache remote config is " + sdkRemoteConfig.toString());
             }

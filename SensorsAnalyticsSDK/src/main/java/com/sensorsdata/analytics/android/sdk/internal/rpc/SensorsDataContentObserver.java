@@ -32,6 +32,8 @@ import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
  * 用于跨进程业务的数据通信
  */
 public class SensorsDataContentObserver extends ContentObserver {
+    public static boolean isEnableFromObserver = false;
+    public static boolean isDisableFromObserver = false;
 
     public SensorsDataContentObserver() {
         super(new Handler(Looper.getMainLooper()));
@@ -50,6 +52,16 @@ public class SensorsDataContentObserver extends ContentObserver {
                     SensorsDataAPI.sharedInstance().logout();
                 } else {
                     SensorsDataAPI.sharedInstance().login(loginId);
+                }
+            } else if (DbParams.getInstance().getDisableSDKUri().equals(uri)) {
+                if (!SensorsDataAPI.getConfigOptions().isDisableSDK()) {
+                    isDisableFromObserver = true;
+                    SensorsDataAPI.disableSDK();
+                }
+            } else if (DbParams.getInstance().getEnableSDKUri().equals(uri)) {
+                if (SensorsDataAPI.getConfigOptions().isDisableSDK()) {
+                    isEnableFromObserver = true;
+                    SensorsDataAPI.enableSDK();
                 }
             }
         } catch (Exception e) {

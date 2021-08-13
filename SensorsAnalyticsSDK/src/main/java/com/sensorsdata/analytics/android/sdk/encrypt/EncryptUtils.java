@@ -46,12 +46,12 @@ class EncryptUtils {
     private static final String TAG = "SensorsDataEncrypt";
 
     /**
-     * 随机生成 AES 加密秘钥
+     * 随机生成 AES/SM4 加密秘钥
      *
-     * @return AES 密钥
+     * @return AES/SM4 密钥
      */
-    static byte[] generateAESKey() throws NoSuchAlgorithmException {
-        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+    static byte[] generateSymmetricKey(SymmetricEncryptMode mode) throws NoSuchAlgorithmException {
+        KeyGenerator keyGen = KeyGenerator.getInstance(mode.algorithm);
         keyGen.init(128);
         SecretKey aesKey = keyGen.generateKey();
         return aesKey.getEncoded();
@@ -117,14 +117,15 @@ class EncryptUtils {
     }
 
     /**
-     * 使用 AES 密钥对埋点数据加密
+     * 使用 AES/SM4 密钥对埋点数据加密
      *
-     * @param key AES 加密秘钥
+     * @param key AES/SM4 加密秘钥
      * @param contentBytes gzip 后的加密内容
-     * @return AES 加密后的数据
+     * @param mode {@link SymmetricEncryptMode} 同步加密类型
+     * @return AES/SM4 加密后的数据
      */
-    static String aesEncrypt(byte[] key, byte[] contentBytes) {
-        if(key == null || contentBytes == null){
+    static String symmetricEncrypt(byte[] key, byte[] contentBytes, SymmetricEncryptMode mode) {
+        if (key == null || contentBytes == null) {
             return null;
         }
         try {
@@ -132,8 +133,8 @@ class EncryptUtils {
             // 随机生成初始化向量
             byte[] ivBytes = new byte[16];
             random.nextBytes(ivBytes);
-            SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
-            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key, mode.algorithm);
+            Cipher cipher = Cipher.getInstance(mode.transformation);
             cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, new IvParameterSpec(ivBytes));
 
             byte[] encryptedBytes = cipher.doFinal(contentBytes);

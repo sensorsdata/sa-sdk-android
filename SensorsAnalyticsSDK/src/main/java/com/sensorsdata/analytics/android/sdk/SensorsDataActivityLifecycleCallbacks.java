@@ -372,7 +372,9 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
                 properties.put("$title", endDataJsonObject.optString("$title"));
                 properties.put(LIB_VERSION, endDataJsonObject.optString(LIB_VERSION));
                 properties.put(APP_VERSION, endDataJsonObject.optString(APP_VERSION));
-                properties.put("event_duration", Double.valueOf(duration(startTime, endTime)));
+                if (startTime > 0) {
+                    properties.put("event_duration", Double.valueOf(duration(startTime, endTime)));
+                }
                 properties.put("event_time", endTrackTime == 0 ? endEventTime : endTrackTime);
                 ChannelUtils.mergeUtmToEndData(endDataJsonObject, properties);
                 mSensorsDataInstance.trackAutoEvent("$AppEnd", properties);
@@ -525,7 +527,8 @@ class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifec
     private void buildScreenProperties(Activity activity) {
         activityProperty = AopUtil.buildTitleNoAutoTrackerProperties(activity);
         SensorsDataUtils.mergeJSONObject(activityProperty, endDataProperty);
-        if (isDeepLinkParseSuccess(activity)) {
+        if (!SensorsDataAPI.getConfigOptions().isDisableSDK() &&
+                isDeepLinkParseSuccess(activity)) {
             // 清除 AppEnd 中的 DeepLink 信息
             ChannelUtils.removeDeepLinkInfo(endDataProperty);
             // 合并渠道信息到 $AppStart 事件中
