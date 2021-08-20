@@ -1,5 +1,5 @@
 /*
- * Created by dengshiwei on 2019/12/25.
+ * Created by dengshiwei on 2021/08/19.
  * Copyright 2015－2021 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,13 +15,17 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.util;
+package com.sensorsdata.analytics.android.sdk.advert.utils;
 
 import android.content.Context;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -36,6 +40,11 @@ public class OaidHelper {
     private static Class<?> mIdSupplier;
     private static Class<?> jLibrary;
     private static Class<?> mMidSDKHelper;
+    public static String oaidCertPath;
+
+    static {
+        initSDKLibrary();
+    }
 
     /**
      * 获取 OAID 接口，注意该接口是同步接口，可能会导致线程阻塞，建议在子线程中使用
@@ -46,7 +55,10 @@ public class OaidHelper {
     public static String getOAID(final Context context) {
         String romOAID = getRomOAID(context);
         SALog.i(TAG, "romOAID is " + romOAID);
-        return ("00000000-0000-0000-0000-000000000000".equals(romOAID)) ? "" : romOAID;
+        if ("00000000-0000-0000-0000-000000000000".equals(romOAID)) {
+            romOAID = "";
+        }
+        return romOAID;
     }
 
     private static String getRomOAID(final Context context) {
@@ -92,6 +104,9 @@ public class OaidHelper {
                 return;
             }
             final int INIT_ERROR_RESULT_DELAY = 1008614;            //获取接口是异步的，结果会在回调中返回，回调执行的回调可能在工作线程
+            final int INIT_ERROR_RESULT_OK = 1008610;            //获取成功
+            // 初始化证书
+            initPemCert(context);
             // 初始化 Library
             if (jLibrary != null) {
                 Method initEntry = jLibrary.getDeclaredMethod("InitEntry", Context.class);
@@ -101,7 +116,7 @@ public class OaidHelper {
             Method initSDK = mMidSDKHelper.getDeclaredMethod("InitSdk", Context.class, boolean.class, mIdentifyListener);
             int errCode = (int) initSDK.invoke(null, context, true, Proxy.newProxyInstance(context.getClassLoader(), new Class[]{mIdentifyListener}, handler));
             SALog.d(TAG, "MdidSdkHelper ErrorCode : " + errCode);
-            if (errCode != INIT_ERROR_RESULT_DELAY) {
+            if (errCode != INIT_ERROR_RESULT_DELAY && errCode != INIT_ERROR_RESULT_OK) {
                 getOAIDReflect(context, --retryCount);
                 if (retryCount == 0) {
                     mCountDownLatch.countDown();
@@ -137,13 +152,15 @@ public class OaidHelper {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             try {
-                if ("OnSupport".equals(method.getName())) {
-                    if ((Boolean) args[0]) {
-                        Method getOAID = mIdSupplier.getDeclaredMethod("getOAID");
+                if ("OnSupport".equalsIgnoreCase(method.getName())) {
+                    Method getOAID = mIdSupplier.getDeclaredMethod("getOAID");
+                    if (args.length == 1) {// v1.0.26 版本只有 1 个参数
+                        mOAID = (String) getOAID.invoke(args[0]);
+                    } else {
                         mOAID = (String) getOAID.invoke(args[1]);
-                        SALog.d(TAG, "oaid:" + mOAID);
                     }
 
+                    SALog.d(TAG, "oaid:" + mOAID);
                     mCountDownLatch.countDown();
                 }
             } catch (Throwable ex) {
@@ -157,7 +174,7 @@ public class OaidHelper {
         try {
             mMidSDKHelper = Class.forName("com.bun.miitmdid.core.MdidSdkHelper");
         } catch (ClassNotFoundException e) {
-            SALog.printStackTrace(e);
+            SALog.d(TAG, e.getMessage());
             return;
         }
         // 尝试 1.0.22 版本
@@ -186,6 +203,55 @@ public class OaidHelper {
             jLibrary = Class.forName("com.bun.miitmdid.core.JLibrary");
         } catch (Exception ex) {
             // ignore
+        }
+    }
+
+    private static void initSDKLibrary() {
+        try {
+            System.loadLibrary("nllvm1623827671");  // 加载 SDK 安全库
+        } catch (Throwable throwable) {
+            // ignore
+        }
+    }
+
+    /**
+     * 初始化证书
+     *
+     * @param context Context
+     */
+    private static void initPemCert(Context context) {
+        try {
+            oaidCertPath = loadPemFromAssetFile(context);
+            if (!TextUtils.isEmpty(oaidCertPath)) {
+                Method initCert = mMidSDKHelper.getDeclaredMethod("InitCert", Context.class, String.class);
+                initCert.invoke(null, context, oaidCertPath);
+            }
+        } catch (Throwable e) {
+            SALog.d(TAG, e.getMessage());
+        }
+    }
+
+    /**
+     * 从asset文件读取证书内容
+     *
+     * @param context Context
+     * @return 证书字符串
+     */
+    private static String loadPemFromAssetFile(Context context) {
+        try {
+            String pemCert = context.getPackageName() + ".cert.pem";
+            InputStream is = context.getAssets().open(pemCert);
+            BufferedReader in = new BufferedReader(new InputStreamReader(is));
+            StringBuilder builder = new StringBuilder();
+            String line;
+            while ((line = in.readLine()) != null) {
+                builder.append(line);
+                builder.append('\n');
+            }
+            return builder.toString();
+        } catch (IOException e) {
+            SALog.d(TAG, "loadPemFromAssetFile failed");
+            return "";
         }
     }
 }

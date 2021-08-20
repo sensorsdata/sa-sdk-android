@@ -21,7 +21,7 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.encrypt.IPersistentSecretKey;
 import com.sensorsdata.analytics.android.sdk.encrypt.SAEncryptListener;
-import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
+import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 
 import javax.net.ssl.SSLSocketFactory;
 

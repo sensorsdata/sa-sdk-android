@@ -34,6 +34,7 @@ import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 public class SensorsDataContentObserver extends ContentObserver {
     public static boolean isEnableFromObserver = false;
     public static boolean isDisableFromObserver = false;
+    public static boolean isLoginFromObserver = false;
 
     public SensorsDataContentObserver() {
         super(new Handler(Looper.getMainLooper()));
@@ -51,6 +52,7 @@ public class SensorsDataContentObserver extends ContentObserver {
                 if (TextUtils.isEmpty(loginId)) {
                     SensorsDataAPI.sharedInstance().logout();
                 } else {
+                    isLoginFromObserver = true;
                     SensorsDataAPI.sharedInstance().login(loginId);
                 }
             } else if (DbParams.getInstance().getDisableSDKUri().equals(uri)) {

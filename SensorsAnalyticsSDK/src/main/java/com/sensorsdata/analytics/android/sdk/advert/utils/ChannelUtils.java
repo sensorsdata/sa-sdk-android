@@ -1,5 +1,5 @@
 /*
- * Created by chenru on 2019/12/31.
+ * Created by dengshiwei on 2021/08/19.
  * Copyright 2015－2021 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,10 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.util;
+package com.sensorsdata.analytics.android.sdk.advert.utils;
+
+import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertKey;
+import static com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils.getSharedPreferences;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -26,6 +29,7 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
+import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -35,9 +39,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-
-import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertKey;
-import static com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils.getSharedPreferences;
 
 public class ChannelUtils {
     private static final String UTM_SOURCE_KEY = "SENSORS_ANALYTICS_UTM_SOURCE";

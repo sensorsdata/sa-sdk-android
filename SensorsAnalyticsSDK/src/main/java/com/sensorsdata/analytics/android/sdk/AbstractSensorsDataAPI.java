@@ -36,7 +36,6 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallation;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallationWithCallback;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentIdentity;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProperties;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
@@ -51,10 +50,10 @@ import com.sensorsdata.analytics.android.sdk.listener.SAJSListener;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
 import com.sensorsdata.analytics.android.sdk.remote.SensorsDataRemoteManager;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
-import com.sensorsdata.analytics.android.sdk.util.ChannelUtils;
+import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
-import com.sensorsdata.analytics.android.sdk.util.OaidHelper;
+import com.sensorsdata.analytics.android.sdk.advert.utils.OaidHelper;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
@@ -703,13 +702,13 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    protected void trackEvent(final EventType eventType, String eventName, final JSONObject properties, final String
+    protected void trackEvent(EventType eventType, String eventName, JSONObject properties, String
             originalDistinctId) {
-        trackEvent(eventType, eventName, properties, null, originalDistinctId);
+        trackEvent(eventType, eventName, properties, null, getDistinctId(), getLoginId(), originalDistinctId);
     }
 
-    protected void trackEvent(final EventType eventType, String eventName, final JSONObject properties, JSONObject dynamicProperty, final String
-            originalDistinctId) {
+    protected void trackEvent(final EventType eventType, String eventName, final JSONObject properties, JSONObject dynamicProperty, String
+            distinctId, String loginId, String originalDistinctId) {
         try {
             EventTimer eventTimer = null;
             if (!TextUtils.isEmpty(eventName)) {
@@ -788,10 +787,10 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                     if (SALog.isLogEnabled()) {
                         SALog.i(TAG, "track event, isDataCollectEnable = false, eventName = " + eventName + ",property = " + JSONUtils.formatJson(sendProperties.toString()));
                     }
-                    transformEventTaskQueue(eventType, eventName, properties, sendProperties, originalDistinctId, getDistinctId(), getLoginId(), eventTimer);
+                    transformEventTaskQueue(eventType, eventName, properties, sendProperties, distinctId, loginId, originalDistinctId, eventTimer);
                     return;
                 }
-                trackEventInternal(eventType, eventName, properties, sendProperties, originalDistinctId, getDistinctId(), getLoginId(), eventTimer);
+                trackEventInternal(eventType, eventName, properties, sendProperties, distinctId, loginId, originalDistinctId, eventTimer);
             } catch (JSONException e) {
                 throw new InvalidDataException("Unexpected property");
             }
@@ -1312,7 +1311,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     }
 
     private void trackEventInternal(final EventType eventType, final String eventName, final JSONObject properties, final JSONObject sendProperties,
-                                    final String originalDistinctId, String distinctId, String loginId, final EventTimer eventTimer) throws JSONException {
+                                    String distinctId, String loginId, final String originalDistinctId, final EventTimer eventTimer) throws JSONException {
         String libDetail = null;
         String lib_version = VERSION;
         String appEnd_app_version = null;
@@ -1575,7 +1574,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
      * 如果没有授权时，需要将已执行的的缓存队列切换到真正的 TaskQueue 中
      */
     private void transformEventTaskQueue(final EventType eventType, final String eventName, final JSONObject properties, final JSONObject sendProperties,
-                                         final String originalDistinctId, final String distinctId, final String loginId, final EventTimer eventTimer) {
+                                         final String distinctId, final String loginId, final String originalDistinctId, final EventTimer eventTimer) {
         try {
             if (!sendProperties.has("$time") && !("$AppStart".equals(eventName) || "$AppEnd".equals(eventName))) {
                 sendProperties.put("$time", new Date(System.currentTimeMillis()));
@@ -1592,9 +1591,9 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                         JSONUtils.mergeDistinctProperty(jsonObject, sendProperties);
                     }
                     if ("$SignUp".equals(eventName)) {// 如果是 "$SignUp" 则需要重新补上 originalId
-                        trackEventInternal(eventType, eventName, properties, sendProperties, getAnonymousId(), distinctId, loginId, eventTimer);
+                        trackEventInternal(eventType, eventName, properties, sendProperties, distinctId, loginId, getAnonymousId(), eventTimer);
                     } else {
-                        trackEventInternal(eventType, eventName, properties, sendProperties, originalDistinctId, distinctId, loginId, eventTimer);
+                        trackEventInternal(eventType, eventName, properties, sendProperties, distinctId, loginId, originalDistinctId, eventTimer);
                     }
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
@@ -1677,7 +1676,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
      *
      * @return boolean
      */
-    public boolean isDeepLinkInstallSource(){
+    public boolean isDeepLinkInstallSource() {
         return mEnableDeepLinkInstallSource;
     }
 

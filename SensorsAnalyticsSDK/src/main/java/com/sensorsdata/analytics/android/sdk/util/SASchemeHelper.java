@@ -28,6 +28,7 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackHelper;
 import com.sensorsdata.analytics.android.sdk.ServerUrl;
+import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.aop.push.PushAutoTrackHelper;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
@@ -80,12 +81,17 @@ public class SASchemeHelper {
                 } else if ("encrypt".equals(host)) {
                     String version = uri.getQueryParameter("v");
                     String key = Uri.decode(uri.getQueryParameter("key"));
-                    SALog.d(TAG, "Encrypt, version = " + version + ", key = " + key);
+                    String symmetricEncryptType = Uri.decode(uri.getQueryParameter("symmetricEncryptType"));
+                    String asymmetricEncryptType = Uri.decode(uri.getQueryParameter("asymmetricEncryptType"));
+                    SALog.d(TAG, "Encrypt, version = " + version
+                            + ", key = " + key
+                            + ", symmetricEncryptType = " + symmetricEncryptType
+                            + ", asymmetricEncryptType = " + asymmetricEncryptType);
                     String tip;
                     if (TextUtils.isEmpty(version) || TextUtils.isEmpty(key)) {
                         tip = "密钥验证不通过，所选密钥无效";
                     } else if (SensorsDataAPI.sharedInstance().getSensorsDataEncrypt() != null) {
-                        tip = SensorsDataAPI.sharedInstance().getSensorsDataEncrypt().checkPublicSecretKey(version, key);
+                        tip = SensorsDataAPI.sharedInstance().getSensorsDataEncrypt().checkPublicSecretKey(version, key, symmetricEncryptType, asymmetricEncryptType);
                     } else {
                         tip = "当前 App 未开启加密，请开启加密后再试";
                     }

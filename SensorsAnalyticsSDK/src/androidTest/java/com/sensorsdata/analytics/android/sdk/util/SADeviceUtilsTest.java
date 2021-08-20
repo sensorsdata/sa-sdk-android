@@ -9,6 +9,7 @@ import androidx.test.rule.GrantPermissionRule;
 
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.advert.utils.OaidHelper;
 
 import org.junit.Before;
 import org.junit.Rule;

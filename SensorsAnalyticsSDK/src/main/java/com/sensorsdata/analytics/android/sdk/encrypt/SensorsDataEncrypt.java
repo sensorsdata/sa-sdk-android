@@ -174,16 +174,26 @@ public class SensorsDataEncrypt {
      *
      * @param version 版本号
      * @param key 密钥信息
+     * @param symmetricEncryptType 对称加密类型
+     * @param asymmetricEncryptType 非对称加密类型
      * @return -1 是本地密钥信息为空，-2 是相同，其它是不相同
      */
-    public String checkPublicSecretKey(String version, String key) {
+    public String checkPublicSecretKey(String version, String key, String symmetricEncryptType, String asymmetricEncryptType) {
         try {
             SecreteKey secreteKey = loadSecretKey();
             if (secreteKey == null || TextUtils.isEmpty(secreteKey.key)) {
                 return "密钥验证不通过，App 端密钥为空";
             } else if (version.equals(secreteKey.version + "")
                     && disposeECPublicKey(key).equals(disposeECPublicKey(secreteKey.key))) {
-                return "密钥验证通过，所选密钥与 App 端密钥相同";
+                if ((symmetricEncryptType == null || asymmetricEncryptType == null)
+                        || (symmetricEncryptType.equals(secreteKey.symmetricEncryptType) && asymmetricEncryptType.equals(secreteKey.asymmetricEncryptType))) {
+                    return "密钥验证通过，所选密钥与 App 端密钥相同";
+                } else {
+                    return "密钥验证不通过，所选密钥类型与 App 端密钥类型不相同。所选密钥对称算法类型:" + symmetricEncryptType +
+                            "，非对称算法类型:" + asymmetricEncryptType +
+                            "，App 端密钥对称算法类型:" + secreteKey.symmetricEncryptType
+                            + "，非对称算法类型:" + secreteKey.asymmetricEncryptType;
+                }
             } else {
                 return "密钥验证不通过，所选密钥与 App 端密钥不相同。所选密钥版本:" + version +
                         "，App 端密钥版本:" + secreteKey.version;
