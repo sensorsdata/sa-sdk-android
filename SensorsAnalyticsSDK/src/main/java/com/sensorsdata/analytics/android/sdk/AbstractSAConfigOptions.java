@@ -200,12 +200,44 @@ abstract class AbstractSAConfigOptions {
     List<SAEncryptListener> mEncryptors = new ArrayList<>();
 
     /**
+     * 开启采集页面停留时长
+     */
+    protected boolean mIsTrackPageLeave = false;
+
+    /**
      * 是否开启数据采集
      *
      * @return true 开启，false 未开启
      */
     public boolean isDataCollectEnable() {
         return isDataCollectEnable;
+    }
+
+    /**
+     * 是否开启 DeepLink
+     *
+     * @return true 开启，false 未开启
+     */
+    public boolean isSaveDeepLinkInfo() {
+        return mEnableSaveDeepLinkInfo;
+    }
+
+    /**
+     * 是否允许多进程上报数据
+     *
+     * @return true 开启，false 未开启
+     */
+    public boolean isMultiProcessFlush() {
+        return isSubProcessFlushData;
+    }
+
+    /**
+     * 是否开启页面停留时长采集
+     *
+     * @return true 开启，false 未开启
+     */
+    public boolean isTrackPageLeave() {
+        return mIsTrackPageLeave;
     }
 
     /**

@@ -215,6 +215,27 @@ public class TimeUtils {
         return null;
     }
 
+    /**
+     * 计算间隔时长，单位秒
+     *
+     * @param startTime 启动时间
+     * @param endTime 退出时间
+     * @return 时长
+     */
+    public static double duration(long startTime, long endTime) {
+        long duration = endTime - startTime;
+        try {
+            if (duration < 0 || duration > 24 * 60 * 60 * 1000) {
+                return 0;
+            }
+            float durationFloat = duration / 1000.0f;
+            return Double.parseDouble(String.format(Locale.CHINA, "%.3f", durationFloat));
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+            return 0;
+        }
+    }
+
     private synchronized static SimpleDateFormat getDateFormat(final String patten, final Locale locale) {
         ThreadLocal<SimpleDateFormat> dateFormatThreadLocal = formatMaps.get(patten);
         if (null == dateFormatThreadLocal) {

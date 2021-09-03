@@ -710,12 +710,12 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
-    void appEnterBackground() {
+    public void appEnterBackground() {
 
     }
 
     @Override
-    void appBecomeActive() {
+    public void appBecomeActive() {
 
     }
 

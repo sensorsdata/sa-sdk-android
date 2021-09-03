@@ -115,7 +115,8 @@ public class DeepLinkManager {
 
     private static void trackDeepLinkLaunchEvent(final Context context, DeepLinkProcessor deepLink) {
         final JSONObject properties = new JSONObject();
-        final boolean isDeepLinkInstallSource = deepLink instanceof SensorsDataDeepLink && SensorsDataAPI.sharedInstance().isDeepLinkInstallSource();
+        final SensorsDataAPI sensorsDataAPI = ((SensorsDataAPI)SensorsDataAPI.sharedInstance());
+        final boolean isDeepLinkInstallSource = deepLink instanceof SensorsDataDeepLink && sensorsDataAPI.isDeepLinkInstallSource();
         try {
             properties.put("$deeplink_url", deepLink.getDeepLinkUrl());
             properties.put("$time", new Date(System.currentTimeMillis()));
@@ -124,7 +125,7 @@ public class DeepLinkManager {
         }
         SensorsDataUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), properties);
         SensorsDataUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
-        SensorsDataAPI.sharedInstance().transformTaskQueue(new Runnable() {
+        sensorsDataAPI.transformTaskQueue(new Runnable() {
             @Override
             public void run() {
                 if (isDeepLinkInstallSource) {
@@ -135,7 +136,7 @@ public class DeepLinkManager {
                         SALog.printStackTrace(e);
                     }
                 }
-                SensorsDataAPI.sharedInstance().trackInternal("$AppDeeplinkLaunch", properties);
+                sensorsDataAPI.trackInternal("$AppDeeplinkLaunch", properties);
             }
         });
     }

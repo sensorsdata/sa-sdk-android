@@ -3,8 +3,8 @@ apply plugin: 'com.android.library'
 apply plugin: 'signing'
 apply plugin: 'maven-publish'
 
-version = "5.4.1"
-def min_plugin_version = "3.0.0"
+version = "5.4.2"
+def min_plugin_version = "3.3.9"
 
 android {
     compileSdkVersion 30

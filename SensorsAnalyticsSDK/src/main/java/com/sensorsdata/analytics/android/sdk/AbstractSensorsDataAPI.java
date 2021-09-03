@@ -29,6 +29,11 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.Toast;
 
+import com.sensorsdata.analytics.android.sdk.autotrack.ActivityLifecycleCallbacks;
+import com.sensorsdata.analytics.android.sdk.autotrack.ActivityPageLeaveCallbacks;
+import com.sensorsdata.analytics.android.sdk.autotrack.FragmentPageLeaveCallbacks;
+import com.sensorsdata.analytics.android.sdk.autotrack.FragmentViewScreenCallbacks;
+import com.sensorsdata.analytics.android.sdk.autotrack.aop.FragmentTrackHelper;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentDistinctId;
@@ -195,14 +200,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                 }
             }
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-                final Application app = (Application) context.getApplicationContext();
-                final SensorsDataActivityLifecycleCallbacks lifecycleCallbacks =
-                        new SensorsDataActivityLifecycleCallbacks((SensorsDataAPI) this, mFirstStart, mFirstDay, context);
-                app.registerActivityLifecycleCallbacks(lifecycleCallbacks);
-                app.registerActivityLifecycleCallbacks(AppStateManager.getInstance());
-            }
-
+            registerLifecycleCallbacks();
             registerObserver();
             if (!mSAConfigOptions.isDisableSDK()) {
                 delayInitTask();
@@ -373,12 +371,8 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         return mSAConfigOptions.mEnableSaveDeepLinkInfo;
     }
 
-    SensorsDataDeepLinkCallback getDeepLinkCallback() {
+    public SensorsDataDeepLinkCallback getDeepLinkCallback() {
         return mDeepLinkCallback;
-    }
-
-    boolean isMultiProcessFlushData() {
-        return mSAConfigOptions.isSubProcessFlushData;
     }
 
     boolean _trackEventFromH5(String eventInfo) {
@@ -497,7 +491,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
      * App 从后台恢复，遍历 mTrackTimer
      * startTime = System.currentTimeMillis()
      */
-    void appBecomeActive() {
+    public void appBecomeActive() {
         synchronized (mTrackTimer) {
             try {
                 for (Map.Entry<String, EventTimer> entry : mTrackTimer.entrySet()) {
@@ -519,7 +513,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
      * eventAccumulatedDuration =
      * eventAccumulatedDuration + System.currentTimeMillis() - startTime - SessionIntervalTime
      */
-    void appEnterBackground() {
+    public void appEnterBackground() {
         synchronized (mTrackTimer) {
             try {
                 for (Map.Entry<String, EventTimer> entry : mTrackTimer.entrySet()) {
@@ -572,12 +566,12 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     }
 
     /**
-     * SDK 全埋点调用方法
+     * SDK 内部调用方法
      *
      * @param eventName 事件名
      * @param properties 事件属性
      */
-    void trackAutoEvent(final String eventName, final JSONObject properties) {
+    public void trackAutoEvent(final String eventName, final JSONObject properties) {
         trackAutoEvent(eventName, properties, null);
     }
 
@@ -593,7 +587,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         trackInternal(eventName, eventProperties, viewNode);
     }
 
-    SAContextManager getSAContextManager() {
+    public SAContextManager getSAContextManager() {
         return mSAContextManager;
     }
 
@@ -1655,6 +1649,36 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             SALog.printStackTrace(e);
         }
         return null;
+    }
+
+    /**
+     * 注册 ActivityLifecycleCallbacks
+     */
+    private void registerLifecycleCallbacks() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+                final Application app = (Application) mContext.getApplicationContext();
+                final SensorsDataActivityLifecycleCallbacks lifecycleCallbacks = new SensorsDataActivityLifecycleCallbacks();
+                app.registerActivityLifecycleCallbacks(lifecycleCallbacks);
+                app.registerActivityLifecycleCallbacks(AppStateManager.getInstance());
+                ActivityLifecycleCallbacks activityLifecycleCallbacks = new ActivityLifecycleCallbacks((SensorsDataAPI) this, mFirstStart, mFirstDay, mContext);
+                lifecycleCallbacks.addActivityLifecycleCallbacks(activityLifecycleCallbacks);
+                SensorsDataExceptionHandler.addExceptionListener(activityLifecycleCallbacks);
+                FragmentTrackHelper.addFragmentCallbacks(new FragmentViewScreenCallbacks());
+
+                if (mSAConfigOptions.isTrackPageLeave()) {
+                    ActivityPageLeaveCallbacks pageLeaveCallbacks = new ActivityPageLeaveCallbacks();
+                    lifecycleCallbacks.addActivityLifecycleCallbacks(pageLeaveCallbacks);
+                    SensorsDataExceptionHandler.addExceptionListener(pageLeaveCallbacks);
+
+                    FragmentPageLeaveCallbacks fragmentPageLeaveCallbacks = new FragmentPageLeaveCallbacks();
+                    FragmentTrackHelper.addFragmentCallbacks(fragmentPageLeaveCallbacks);
+                    SensorsDataExceptionHandler.addExceptionListener(fragmentPageLeaveCallbacks);
+                }
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     /**

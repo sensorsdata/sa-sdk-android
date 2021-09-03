@@ -18,20 +18,16 @@
 package com.sensorsdata.analytics.android.sdk;
 
 
-import android.os.SystemClock;
-import android.text.TextUtils;
-
-import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
-
 import org.json.JSONObject;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.util.ArrayList;
 
-class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHandler {
+public class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHandler {
     private static final int SLEEP_TIMEOUT_MS = 500;
-
+    private static final ArrayList<SAExceptionListener> sExceptionListeners = new ArrayList<>();
     private static SensorsDataExceptionHandler sInstance;
     private Thread.UncaughtExceptionHandler mDefaultExceptionHandler;
     private static boolean isTrackCrash = false;
@@ -45,6 +41,10 @@ class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHandler {
         if (sInstance == null) {
             sInstance = new SensorsDataExceptionHandler();
         }
+    }
+
+    static void addExceptionListener(SAExceptionListener listener) {
+        sExceptionListeners.add(listener);
     }
 
     static void enableAppCrash() {
@@ -78,25 +78,14 @@ class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHandler {
                 }
             }
 
-            /*
-             * 异常的情况会出现两种：
-             * 1. 未完成 $AppEnd 事件，触发的异常，此时需要记录下 AppEndTime
-             * 2. 完成了 $AppEnd 事件，下次启动时触发的异常。还未及时更新 $AppStart 的时间戳，导致计算时长偏大，所以需要重新更新启动时间戳
-             */
-            if (TextUtils.isEmpty(DbAdapter.getInstance().getAppEndData())) {
-                DbAdapter.getInstance().commitAppStartTime(SystemClock.elapsedRealtime());
-            } else {
-                DbAdapter.getInstance().commitAppEndTime(System.currentTimeMillis());
+            for (SAExceptionListener exceptionListener : sExceptionListeners) {
+                try {
+                    exceptionListener.uncaughtException(t, e);
+                } catch (Exception e1) {
+                    SALog.printStackTrace(e1);
+                }
             }
-
-            if (SensorsDataAPI.sharedInstance().isMultiProcessFlushData()) {
-                DbAdapter.getInstance().commitSubProcessFlushState(false);
-            }
-
-            // 注意这里要重置为 0，对于跨进程的情况，如果子进程崩溃，主进程但是没崩溃，造成统计个数异常，所以要重置为 0。
-            DbAdapter.getInstance().commitActivityCount(0);
             SensorsDataAPI.sharedInstance().flush();
-
             try {
                 Thread.sleep(SLEEP_TIMEOUT_MS);
             } catch (InterruptedException e1) {
@@ -119,5 +108,12 @@ class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHandler {
         } catch (Exception e) {
             //ignored
         }
+    }
+
+    /**
+     * 异常监听回调
+     */
+    public interface SAExceptionListener {
+        void uncaughtException(final Thread t, final Throwable e);
     }
 }

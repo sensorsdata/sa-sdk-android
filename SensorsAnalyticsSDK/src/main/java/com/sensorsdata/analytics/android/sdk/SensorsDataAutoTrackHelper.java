@@ -22,7 +22,6 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.SystemClock;
 import android.text.TextUtils;
 import android.view.MenuItem;
@@ -48,13 +47,12 @@ import android.widget.TextView;
 
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
-import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
+import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.ThreadUtils;
 import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
 import com.sensorsdata.analytics.android.sdk.visual.WebViewVisualInterface;
-
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 import com.sensorsdata.analytics.android.sdk.visual.util.VisualUtil;
 
@@ -82,96 +80,6 @@ public class SensorsDataAutoTrackHelper {
         }
         eventTimestamp.put(object.hashCode(), currentOnClickTimestamp);
         return false;
-    }
-
-    private static void traverseView(String fragmentName, ViewGroup root) {
-        try {
-            if (TextUtils.isEmpty(fragmentName) || root == null) {
-                return;
-            }
-            final int childCount = root.getChildCount();
-            for (int i = 0; i < childCount; ++i) {
-                final View child = root.getChildAt(i);
-                child.setTag(R.id.sensors_analytics_tag_view_fragment_name, fragmentName);
-                if (child instanceof ViewGroup && !(child instanceof ListView ||
-                        child instanceof GridView ||
-                        child instanceof Spinner ||
-                        child instanceof RadioGroup)) {
-                    traverseView(fragmentName, (ViewGroup) child);
-                }
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-    }
-
-    private static boolean isFragment(Object object) {
-        try {
-            if (object == null) {
-                return false;
-            }
-            Class<?> supportFragmentClass = null;
-            Class<?> androidXFragmentClass = null;
-            Class<?> fragment = null;
-            try {
-                fragment = Class.forName("android.app.Fragment");
-            } catch (Exception e) {
-                //ignored
-            }
-            try {
-                supportFragmentClass = Class.forName("android.support.v4.app.Fragment");
-            } catch (Exception e) {
-                //ignored
-            }
-
-            try {
-                androidXFragmentClass = Class.forName("androidx.fragment.app.Fragment");
-            } catch (Exception e) {
-                //ignored
-            }
-
-            if (supportFragmentClass == null && androidXFragmentClass == null && fragment == null) {
-                return false;
-            }
-
-            if ((supportFragmentClass != null && supportFragmentClass.isInstance(object)) ||
-                    (androidXFragmentClass != null && androidXFragmentClass.isInstance(object)) ||
-                    (fragment != null && fragment.isInstance(object))) {
-                return true;
-            }
-        } catch (Exception e) {
-            //ignored
-        }
-        return false;
-    }
-
-    public static void onFragmentViewCreated(Object object, View rootView, Bundle bundle) {
-        try {
-            if (!isFragment(object)) {
-                return;
-            }
-
-            //Fragment名称
-            String fragmentName = object.getClass().getName();
-            rootView.setTag(R.id.sensors_analytics_tag_view_fragment_name, fragmentName);
-
-            if (rootView instanceof ViewGroup) {
-                traverseView(fragmentName, (ViewGroup) rootView);
-            }
-
-            //获取所在的 Context
-            Context context = rootView.getContext();
-            //将 Context 转成 Activity
-            Activity activity = AopUtil.getActivityFromContext(context, rootView);
-            if (activity != null) {
-                Window window = activity.getWindow();
-                if (window != null && window.isActive()) {
-                    window.getDecorView().getRootView().setTag(R.id.sensors_analytics_tag_view_fragment_name, "");
-                }
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
     }
 
     public static void trackRN(Object target, int reactTag, int s, boolean b) {
@@ -232,193 +140,6 @@ public class SensorsDataAutoTrackHelper {
             SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties, viewNode);
         } catch (Exception e) {
             SALog.printStackTrace(e);
-        }
-    }
-
-    private static void trackFragmentAppViewScreen(Object fragment) {
-        try {
-            if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
-                return;
-            }
-
-            if (!SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
-                return;
-            }
-
-            if ("com.bumptech.glide.manager.SupportRequestManagerFragment".equals(fragment.getClass().getCanonicalName())) {
-                return;
-            }
-
-            boolean isAutoTrackFragment = SensorsDataAPI.sharedInstance().isFragmentAutoTrackAppViewScreen(fragment.getClass());
-            if (!isAutoTrackFragment) {
-                return;
-            }
-            JSONObject properties = new JSONObject();
-            AopUtil.getScreenNameAndTitleFromFragment(properties, fragment, null);
-            AppStateManager.getInstance().setFragmentScreenName(fragment, properties.optString(AopConstants.SCREEN_NAME));
-            if (fragment instanceof ScreenAutoTracker) {
-                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
-                JSONObject otherProperties = screenAutoTracker.getTrackProperties();
-                if (otherProperties != null) {
-                    SensorsDataUtils.mergeJSONObject(otherProperties, properties);
-                }
-            }
-            JSONObject eventProperties = SADataHelper.appendLibMethodAutoTrack(properties);
-            SensorsDataAPI.sharedInstance().trackViewScreen(SensorsDataUtils.getScreenUrl(fragment), eventProperties);
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-    }
-
-    public static void trackFragmentResume(Object object) {
-        if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
-            return;
-        }
-
-        if (!SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
-            return;
-        }
-
-        if (!isFragment(object)) {
-            return;
-        }
-
-        try {
-            Method getParentFragmentMethod = object.getClass().getMethod("getParentFragment");
-            if (getParentFragmentMethod != null) {
-                Object parentFragment = getParentFragmentMethod.invoke(object);
-                if (parentFragment == null) {
-                    if (!fragmentIsHidden(object) && fragmentGetUserVisibleHint(object)) {
-                        trackFragmentAppViewScreen(object);
-                    }
-                } else {
-                    if (!fragmentIsHidden(object) && fragmentGetUserVisibleHint(object) && !fragmentIsHidden(parentFragment) && fragmentGetUserVisibleHint(parentFragment)) {
-                        trackFragmentAppViewScreen(object);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            //ignored
-        }
-    }
-
-    private static boolean fragmentGetUserVisibleHint(Object fragment) {
-        try {
-            Method getUserVisibleHintMethod = fragment.getClass().getMethod("getUserVisibleHint");
-            if (getUserVisibleHintMethod != null) {
-                return (boolean) getUserVisibleHintMethod.invoke(fragment);
-            }
-        } catch (Exception e) {
-            //ignored
-        }
-        return false;
-    }
-
-    private static boolean fragmentIsHidden(Object fragment) {
-        try {
-            Method isHiddenMethod = fragment.getClass().getMethod("isHidden");
-            if (isHiddenMethod != null) {
-                return (boolean) isHiddenMethod.invoke(fragment);
-            }
-        } catch (Exception e) {
-            //ignored
-        }
-        return false;
-    }
-
-    public static void trackFragmentSetUserVisibleHint(Object object, boolean isVisibleToUser) {
-        if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
-            return;
-        }
-
-        if (!SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
-            return;
-        }
-
-        if (!isFragment(object)) {
-            return;
-        }
-
-        Object parentFragment = null;
-        try {
-            Method getParentFragmentMethod = object.getClass().getMethod("getParentFragment");
-            if (getParentFragmentMethod != null) {
-                parentFragment = getParentFragmentMethod.invoke(object);
-            }
-        } catch (Exception e) {
-            //ignored
-        }
-
-        if (parentFragment == null) {
-            if (isVisibleToUser) {
-                if (fragmentIsResumed(object)) {
-                    if (!fragmentIsHidden(object)) {
-                        trackFragmentAppViewScreen(object);
-                    }
-                }
-            }
-        } else {
-            if (isVisibleToUser && fragmentGetUserVisibleHint(parentFragment)) {
-                if (fragmentIsResumed(object) && fragmentIsResumed(parentFragment)) {
-                    if (!fragmentIsHidden(object) && !fragmentIsHidden(parentFragment)) {
-                        trackFragmentAppViewScreen(object);
-                    }
-                }
-            }
-        }
-    }
-
-    private static boolean fragmentIsResumed(Object fragment) {
-        try {
-            Method isResumedMethod = fragment.getClass().getMethod("isResumed");
-            if (isResumedMethod != null) {
-                return (boolean) isResumedMethod.invoke(fragment);
-            }
-        } catch (Exception e) {
-            //ignored
-        }
-        return false;
-    }
-
-    public static void trackOnHiddenChanged(Object object, boolean hidden) {
-        if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
-            return;
-        }
-
-        if (!SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
-            return;
-        }
-
-        if (!isFragment(object)) {
-            return;
-        }
-
-        Object parentFragment = null;
-        try {
-            Method getParentFragmentMethod = object.getClass().getMethod("getParentFragment");
-            if (getParentFragmentMethod != null) {
-                parentFragment = getParentFragmentMethod.invoke(object);
-            }
-        } catch (Exception e) {
-            //ignored
-        }
-
-        if (parentFragment == null) {
-            if (!hidden) {
-                if (fragmentIsResumed(object)) {
-                    if (fragmentGetUserVisibleHint(object)) {
-                        trackFragmentAppViewScreen(object);
-                    }
-                }
-            }
-        } else {
-            if (!hidden && !fragmentIsHidden(parentFragment)) {
-                if (fragmentIsResumed(object) && fragmentIsResumed(parentFragment)) {
-                    if (fragmentGetUserVisibleHint(object) && fragmentGetUserVisibleHint(parentFragment)) {
-                        trackFragmentAppViewScreen(object);
-                    }
-                }
-            }
         }
     }
 
@@ -807,7 +528,7 @@ public class SensorsDataAutoTrackHelper {
                         if (bridgeObject instanceof Activity) {
                             activity = (Activity) bridgeObject;
                             break;
-                        } else if (isFragment(bridgeObject)) {
+                        } else if (SAFragmentUtils.isFragment(bridgeObject)) {
                             object = bridgeObject;
                             isFragment = true;
                             break;
@@ -1736,7 +1457,7 @@ public class SensorsDataAutoTrackHelper {
     }
 
     private static boolean isSupportJellyBean() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1 && !SensorsDataAPI.sharedInstance().getConfigOptions().isWebViewSupportJellyBean) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1 && !SensorsDataAPI.getConfigOptions().isWebViewSupportJellyBean) {
             SALog.d(TAG, "For applications targeted to API level JELLY_BEAN or below, this feature NOT SUPPORTED");
             return false;
         }

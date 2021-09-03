@@ -203,19 +203,19 @@ public class AopUtil {
                     if (context instanceof Activity) {
                         activity = (Activity) context;
                     }
-                } else {
-                    if (view != null) {
-                        Object object = view.getTag(R.id.sensors_analytics_tag_view_activity);
-                        if (object != null) {
-                            if (object instanceof Activity) {
-                                activity = (Activity) object;
-                            }
+                }
+
+                if (activity == null && view != null) {
+                    Object object = view.getTag(R.id.sensors_analytics_tag_view_activity);
+                    if (object != null) {
+                        if (object instanceof Activity) {
+                            activity = (Activity) object;
                         }
                     }
                 }
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
         return activity;
     }

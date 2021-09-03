@@ -62,7 +62,7 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
         this.mForeGroundActivity = new WeakReference(activity);
     }
 
-    void setFragmentScreenName(Object fragment, String fragmentScreenName) {
+    public void setFragmentScreenName(Object fragment, String fragmentScreenName) {
         try {
             Method getParentFragmentMethod = fragment.getClass().getMethod("getParentFragment");
             if (getParentFragmentMethod != null) {
