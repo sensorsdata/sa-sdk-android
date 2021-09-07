@@ -44,6 +44,7 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.sensorsdata.analytics.android.sdk.AppStateManager;
+import com.sensorsdata.analytics.android.sdk.FragmentCacheInfo;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 import com.sensorsdata.analytics.android.sdk.visual.util.VisualUtil;
@@ -162,8 +163,8 @@ public class ViewUtil {
      * view 是否为 Fragment 中的顶层 View
      */
     private static Object instanceOfFragmentRootView(View parentView, View childView) {
-        Object parentFragment = AopUtil.getFragmentFromView(parentView);
-        Object childFragment = AopUtil.getFragmentFromView(childView);
+        FragmentCacheInfo parentFragment = AopUtil.getFragmentFromView(parentView);
+        FragmentCacheInfo childFragment = AopUtil.getFragmentFromView(childView);
         if (parentFragment == null && childFragment != null) {
             return childFragment;
         }
