@@ -413,8 +413,8 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                 mDbAdapter.commitAppEndData(endDataProperty.toString());
                 mDbAdapter.commitAppEndTime(timer);
             }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
+        } catch (Throwable e) {
+            SALog.d(TAG, e.getMessage());
         }
     }
 

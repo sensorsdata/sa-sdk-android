@@ -29,6 +29,7 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.Toast;
 
+import com.sensorsdata.analytics.android.sdk.aop.push.PushLifecycleCallbacks;
 import com.sensorsdata.analytics.android.sdk.autotrack.ActivityLifecycleCallbacks;
 import com.sensorsdata.analytics.android.sdk.autotrack.ActivityPageLeaveCallbacks;
 import com.sensorsdata.analytics.android.sdk.autotrack.FragmentPageLeaveCallbacks;
@@ -1674,6 +1675,9 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                     FragmentPageLeaveCallbacks fragmentPageLeaveCallbacks = new FragmentPageLeaveCallbacks();
                     FragmentTrackHelper.addFragmentCallbacks(fragmentPageLeaveCallbacks);
                     SensorsDataExceptionHandler.addExceptionListener(fragmentPageLeaveCallbacks);
+                }
+                if (mSAConfigOptions.isEnableTrackPush()) {
+                    lifecycleCallbacks.addActivityLifecycleCallbacks(new PushLifecycleCallbacks());
                 }
             }
         } catch (Exception e) {

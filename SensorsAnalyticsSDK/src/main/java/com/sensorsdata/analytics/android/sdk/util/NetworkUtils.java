@@ -65,7 +65,8 @@ public class NetworkUtils {
      */
     public static String networkType(Context context) {
         try {
-            if (!TextUtils.isEmpty(networkType)) {
+            //小米特殊机型冷启动时获取不到 Network，为 NULL 字符串时需要重新尝试获取
+            if (!TextUtils.isEmpty(networkType) && !"NULL".equals(networkType)) {
                 return networkType;
             }
 

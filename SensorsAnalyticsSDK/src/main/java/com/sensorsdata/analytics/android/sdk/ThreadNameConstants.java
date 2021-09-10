@@ -22,4 +22,5 @@ public interface ThreadNameConstants {
     String THREAD_TASK_EXECUTE = "SA.TaskExecuteThread";
     String THREAD_SEND_DISTINCT_ID = "SA.SendDistinctIDThread";
     String THREAD_DEEP_LINK_REQUEST = "SA.DeepLinkRequest";
+    String THREAD_PUSH_HANDLER = "SA.PushThread";
 }

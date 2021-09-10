@@ -257,4 +257,13 @@ abstract class AbstractSAConfigOptions {
     public boolean isDisableSDK() {
         return this.isDisableSDK;
     }
+
+    /**
+     * 是否开启推送
+     *
+     * @return true 开启推送，false 禁止推送
+     */
+    public boolean isEnableTrackPush(){
+        return this.mEnableTrackPush;
+    }
 }

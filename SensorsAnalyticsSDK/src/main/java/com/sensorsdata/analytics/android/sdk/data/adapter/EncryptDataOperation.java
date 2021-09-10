@@ -52,8 +52,8 @@ class EncryptDataOperation extends DataOperation {
             cv.put(DbParams.KEY_DATA, jsonObject.toString() + "\t" + jsonObject.toString().hashCode());
             cv.put(DbParams.KEY_CREATED_AT, System.currentTimeMillis());
             contentResolver.insert(uri, cv);
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
+        } catch (Throwable e) {
+            SALog.d(TAG, e.getMessage());
         }
         return 0;
     }
