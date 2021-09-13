@@ -17,18 +17,22 @@
 
 package com.sensorsdata.analytics.android.sdk.util;
 
-import android.app.ActivityManager;
+import android.annotation.SuppressLint;
+import android.app.Application;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ThreadNameConstants;
 
-import java.util.List;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.lang.reflect.Method;
 
 public class AppInfoUtils {
     private static String mAppVersionName;
@@ -128,7 +132,7 @@ public class AppInfoUtils {
             return true;
         }
 
-        String currentProcess = getCurrentProcessName(context.getApplicationContext());
+        String currentProcess = getCurrentProcessName();
         return TextUtils.isEmpty(currentProcess) || mainProcessName.equals(currentProcess);
     }
 
@@ -165,29 +169,66 @@ public class AppInfoUtils {
     /**
      * 获得当前进程的名字
      *
-     * @param context Context
      * @return 进程名称
      */
-    private static String getCurrentProcessName(Context context) {
+    private static String getCurrentProcessName() {
         try {
-            int pid = android.os.Process.myPid();
-            ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-            if (activityManager == null) {
-                return null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                return Application.getProcessName();
             }
 
-            List<ActivityManager.RunningAppProcessInfo> runningAppProcessInfoList = activityManager.getRunningAppProcesses();
-            if (runningAppProcessInfoList != null) {
-                for (ActivityManager.RunningAppProcessInfo appProcess : runningAppProcessInfoList) {
-                    if (appProcess != null) {
-                        if (appProcess.pid == pid) {
-                            return appProcess.processName;
-                        }
-                    }
-                }
+            String currentProcess = getCurrentProcessNameByCmd();
+            if (TextUtils.isEmpty(currentProcess)) {
+                currentProcess = getCurrentProcessNameByAT();
             }
+            return currentProcess;
         } catch (Exception e) {
             SALog.printStackTrace(e);
+        }
+        return null;
+    }
+
+    private static String getCurrentProcessNameByAT() {
+        String processName = null;
+        try {
+            @SuppressLint("PrivateApi")
+            Class<?> activityThread = Class.forName("android.app.ActivityThread", false, Application.class.getClassLoader());
+            Method declaredMethod = activityThread.getDeclaredMethod("currentProcessName", (Class<?>[]) new Class[0]);
+            declaredMethod.setAccessible(true);
+            Object processInvoke = declaredMethod.invoke(null);
+            if (processInvoke instanceof String) {
+                processName = (String) processInvoke;
+            }
+        } catch (Throwable e) {
+            //ignore
+        }
+        return processName;
+    }
+
+    private static String getCurrentProcessNameByCmd() {
+        FileInputStream in = null;
+        try {
+            String fn = "/proc/self/cmdline";
+            in = new FileInputStream(fn);
+            byte[] buffer = new byte[256];
+            int len = 0;
+            int b;
+            while ((b = in.read()) > 0 && len < buffer.length) {
+                buffer[len++] = (byte) b;
+            }
+            if (len > 0) {
+                return new String(buffer, 0, len, "UTF-8");
+            }
+        } catch (Throwable e) {
+            // ignore
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    SALog.printStackTrace(e);
+                }
+            }
         }
         return null;
     }
