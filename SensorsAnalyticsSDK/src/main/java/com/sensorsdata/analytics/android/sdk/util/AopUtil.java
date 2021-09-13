@@ -41,6 +41,7 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.sensorsdata.analytics.android.sdk.AopConstants;
+import com.sensorsdata.analytics.android.sdk.FragmentCacheInfo;
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
@@ -61,7 +62,7 @@ import java.util.Locale;
 
 public class AopUtil {
 
-    private static LruCache<String, Object> sLruCache;
+    private static LruCache<String, FragmentCacheInfo> sLruCache;
 
     // 采集 viewType 忽略以下包内 view 直接返回对应的基础控件 viewType
     private static ArrayList<String> sOSViewPackage = new ArrayList<String>() {{
@@ -277,6 +278,68 @@ public class AopUtil {
 
             if (TextUtils.isEmpty(screenName)) {
                 screenName = fragment.getClass().getCanonicalName();
+            }
+            properties.put("$screen_name", screenName);
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+    }
+
+    /**
+     * 尝试读取页面 title
+     *
+     * @param properties JSONObject
+     * @param fragmentCacheInfo FragmentCacheInfo
+     * @param activity Activity
+     */
+    public static void getScreenNameAndTitleFromFragmentCacheInfo(JSONObject properties, FragmentCacheInfo fragmentCacheInfo, Activity activity) {
+        try {
+            String screenName = null;
+            String title = null;
+            JSONObject trackProperties = fragmentCacheInfo.getTrackProperties();
+            if (trackProperties != null) {
+                if (trackProperties.has(AopConstants.SCREEN_NAME)) {
+                    screenName = trackProperties.optString(AopConstants.SCREEN_NAME);
+                }
+
+                if (trackProperties.has(AopConstants.TITLE)) {
+                    title = trackProperties.optString(AopConstants.TITLE);
+                }
+                SensorsDataUtils.mergeJSONObject(trackProperties, properties);
+            }
+
+            Class<?> fragmentClazz = fragmentCacheInfo.getFragmentClazz();
+            if (TextUtils.isEmpty(title) && fragmentClazz.isAnnotationPresent(SensorsDataFragmentTitle.class)) {
+                SensorsDataFragmentTitle sensorsDataFragmentTitle = fragmentClazz.getAnnotation(SensorsDataFragmentTitle.class);
+                if (sensorsDataFragmentTitle != null) {
+                    title = sensorsDataFragmentTitle.title();
+                }
+            }
+
+            boolean isTitleNull = TextUtils.isEmpty(title);
+            boolean isScreenNameNull = TextUtils.isEmpty(screenName);
+            if (isTitleNull || isScreenNameNull) {
+                if (activity == null) {
+                    activity = fragmentCacheInfo.getActivity();
+                }
+                if (activity != null) {
+                    if (isTitleNull) {
+                        title = SensorsDataUtils.getActivityTitle(activity);
+                    }
+
+                    if (isScreenNameNull) {
+                        screenName = fragmentClazz.getCanonicalName();
+                        screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), screenName);
+                    }
+                }
+            }
+
+            if (!TextUtils.isEmpty(title)) {
+                properties.put(AopConstants.TITLE, title);
+            }
+
+            if (TextUtils.isEmpty(screenName)) {
+                screenName = fragmentClazz.getCanonicalName();
             }
             properties.put("$screen_name", screenName);
         } catch (Exception ex) {
@@ -675,9 +738,9 @@ public class AopUtil {
             }
 
             //fragmentName
-            Object fragment = AopUtil.getFragmentFromView(view, activity);
-            if (fragment != null) {
-                AopUtil.getScreenNameAndTitleFromFragment(eventJson, fragment, activity);
+            FragmentCacheInfo fragmentCacheInfo = AopUtil.getFragmentFromView(view, activity);
+            if (fragmentCacheInfo != null) {
+                AopUtil.getScreenNameAndTitleFromFragmentCacheInfo(eventJson, fragmentCacheInfo, activity);
             }
             //3.获取 View 自定义属性
             JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
@@ -699,19 +762,19 @@ public class AopUtil {
      * @param view 点击的 view
      * @return object 这里是 fragment 实例对象
      */
-    public static Object getFragmentFromView(View view) {
+    public static FragmentCacheInfo getFragmentFromView(View view) {
         return getFragmentFromView(view, null);
     }
 
     /**
-     * 获取点击 view 的 fragment 对象
+     * 获取点击 view 的 fragmentCacheInfo 对象
      *
      * @param view 点击的 view
      * @param activity Activity
-     * @return object 这里是 fragment 实例对象
+     * @return object 这里是 fragmentCacheInfo 实例对象
      */
     @SuppressLint("NewApi")
-    public static Object getFragmentFromView(View view, Activity activity) {
+    public static FragmentCacheInfo getFragmentFromView(View view, Activity activity) {
         try {
             if (view != null) {
                 String fragmentName = (String) view.getTag(R.id.sensors_analytics_tag_view_fragment_name);
@@ -740,13 +803,15 @@ public class AopUtil {
                     if (sLruCache == null) {
                         sLruCache = new LruCache<>(10);
                     }
-                    Object object = sLruCache.get(fragmentName);
-                    if (object != null) {
-                        return object;
+                    FragmentCacheInfo cacheInfo = sLruCache.get(fragmentName);
+                    if (cacheInfo != null) {
+                        cacheInfo.setActivity(activity);
+                        return cacheInfo;
                     }
-                    object = Class.forName(fragmentName).newInstance();
-                    sLruCache.put(fragmentName, object);
-                    return object;
+                    Object object = Class.forName(fragmentName).newInstance();
+                    cacheInfo = new FragmentCacheInfo(activity, object);
+                    sLruCache.put(fragmentName, cacheInfo);
+                    return cacheInfo;
                 }
             }
         } catch (Exception e) {

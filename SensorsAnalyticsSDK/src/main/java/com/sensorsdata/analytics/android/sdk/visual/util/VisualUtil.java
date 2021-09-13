@@ -34,6 +34,7 @@ import android.widget.TextView;
 
 import com.sensorsdata.analytics.android.sdk.AppStateManager;
 import com.sensorsdata.analytics.android.sdk.AopConstants;
+import com.sensorsdata.analytics.android.sdk.FragmentCacheInfo;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
@@ -138,9 +139,9 @@ public class VisualUtil {
         }
         if (activity != null && activity.getWindow() != null && activity.getWindow().isActive()) {
             object = new JSONObject();
-            Object fragment = AopUtil.getFragmentFromView(view, activity);
-            if (fragment != null) {
-                AopUtil.getScreenNameAndTitleFromFragment(object, fragment, activity);
+            FragmentCacheInfo fragmentCacheInfo = AopUtil.getFragmentFromView(view, activity);
+            if (fragmentCacheInfo != null) {
+                AopUtil.getScreenNameAndTitleFromFragmentCacheInfo(object, fragmentCacheInfo, activity);
                 if (info != null && !info.hasFragment) {
                     info.hasFragment = true;
                 }

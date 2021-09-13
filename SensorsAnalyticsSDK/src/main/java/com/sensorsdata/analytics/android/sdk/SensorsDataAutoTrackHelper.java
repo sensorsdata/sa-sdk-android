@@ -179,12 +179,12 @@ public class SensorsDataAutoTrackHelper {
                 }
             }
 
-            // 获取 view 所在的 fragment
-            Object fragment = AopUtil.getFragmentFromView(expandableListView, activity);
+            // 获取 view 所在的 fragment缓存信息
+            FragmentCacheInfo fragmentCacheInfo = AopUtil.getFragmentFromView(expandableListView, activity);
 
             // fragment 忽略
-            if (fragment != null) {
-                if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(fragment.getClass())) {
+            if (fragmentCacheInfo != null) {
+                if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(fragmentCacheInfo.getFragmentClazz())) {
                     return;
                 }
             }
@@ -235,8 +235,8 @@ public class SensorsDataAutoTrackHelper {
             }
 
             //fragmentName
-            if (fragment != null) {
-                AopUtil.getScreenNameAndTitleFromFragment(properties, fragment, activity);
+            if (fragmentCacheInfo != null) {
+                AopUtil.getScreenNameAndTitleFromFragmentCacheInfo(properties, fragmentCacheInfo, activity);
             }
 
             // 获取 View 自定义属性
@@ -300,12 +300,12 @@ public class SensorsDataAutoTrackHelper {
                 }
             }
 
-            // 获取 view 所在的 fragment
-            Object fragment = AopUtil.getFragmentFromView(expandableListView, activity);
+            // 获取 view 所在的 fragment缓存信息
+            FragmentCacheInfo fragmentCacheInfo = AopUtil.getFragmentFromView(expandableListView, activity);
 
             // fragment 忽略
-            if (fragment != null) {
-                if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(fragment.getClass())) {
+            if (fragmentCacheInfo != null) {
+                if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(fragmentCacheInfo.getFragmentClazz())) {
                     return;
                 }
             }
@@ -378,8 +378,8 @@ public class SensorsDataAutoTrackHelper {
             }
 
             //fragmentName
-            if (fragment != null) {
-                AopUtil.getScreenNameAndTitleFromFragment(properties, fragment, activity);
+            if (fragmentCacheInfo != null) {
+                AopUtil.getScreenNameAndTitleFromFragmentCacheInfo(properties, fragmentCacheInfo, activity);
             }
 
             //获取 View 自定义属性
@@ -435,12 +435,12 @@ public class SensorsDataAutoTrackHelper {
                                 }
                                 SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
 
-                                Object fragment = AopUtil.getFragmentFromView(view, activity);
-                                if (fragment != null) {
-                                    if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(fragment.getClass())) {
+                                FragmentCacheInfo fragmentCacheInfo = AopUtil.getFragmentFromView(view, activity);
+                                if (fragmentCacheInfo != null) {
+                                    if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(fragmentCacheInfo.getFragmentClazz())) {
                                         return;
                                     }
-                                    AopUtil.getScreenNameAndTitleFromFragment(properties, fragment, activity);
+                                    AopUtil.getScreenNameAndTitleFromFragmentCacheInfo(properties, fragmentCacheInfo, activity);
                                 }
 
                                 viewNode = AopUtil.addViewPathProperties(activity, view, properties);
@@ -853,12 +853,12 @@ public class SensorsDataAutoTrackHelper {
                 }
             }
 
-            // 获取 view 所在的 fragment
-            Object fragment = AopUtil.getFragmentFromView(view, activity);
+            // 获取 view 所在的 fragment缓存信息
+            FragmentCacheInfo fragmentCacheInfo = AopUtil.getFragmentFromView(view, activity);
 
             // fragment 忽略
-            if (fragment != null) {
-                if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(fragment.getClass())) {
+            if (fragmentCacheInfo != null) {
+                if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(fragmentCacheInfo.getFragmentClazz())) {
                     return;
                 }
             }
@@ -908,8 +908,8 @@ public class SensorsDataAutoTrackHelper {
             }
 
             //fragmentName
-            if (fragment != null) {
-                AopUtil.getScreenNameAndTitleFromFragment(properties, fragment, activity);
+            if (fragmentCacheInfo != null) {
+                AopUtil.getScreenNameAndTitleFromFragmentCacheInfo(properties, fragmentCacheInfo, activity);
             }
 
             //获取 View 自定义属性
@@ -1125,12 +1125,12 @@ public class SensorsDataAutoTrackHelper {
                 }
             }
 
-            // 获取 view 所在的 fragment
-            Object fragment = AopUtil.getFragmentFromView(adapterView, activity);
+            // 获取 view 所在的 fragment缓存信息
+            FragmentCacheInfo fragmentCacheInfo = AopUtil.getFragmentFromView(adapterView, activity);
 
             // fragment 忽略
-            if (fragment != null) {
-                if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(fragment.getClass())) {
+            if (fragmentCacheInfo != null) {
+                if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(fragmentCacheInfo.getFragmentClazz())) {
                     return;
                 }
             }
@@ -1210,8 +1210,8 @@ public class SensorsDataAutoTrackHelper {
             }
 
             //fragmentName
-            if (fragment != null) {
-                AopUtil.getScreenNameAndTitleFromFragment(properties, fragment, activity);
+            if (fragmentCacheInfo != null) {
+                AopUtil.getScreenNameAndTitleFromFragmentCacheInfo(properties, fragmentCacheInfo, activity);
             }
 
             //获取 View 自定义属性
@@ -1292,12 +1292,12 @@ public class SensorsDataAutoTrackHelper {
                 }
             }
 
-            // 获取 view 所在的 fragment
-            Object fragment = AopUtil.getFragmentFromView(view, activity);
+            // 获取 view 所在的 fragment缓存信息
+            FragmentCacheInfo fragmentCacheInfo = AopUtil.getFragmentFromView(view, activity);
 
             // fragment 忽略
-            if (fragment != null) {
-                if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(fragment.getClass())) {
+            if (fragmentCacheInfo != null) {
+                if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(fragmentCacheInfo.getFragmentClazz())) {
                     return;
                 }
             }
