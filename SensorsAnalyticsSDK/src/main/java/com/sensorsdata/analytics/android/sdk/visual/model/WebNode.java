@@ -26,7 +26,15 @@ public class WebNode implements Serializable {
     private String tagName;
     private String $element_selector;
     private String $element_content;
+    private String $element_path;
+    private String $element_position;
+    private String list_selector;
+    private String lib_version;
+    private boolean enable_click;
+    private boolean is_list_view;
     private String $title;
+    private float originTop;
+    private float originLeft;
     private float top;
     private float left;
     private float width;
@@ -37,6 +45,8 @@ public class WebNode implements Serializable {
     private float scale;
     private String $url;
     private int zIndex;
+    private int level;
+    private boolean isRootView;
     private List<String> subelements;
 
     public String getId() {
@@ -69,6 +79,54 @@ public class WebNode implements Serializable {
 
     public void set$element_content(String $element_content) {
         this.$element_content = $element_content;
+    }
+
+    public String get$element_path() {
+        return $element_path;
+    }
+
+    public void set$element_path(String $element_path) {
+        this.$element_path = $element_path;
+    }
+
+    public String get$element_position() {
+        return $element_position;
+    }
+
+    public void set$element_position(String $element_position) {
+        this.$element_position = $element_position;
+    }
+
+    public String getList_selector() {
+        return list_selector;
+    }
+
+    public void setList_selector(String list_selector) {
+        this.list_selector = list_selector;
+    }
+
+    public String getLib_version() {
+        return lib_version;
+    }
+
+    public void setLib_version(String lib_version) {
+        this.lib_version = lib_version;
+    }
+
+    public boolean isEnable_click() {
+        return enable_click;
+    }
+
+    public void setEnable_click(boolean enable_click) {
+        this.enable_click = enable_click;
+    }
+
+    public boolean isIs_list_view() {
+        return is_list_view;
+    }
+
+    public void setIs_list_view(boolean is_list_view) {
+        this.is_list_view = is_list_view;
     }
 
     public String get$title() {
@@ -167,54 +225,35 @@ public class WebNode implements Serializable {
         this.subelements = subelements;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof WebNode)) return false;
-
-        WebNode webNode = (WebNode) o;
-
-        if (Float.compare(webNode.getTop(), getTop()) != 0) return false;
-        if (Float.compare(webNode.getLeft(), getLeft()) != 0) return false;
-        if (Float.compare(webNode.getWidth(), getWidth()) != 0) return false;
-        if (Float.compare(webNode.getHeight(), getHeight()) != 0) return false;
-        if (isVisibility() != webNode.isVisibility()) return false;
-        if (Float.compare(webNode.getScrollX(), getScrollX()) != 0) return false;
-        if (Float.compare(webNode.getScrollY(), getScrollY()) != 0) return false;
-        if (Float.compare(webNode.getScale(), getScale()) != 0) return false;
-        if (getzIndex() != webNode.getzIndex()) return false;
-        if (!getId().equals(webNode.getId())) return false;
-        if (getTagName() != null ? !getTagName().equals(webNode.getTagName()) : webNode.getTagName() != null)
-            return false;
-        if (get$element_selector() != null ? !get$element_selector().equals(webNode.get$element_selector()) : webNode.get$element_selector() != null)
-            return false;
-        if (get$element_content() != null ? !get$element_content().equals(webNode.get$element_content()) : webNode.get$element_content() != null)
-            return false;
-        if (get$title() != null ? !get$title().equals(webNode.get$title()) : webNode.get$title() != null)
-            return false;
-        if (get$url() != null ? !get$url().equals(webNode.get$url()) : webNode.get$url() != null)
-            return false;
-        return getSubelements() != null ? getSubelements().equals(webNode.getSubelements()) : webNode.getSubelements() == null;
+    public int getLevel() {
+        return level;
     }
 
-    @Override
-    public int hashCode() {
-        int result = getId().hashCode();
-        result = 31 * result + (getTagName() != null ? getTagName().hashCode() : 0);
-        result = 31 * result + (get$element_selector() != null ? get$element_selector().hashCode() : 0);
-        result = 31 * result + (get$element_content() != null ? get$element_content().hashCode() : 0);
-        result = 31 * result + (get$title() != null ? get$title().hashCode() : 0);
-        result = 31 * result + (getTop() != +0.0f ? Float.floatToIntBits(getTop()) : 0);
-        result = 31 * result + (getLeft() != +0.0f ? Float.floatToIntBits(getLeft()) : 0);
-        result = 31 * result + (getWidth() != +0.0f ? Float.floatToIntBits(getWidth()) : 0);
-        result = 31 * result + (getHeight() != +0.0f ? Float.floatToIntBits(getHeight()) : 0);
-        result = 31 * result + (isVisibility() ? 1 : 0);
-        result = 31 * result + (getScrollX() != +0.0f ? Float.floatToIntBits(getScrollX()) : 0);
-        result = 31 * result + (getScrollY() != +0.0f ? Float.floatToIntBits(getScrollY()) : 0);
-        result = 31 * result + (getScale() != +0.0f ? Float.floatToIntBits(getScale()) : 0);
-        result = 31 * result + (get$url() != null ? get$url().hashCode() : 0);
-        result = 31 * result + getzIndex();
-        result = 31 * result + (getSubelements() != null ? getSubelements().hashCode() : 0);
-        return result;
+    public void setLevel(int level) {
+        this.level = level;
+    }
+
+    public boolean isRootView() {
+        return isRootView;
+    }
+
+    public void setRootView(boolean rootView) {
+        isRootView = rootView;
+    }
+
+    public float getOriginTop() {
+        return originTop;
+    }
+
+    public void setOriginTop(float originTop) {
+        this.originTop = originTop;
+    }
+
+    public float getOriginLeft() {
+        return originLeft;
+    }
+
+    public void setOriginLeft(float originLeft) {
+        this.originLeft = originLeft;
     }
 }

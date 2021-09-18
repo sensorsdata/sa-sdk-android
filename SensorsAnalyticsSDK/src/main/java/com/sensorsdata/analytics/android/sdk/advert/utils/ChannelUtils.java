@@ -17,9 +17,7 @@
 
 package com.sensorsdata.analytics.android.sdk.advert.utils;
 
-import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertKey;
-import static com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils.getSharedPreferences;
-
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
@@ -29,14 +27,17 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
+import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -56,6 +57,10 @@ public class ChannelUtils {
         put(UTM_TERM_KEY, "$utm_term");
         put(UTM_CONTENT_KEY, "$utm_content");
         put(UTM_CAMPAIGN_KEY, "$utm_campaign");
+    }};
+
+    private static final List<String> mDeepLinkBlackList = new ArrayList() {{
+        add("io.dcloud.PandoraEntryActivity");
     }};
 
     private static final HashMap<String, String> UTM_LINK_MAP = new HashMap<String, String>() {{
@@ -215,7 +220,7 @@ public class ChannelUtils {
             for (String sourceKey : sChannelSourceKeySet) {
                 try {
                     //检测 key 的值,非正常 key 值直接跳过.
-                    assertKey(sourceKey);
+                    SADataHelper.assertKey(sourceKey);
                     String value = params.get(sourceKey);
                     if (!TextUtils.isEmpty(value)) {
                         sUtmProperties.put(sourceKey, value);
@@ -235,7 +240,7 @@ public class ChannelUtils {
      */
     public static void loadUtmByLocal(Context context) {
         try {
-            SharedPreferences utmPref = getSharedPreferences(context);
+            SharedPreferences utmPref = SensorsDataUtils.getSharedPreferences(context);
             sLatestUtmProperties.clear();
             String channelJson = utmPref.getString(SHARED_PREF_UTM_FILE, "");
             if (!TextUtils.isEmpty(channelJson)) {
@@ -266,7 +271,7 @@ public class ChannelUtils {
      */
     public static void clearLocalUtm(Context context) {
         try {
-            SharedPreferences utmPref = getSharedPreferences(context);
+            SharedPreferences utmPref = SensorsDataUtils.getSharedPreferences(context);
             utmPref.edit().putString(SHARED_PREF_UTM_FILE, "").apply();
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -322,7 +327,7 @@ public class ChannelUtils {
     public static void saveDeepLinkInfo(Context context) {
         try {
             if (sLatestUtmProperties.size() > 0) {
-                SharedPreferences utmPref = getSharedPreferences(context);
+                SharedPreferences utmPref = SensorsDataUtils.getSharedPreferences(context);
                 utmPref.edit().putString(SHARED_PREF_UTM_FILE, sLatestUtmProperties.toString()).apply();
             } else {
                 clearLocalUtm(context);
@@ -446,7 +451,7 @@ public class ChannelUtils {
      */
     public static boolean isTrackInstallation(Context context) {
         try {
-            SharedPreferences sp = getSharedPreferences(context);
+            SharedPreferences sp = SensorsDataUtils.getSharedPreferences(context);
             return sp.contains(SHARED_PREF_CORRECT_TRACK_INSTALLATION);
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -462,7 +467,7 @@ public class ChannelUtils {
      */
     public static boolean isCorrectTrackInstallation(Context context) {
         try {
-            SharedPreferences sp = getSharedPreferences(context);
+            SharedPreferences sp = SensorsDataUtils.getSharedPreferences(context);
             return sp.getBoolean(SHARED_PREF_CORRECT_TRACK_INSTALLATION, false);
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -478,7 +483,7 @@ public class ChannelUtils {
      */
     public static void saveCorrectTrackInstallation(Context context, boolean isCorrectTrackInstallation) {
         try {
-            SharedPreferences sp = getSharedPreferences(context);
+            SharedPreferences sp = SensorsDataUtils.getSharedPreferences(context);
             sp.edit().putBoolean(SHARED_PREF_CORRECT_TRACK_INSTALLATION, isCorrectTrackInstallation).apply();
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -512,20 +517,42 @@ public class ChannelUtils {
             return false;
         }
         return (deviceMaps.containsKey("oaid")//防止都为 null 返回 true
-                        && TextUtils.equals(deviceMaps.get("oaid"), OaidHelper.getOAID(context))) ||
-                       (deviceMaps.containsKey("imei") &&
-                                TextUtils.equals(deviceMaps.get("imei"), SensorsDataUtils.getIMEI(context))) ||
-                       (deviceMaps.containsKey("imei_old") &&
-                                TextUtils.equals(deviceMaps.get("imei_old"), SensorsDataUtils.getIMEIOld(context))) ||
-                       (deviceMaps.containsKey("imei_slot1") &&
-                                TextUtils.equals(deviceMaps.get("imei_slot1"), SensorsDataUtils.getSlot(context, 0))) ||
-                       (deviceMaps.containsKey("imei_slot2") &&
-                                TextUtils.equals(deviceMaps.get("imei_slot2"), SensorsDataUtils.getSlot(context, 1))) ||
-                       (deviceMaps.containsKey("imei_meid") &&
-                                TextUtils.equals(deviceMaps.get("imei_meid"), SensorsDataUtils.getMEID(context))) ||
-                       (deviceMaps.containsKey("android_id") &&
-                                TextUtils.equals(deviceMaps.get("android_id"), SensorsDataUtils.getAndroidID(context))) ||
-                       (deviceMaps.containsKey("mac") &&
-                                TextUtils.equals(deviceMaps.get("mac"), SensorsDataUtils.getMacAddress(context)));
+                && TextUtils.equals(deviceMaps.get("oaid"), OaidHelper.getOAID(context))) ||
+                (deviceMaps.containsKey("imei") &&
+                        TextUtils.equals(deviceMaps.get("imei"), SensorsDataUtils.getIMEI(context))) ||
+                (deviceMaps.containsKey("imei_old") &&
+                        TextUtils.equals(deviceMaps.get("imei_old"), SensorsDataUtils.getIMEIOld(context))) ||
+                (deviceMaps.containsKey("imei_slot1") &&
+                        TextUtils.equals(deviceMaps.get("imei_slot1"), SensorsDataUtils.getSlot(context, 0))) ||
+                (deviceMaps.containsKey("imei_slot2") &&
+                        TextUtils.equals(deviceMaps.get("imei_slot2"), SensorsDataUtils.getSlot(context, 1))) ||
+                (deviceMaps.containsKey("imei_meid") &&
+                        TextUtils.equals(deviceMaps.get("imei_meid"), SensorsDataUtils.getMEID(context))) ||
+                (deviceMaps.containsKey("android_id") &&
+                        TextUtils.equals(deviceMaps.get("android_id"), SensorsDataUtils.getAndroidID(context))) ||
+                (deviceMaps.containsKey("mac") &&
+                        TextUtils.equals(deviceMaps.get("mac"), SensorsDataUtils.getMacAddress(context)));
+    }
+
+    /**
+     * deeplink 不解析 Activity 名单(包含子类）
+     *
+     * @param activity activity
+     * @return 是否包含在黑名单中
+     */
+    public static boolean isDeepLinkBlackList(Activity activity) {
+        if (activity != null) {
+            for (String activityName : mDeepLinkBlackList) {
+                try {
+                    Class<?> clazz = Class.forName(activityName);
+                    if (clazz.isAssignableFrom(activity.getClass())) {
+                        return true;
+                    }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
+            }
+        }
+        return false;
     }
 }

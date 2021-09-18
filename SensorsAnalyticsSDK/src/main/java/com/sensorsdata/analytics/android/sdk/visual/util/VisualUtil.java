@@ -55,7 +55,6 @@ public class VisualUtil {
             return View.GONE;
         }
         return View.VISIBLE;
-
     }
 
     @SuppressLint("NewApi")

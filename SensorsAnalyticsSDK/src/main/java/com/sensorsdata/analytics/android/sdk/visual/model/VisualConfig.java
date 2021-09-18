@@ -55,6 +55,7 @@ public class VisualConfig {
         public String screenName; // 当前元素所在页面的 screen_name
         public boolean limitElementPosition; // 事件是否限定「元素位置」
         public boolean limitElementContent; // 事件是否限定「元素内容」
+        public boolean isH5; // 是否为 H5 元素
 
         @Override
         public String toString() {
@@ -65,6 +66,7 @@ public class VisualConfig {
                     ", screenName='" + screenName + '\'' +
                     ", limitElementPosition=" + limitElementPosition +
                     ", limitElementContent=" + limitElementContent +
+                    ", isH5=" + isH5 +
                     '}';
         }
     }
@@ -76,6 +78,8 @@ public class VisualConfig {
         public String name; // 属性名
         public String regular; // 属性处理规则
         public String type; // 属性类型
+        public boolean isH5; // 是否为 H5
+        public String webViewElementPath; // webViewElementPath 用于区分 H5 在哪一个 webView
 
         @Override
         public String toString() {
@@ -86,6 +90,8 @@ public class VisualConfig {
                     ", name='" + name + '\'' +
                     ", regular='" + regular + '\'' +
                     ", type='" + type + '\'' +
+                    ", isH5=" + isH5 +
+                    ", webViewElementPath='" + webViewElementPath + '\'' +
                     '}';
         }
     }

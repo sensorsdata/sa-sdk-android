@@ -217,6 +217,8 @@ public class ViewSnapshot {
         // 处理内嵌 H5 页面
         if (ViewUtil.isViewSelfVisible(view)) {
             List<String> webNodeIds = null;
+            // webView 自身 level 需要小于所有的 H5 元素
+            int webViewElementLevel = mSnapInfo.elementLevel;
             if (ViewUtil.instanceOfWebView(view)) {
                 mSnapInfo.isWebView = true;
                 final CountDownLatch latch = new CountDownLatch(1);
@@ -257,7 +259,9 @@ public class ViewSnapshot {
                                 webNodeIds = new ArrayList<>();
                                 for (WebNode webNode : webNodes) {
                                     mergeWebViewNodes(j, webNode, view, mSnapInfo.webViewScale);
-                                    webNodeIds.add(webNode.getId() + view.hashCode());
+                                    if (webNode.isRootView()) {
+                                        webNodeIds.add(webNode.getId() + view.hashCode());
+                                    }
                                 }
                             }
                         } else if (webNodeInfo.getStatus() == WebNodeInfo.Status.FAILURE) {
@@ -276,7 +280,11 @@ public class ViewSnapshot {
             j.name("hashCode").value(view.hashCode());
             j.name("id").value(view.getId());
             j.name("index").value(VisualUtil.getChildIndex(view.getParent(), view));
-            j.name("element_level").value(++mSnapInfo.elementLevel);
+            if (ViewUtil.instanceOfWebView(view)) {
+                j.name("element_level").value(webViewElementLevel);
+            } else {
+                j.name("element_level").value(++mSnapInfo.elementLevel);
+            }
             j.name("element_selector").value(ViewUtil.getElementSelector(view));
 
             JSONObject object = VisualUtil.getScreenNameAndTitle(view, mSnapInfo);
@@ -355,10 +363,19 @@ public class ViewSnapshot {
                     scrollX = 0;
                 }
             }
-            j.name("scrollX").value(scrollX);
-            j.name("scrollY").value(view.getScrollY());
+            // x5WebView 无法直接获取到 scrollX、scrollY
+            if (ViewUtil.instanceOfX5WebView(view)) {
+                try {
+                    j.name("scrollX").value((Integer) ReflectUtil.callMethod(view, "getWebScrollX"));
+                    j.name("scrollY").value((Integer) ReflectUtil.callMethod(view, "getWebScrollY"));
+                } catch (IOException e) {
+                    SALog.printStackTrace(e);
+                }
+            } else {
+                j.name("scrollX").value(scrollX);
+                j.name("scrollY").value(view.getScrollY());
+            }
             j.name("visibility").value(VisualUtil.getVisibility(view));
-
             float translationX = 0;
             float translationY = 0;
             if (Build.VERSION.SDK_INT >= 11) {
@@ -750,36 +767,32 @@ public class ViewSnapshot {
             }
             j.name("element_level").value(++mSnapInfo.elementLevel);
             j.name("h5_title").value(view.get$title());
-            float scale = view.getScale();
             if (webViewScale == 0) {
-                webViewScale = scale;
+                webViewScale = view.getScale();
             }
-            // 原生 WebView getScrollX 能取到值，而 X5WebView 始终是 0
-            float left = 0f, top = 0f;
-            if (webView.getScrollX() == 0) {
-                left = view.getLeft() * webViewScale;
-            } else {
-                left = (view.getLeft() + view.getScrollX()) * webViewScale;
-            }
-            if (webView.getScrollY() == 0) {
-                top = view.getTop() * webViewScale;
-            } else {
-                top = (view.getTop() + view.getScrollY()) * webViewScale;
-            }
-            j.name("left").value((int) left);
-            j.name("top").value((int) top);
+            float top = view.getTop() * webViewScale;
+            float left = view.getLeft() * webViewScale;
+            j.name("left").value(left);
+            j.name("top").value(top);
             j.name("width").value((int) (view.getWidth() * webViewScale));
             j.name("height").value((int) (view.getHeight() * webViewScale));
             j.name("scrollX").value(0);
             j.name("scrollY").value(0);
-            // 考虑 H5 元素是否在 WebView 内
-            boolean insideWebView = top <= webView.getHeight() + webView.getScrollY() && view.getTop() + view.getHeight() > 0 && left <= webView.getWidth() + webView.getScrollX() && view.getLeft() + view.getWidth() > 0;
+            boolean insideWebView = view.getOriginTop() * webViewScale <= webView.getHeight() && view.getOriginLeft() * webViewScale <= webView.getWidth();
             j.name("visibility").value(view.isVisibility() && insideWebView ? View.VISIBLE : View.GONE);
             j.name("url").value(view.get$url());
-            j.name("clickable").value(true);
+            j.name("clickable").value(view.isEnable_click());
             j.name("importantForAccessibility").value(true);
             j.name("is_h5").value(true);
-
+            j.name("is_list_view").value(view.isIs_list_view());
+            j.name("element_path").value(view.get$element_path());
+            j.name("tag_name").value(view.getTagName());
+            if (!TextUtils.isEmpty(view.get$element_position())) {
+                j.name("element_position").value(view.get$element_position());
+            }
+            // 通过 lib_version 字段用来区分是否可支持 App 内嵌 H5 自定义属性
+            mSnapInfo.webLibVersion = view.getLib_version();
+            j.name("list_selector").value(view.getList_selector());
             j.name("classes");
             j.beginArray();
             j.value(view.getTagName());
@@ -795,12 +808,12 @@ public class ViewSnapshot {
                 j.name("subviews");
                 j.beginArray();
                 for (String id : list) {
-                    j.value(id);
+                    j.value(id + webView.hashCode());
                 }
                 j.endArray();
             }
             j.endObject();
-        } catch (IOException e) {
+        } catch (Exception e) {
             SALog.printStackTrace(e);
         }
     }

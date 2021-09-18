@@ -33,7 +33,6 @@ import org.json.JSONObject;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class VisualDebugHelper {
 
@@ -79,19 +78,13 @@ public class VisualDebugHelper {
             if (jsonObject == null) {
                 return;
             }
-            SALog.i(TAG, "handlerEvent result " + jsonObject.toString());
 
             if (!VisualizedAutoTrackService.getInstance().isServiceRunning()) {
                 return;
             }
 
-            VisualConfig visualConfig = VisualPropertiesManager.getInstance().getVisualConfig();
-            if (visualConfig == null) {
-                return;
-            }
-
             String eventName = jsonObject.optString("event");
-            if (!TextUtils.equals(AopConstants.APP_CLICK_EVENT_NAME, eventName)) {
+            if (!TextUtils.equals(AopConstants.APP_CLICK_EVENT_NAME, eventName) && !TextUtils.equals(AopConstants.WEB_CLICK_EVENT_NAME, eventName)) {
                 SALog.i(TAG, "eventName is " + eventName + " filter");
                 return;
             }
@@ -101,44 +94,77 @@ public class VisualDebugHelper {
                 return;
             }
 
-            String screenName = propertyObject.optString("$screen_name");
-            if (TextUtils.isEmpty(screenName)) {
-                SALog.i(TAG, "screenName is empty and return");
-                return;
-            }
-
             if (!VisualPropertiesManager.getInstance().checkAppIdAndProject()) {
                 return;
             }
 
-            // 校验配置是否为空
+            VisualConfig visualConfig = VisualPropertiesManager.getInstance().getVisualConfig();
+            if (visualConfig == null) {
+                return;
+            }
+            // 校验配置是否为空校验配置是否为空
             List<VisualConfig.VisualPropertiesConfig> propertiesConfigs = visualConfig.events;
             if (propertiesConfigs == null || propertiesConfigs.size() == 0) {
                 SALog.i(TAG, "propertiesConfigs is empty ");
                 return;
             }
 
-            List<VisualConfig.VisualPropertiesConfig> eventConfigList = VisualPropertiesManager.getInstance().getMatchEventConfigList(
-                    propertiesConfigs,
-                    VisualPropertiesManager.VisualEventType.getVisualEventType(eventName), screenName,
-                    propertyObject.optString("$element_path"),
-                    propertyObject.optString("$element_position"),
-                    propertyObject.optString("$element_content"));
-            if (eventConfigList.size() > 0) {
-                synchronized (object) {
-                    for (VisualConfig.VisualPropertiesConfig config : eventConfigList) {
-                        try {
-                            JSONObject object = new JSONObject();
-                            SensorsDataUtils.mergeJSONObject(jsonObject, object);
-                            object.put("event_name", config.eventName);
-                            if (mJsonArray == null) {
-                                mJsonArray = new JSONArray();
+            if (TextUtils.equals(AopConstants.APP_CLICK_EVENT_NAME, eventName)) {
+                String screenName = propertyObject.optString("$screen_name");
+                if (TextUtils.isEmpty(screenName)) {
+                    SALog.i(TAG, "screenName is empty ");
+                    return;
+                }
+                List<VisualConfig.VisualPropertiesConfig> eventConfigList = VisualPropertiesManager.getInstance().getMatchEventConfigList(
+                        propertiesConfigs,
+                        VisualPropertiesManager.VisualEventType.getVisualEventType(eventName), screenName,
+                        propertyObject.optString("$element_path"),
+                        propertyObject.optString("$element_position"),
+                        propertyObject.optString("$element_content"));
+                if (eventConfigList.size() > 0) {
+                    synchronized (object) {
+                        for (VisualConfig.VisualPropertiesConfig config : eventConfigList) {
+                            try {
+                                JSONObject object = new JSONObject();
+                                SensorsDataUtils.mergeJSONObject(jsonObject, object);
+                                object.put("event_name", config.eventName);
+                                if (mJsonArray == null) {
+                                    mJsonArray = new JSONArray();
+                                }
+                                mJsonArray.put(object);
+                            } catch (Exception e) {
+                                SALog.printStackTrace(e);
                             }
-                            mJsonArray.put(object);
-                        } catch (Exception e) {
-                            SALog.printStackTrace(e);
                         }
                     }
+                }
+            } else if (TextUtils.equals(AopConstants.WEB_CLICK_EVENT_NAME, eventName)) {
+                try {
+                    JSONArray array = propertyObject.optJSONArray("sensorsdata_web_visual_eventName");
+                    if (array == null) {
+                        int hashCode = jsonObject.hashCode();
+                        array = VisualPropertiesManager.getInstance().getVisualPropertiesH5Helper().getEventName(hashCode);
+                        VisualPropertiesManager.getInstance().getVisualPropertiesH5Helper().clearCache(hashCode);
+                    }
+                    if (array != null && array.length() > 0) {
+                        synchronized (object) {
+                            for (int i = 0; i < array.length(); i++) {
+                                try {
+                                    JSONObject object = new JSONObject();
+                                    SensorsDataUtils.mergeJSONObject(jsonObject, object);
+                                    object.put("event_name", array.optString(i));
+                                    if (mJsonArray == null) {
+                                        mJsonArray = new JSONArray();
+                                    }
+                                    mJsonArray.put(object);
+                                } catch (Exception e) {
+                                    SALog.printStackTrace(e);
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
                 }
             }
         } catch (Exception e) {

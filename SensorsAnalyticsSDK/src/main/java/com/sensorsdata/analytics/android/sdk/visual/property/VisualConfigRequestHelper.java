@@ -28,6 +28,7 @@ import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
 import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
+import com.sensorsdata.analytics.android.sdk.visual.util.Dispatcher;
 
 
 /**
@@ -44,67 +45,68 @@ public class VisualConfigRequestHelper {
     }
 
     public void requestVisualConfig(final Context context, final String version, final IApiCallback callback) {
-        if (!SensorsDataAPI.sharedInstance().isNetworkRequestEnable()) {
-            SALog.i(TAG, "Close network request");
-            return;
-        }
-        if (mCountDownTimer != null) {
-            mCountDownTimer.cancel();
-            mCountDownTimer = null;
-        }
-        mCountDownTimer = new CountDownTimer(90 * 1000, 30 * 1000) {
+        Dispatcher.getInstance().post(new Runnable() {
             @Override
-            public void onTick(long l) {
-                try {
-                    String serverUrl = SensorsDataAPI.sharedInstance().getServerUrl();
-                    if (TextUtils.isEmpty(serverUrl)) {
-                        SALog.i(TAG, "visualConfigRequest server url is null and return");
-                        return;
-                    }
-                    final String requestUrl = getRequestUrl(context, version);
-                    if (TextUtils.isEmpty(requestUrl)) {
-                        SALog.i(TAG, "visualConfigRequest request url is null and return");
-                        return;
-                    }
-                    new RequestHelper.Builder(HttpMethod.GET, requestUrl)
-                            .callback(new HttpCallback.StringCallback() {
-                                @Override
-                                public void onFailure(int code, String errorMessage) {
-                                    if (code == 304 || code == 404 || code == 205) {
-                                        resetTimer();
-                                        // 后端开关被禁用时需要清除本地缓存
-                                        if (code == 205) {
-                                            VisualPropertiesManager.getInstance().save2Cache("");
-                                        }
-                                        SALog.i(TAG, "requestVisualConfig return 304 Or 404");
-                                    }
-                                }
-
-                                @Override
-                                public void onResponse(String response) {
-                                    resetTimer();
-                                    if (callback != null) {
-                                        callback.onSuccess(response);
-                                    }
-                                    SALog.i(TAG, "requestVisualConfig success response is " + response);
-                                }
-
-                                @Override
-                                public void onAfter() {
-                                }
-                            }).execute();
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
+            public void run() {
+                if (mCountDownTimer != null) {
+                    mCountDownTimer.cancel();
+                    mCountDownTimer = null;
                 }
+                mCountDownTimer = new CountDownTimer(90 * 1000, 30 * 1000) {
+                    @Override
+                    public void onTick(long l) {
+                        try {
+                            String serverUrl = SensorsDataAPI.sharedInstance().getServerUrl();
+                            if (TextUtils.isEmpty(serverUrl)) {
+                                SALog.i(TAG, "visualConfigRequest server url is null and return");
+                                return;
+                            }
+                            final String requestUrl = getRequestUrl(context, version);
+                            if (TextUtils.isEmpty(requestUrl)) {
+                                SALog.i(TAG, "visualConfigRequest request url is null and return");
+                                return;
+                            }
+                            new RequestHelper.Builder(HttpMethod.GET, requestUrl)
+                                    .callback(new HttpCallback.StringCallback() {
+                                        @Override
+                                        public void onFailure(int code, String errorMessage) {
+                                            if (code == 304 || code == 404 || code == 205) {
+                                                resetTimer();
+                                                // 后端开关被禁用时需要清除本地缓存
+                                                if (code == 205) {
+                                                    VisualPropertiesManager.getInstance().save2Cache("");
+                                                }
+                                                SALog.i(TAG, "requestVisualConfig return 304 Or 404");
+                                            }
+                                        }
+
+                                        @Override
+                                        public void onResponse(String response) {
+                                            resetTimer();
+                                            if (callback != null) {
+                                                callback.onSuccess(response);
+                                            }
+                                            SALog.i(TAG, "requestVisualConfig success response is " + response);
+                                        }
+
+                                        @Override
+                                        public void onAfter() {
+                                        }
+                                    }).execute();
+                        } catch (Exception e) {
+                            SALog.printStackTrace(e);
+                        }
+                    }
+
+                    @Override
+                    public void onFinish() {
+
+                    }
+
+                };
+                mCountDownTimer.start();
             }
-
-            @Override
-            public void onFinish() {
-
-            }
-
-        };
-        mCountDownTimer.start();
+        });
     }
 
     private void resetTimer() {

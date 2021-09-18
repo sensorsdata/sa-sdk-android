@@ -37,7 +37,7 @@ public class ReflectUtil {
         }
     }
 
-    static <T> T findField(String[] className, Object instance, String... fieldName) {
+    public static <T> T findField(String[] className, Object instance, String... fieldName) {
         Class<?> currentClass = getCurrentClass(className);
         if (currentClass != null) {
             return findField(currentClass, instance, fieldName);

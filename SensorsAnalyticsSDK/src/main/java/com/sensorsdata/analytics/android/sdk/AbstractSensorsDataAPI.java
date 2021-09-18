@@ -190,7 +190,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             mRemoteManager.applySDKConfigFromCache();
             // 可视化自定义属性拉取配置
             if (isVisualizedAutoTrackEnabled()) {
-                VisualPropertiesManager.getInstance().requestVisualConfig(mContext);
+                VisualPropertiesManager.getInstance().requestVisualConfig(mContext,(SensorsDataAPI) this);
             }
             //打开 debug 模式，弹出提示
             if (mDebugMode != SensorsDataAPI.DebugMode.DEBUG_OFF && mIsMainProcess) {
@@ -211,6 +211,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                         + " url '%s', flush interval %d ms, debugMode: %s", mServerUrl, mSAConfigOptions.mFlushInterval, debugMode));
             }
             mLoginId = DbAdapter.getInstance().getLoginId();
+            SensorsDataUtils.initUniAppStatus();
         } catch (Throwable ex) {
             SALog.d(TAG, ex.getMessage());
         }
@@ -307,6 +308,21 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             }
             if (!mSAJSListeners.contains(listener)) {
                 mSAJSListeners.add(listener);
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
+    /**
+     * 移除 JS 消息
+     *
+     * @param listener JS 监听
+     */
+    public void removeSAJSListener(final SAJSListener listener) {
+        try {
+            if (mSAJSListeners != null && mSAJSListeners.contains(listener)) {
+                this.mSAJSListeners.remove(listener);
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);

@@ -17,7 +17,6 @@
 
 package com.sensorsdata.analytics.android.sdk.visual.model;
 
-import android.text.Editable;
 import android.view.View;
 
 import java.io.Serializable;

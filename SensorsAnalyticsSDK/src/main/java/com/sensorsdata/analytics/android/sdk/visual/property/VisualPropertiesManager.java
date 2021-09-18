@@ -42,6 +42,7 @@ import org.json.JSONObject;
 import java.lang.ref.WeakReference;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -58,11 +59,13 @@ public class VisualPropertiesManager {
     private VisualPropertiesCache mConfigCache;
     private VisualConfigRequestHelper mRequestHelper;
     private CollectLogListener mCollectLogListener;
+    private VisualPropertiesH5Helper mVisualPropertiesH5Helper;
 
     private VisualPropertiesManager() {
         mConfigCache = new VisualPropertiesCache();
         mVisualConfig = mConfigCache.getVisualConfig();
         mRequestHelper = new VisualConfigRequestHelper();
+        mVisualPropertiesH5Helper = new VisualPropertiesH5Helper();
     }
 
     public static VisualPropertiesManager getInstance() {
@@ -76,20 +79,40 @@ public class VisualPropertiesManager {
         return sInstance;
     }
 
-    public void requestVisualConfig(Context context) {
-        mRequestHelper.requestVisualConfig(context, getVisualConfigVersion(), new VisualConfigRequestHelper.IApiCallback() {
-            @Override
-            public void onSuccess(String message) {
-                save2Cache(message);
+    public void requestVisualConfig(Context context, SensorsDataAPI sensorsDataAPI) {
+        try {
+            if (sensorsDataAPI == null || !sensorsDataAPI.isNetworkRequestEnable()) {
+                SALog.i(TAG, "Close network request");
+                return;
             }
-        });
+            mRequestHelper.requestVisualConfig(context, getVisualConfigVersion(), new VisualConfigRequestHelper.IApiCallback() {
+                @Override
+                public void onSuccess(String message) {
+                    save2Cache(message);
+                }
+            });
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     public void requestVisualConfig() {
-        Context context = SensorsDataAPI.sharedInstance().getContext();
-        if (context != null) {
-            requestVisualConfig(context);
+        try {
+            Context context = SensorsDataAPI.sharedInstance().getContext();
+            if (context != null) {
+                requestVisualConfig(context, SensorsDataAPI.sharedInstance());
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
+    }
+
+    public VisualPropertiesH5Helper getVisualPropertiesH5Helper() {
+        return mVisualPropertiesH5Helper;
+    }
+
+    public VisualPropertiesCache getVisualPropertiesCache() {
+        return mConfigCache;
     }
 
     public VisualConfig getVisualConfig() {
@@ -133,7 +156,8 @@ public class VisualPropertiesManager {
     }
 
     public enum VisualEventType {
-        APP_CLICK("appclick", "$AppClick");
+        APP_CLICK("appclick", "$AppClick"),
+        WEB_CLICK("appclick", "$WebClick");
         private String visualEventType;
         private String trackEventType;
 
@@ -242,12 +266,16 @@ public class VisualPropertiesManager {
             for (VisualConfig.VisualPropertiesConfig visualPropertiesConfig : eventConfigList) {
                 // 走到这里，事件控件便命中了，开始获取属性控件
                 VisualConfig.VisualEvent event = visualPropertiesConfig.event;
+                // 事件元素为 H5，此时由 JS 处理
+                if (event != null && event.isH5) {
+                    continue;
+                }
                 List<VisualConfig.VisualProperty> properties = visualPropertiesConfig.properties;
                 if (properties == null || properties.size() == 0) {
                     SALog.i(TAG, "properties is empty ");
-                    return;
+                    continue;
                 }
-                mergeVisualProperty(properties, event, srcObject, viewNode);
+                mergeVisualProperty(properties, event, srcObject, viewNode, visualPropertiesConfig.eventName);
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -266,11 +294,11 @@ public class VisualPropertiesManager {
 
                 // 校验事件控件 screen_name 是否存在
                 VisualConfig.VisualEvent event = visualPropertiesConfig.event;
-                if (!TextUtils.equals(event.screenName, screenName)) {
+                if (!TextUtils.isEmpty(screenName) && !TextUtils.equals(event.screenName, screenName)) {
                     continue;
                 }
 
-                if (eventType == VisualEventType.APP_CLICK) {
+                if (eventType == VisualEventType.APP_CLICK || eventType == VisualEventType.WEB_CLICK) {
                     // 校验事件控件 $element_path 是否一致
                     if (!TextUtils.equals(event.elementPath, elementPath)) {
                         SALog.i(TAG, String.format("event element_path is not match: current element_path is %s, config element_path is %s ", elementPath, event.elementPath));
@@ -328,101 +356,119 @@ public class VisualPropertiesManager {
         return true;
     }
 
-    private void mergeVisualProperty(List<VisualConfig.VisualProperty> properties, VisualConfig.VisualEvent event, JSONObject srcObject, ViewNode clickViewNode) {
+    private void mergeVisualProperty(List<VisualConfig.VisualProperty> properties, VisualConfig.VisualEvent event, JSONObject srcObject, ViewNode clickViewNode, String eventName) {
         try {
+            // 用来对 webView_element_path 进行分组
+            HashSet<String> h5HashSet = new HashSet<>();
             for (VisualConfig.VisualProperty visualProperty : properties) {
-                // 属性名非法校验
-                if (TextUtils.isEmpty(visualProperty.name)) {
-                    SALog.i(TAG, "config visual property name is empty");
-                    continue;
+                if (visualProperty.isH5 && !TextUtils.isEmpty(visualProperty.webViewElementPath)) {
+                    h5HashSet.add(visualProperty.webViewElementPath + visualProperty.screenName);
+                } else {
+                    mergeAppVisualProperty(visualProperty, event, srcObject, clickViewNode);
                 }
+            }
+            // 处理 App 内嵌 H5 属性采集
+            if (h5HashSet.size() > 0) {
+                mVisualPropertiesH5Helper.mergeJSVisualProperties(srcObject, h5HashSet, eventName);
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
 
-                // 属性 element_path 非法校验
-                if (TextUtils.isEmpty(visualProperty.elementPath)) {
-                    SALog.i(TAG, "config visual property elementPath is empty");
-                    continue;
+    public void mergeAppVisualProperty(VisualConfig.VisualProperty visualProperty, VisualConfig.VisualEvent event, JSONObject srcObject, ViewNode clickViewNode) {
+        try {
+            // 属性名非法校验
+            if (TextUtils.isEmpty(visualProperty.name)) {
+                SALog.i(TAG, "config visual property name is empty");
+                return;
+            }
+
+            // 属性 element_path 非法校验
+            if (TextUtils.isEmpty(visualProperty.elementPath)) {
+                SALog.i(TAG, "config visual property elementPath is empty");
+                return;
+            }
+
+            // 当满足以下几个条件，需要替换属性控件的 elementPosition,暂不支持列表嵌套列表
+            // 1. 事件控件和属性控件在同一个列表里 2. 事件控件支持限定位置，且选择「不限定位置」
+            if (clickViewNode != null && !TextUtils.isEmpty(clickViewNode.getViewPosition()) && event != null && !TextUtils.isEmpty(event.elementPosition) && !event.limitElementPosition && !TextUtils.isEmpty(visualProperty.elementPosition)) {
+                if (TextUtils.equals(visualProperty.elementPath.split("-")[0], event.elementPath.split("-")[0])) {
+                    visualProperty.elementPosition = clickViewNode.getViewPosition();
+                    SALog.i(TAG, "visualProperty elementPosition replace: " + clickViewNode.getViewPosition());
                 }
+            }
 
-                // 当满足以下几个条件，需要替换属性控件的 elementPosition,暂不支持列表嵌套列表
-                // 1. 事件控件和属性控件在同一个列表里 2. 事件控件支持限定位置，且选择「不限定位置」
-                if (clickViewNode != null && !TextUtils.isEmpty(clickViewNode.getViewPosition()) && !TextUtils.isEmpty(event.elementPosition) && !event.limitElementPosition && !TextUtils.isEmpty(visualProperty.elementPosition)) {
-                    if (TextUtils.equals(visualProperty.elementPath.split("-")[0], event.elementPath.split("-")[0])) {
-                        visualProperty.elementPosition = clickViewNode.getViewPosition();
-                        SALog.i(TAG, "visualProperty elementPosition replace: " + clickViewNode.getViewPosition());
+            String propertyElementContent = null;
+            try {
+                ViewNode viewTreeNode = ViewTreeStatusObservable.getInstance().getViewNode(clickViewNode != null ? clickViewNode.getView() : null, visualProperty.elementPath, visualProperty.elementPosition, visualProperty.screenName);
+                if (viewTreeNode != null && TextUtils.equals(visualProperty.elementPath, viewTreeNode.getViewPath()) && (TextUtils.isEmpty(visualProperty.elementPosition) | TextUtils.equals(visualProperty.elementPosition, viewTreeNode.getViewPosition()))) {
+                    // 默认是已缓存的 viewNode content，优先从 view 引用中再次获取 element_content，保持数据最新
+                    propertyElementContent = viewTreeNode.getViewContent();
+                    WeakReference<View> targetView = null;
+                    if (viewTreeNode.getView() != null) {
+                        targetView = viewTreeNode.getView();
+                    }
+                    if (targetView != null && targetView.get() != null) {
+                        // 为保证获取到的 element_content 是最新的，这里从 view 引用再次获取
+                        propertyElementContent = ViewUtil.getViewContentAndType(targetView.get(), true).getViewContent();
                     }
                 }
+            } catch (Exception e) {
+                SALog.printStackTrace(e);
+            }
+            if (propertyElementContent == null || TextUtils.isEmpty(propertyElementContent)) {
+                if (mCollectLogListener != null) {
+                    mCollectLogListener.onFindPropertyElementFailure(visualProperty.name, visualProperty.elementPath, visualProperty.elementPosition);
+                }
+                return;
+            }
 
-                String propertyElementContent = null;
+            SALog.i(TAG, String.format("find property target view success, property element_path: %s,element_position: %s,element_content: %s", visualProperty.elementPath, visualProperty.elementPosition, propertyElementContent));
+            // 开始正则处理
+            String result = null;
+            if (!TextUtils.isEmpty(visualProperty.regular)) {
+                Pattern pattern = null;
                 try {
-                    ViewNode viewTreeNode = ViewTreeStatusObservable.getInstance().getViewNode(clickViewNode != null ? clickViewNode.getView() : null, visualProperty.elementPath, visualProperty.elementPosition, visualProperty.screenName);
-                    if (viewTreeNode != null && TextUtils.equals(visualProperty.elementPath, viewTreeNode.getViewPath()) && (TextUtils.isEmpty(visualProperty.elementPosition) | TextUtils.equals(visualProperty.elementPosition, viewTreeNode.getViewPosition()))) {
-                        // 默认是已缓存的 viewNode content，优先从 view 引用中再次获取 element_content，保持数据最新
-                        propertyElementContent = viewTreeNode.getViewContent();
-                        WeakReference<View> targetView = null;
-                        if (viewTreeNode.getView() != null) {
-                            targetView = viewTreeNode.getView();
-                        }
-                        if (targetView != null && targetView.get() != null) {
-                            // 为保证获取到的 element_content 是最新的，这里从 view 引用再次获取
-                            propertyElementContent = ViewUtil.getViewContentAndType(targetView.get(), true).getViewContent();
-                        }
-                    }
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
-                }
-                if (propertyElementContent == null || TextUtils.isEmpty(propertyElementContent)) {
-                    if (mCollectLogListener != null) {
-                        mCollectLogListener.onFindPropertyElementFailure(visualProperty.name, visualProperty.elementPath, visualProperty.elementPosition);
-                    }
-                    continue;
-                }
-
-                SALog.i(TAG, String.format("find property target view success, property element_path: %s,element_position: %s,element_content: %s", visualProperty.elementPath, visualProperty.elementPosition, propertyElementContent));
-                // 开始正则处理
-                String result = null;
-                if (!TextUtils.isEmpty(visualProperty.regular)) {
-                    Pattern pattern = null;
-                    try {
-                        pattern = Pattern.compile(visualProperty.regular, Pattern.DOTALL | Pattern.MULTILINE);
-                        Matcher matcher = pattern.matcher(propertyElementContent);
-                        if (matcher.find()) {
-                            result = matcher.group();
-                            SALog.i(TAG, String.format("propertyValue is: %s", result));
-                        } else {
-                            SALog.i(TAG, "matcher not find continue");
-                            if (mCollectLogListener != null) {
-                                mCollectLogListener.onParsePropertyContentFailure(visualProperty.name, visualProperty.type, propertyElementContent, visualProperty.regular);
-                            }
-                            continue;
-                        }
-                    } catch (Exception e) {
+                    pattern = Pattern.compile(visualProperty.regular, Pattern.DOTALL | Pattern.MULTILINE);
+                    Matcher matcher = pattern.matcher(propertyElementContent);
+                    if (matcher.find()) {
+                        result = matcher.group();
+                        SALog.i(TAG, String.format("propertyValue is: %s", result));
+                    } else {
+                        SALog.i(TAG, "matcher not find continue");
                         if (mCollectLogListener != null) {
                             mCollectLogListener.onParsePropertyContentFailure(visualProperty.name, visualProperty.type, propertyElementContent, visualProperty.regular);
                         }
-                        SALog.printStackTrace(e);
-                        continue;
+                        return;
                     }
+                } catch (Exception e) {
+                    if (mCollectLogListener != null) {
+                        mCollectLogListener.onParsePropertyContentFailure(visualProperty.name, visualProperty.type, propertyElementContent, visualProperty.regular);
+                    }
+                    SALog.printStackTrace(e);
+                    return;
                 }
+            }
 
-                // merge jsonObject、可视化属性优先级最高
-                if (!TextUtils.isEmpty(result)) {
-                    if (TextUtils.equals(PROPERTY_TYPE_NUMBER, visualProperty.type)) {
-                        try {
-                            if (result != null) {
-                                srcObject.put(visualProperty.name, NumberFormat.getInstance().parse(result));
-                            }
-                        } catch (Exception e) {
-                            if (mCollectLogListener != null) {
-                                mCollectLogListener.onOtherError(e.getMessage());
-                            }
+            // merge jsonObject、可视化属性优先级最高
+            if (!TextUtils.isEmpty(result)) {
+                if (TextUtils.equals(PROPERTY_TYPE_NUMBER, visualProperty.type)) {
+                    try {
+                        if (result != null) {
+                            srcObject.put(visualProperty.name, NumberFormat.getInstance().parse(result));
                         }
-                    } else {
-                        try {
-                            srcObject.put(visualProperty.name, result);
-                        } catch (JSONException e) {
-                            if (mCollectLogListener != null) {
-                                mCollectLogListener.onOtherError(e.getMessage());
-                            }
+                    } catch (Exception e) {
+                        if (mCollectLogListener != null) {
+                            mCollectLogListener.onOtherError(e.getMessage());
+                        }
+                    }
+                } else {
+                    try {
+                        srcObject.put(visualProperty.name, result);
+                    } catch (JSONException e) {
+                        if (mCollectLogListener != null) {
+                            mCollectLogListener.onOtherError(e.getMessage());
                         }
                     }
                 }

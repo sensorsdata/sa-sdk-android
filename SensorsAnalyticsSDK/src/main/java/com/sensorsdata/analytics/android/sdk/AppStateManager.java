@@ -155,7 +155,7 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
 
     @Override
     public void onActivityDestroyed(Activity activity) {
-
+        ViewTreeStatusObservable.getInstance().clearWebViewCache();
     }
 
     private void unRegisterViewTreeChange(View root) {

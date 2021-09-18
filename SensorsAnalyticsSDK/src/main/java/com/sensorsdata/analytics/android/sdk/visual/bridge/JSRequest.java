@@ -1,5 +1,5 @@
 /*
- * Created by zhangxiangwei on 2020/02/28.
+ * Created by zhangxiangwei on 2021/07/30.
  * Copyright 2015－2021 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,18 +15,12 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.visual.model;
+package com.sensorsdata.analytics.android.sdk.visual.bridge;
 
-import java.util.List;
+class JSRequest {
+    public String methodName;
 
-public class SnapInfo {
-    public String screenName;
-    public boolean hasFragment;
-    public String activityTitle;
-    public int elementLevel = -1;
-    public boolean isWebView = false;
-    public List<WebNodeInfo.AlertInfo> alertInfos;
-    public String webViewUrl;
-    public float webViewScale;
-    public String webLibVersion;
+    public String messageId;
+
+    public Object data;
 }

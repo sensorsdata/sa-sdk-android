@@ -31,7 +31,6 @@ import android.view.ViewTreeObserver.OnScrollChangedListener;
 import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.AppStateManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
@@ -41,7 +40,9 @@ import com.sensorsdata.analytics.android.sdk.visual.util.VisualUtil;
 import org.json.JSONObject;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 
 @TargetApi(16)
@@ -51,6 +52,7 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
     private Runnable mTraverseRunnable = new TraverseRunnable();
     private SparseArray<ViewNode> mViewNodesWithHashCode = new SparseArray<>();
     private HashMap<String, ViewNode> mViewNodesHashMap = new HashMap<>();
+    private HashMap<String, ViewNode> mWebViewHashMap = new HashMap<>();
 
     public static ViewTreeStatusObservable getInstance() {
         if (viewTreeStatusObservable == null) {
@@ -140,6 +142,47 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
         return viewNode;
     }
 
+    /**
+     * 通过 elementPath 获取目标 View
+     *
+     * @param elementPath view 的元素路径
+     * @return 目标 View
+     */
+    public ViewNode getViewNode(String elementPath) {
+        ViewNode viewNode = null;
+        try {
+            viewNode = mWebViewHashMap.get(elementPath);
+            // ViewTree 中不存在，需要主动遍历
+            if (viewNode == null || viewNode.getView() == null || viewNode.getView().get() == null) {
+                View rootView = null;
+                Activity activity = AppStateManager.getInstance().getForegroundActivity();
+                if (activity != null && activity.getWindow() != null && activity.getWindow().isActive()) {
+                    rootView = activity.getWindow().getDecorView();
+                }
+                if (rootView != null) {
+                    traverseNode(rootView);
+                }
+                viewNode = mWebViewHashMap.get(elementPath);
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return viewNode;
+    }
+
+    /**
+     * WebView 缓存需要在页面销毁时候进行释放，优化性能。
+     */
+    public void clearWebViewCache() {
+        try {
+            if (mWebViewHashMap != null) {
+                mWebViewHashMap.clear();
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
     private void traverseNode() {
         traverseNode(null);
     }
@@ -148,23 +191,47 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
         try {
             SparseArray<ViewNode> tempSparseArray = new SparseArray<>();
             HashMap<String, ViewNode> tempHashMap = new HashMap<>();
+            HashMap<String, ViewNode> tempWebViewHashMap = new HashMap<>();
             // 主动遍历
             if (rootView != null) {
-                traverseNode(rootView, tempSparseArray, tempHashMap);
+                traverseNode(rootView, tempSparseArray, tempHashMap, tempWebViewHashMap);
             } else {
                 // 被动缓存
                 final View[] views = WindowHelper.getSortedWindowViews();
                 for (View view : views) {
-                    traverseNode(view, tempSparseArray, tempHashMap);
+                    traverseNode(view, tempSparseArray, tempHashMap, tempWebViewHashMap);
                 }
             }
             mViewNodesHashMap.clear();
             mViewNodesWithHashCode.clear();
+            mWebViewHashMap.clear();
             mViewNodesHashMap = tempHashMap;
             mViewNodesWithHashCode = tempSparseArray;
+            mWebViewHashMap = tempWebViewHashMap;
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
+    }
+
+    public List<View> getCurrentWebView() {
+        try {
+            if (mWebViewHashMap.size() == 0) {
+                traverseNode();
+            }
+            if (mWebViewHashMap.size() > 0) {
+                List<View> list = new ArrayList<>();
+                for (ViewNode viewNode : mWebViewHashMap.values()) {
+                    WeakReference<View> reference = viewNode.getView();
+                    if (reference != null && reference.get() != null) {
+                        list.add(reference.get());
+                    }
+                }
+                return list;
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return null;
     }
 
     private String generateKey(String elementPath, String elementPosition, String screenName) {
@@ -179,19 +246,23 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
         return key.toString();
     }
 
-    private void traverseNode(final View view, final SparseArray<ViewNode> sparseArray, final HashMap<String, ViewNode> hashMap) {
+    private void traverseNode(final View view, final SparseArray<ViewNode> sparseArray, final HashMap<String, ViewNode> hashMap, final HashMap<String, ViewNode> webViewHashMap) {
         try {
             ViewNode viewNode = ViewUtil.getViewPathAndPosition(view, true);
             if (viewNode != null) {
                 // 缓存 ViewNode,用于获取 $element_path
                 sparseArray.put(view.hashCode(), viewNode);
-                if (!TextUtils.isEmpty(viewNode.getViewContent()) && !TextUtils.isEmpty(viewNode.getViewPath())) {
-                    // 缓存 ViewNode,用于自定义属性查找目标属性控件
+                if (!TextUtils.isEmpty(viewNode.getViewPath())) {
                     JSONObject jsonObject = VisualUtil.getScreenNameAndTitle(view, null);
                     if (jsonObject != null) {
                         String screenName = jsonObject.optString(AopConstants.SCREEN_NAME);
                         if (!TextUtils.isEmpty(screenName)) {
-                            hashMap.put(generateKey(viewNode.getViewPath(), viewNode.getViewPosition(), screenName), viewNode);
+                            if (!TextUtils.isEmpty(viewNode.getViewContent())) {
+                                hashMap.put(generateKey(viewNode.getViewPath(), viewNode.getViewPosition(), screenName), viewNode);
+                            }
+                            if (ViewUtil.instanceOfWebView(view)) {
+                                webViewHashMap.put(viewNode.getViewPath() + screenName, viewNode);
+                            }
                         }
                     }
                 }
@@ -202,7 +273,7 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
                 for (int i = 0; i < childCount; i++) {
                     final View child = group.getChildAt(i);
                     if (child != null) {
-                        traverseNode(child, sparseArray, hashMap);
+                        traverseNode(child, sparseArray, hashMap, webViewHashMap);
                     }
                 }
             }

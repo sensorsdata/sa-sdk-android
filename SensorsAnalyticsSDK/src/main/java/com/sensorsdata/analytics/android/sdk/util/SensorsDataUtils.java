@@ -74,6 +74,9 @@ public final class SensorsDataUtils {
 
     private static final Set<String> mPermissionGrantedSet = new HashSet<>();
     private static final Map<String, String> deviceUniqueIdentifiersMap = new HashMap<>();
+
+    private static boolean isUniApp = false;
+
     private static final Map<String, String> sCarrierMap = new HashMap<String, String>() {
         {
             //中国移动
@@ -807,5 +810,18 @@ public final class SensorsDataUtils {
      */
     public static void handleSchemeUrl(Activity activity, Intent intent) {
         SASchemeHelper.handleSchemeUrl(activity, intent);
+    }
+
+    public static void initUniAppStatus(){
+        try {
+          Class.forName("io.dcloud.application.DCloudApplication");
+          isUniApp = true;
+        } catch (ClassNotFoundException e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
+    public static boolean isUniApp(){
+        return isUniApp;
     }
 }

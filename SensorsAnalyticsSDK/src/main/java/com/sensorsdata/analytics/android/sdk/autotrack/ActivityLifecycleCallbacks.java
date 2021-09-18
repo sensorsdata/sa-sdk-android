@@ -17,8 +17,6 @@
 
 package com.sensorsdata.analytics.android.sdk.autotrack;
 
-import static com.sensorsdata.analytics.android.sdk.deeplink.DeepLinkManager.IS_ANALYTICS_DEEPLINK;
-
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -530,13 +528,15 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
      */
     private boolean isDeepLinkParseSuccess(Activity activity) {
         try {
-            Intent intent = activity.getIntent();
-            if (intent != null && intent.getData() != null) {
-                //判断 deepLink 信息是否已处理过
-                if (!intent.getBooleanExtra(IS_ANALYTICS_DEEPLINK, false)) {
-                    if (DeepLinkManager.parseDeepLink(activity, mSensorsDataInstance.getConfigOptions().isSaveDeepLinkInfo(), mSensorsDataInstance.getDeepLinkCallback())) {
-                        intent.putExtra(IS_ANALYTICS_DEEPLINK, true);
-                        return true;
+            if(!SensorsDataUtils.isUniApp() || !ChannelUtils.isDeepLinkBlackList(activity)) {
+                Intent intent = activity.getIntent();
+                if (intent != null && intent.getData() != null) {
+                    //判断 deepLink 信息是否已处理过
+                    if (!intent.getBooleanExtra(DeepLinkManager.IS_ANALYTICS_DEEPLINK, false)) {
+                        if (DeepLinkManager.parseDeepLink(activity, mSensorsDataInstance.getConfigOptions().isSaveDeepLinkInfo(), mSensorsDataInstance.getDeepLinkCallback())) {
+                            intent.putExtra(DeepLinkManager.IS_ANALYTICS_DEEPLINK, true);
+                            return true;
+                        }
                     }
                 }
             }

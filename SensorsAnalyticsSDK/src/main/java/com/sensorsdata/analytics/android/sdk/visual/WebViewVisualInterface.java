@@ -26,7 +26,6 @@ public class WebViewVisualInterface {
     @JavascriptInterface
     public void sensorsdata_hover_web_nodes(final String msg) {
         try {
-            SALog.i(TAG, "sensorsdata_hover_web_nodes msg: " + msg);
             WebNodesManager.getInstance().handlerMessage(msg);
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -42,7 +41,6 @@ public class WebViewVisualInterface {
     public boolean sensorsdata_visualized_mode() {
         return VisualizedAutoTrackService.getInstance().isServiceRunning() || HeatMapService.getInstance().isServiceRunning();
     }
-
 
     @JavascriptInterface
     public void sensorsdata_visualized_alert_info(final String msg) {
@@ -64,5 +62,4 @@ public class WebViewVisualInterface {
             SALog.printStackTrace(e);
         }
     }
-
 }

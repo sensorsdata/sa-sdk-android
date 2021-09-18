@@ -19,10 +19,12 @@ package com.sensorsdata.analytics.android.sdk;
 
 import android.content.Context;
 import android.text.TextUtils;
+import android.util.Base64;
 import android.view.View;
 import android.webkit.JavascriptInterface;
 
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
+import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -35,7 +37,6 @@ import java.lang.ref.WeakReference;
     private JSONObject properties;
     private boolean enableVerify;
     private WeakReference<View> mWebView;
-
 
     AppWebViewInterface(Context c, JSONObject p, boolean b) {
         this(c, p, b, null);
@@ -138,7 +139,7 @@ import java.lang.ref.WeakReference;
     public void sensorsdata_js_call_app(final String content) {
         try {
             if (mWebView != null) {
-                SensorsDataAPI.sharedInstance().handleJsMessage(mWebView,content);
+                SensorsDataAPI.sharedInstance().handleJsMessage(mWebView, content);
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -160,5 +161,30 @@ import java.lang.ref.WeakReference;
             SALog.printStackTrace(e);
         }
         return false;
+    }
+
+    /**
+     * JS 从 App 侧获取结果的统一入口
+     * 该接口的设计上和 'sensorsdata_js_call_app' 接口有所重复，'sensorsdata_js_call_app' 接口设计存在缺陷，没法有返回值。
+     * 本次新增该接口适用于有返回值场景
+     *
+     * @return 同步返回给 JS 侧结果
+     */
+    @JavascriptInterface
+    public String sensorsdata_get_app_visual_config() {
+        try {
+            // 可视化的开关未打开，此时 App 内嵌 H5 场景无需支持采集自定义属性；
+            if (!SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled()) {
+                return null;
+            }
+            VisualPropertiesManager.getInstance().getVisualPropertiesH5Helper().registerListeners();
+            String visualCache = VisualPropertiesManager.getInstance().getVisualPropertiesCache().getVisualCache();
+            if (!TextUtils.isEmpty(visualCache)) {
+                return Base64.encodeToString(visualCache.getBytes(), Base64.DEFAULT);
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return null;
     }
 }

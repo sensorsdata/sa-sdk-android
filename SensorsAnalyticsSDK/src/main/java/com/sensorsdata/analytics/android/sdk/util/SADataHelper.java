@@ -26,6 +26,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -34,6 +35,7 @@ import java.util.regex.Pattern;
 public class SADataHelper {
 
     private static final String TAG = "SA.SADataHelper";
+    private static final String[] WHITE_LIST = {"sensorsdata_app_visual_properties"};
 
     private static final Pattern KEY_PATTERN = Pattern.compile(
             "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
@@ -99,7 +101,7 @@ public class SADataHelper {
                                 + "', value='" + value.toString() + "']");
                     }
                 } else {
-                    if (value instanceof String && ((String) value).length() > 8191) {
+                    if (!Arrays.asList(WHITE_LIST).contains(key) && value instanceof String && ((String) value).length() > 8191) {
                         properties.put(key, ((String) value).substring(0, 8191) + "$");
                         SALog.d(TAG, "The property value is too long. [key='" + key
                                 + "', value='" + value.toString() + "']");

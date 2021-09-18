@@ -52,6 +52,7 @@ import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Date;
@@ -61,7 +62,9 @@ import java.util.Locale;
 
 public class AopUtil {
 
-    private static LruCache<String, Object> sLruCache;
+    private static final String TAG = "AopUtil";
+    @SuppressLint("NewApi")
+    private static LruCache<String, WeakReference<Object>> sLruCache = new LruCache<>(10);
 
     // 采集 viewType 忽略以下包内 view 直接返回对应的基础控件 viewType
     private static ArrayList<String> sOSViewPackage = new ArrayList<String>() {{
@@ -110,8 +113,8 @@ public class AopUtil {
                 }
             }
             return stringBuilder.toString();
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+        } catch (Throwable e) {
+            SALog.d(TAG, e.getMessage());
             return stringBuilder != null ? stringBuilder.toString() : "";
         }
     }
@@ -737,15 +740,18 @@ public class AopUtil {
                     }
                 }
                 if (!TextUtils.isEmpty(fragmentName)) {
-                    if (sLruCache == null) {
-                        sLruCache = new LruCache<>(10);
+                    WeakReference<Object> weakReference = sLruCache.get(fragmentName);
+                    Object object;
+                    if (weakReference != null) {
+                        object = weakReference.get();
+                        if(object != null) {
+                            return object;
+                        }
                     }
-                    Object object = sLruCache.get(fragmentName);
-                    if (object != null) {
-                        return object;
-                    }
+
                     object = Class.forName(fragmentName).newInstance();
-                    sLruCache.put(fragmentName, object);
+                    sLruCache.put(fragmentName, new WeakReference<>(object));
+
                     return object;
                 }
             }

@@ -19,6 +19,7 @@ package com.sensorsdata.analytics.android.sdk;
 
 public class AopConstants {
     public static final String APP_CLICK_EVENT_NAME = "$AppClick";
+    public static final String WEB_CLICK_EVENT_NAME = "$WebClick";
     public static final String ELEMENT_ID = "$element_id";
     public static final String ELEMENT_TYPE = "$element_type";
     public static final String ELEMENT_CONTENT = "$element_content";
