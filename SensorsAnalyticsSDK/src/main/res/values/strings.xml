@@ -10,4 +10,5 @@
     <item name="sensors_analytics_tag_view_webview" type="id" />
     <item name="sensors_analytics_tag_view_webview_visual" type="id" />
     <item name="sensors_analytics_tag_view_tree_observer_listeners" type="id" />
+    <item name="sensors_analytics_tag_view_rn_key" type="id"/>
 </resources>

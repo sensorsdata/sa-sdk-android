@@ -26,12 +26,12 @@ public class PersistentFirstTrackInstallation extends PersistentIdentity<Boolean
         super(loadStoredPreferences, PersistentLoader.PersistentName.FIRST_INSTALL, new PersistentSerializer<Boolean>() {
             @Override
             public Boolean load(String value) {
-                return false;
+                return Boolean.valueOf(value);
             }
 
             @Override
             public String save(Boolean item) {
-                return item == null ? create().toString() : String.valueOf(true);
+                return item == null ? create().toString() : String.valueOf(item);
             }
 
             @Override

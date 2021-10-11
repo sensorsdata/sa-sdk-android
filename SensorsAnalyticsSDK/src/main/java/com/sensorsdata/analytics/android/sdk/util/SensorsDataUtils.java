@@ -817,7 +817,7 @@ public final class SensorsDataUtils {
           Class.forName("io.dcloud.application.DCloudApplication");
           isUniApp = true;
         } catch (ClassNotFoundException e) {
-            SALog.printStackTrace(e);
+            // ignore
         }
     }
 

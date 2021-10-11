@@ -17,6 +17,8 @@
 
 package com.sensorsdata.analytics.android.sdk.dialog;
 
+import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -29,6 +31,8 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.widget.Toast;
 
@@ -37,12 +41,12 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackHelper;
 import com.sensorsdata.analytics.android.sdk.ThreadNameConstants;
+import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
+import com.sensorsdata.analytics.android.sdk.advert.utils.OaidHelper;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
 import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
-import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
-import com.sensorsdata.analytics.android.sdk.advert.utils.OaidHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.visual.HeatMapService;
 import com.sensorsdata.analytics.android.sdk.visual.VisualizedAutoTrackService;
@@ -61,15 +65,13 @@ import java.util.Locale;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
-
 public class SensorsDataDialogUtils {
     private static final String TAG = "SA.SensorsDataDialogUtils";
     private static Dialog sDialog;
 
     public static void showDialog(Activity activity, String title, String content,
-                                         final String positiveLabel, final DialogInterface.OnClickListener positiveOnClickListener,
-                                         final String negativeLabel, final DialogInterface.OnClickListener negativeOnClickListener) {
+                                  final String positiveLabel, final DialogInterface.OnClickListener positiveOnClickListener,
+                                  final String negativeLabel, final DialogInterface.OnClickListener negativeOnClickListener) {
         AlertDialog.Builder builder = new AlertDialog.Builder(activity);
 
         if (!TextUtils.isEmpty(title)) {
@@ -168,7 +170,7 @@ public class SensorsDataDialogUtils {
                 }, null, null);
     }
 
-    public static void showPopupWindowDialog(Activity activity, Uri uri) {
+    public static void showPopupWindowDialog(final Activity activity, Uri uri) {
         try {
             Class<?> clazz = Class.forName("com.sensorsdata.sf.ui.utils.PreviewUtil");
             String sfPopupTest = uri.getQueryParameter("sf_popup_test");
@@ -177,9 +179,40 @@ public class SensorsDataDialogUtils {
             if (!TextUtils.isEmpty(sfPopupTest)) {
                 isSfPopupTest = Boolean.parseBoolean(sfPopupTest);
             }
-            Method method = clazz.getDeclaredMethod("showPreview", Context.class, boolean.class, String.class);
-            method.invoke(null, activity, isSfPopupTest, popupWindowId);
-            SchemeActivity.isPopWindow = true;
+            Method[] methods = clazz.getDeclaredMethods();
+            Method currentMethod = null;
+            Runnable failCallback = null;
+            for (Method method : methods) {
+                if (method.getName().equals("showPreview")) {
+                    currentMethod = method;
+                    if (method.getParameterTypes().length == 4) {
+                        failCallback = new Runnable() {
+                            @Override
+                            public void run() {
+                                if (activity == null) return;
+                                activity.runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        showDialog(activity, "测试弹窗加载失败，请确认网络或项目环境是否正常！");
+                                    }
+                                });
+                            }
+                        };
+                        break;
+                    }
+                }
+            }
+            if (currentMethod != null) {
+                if (failCallback != null) {
+                    currentMethod.invoke(null, activity, isSfPopupTest, popupWindowId, failCallback);
+                } else {
+                    currentMethod.invoke(null, activity, isSfPopupTest, popupWindowId);
+                }
+                SchemeActivity.isPopWindow = true;
+            } else {
+                //没有找到弹窗方法的时候，打开应用
+                startLaunchActivity(activity);
+            }
         } catch (Exception e) {
             SALog.printStackTrace(e);
             //异常可能是没有集成 SF SDK，此时需要打开应用

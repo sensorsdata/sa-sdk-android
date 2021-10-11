@@ -18,6 +18,7 @@
 package com.sensorsdata.analytics.android.sdk.advert.utils;
 
 import android.content.Context;
+import android.content.res.AssetManager;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
@@ -29,6 +30,8 @@ import java.io.InputStreamReader;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 public class OaidHelper {
@@ -40,7 +43,22 @@ public class OaidHelper {
     private static Class<?> mIdSupplier;
     private static Class<?> jLibrary;
     private static Class<?> mMidSDKHelper;
-    public static String oaidCertPath;
+    /**
+     * 自定义 oaid 证书文件在 assets 中的路径
+     */
+    private static String mOidCertFilePath;
+    private static final List<String> mBlackOAIDs = new LinkedList<String>() {
+        {
+            add("00000000-0000-0000-0000-000000000000");
+            add("00000000000000000000000000000000");
+        }
+    };
+    private static final List<String> mLoadLibrary = new LinkedList<String>() {
+        {
+            add("nllvm1630571663641560568");    // v1.0.27
+            add("nllvm1623827671");             // v1.0.26
+        }
+    };
 
     static {
         initSDKLibrary();
@@ -55,7 +73,7 @@ public class OaidHelper {
     public static String getOAID(final Context context) {
         String romOAID = getRomOAID(context);
         SALog.i(TAG, "romOAID is " + romOAID);
-        if ("00000000-0000-0000-0000-000000000000".equals(romOAID)) {
+        if (mBlackOAIDs.contains(romOAID)) {
             romOAID = "";
         }
         return romOAID;
@@ -207,10 +225,13 @@ public class OaidHelper {
     }
 
     private static void initSDKLibrary() {
-        try {
-            System.loadLibrary("nllvm1623827671");  // 加载 SDK 安全库
-        } catch (Throwable throwable) {
-            // ignore
+        for (String library : mLoadLibrary) {
+            try {
+                System.loadLibrary(library);  // 加载 SDK 安全库
+                break;
+            } catch (Throwable throwable) {
+                // ignore
+            }
         }
     }
 
@@ -221,10 +242,10 @@ public class OaidHelper {
      */
     private static void initPemCert(Context context) {
         try {
-            oaidCertPath = loadPemFromAssetFile(context);
-            if (!TextUtils.isEmpty(oaidCertPath)) {
+            String oaidCert = loadPemFromAssetFile(context);
+            if (!TextUtils.isEmpty(oaidCert)) {
                 Method initCert = mMidSDKHelper.getDeclaredMethod("InitCert", Context.class, String.class);
-                initCert.invoke(null, context, oaidCertPath);
+                initCert.invoke(null, context, oaidCert);
             }
         } catch (Throwable e) {
             SALog.d(TAG, e.getMessage());
@@ -239,8 +260,18 @@ public class OaidHelper {
      */
     private static String loadPemFromAssetFile(Context context) {
         try {
-            String pemCert = context.getPackageName() + ".cert.pem";
-            InputStream is = context.getAssets().open(pemCert);
+            String defaultPemCert = context.getPackageName() + ".cert.pem";
+            InputStream is;
+            AssetManager assetManager = context.getAssets();
+            if (!TextUtils.isEmpty(mOidCertFilePath)) {
+                try {
+                    is = assetManager.open(mOidCertFilePath);
+                } catch (IOException e) {
+                    is = assetManager.open(defaultPemCert);
+                }
+            } else {
+                is = assetManager.open(defaultPemCert);
+            }
             BufferedReader in = new BufferedReader(new InputStreamReader(is));
             StringBuilder builder = new StringBuilder();
             String line;
@@ -253,5 +284,14 @@ public class OaidHelper {
             SALog.d(TAG, "loadPemFromAssetFile failed");
             return "";
         }
+    }
+
+    /**
+     * 定义 oaid 证书在 assets 中的文件相对路径
+     *
+     * @param filePath oaid 证书在 assets 中的相对路径，eg："file/test.cert.pom"
+     */
+    public static void setOaidCertFilePath(String filePath) {
+        mOidCertFilePath = filePath;
     }
 }

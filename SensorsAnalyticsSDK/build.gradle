@@ -3,7 +3,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'signing'
 apply plugin: 'maven-publish'
 
-version = "5.4.5"
+version = "5.4.6"
 def min_plugin_version = "3.4.0"
 
 android {
@@ -83,6 +83,19 @@ dependencies {
     testImplementation 'org.powermock:powermock-module-testng:2.0.2'
     testImplementation 'org.powermock:powermock-core:2.0.2'
 
+}
+
+afterEvaluate {
+    assembleRelease {
+        doLast {
+            copy {
+                def rootPath = getProjectDir().getAbsolutePath()
+                from(rootPath + '/build/outputs/aar/')
+                into(rootPath + '/build/outputs/aar/')
+                rename('SensorsAnalyticsSDK-release.aar', 'SensorsAnalyticsSDK-' + version + '.aar')
+            }
+        }
+    }
 }
 
 task sourceJar(type: Jar) {
