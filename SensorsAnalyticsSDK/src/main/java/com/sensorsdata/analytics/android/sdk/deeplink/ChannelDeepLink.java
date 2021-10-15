@@ -48,6 +48,10 @@ class ChannelDeepLink extends AbsDeepLink {
             return;
         }
         Uri uri = intent.getData();
+        if (uri.isOpaque()) {
+            SALog.d("ChannelDeepLink", uri.toString() + " isOpaque");
+            return;
+        }
         Set<String> parameterNames = uri.getQueryParameterNames();
         if (parameterNames != null && parameterNames.size() > 0) {
             Map<String, String> uriParams = new HashMap<>();

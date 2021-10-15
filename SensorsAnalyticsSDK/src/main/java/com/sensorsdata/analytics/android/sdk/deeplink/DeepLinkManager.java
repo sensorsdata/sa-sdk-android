@@ -70,6 +70,10 @@ public class DeepLinkManager {
             return false;
         }
         Uri uri = intent.getData();
+        if (uri.isOpaque()) {
+            SALog.d("ChannelDeepLink", uri.toString() + " isOpaque");
+            return false;
+        }
         Set<String> parameterNames = uri.getQueryParameterNames();
         if (parameterNames != null && parameterNames.size() > 0) {
             return ChannelUtils.hasLinkUtmProperties(parameterNames);
@@ -115,7 +119,7 @@ public class DeepLinkManager {
 
     private static void trackDeepLinkLaunchEvent(final Context context, DeepLinkProcessor deepLink) {
         final JSONObject properties = new JSONObject();
-        final SensorsDataAPI sensorsDataAPI = ((SensorsDataAPI)SensorsDataAPI.sharedInstance());
+        final SensorsDataAPI sensorsDataAPI = ((SensorsDataAPI) SensorsDataAPI.sharedInstance());
         final boolean isDeepLinkInstallSource = deepLink instanceof SensorsDataDeepLink && sensorsDataAPI.isDeepLinkInstallSource();
         try {
             properties.put("$deeplink_url", deepLink.getDeepLinkUrl());

@@ -56,11 +56,17 @@
         <activity android:name=".activity.InnerListTestActivity" />
         <activity android:name=".activity.ActionBarAndToolBarTestActivity" />
         <activity android:name=".activity.H5VisualTestActivity" />
+        <activity android:name=".activity.VPParentFrgActivity" />
+        <activity android:name=".activity.TabParentFrgActivity" />
+        <activity android:name=".activity.TabAppParentFrgActivity" />
+        <activity android:name=".activity.VPAppParentFrgActivity" />
+        <activity android:name=".activity.TabParentFrgActivity1" />
         <activity
             android:name=".activity.LambdaTestPageActivity"
             android:theme="@style/AppThemeNoBar" />
 
-        <activity android:name="com.sensorsdata.analytics.android.sdk.dialog.SchemeActivity"
+        <activity
+            android:name="com.sensorsdata.analytics.android.sdk.dialog.SchemeActivity"
             android:configChanges="orientation|screenSize"
             android:launchMode="singleTask">
             <intent-filter>

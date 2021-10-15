@@ -39,10 +39,10 @@ import java.util.List;
  */
 public class VPVPFrgActivity extends BaseActivity {
 
-    private static FragmentPagerAdapter pagerAdapter = null;
+    private FragmentPagerAdapter pagerAdapter = null;
     private List<Fragment> listPagerViews = null;
 
-    public static FragmentPagerAdapter getFragmentPagerAdapter() {
+    public FragmentPagerAdapter getFragmentPagerAdapter() {
         return pagerAdapter;
     }
 

@@ -36,14 +36,14 @@ import java.util.List;
 public class Frg_2 extends BaseAndroidXFragment {
 
     private static final String TAG = "SA.Sensors.ViewPger222";
-    private static FragmentPagerAdapter pagerAdapter = null;
+    private FragmentPagerAdapter pagerAdapter = null;
     private View view = null;
     private List<Fragment> listPagerViews = null;
 
     public Frg_2() {
     }
 
-    public static FragmentPagerAdapter getFragmentPagerAdapter() {
+    public FragmentPagerAdapter getFragmentPagerAdapter() {
         return pagerAdapter;
     }
 

@@ -45,6 +45,14 @@ public class FragmentActivity extends BaseActivity implements View.OnClickListen
         findViewById(R.id.tv_viewpager_view).setOnClickListener(this);
         findViewById(R.id.tv_multi_fragments).setOnClickListener(this);
         findViewById(R.id.tv_multi_hori_fragments).setOnClickListener(this);
+        //parent fragment
+        findViewById(R.id.tv_parent_fragments_viewpager).setOnClickListener(this);
+        findViewById(R.id.tv_parent_fragments_tab).setOnClickListener(this);
+        findViewById(R.id.tv_parent_fragments_tab1).setOnClickListener(this);
+        //app parent fragment
+        findViewById(R.id.tv_parent_app_fragments_viewpager).setOnClickListener(this);
+        findViewById(R.id.tv_parent_app_fragments_tab).setOnClickListener(this);
+
     }
 
     @Override
@@ -77,9 +85,44 @@ public class FragmentActivity extends BaseActivity implements View.OnClickListen
             case R.id.tv_multi_hori_fragments:
                 openMultiHorizFragments();
                 break;
+            case R.id.tv_parent_fragments_viewpager:
+                openVPParentFragment();
+                break;
+            case R.id.tv_parent_fragments_tab:
+                openTabParentFragment();
+                break;
+            case R.id.tv_parent_app_fragments_tab:
+                openAppTabParentFragment();
+                break;
+            case R.id.tv_parent_app_fragments_viewpager:
+                openAppVPParentFragment();
+                break;
+            case R.id.tv_parent_fragments_tab1:
+                openAppTabParentFragment1();
+                break;
             default:
                 break;
         }
+    }
+
+    private void openAppTabParentFragment1() {
+        startActivity(new Intent(this, TabParentFrgActivity1.class));
+    }
+
+    private void openAppVPParentFragment() {
+        startActivity(new Intent(this, VPAppParentFrgActivity.class));
+    }
+
+    private void openAppTabParentFragment() {
+        startActivity(new Intent(this, TabAppParentFrgActivity.class));
+    }
+
+    private void openTabParentFragment() {
+        startActivity(new Intent(this, TabParentFrgActivity.class));
+    }
+
+    private void openVPParentFragment() {
+        startActivity(new Intent(this, VPParentFrgActivity.class));
     }
 
     /**
