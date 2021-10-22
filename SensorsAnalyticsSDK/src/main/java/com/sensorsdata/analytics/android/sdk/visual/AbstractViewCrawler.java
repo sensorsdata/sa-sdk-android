@@ -17,6 +17,8 @@
 
 package com.sensorsdata.analytics.android.sdk.visual;
 
+import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
+
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
@@ -33,7 +35,6 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.AppStateManager;
-import com.sensorsdata.analytics.android.sdk.BuildConfig;
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
@@ -65,8 +66,6 @@ import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
 import javax.net.ssl.HttpsURLConnection;
-
-import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
 
 @TargetApi(14)
 public abstract class AbstractViewCrawler implements VTrack {
@@ -200,7 +199,7 @@ public abstract class AbstractViewCrawler implements VTrack {
         private boolean mUseGzip;
         private StringBuilder mLastImageHash;
         private String mAppId;
-
+        private final String mSDKVersion;
         private ViewCrawlerHandler(Context context, Looper looper, String resourcePackageName) {
             super(looper);
             mSnapshot = null;
@@ -209,6 +208,7 @@ public abstract class AbstractViewCrawler implements VTrack {
             mLastImageHash = new StringBuilder();
             mUseGzip = true;
             mAppId = AppInfoUtils.getProcessName(context);
+            mSDKVersion = SensorsDataAPI.sharedInstance().getSDKVersion();
         }
 
         public void start() {
@@ -258,10 +258,11 @@ public abstract class AbstractViewCrawler implements VTrack {
                 writer.write("\"type\": \"snapshot_response\",");
                 writer.write("\"feature_code\": \"" + mFeatureCode + "\",");
                 writer.write("\"app_version\": \"" + mAppVersion + "\",");
-                writer.write("\"lib_version\": \"" + BuildConfig.SDK_VERSION + "\",");
+                writer.write("\"lib_version\": \"" + mSDKVersion + "\",");
                 writer.write("\"os\": \"Android\",");
                 writer.write("\"lib\": \"Android\",");
                 writer.write("\"app_id\": \"" + mAppId + "\",");
+                writer.write("\"app_enablevisualizedproperties\": " + SensorsDataAPI.getConfigOptions().isVisualizedPropertiesEnabled() + ",");
                 // 需要把全埋点的开关状态，透传给前端，前端进行错误提示
                 try {
                     JSONArray array = new JSONArray();
@@ -500,7 +501,9 @@ public abstract class AbstractViewCrawler implements VTrack {
                     boolean visualizedConfigDisabled = responseJson.optBoolean("visualized_config_disabled");
                     // 自定义属性配置被禁用时，需要覆盖本地缓存
                     if (!TextUtils.isEmpty(visualizedConfig) || visualizedConfigDisabled) {
-                        VisualPropertiesManager.getInstance().save2Cache(visualizedConfig);
+                        if (SensorsDataAPI.getConfigOptions().isVisualizedPropertiesEnabled()) {
+                            VisualPropertiesManager.getInstance().save2Cache(visualizedConfig);
+                        }
                     }
                     // 是否处于 debug = 1 状态
                     VisualizedAutoTrackService.getInstance().setDebugModeEnabled(responseJson.optBoolean("visualized_debug_mode_enabled"));

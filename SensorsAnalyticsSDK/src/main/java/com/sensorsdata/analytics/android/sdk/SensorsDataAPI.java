@@ -118,51 +118,6 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     }
 
     /**
-     * 初始化并获取 SensorsDataAPI 单例
-     *
-     * @param context App 的 Context
-     * @param serverURL 用于收集事件的服务地址
-     * @param debugMode Debug 模式,
-     * {@link com.sensorsdata.analytics.android.sdk.SensorsDataAPI.DebugMode}
-     * @return SensorsDataAPI 单例
-     */
-    @Deprecated
-    public static SensorsDataAPI sharedInstance(Context context, String serverURL, DebugMode debugMode) {
-        return getInstance(context, debugMode, new SAConfigOptions(serverURL));
-    }
-
-    /**
-     * 初始化并获取 SensorsDataAPI 单例
-     *
-     * @param context App 的 Context
-     * @param serverURL 用于收集事件的服务地址
-     * @return SensorsDataAPI 单例
-     */
-    @Deprecated
-    public static SensorsDataAPI sharedInstance(Context context, String serverURL) {
-        return getInstance(context, DebugMode.DEBUG_OFF, new SAConfigOptions(serverURL));
-    }
-
-    /**
-     * 初始化并获取 SensorsDataAPI 单例
-     *
-     * @param context App 的 Context
-     * @param saConfigOptions SDK 的配置项
-     * @return SensorsDataAPI 单例
-     */
-    @Deprecated
-    public static SensorsDataAPI sharedInstance(Context context, SAConfigOptions saConfigOptions) {
-        if (context == null || saConfigOptions == null) {
-            throw new NullPointerException("Context、SAConfigOptions 不可以为 null");
-        }
-        SensorsDataAPI sensorsDataAPI = getInstance(context, DebugMode.DEBUG_OFF, saConfigOptions);
-        if (!sensorsDataAPI.mSDKConfigInit) {
-            sensorsDataAPI.applySAConfigOptions();
-        }
-        return sensorsDataAPI;
-    }
-
-    /**
      * 初始化神策 SDK
      *
      * @param context App 的 Context
@@ -190,6 +145,9 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             if (null == instance) {
                 instance = new SensorsDataAPI(appContext, saConfigOptions, debugMode);
                 sInstanceMap.put(appContext, instance);
+                if (context instanceof Activity) {
+                    instance.delayExecution((Activity) context);
+                }
             }
             return instance;
         }
@@ -287,7 +245,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                     isChangeEnableNetworkFlag = false;
                 }
                 //重新请求可视化全埋点
-                if (sensorsDataAPI.isVisualizedAutoTrackEnabled()) {
+                if (SensorsDataAPI.getConfigOptions().isVisualizedPropertiesEnabled()) {
                     VisualPropertiesManager.getInstance().requestVisualConfig();
                 }
                 //重新请求采集控制
@@ -514,16 +472,6 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     }
 
-    @Deprecated
-    @Override
-    public void enableAutoTrack() {
-        List<AutoTrackEventType> eventTypeList = new ArrayList<>();
-        eventTypeList.add(AutoTrackEventType.APP_START);
-        eventTypeList.add(AutoTrackEventType.APP_END);
-        eventTypeList.add(AutoTrackEventType.APP_VIEW_SCREEN);
-        enableAutoTrack(eventTypeList);
-    }
-
     @Override
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
         try {
@@ -541,17 +489,53 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public void disableAutoTrack(List<AutoTrackEventType> eventTypeList) {
-        ignoreAutoTrackEventType(eventTypeList);
+        try {
+            if (eventTypeList == null) {
+                return;
+            }
+
+            if (mSAConfigOptions.mAutoTrackEventType == 0) {
+                return;
+            }
+
+            for (AutoTrackEventType autoTrackEventType : eventTypeList) {
+                if ((mSAConfigOptions.mAutoTrackEventType | autoTrackEventType.eventValue) == mSAConfigOptions.mAutoTrackEventType) {
+                    mSAConfigOptions.setAutoTrackEventType(mSAConfigOptions.mAutoTrackEventType ^ autoTrackEventType.eventValue);
+                }
+            }
+
+            if (mSAConfigOptions.mAutoTrackEventType == 0) {
+                this.mAutoTrack = false;
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override
     public void disableAutoTrack(AutoTrackEventType autoTrackEventType) {
-        ignoreAutoTrackEventType(autoTrackEventType);
-    }
+        try {
+            if (autoTrackEventType == null) {
+                return;
+            }
 
-    @Override
-    public void trackAppCrash() {
-        SensorsDataExceptionHandler.enableAppCrash();
+            if (mSAConfigOptions.mAutoTrackEventType == 0) {
+                return;
+            }
+
+            int union = mSAConfigOptions.mAutoTrackEventType | autoTrackEventType.eventValue;
+            if (union == autoTrackEventType.eventValue) {
+                mSAConfigOptions.setAutoTrackEventType(0);
+            } else {
+                mSAConfigOptions.setAutoTrackEventType(autoTrackEventType.eventValue ^ union);
+            }
+
+            if (mSAConfigOptions.mAutoTrackEventType == 0) {
+                this.mAutoTrack = false;
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override
@@ -577,16 +561,6 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Override
     public boolean isTrackFragmentAppViewScreenEnabled() {
         return mFragmentAPI.isTrackFragmentAppViewScreenEnabled();
-    }
-
-    @Override
-    public void enableReactNativeAutoTrack() {
-        mSAConfigOptions.enableReactNativeAutoTrack(true);
-    }
-
-    @Override
-    public boolean isReactNativeAutoTrackEnabled() {
-        return mSAConfigOptions.mRNAutoTrackEnabled;
     }
 
     @Override
@@ -825,51 +799,6 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     }
 
-    @Deprecated
-    @Override
-    public void ignoreAutoTrackEventType(AutoTrackEventType autoTrackEventType) {
-        if (autoTrackEventType == null) {
-            return;
-        }
-
-        if (mSAConfigOptions.mAutoTrackEventType == 0) {
-            return;
-        }
-
-        int union = mSAConfigOptions.mAutoTrackEventType | autoTrackEventType.eventValue;
-        if (union == autoTrackEventType.eventValue) {
-            mSAConfigOptions.setAutoTrackEventType(0);
-        } else {
-            mSAConfigOptions.setAutoTrackEventType(autoTrackEventType.eventValue ^ union);
-        }
-
-        if (mSAConfigOptions.mAutoTrackEventType == 0) {
-            this.mAutoTrack = false;
-        }
-    }
-
-    @Deprecated
-    @Override
-    public void ignoreAutoTrackEventType(List<AutoTrackEventType> eventTypeList) {
-        if (eventTypeList == null) {
-            return;
-        }
-
-        if (mSAConfigOptions.mAutoTrackEventType == 0) {
-            return;
-        }
-
-        for (AutoTrackEventType autoTrackEventType : eventTypeList) {
-            if ((mSAConfigOptions.mAutoTrackEventType | autoTrackEventType.eventValue) == mSAConfigOptions.mAutoTrackEventType) {
-                mSAConfigOptions.setAutoTrackEventType(mSAConfigOptions.mAutoTrackEventType ^ autoTrackEventType.eventValue);
-            }
-        }
-
-        if (mSAConfigOptions.mAutoTrackEventType == 0) {
-            this.mAutoTrack = false;
-        }
-    }
-
     @Override
     public boolean isAutoTrackEventTypeIgnored(AutoTrackEventType eventType) {
         if (eventType == null) {
@@ -1089,18 +1018,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public boolean isVisualizedAutoTrackEnabled() {
-        return mSAConfigOptions.mVisualizedEnabled;
-    }
-
-    @Override
-    public void enableVisualizedAutoTrackConfirmDialog(boolean enable) {
-        mSAConfigOptions.enableVisualizedAutoTrackConfirmDialog(enable);
-    }
-
-    @Override
-    public void enableVisualizedAutoTrack() {
-        mSAConfigOptions.enableVisualizedAutoTrack(true);
-        VisualPropertiesManager.getInstance().requestVisualConfig();
+        return mSAConfigOptions.mVisualizedEnabled || mSAConfigOptions.mVisualizedPropertiesEnabled;
     }
 
     @Override
@@ -1157,16 +1075,6 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Override
     public boolean isHeatMapEnabled() {
         return mSAConfigOptions.mHeatMapEnabled;
-    }
-
-    @Override
-    public void enableAppHeatMapConfirmDialog(boolean enable) {
-        mSAConfigOptions.enableHeatMapConfirmDialog(enable);
-    }
-
-    @Override
-    public void enableHeatMap() {
-        mSAConfigOptions.enableHeatMap(true);
     }
 
     @Override
@@ -1410,50 +1318,6 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         }
     }
 
-    @Deprecated
-    @Override
-    public void trackSignUp(final String newDistinctId, final JSONObject properties) {
-        try {
-            mTrackTaskManager.addTrackEventTask(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        String originalDistinctId = getAnonymousId();
-                        synchronized (mDistinctId) {
-                            mDistinctId.commit(newDistinctId);
-                        }
-
-                        trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, originalDistinctId);
-                    } catch (Exception e) {
-                        SALog.printStackTrace(e);
-                    }
-                }
-            });
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-    }
-
-    @Deprecated
-    @Override
-    public void trackSignUp(final String newDistinctId) {
-        try {
-            mTrackTaskManager.addTrackEventTask(new Runnable() {
-                @Override
-                public void run() {
-                    String originalDistinctId = getAnonymousId();
-                    synchronized (mDistinctId) {
-                        mDistinctId.commit(newDistinctId);
-                    }
-
-                    trackEvent(EventType.TRACK_SIGNUP, "$SignUp", null, originalDistinctId);
-                }
-            });
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-    }
-
     @Override
     public void trackInstallation(final String eventName, final JSONObject properties, final boolean disableCallback) {
         try {
@@ -1526,11 +1390,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                             eventProperties.remove("$ios_install_disable_callback");
                             SensorsDataUtils.mergeJSONObject(eventProperties, profileProperties);
                             profileProperties.put("$first_visit_time", new java.util.Date());
-                            if (mSAConfigOptions.mEnableMultipleChannelMatch) {
-                                trackEvent(EventType.PROFILE_SET, null, profileProperties, null, distinctId, loginId, null);
-                            } else {
-                                trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null, distinctId, loginId, null);
-                            }
+                            trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null, distinctId, loginId, null);
 
                             if (disableCallback) {
                                 mFirstTrackInstallationWithCallback.commit(false);
@@ -1592,11 +1452,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                     JSONObject profileProperties = new JSONObject();
                     SensorsDataUtils.mergeJSONObject(_properties, profileProperties);
                     profileProperties.put("$first_visit_time", new java.util.Date());
-                    if (mSAConfigOptions.mEnableMultipleChannelMatch) {
-                        trackEvent(EventType.PROFILE_SET, null, profileProperties, null);
-                    } else {
-                        trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null);
-                    }
+                    trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null);
                     flush();
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
@@ -1680,12 +1536,6 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Deprecated
     @Override
-    public void trackTimer(final String eventName) {
-        trackTimer(eventName, TimeUnit.MILLISECONDS);
-    }
-
-    @Deprecated
-    @Override
     public void trackTimer(final String eventName, final TimeUnit timeUnit) {
         final long startTime = SystemClock.elapsedRealtime();
         mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -1724,8 +1574,8 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     public String trackTimerStart(String eventName) {
         try {
             final String eventNameRegex = String.format("%s_%s_%s", eventName, UUID.randomUUID().toString().replace("-", "_"), "SATimer");
-            trackTimerBegin(eventNameRegex, TimeUnit.SECONDS);
-            trackTimerBegin(eventName, TimeUnit.SECONDS);
+            trackTimer(eventNameRegex, TimeUnit.SECONDS);
+            trackTimer(eventName, TimeUnit.SECONDS);
             return eventNameRegex;
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
@@ -1741,24 +1591,6 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Override
     public void trackTimerResume(String eventName) {
         trackTimerState(eventName, false);
-    }
-
-    /**
-     * 初始化事件的计时器，默认计时单位为毫秒。
-     * 详细用法请参考 trackTimerBegin(String, TimeUnit)
-     *
-     * @param eventName 事件的名称
-     */
-    @Override
-    @Deprecated
-    public void trackTimerBegin(final String eventName) {
-        trackTimer(eventName);
-    }
-
-    @Override
-    @Deprecated
-    public void trackTimerBegin(final String eventName, final TimeUnit timeUnit) {
-        trackTimer(eventName, timeUnit);
     }
 
     @Override
@@ -2011,6 +1843,9 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         });
     }
 
+    /**
+     * 将所有本地缓存的日志发送到 Sensors Analytics.
+     */
     @Override
     public void flushSync() {
         flush();
@@ -2058,6 +1893,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     }
 
     @Override
+    @Deprecated
     public void enableDataCollect() {
         try {
             mTrackTaskManager.addTrackEventTask(new Runnable() {
@@ -2347,7 +2183,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 }
             }
             //请求可视化全埋点自定义属性配置
-            if (!TextUtils.equals(serverUrl, mOriginServerUrl) && isVisualizedAutoTrackEnabled()) {
+            if (!TextUtils.equals(serverUrl, mOriginServerUrl) && SensorsDataAPI.getConfigOptions().isVisualizedPropertiesEnabled()) {
                 try {
                     VisualPropertiesManager.getInstance().requestVisualConfig();
                 } catch (Exception e) {

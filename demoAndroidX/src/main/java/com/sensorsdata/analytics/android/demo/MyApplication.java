@@ -46,10 +46,8 @@ public class MyApplication extends Application {
                 SensorsAnalyticsAutoTrackEventType.APP_CLICK)
                 .enableTrackAppCrash()
                 .enableJavaScriptBridge(true)
-                .enableVisualizedAutoTrack(true)
-                .enableVisualizedAutoTrackConfirmDialog(true);
+                .enableVisualizedAutoTrack(true);
         SensorsDataAPI.startWithConfigOptions(this, configOptions);
         SensorsDataAPI.sharedInstance(this).trackFragmentAppViewScreen();
-        SensorsDataAPI.sharedInstance().enableHeatMap();
     }
 }

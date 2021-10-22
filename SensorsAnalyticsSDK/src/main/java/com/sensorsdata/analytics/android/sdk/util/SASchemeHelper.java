@@ -26,6 +26,7 @@ import android.widget.Toast;
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAPIEmptyImplementation;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackHelper;
 import com.sensorsdata.analytics.android.sdk.ServerUrl;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
@@ -40,6 +41,10 @@ public class SASchemeHelper {
     public static void handleSchemeUrl(Activity activity, Intent intent) {
         if (SensorsDataAPI.isSDKDisabled()) {
             SALog.i(TAG, "SDK is disabled,scan code function has been turned off");
+            return;
+        }
+        if (SensorsDataAPI.sharedInstance() instanceof SensorsDataAPIEmptyImplementation) {
+            SALog.i(TAG, "SDK is not init");
             return;
         }
         try {

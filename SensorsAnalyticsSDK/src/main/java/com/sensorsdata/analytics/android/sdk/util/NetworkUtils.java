@@ -361,7 +361,7 @@ public class NetworkUtils {
             String action = intent.getAction();
             if (ConnectivityManager.CONNECTIVITY_ACTION.equals(action)) {
                 NetworkUtils.cleanNetworkTypeCache();
-                SensorsDataAPI.sharedInstance().flushSync();
+                SensorsDataAPI.sharedInstance().flush();
                 SALog.i(TAG, "SABroadcastReceiver is receiving ConnectivityManager.CONNECTIVITY_ACTION broadcast");
             }
         }
@@ -374,7 +374,7 @@ public class NetworkUtils {
         public void onAvailable(Network network) {
             super.onAvailable(network);
             NetworkUtils.cleanNetworkTypeCache();
-            SensorsDataAPI.sharedInstance().flushSync();
+            SensorsDataAPI.sharedInstance().flush();
             SALog.i(TAG, "onAvailable is calling");
         }
 

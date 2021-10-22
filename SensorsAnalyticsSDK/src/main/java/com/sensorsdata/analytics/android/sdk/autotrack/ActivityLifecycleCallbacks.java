@@ -48,6 +48,9 @@ import com.sensorsdata.analytics.android.sdk.visual.VisualizedAutoTrackService;
 
 import org.json.JSONObject;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleCallbacks.SAActivityLifecycleCallbacks, SensorsDataExceptionHandler.SAExceptionListener {
     private static final String TAG = "SA.ActivityLifecycleCallbacks";
     private static final String EVENT_TIMER = "event_timer";
@@ -90,6 +93,8 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
     private static final int TIME_INTERVAL = 2000;
     private boolean mDataCollectState;
 
+    private Set<Integer> hashSet = new HashSet<>();
+
     public ActivityLifecycleCallbacks(SensorsDataAPI instance, PersistentFirstStart firstStart,
                                           PersistentFirstDay firstDay, Context context) {
         this.mSensorsDataInstance = instance;
@@ -110,12 +115,13 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
 
     @Override
     public void onActivityStarted(Activity activity) {
-        if (!SensorsDataDialogUtils.isSchemeActivity(activity)) {
+        if (!SensorsDataDialogUtils.isSchemeActivity(activity) && !hasActivity(activity)) {
             if (mStartActivityCount == 0) {
                 // 第一个页面进行页面信息解析
                 buildScreenProperties(activity);
             }
             sendActivityHandleMessage(MESSAGE_CODE_START);
+            addActivity(activity);
         }
     }
 
@@ -157,8 +163,9 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
 
     @Override
     public void onActivityStopped(Activity activity) {
-        if (!SensorsDataDialogUtils.isSchemeActivity(activity)) {
+        if (!SensorsDataDialogUtils.isSchemeActivity(activity) && hasActivity(activity)) {
             sendActivityHandleMessage(MESSAGE_CODE_STOP);
+            removeActivity(activity);
         }
     }
 
@@ -565,5 +572,24 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
 
         // 注意这里要重置为 0，对于跨进程的情况，如果子进程崩溃，主进程但是没崩溃，造成统计个数异常，所以要重置为 0。
         DbAdapter.getInstance().commitActivityCount(0);
+    }
+
+    void addActivity(Activity activity) {
+        if (activity != null) {
+            hashSet.add(activity.hashCode());
+        }
+    }
+
+    boolean hasActivity(Activity activity) {
+        if (activity != null) {
+            return hashSet.contains(activity.hashCode());
+        }
+        return false;
+    }
+
+    void removeActivity(Activity activity) {
+        if (activity != null) {
+            hashSet.remove(activity.hashCode());
+        }
     }
 }

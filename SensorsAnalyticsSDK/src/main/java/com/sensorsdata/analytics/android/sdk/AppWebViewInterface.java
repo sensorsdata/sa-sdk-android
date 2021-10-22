@@ -174,7 +174,7 @@ import java.lang.ref.WeakReference;
     public String sensorsdata_get_app_visual_config() {
         try {
             // 可视化的开关未打开，此时 App 内嵌 H5 场景无需支持采集自定义属性；
-            if (!SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled()) {
+            if (!SensorsDataAPI.getConfigOptions().isVisualizedPropertiesEnabled()) {
                 return null;
             }
             VisualPropertiesManager.getInstance().getVisualPropertiesH5Helper().registerListeners();

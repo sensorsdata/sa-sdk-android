@@ -152,7 +152,7 @@ public class VisualPropertiesH5Helper implements WebViewJavascriptBridge {
 
                         String base64Message = propertiesObj.optString("sensorsdata_app_visual_properties");
                         propertiesObj.remove("sensorsdata_app_visual_properties");
-                        if (TextUtils.isEmpty(base64Message)) {
+                        if (TextUtils.isEmpty(base64Message) || !SensorsDataAPI.getConfigOptions().isVisualizedPropertiesEnabled()) {
                             return;
                         }
                         String appVisualProperties = Base64Coder.decodeString(base64Message);

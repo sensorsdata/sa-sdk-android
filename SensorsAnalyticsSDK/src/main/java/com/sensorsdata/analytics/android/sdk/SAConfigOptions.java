@@ -32,29 +32,9 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
     boolean mInvokeHeatMapEnabled;
 
     /**
-     * 是否设置点击图对话框
-     */
-    boolean mInvokeHeatMapConfirmDialog;
-
-    /**
-     * 是否设置点击图证书检查
-     */
-    boolean mInvokeHeatMapSSLCheck;
-
-    /**
      * 是否设置可视化全埋点开关
      */
     boolean mInvokeVisualizedEnabled;
-
-    /**
-     * 是否设置可视化全埋点对话框
-     */
-    boolean mInvokeVisualizedConfirmDialog;
-
-    /**
-     * 是否设置点击图证书检查
-     */
-    boolean mInvokeVisualizedSSLCheck;
 
     /**
      * 是否设置打印日志
@@ -213,14 +193,13 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
     }
 
     /**
-     * 设置点击图提示对话框是否可用
+     * 设置可视化全埋点自定义属性是否可用
      *
-     * @param enableDialog 对话框状态是否可用
-     * @return SAOptionsConfig
+     * @param enableVisualizedProperties 可视化全埋点自定义属性功能是否可用
+     * @return SAConfigOptions
      */
-    public SAConfigOptions enableHeatMapConfirmDialog(boolean enableDialog) {
-        this.mHeatMapConfirmDialogEnabled = enableDialog;
-        this.mInvokeHeatMapConfirmDialog = true;
+    public SAConfigOptions enableVisualizedProperties(boolean enableVisualizedProperties) {
+        this.mVisualizedPropertiesEnabled = enableVisualizedProperties;
         return this;
     }
 
@@ -237,18 +216,6 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
     }
 
     /**
-     * 设置可视化全埋点提示对话框是否可用
-     *
-     * @param enableDialog 对话框状态是否可用
-     * @return SAOptionsConfig
-     */
-    public SAConfigOptions enableVisualizedAutoTrackConfirmDialog(boolean enableDialog) {
-        this.mVisualizedConfirmDialogEnabled = enableDialog;
-        this.mInvokeVisualizedConfirmDialog = true;
-        return this;
-    }
-
-    /**
      * 是否打印日志
      *
      * @param enableLog 是否开启打印日志
@@ -257,17 +224,6 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
     public SAConfigOptions enableLog(boolean enableLog) {
         this.mLogEnabled = enableLog;
         this.mInvokeLog = true;
-        return this;
-    }
-
-    /**
-     * 是否开启 RN 数据采集
-     *
-     * @param enableRN 是否开启 RN 采集
-     * @return SAOptionsConfig
-     */
-    public SAConfigOptions enableReactNativeAutoTrack(boolean enableRN) {
-        this.mRNAutoTrackEnabled = enableRN;
         return this;
     }
 
@@ -350,17 +306,6 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
     }
 
     /**
-     * 是否开启多渠道匹配，开启后 trackInstallation 中由 profile_set_once 操作改为 profile_set 。
-     *
-     * @param enableMultipleChannelMatch true 开启 false 关闭
-     * @return 是否开启多渠道匹配
-     */
-    public SAConfigOptions enableMultipleChannelMatch(boolean enableMultipleChannelMatch) {
-        this.mEnableMultipleChannelMatch = enableMultipleChannelMatch;
-        return this;
-    }
-
-    /**
      * 是否开启加密
      *
      * @param enableEncrypt 是否开启加密
@@ -397,6 +342,7 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
      *
      * @return SAConfigOptions
      */
+    @Deprecated
     public SAConfigOptions disableDataCollect() {
         this.isDataCollectEnable = false;
         return this;
@@ -410,17 +356,6 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
      */
     public SAConfigOptions setSSLSocketFactory(SSLSocketFactory SSLSocketFactory) {
         this.mSSLSocketFactory = SSLSocketFactory;
-        return this;
-    }
-
-    /**
-     * 是否开启前向标题采集.
-     *
-     * @param enable 是否开启前向标题采集
-     * @return SAConfigOptions
-     */
-    public SAConfigOptions enableReferrerTitle(boolean enable) {
-        this.mEnableReferrerTitle = enable;
         return this;
     }
 

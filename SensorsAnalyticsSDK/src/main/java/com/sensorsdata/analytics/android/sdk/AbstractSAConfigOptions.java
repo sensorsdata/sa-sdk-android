@@ -100,29 +100,19 @@ abstract class AbstractSAConfigOptions {
     boolean mHeatMapEnabled;
 
     /**
-     * 点击图对话框是否可用
-     */
-    boolean mHeatMapConfirmDialogEnabled;
-
-    /**
      * 可视化全埋点是否可用
      */
     boolean mVisualizedEnabled;
 
     /**
-     * 可视化全埋点对话框是否可用
+     * 可视化全埋点自定义属性是否可用
      */
-    boolean mVisualizedConfirmDialogEnabled;
+    boolean mVisualizedPropertiesEnabled;
 
     /**
      * 是否开启打印日志
      */
     boolean mLogEnabled;
-
-    /**
-     * 开启 RN 采集
-     */
-    boolean mRNAutoTrackEnabled;
 
     /**
      * 采集屏幕方向
@@ -160,11 +150,6 @@ abstract class AbstractSAConfigOptions {
     boolean isAutoAddChannelCallbackEvent;
 
     /**
-     * 是否开启多渠道匹配，开启后 trackInstallation 中由 profile_set_once 操作改为 profile_set 。
-     */
-    boolean mEnableMultipleChannelMatch = false;
-
-    /**
      * 是否子进程上报数据
      */
     boolean isSubProcessFlushData = false;
@@ -188,11 +173,6 @@ abstract class AbstractSAConfigOptions {
      * 是否关闭 SDK
      */
     boolean isDisableSDK = false;
-
-    /**
-     * 开启前向标题采集
-     */
-    boolean mEnableReferrerTitle = false;
 
     /**
      * 自定义加密实现接口
@@ -263,7 +243,16 @@ abstract class AbstractSAConfigOptions {
      *
      * @return true 开启推送，false 禁止推送
      */
-    public boolean isEnableTrackPush(){
+    public boolean isEnableTrackPush() {
         return this.mEnableTrackPush;
+    }
+
+    /**
+     * 自定义属性是否可用
+     *
+     * @return true 可用，false 不可用
+     */
+    public boolean isVisualizedPropertiesEnabled() {
+        return this.mVisualizedPropertiesEnabled;
     }
 }

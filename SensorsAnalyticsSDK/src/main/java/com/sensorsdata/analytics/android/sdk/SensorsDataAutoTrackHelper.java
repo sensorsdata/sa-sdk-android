@@ -83,64 +83,7 @@ public class SensorsDataAutoTrackHelper {
     }
 
     public static void trackRN(Object target, int reactTag, int s, boolean b) {
-        try {
-            if (!SensorsDataAPI.sharedInstance().isReactNativeAutoTrackEnabled()) {
-                return;
-            }
 
-            //关闭 AutoTrack
-            if (!SensorsDataAPI.sharedInstance().isAutoTrackEnabled()) {
-                return;
-            }
-
-            //$AppClick 被过滤
-            if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_CLICK)) {
-                return;
-            }
-
-            JSONObject properties = new JSONObject();
-            ViewNode viewNode = null;
-            properties.put(AopConstants.ELEMENT_TYPE, "RNView");
-            if (target != null) {
-                Class<?> clazz = Class.forName("com.facebook.react.uimanager.NativeViewHierarchyManager");
-                Method resolveViewMethod = clazz.getMethod("resolveView", int.class);
-                if (resolveViewMethod != null) {
-                    Object object = resolveViewMethod.invoke(target, reactTag);
-                    if (object != null) {
-                        View view = (View) object;
-                        //获取所在的 Context
-                        Context context = view.getContext();
-
-                        //将 Context 转成 Activity
-                        Activity activity = AopUtil.getActivityFromContext(context, view);
-                        //$screen_name & $title
-                        if (activity != null) {
-                            SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
-                            viewNode = AopUtil.addViewPathProperties(activity, view, properties);
-                        }
-                        if (view instanceof CompoundButton) {//ReactSwitch
-                            return;
-                        }
-                        if (view instanceof TextView) {
-                            TextView textView = (TextView) view;
-                            if (!(view instanceof EditText) && !TextUtils.isEmpty(textView.getText())) {
-                                properties.put(AopConstants.ELEMENT_CONTENT, textView.getText().toString());
-                            }
-                        } else if (view instanceof ViewGroup) {
-                            StringBuilder stringBuilder = new StringBuilder();
-                            String viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
-                            if (!TextUtils.isEmpty(viewText)) {
-                                viewText = viewText.substring(0, viewText.length() - 1);
-                            }
-                            properties.put(AopConstants.ELEMENT_CONTENT, viewText);
-                        }
-                    }
-                }
-            }
-            SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties, viewNode);
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
     }
 
     public static void trackExpandableListViewOnGroupClick(ExpandableListView expandableListView, View view,

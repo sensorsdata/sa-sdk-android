@@ -36,7 +36,6 @@ import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.view.View;
-import android.webkit.WebSettings;
 
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
@@ -274,7 +273,7 @@ public final class SensorsDataUtils {
     }
 
     public static SharedPreferences getSharedPreferences(Context context) {
-        return context.getSharedPreferences(SHARED_PREF_EDITS_FILE, Context.MODE_PRIVATE);
+        return SASpUtils.getSharedPreferences(context, SHARED_PREF_EDITS_FILE, Context.MODE_PRIVATE);
     }
 
     @TargetApi(11)
@@ -424,48 +423,6 @@ public final class SensorsDataUtils {
             SALog.printStackTrace(ex);
         }
         return dest;
-    }
-
-    /**
-     * 获取 UA 值
-     *
-     * @param context Context
-     * @return 当前 UA 值
-     */
-    @Deprecated
-    public static String getUserAgent(Context context) {
-        try {
-            final SharedPreferences preferences = getSharedPreferences(context);
-            String userAgent = preferences.getString(SHARED_PREF_USER_AGENT_KEY, null);
-            if (TextUtils.isEmpty(userAgent)) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                    try {
-                        Class webSettingsClass = Class.forName("android.webkit.WebSettings");
-                        Method getDefaultUserAgentMethod = webSettingsClass.getMethod("getDefaultUserAgent", Context.class);
-                        if (getDefaultUserAgentMethod != null) {
-                            userAgent = WebSettings.getDefaultUserAgent(context);
-                        }
-                    } catch (Exception e) {
-                        SALog.i(TAG, "WebSettings NoSuchMethod: getDefaultUserAgent");
-                    }
-                }
-
-                if (TextUtils.isEmpty(userAgent)) {
-                    userAgent = System.getProperty("http.agent");
-                }
-
-                if (!TextUtils.isEmpty(userAgent)) {
-                    final SharedPreferences.Editor editor = preferences.edit();
-                    editor.putString(SHARED_PREF_USER_AGENT_KEY, userAgent);
-                    editor.apply();
-                }
-            }
-
-            return userAgent;
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-            return null;
-        }
     }
 
     /**
@@ -812,16 +769,16 @@ public final class SensorsDataUtils {
         SASchemeHelper.handleSchemeUrl(activity, intent);
     }
 
-    public static void initUniAppStatus(){
+    public static void initUniAppStatus() {
         try {
-          Class.forName("io.dcloud.application.DCloudApplication");
-          isUniApp = true;
+            Class.forName("io.dcloud.application.DCloudApplication");
+            isUniApp = true;
         } catch (ClassNotFoundException e) {
             // ignore
         }
     }
 
-    public static boolean isUniApp(){
+    public static boolean isUniApp() {
         return isUniApp;
     }
 }

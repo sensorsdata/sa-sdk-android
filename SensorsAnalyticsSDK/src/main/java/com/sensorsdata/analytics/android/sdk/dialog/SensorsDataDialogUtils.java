@@ -289,12 +289,6 @@ public class SensorsDataDialogUtils {
                 return;
             }
 
-            if (!SensorsDataAPI.sharedInstance().isAppHeatMapConfirmDialogEnabled()) {
-                HeatMapService.getInstance().start(context, featureCode, postUrl);
-                startLaunchActivity(context);
-                return;
-            }
-
             boolean isWifi = false;
             try {
                 String networkType = NetworkUtils.networkType(context);
@@ -373,11 +367,7 @@ public class SensorsDataDialogUtils {
                 showDialog(context, "SDK 没有被正确集成，请联系贵方技术人员开启可视化全埋点。");
                 return;
             }
-            if (!SensorsDataAPI.sharedInstance().isVisualizedAutoTrackConfirmDialogEnabled()) {
-                VisualizedAutoTrackService.getInstance().start(context, featureCode, postUrl);
-                startLaunchActivity(context);
-                return;
-            }
+
             boolean isWifi = false;
             try {
                 String networkType = NetworkUtils.networkType(context);

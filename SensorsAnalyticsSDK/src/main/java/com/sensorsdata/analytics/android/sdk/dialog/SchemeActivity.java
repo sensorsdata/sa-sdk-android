@@ -35,12 +35,12 @@ public class SchemeActivity extends Activity {
     private static final String TAG = "SA.SchemeActivity";
 
     /**
-     *  是否是弹窗扫码
+     * 是否是弹窗扫码
      */
     public static boolean isPopWindow = false;
 
     /**
-     *  是否拉起 App
+     * 是否拉起 App
      */
     private boolean isStartApp = false;
 

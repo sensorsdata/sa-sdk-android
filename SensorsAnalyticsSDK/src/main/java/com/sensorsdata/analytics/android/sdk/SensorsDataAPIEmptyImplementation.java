@@ -146,12 +146,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     public void setSessionIntervalTime(int sessionIntervalTime) {
     }
 
-    @Deprecated
-    @Override
-    public void enableAutoTrack() {
-
-    }
-
     @Override
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
 
@@ -168,11 +162,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
-    public void trackAppCrash() {
-
-    }
-
-    @Override
     public boolean isAutoTrackEnabled() {
         return false;
     }
@@ -184,16 +173,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public boolean isTrackFragmentAppViewScreenEnabled() {
-        return false;
-    }
-
-    @Override
-    public void enableReactNativeAutoTrack() {
-
-    }
-
-    @Override
-    public boolean isReactNativeAutoTrackEnabled() {
         return false;
     }
 
@@ -263,18 +242,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     @Override
     public boolean isActivityAutoTrackAppClickIgnored(Class<?> activity) {
         return true;
-    }
-
-    @Deprecated
-    @Override
-    public void ignoreAutoTrackEventType(SensorsDataAPI.AutoTrackEventType autoTrackEventType) {
-
-    }
-
-    @Deprecated
-    @Override
-    public void ignoreAutoTrackEventType(List<AutoTrackEventType> eventTypeList) {
-
     }
 
     @Override
@@ -353,21 +320,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
-    public boolean isAppHeatMapConfirmDialogEnabled() {
-        return true;
-    }
-
-    @Override
-    public void enableAppHeatMapConfirmDialog(boolean enable) {
-
-    }
-
-    @Override
-    public void enableHeatMap() {
-
-    }
-
-    @Override
     public String getDistinctId() {
         return null;
     }
@@ -404,18 +356,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public void logout() {
-
-    }
-
-    @Deprecated
-    @Override
-    public void trackSignUp(String newDistinctId, JSONObject properties) {
-
-    }
-
-    @Deprecated
-    @Override
-    public void trackSignUp(String newDistinctId) {
 
     }
 
@@ -475,12 +415,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Deprecated
     @Override
-    public void trackTimer(final String eventName) {
-
-    }
-
-    @Deprecated
-    @Override
     public void trackTimer(final String eventName, final TimeUnit timeUnit) {
 
     }
@@ -492,16 +426,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     @Override
     public String trackTimerStart(String eventName) {
         return "";
-    }
-
-    @Override
-    public void trackTimerBegin(final String eventName) {
-
-    }
-
-    @Override
-    public void trackTimerBegin(final String eventName, final TimeUnit timeUnit) {
-
     }
 
     @Override
@@ -787,21 +711,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     @Override
     public boolean isVisualizedAutoTrackEnabled() {
         return false;
-    }
-
-    @Override
-    public boolean isVisualizedAutoTrackConfirmDialogEnabled() {
-        return false;
-    }
-
-    @Override
-    public void enableVisualizedAutoTrackConfirmDialog(boolean enable) {
-
-    }
-
-    @Override
-    public void enableVisualizedAutoTrack() {
-
     }
 
     @Override

@@ -20,6 +20,8 @@ package com.sensorsdata.analytics.android.sdk.data.persistent;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import com.sensorsdata.analytics.android.sdk.util.SASpUtils;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -53,7 +55,7 @@ class SharedPreferencesLoader {
 
         @Override
         public SharedPreferences call() {
-            return mContext.getSharedPreferences(mPrefsName, Context.MODE_PRIVATE);
+            return SASpUtils.getSharedPreferences(mContext, mPrefsName, Context.MODE_PRIVATE);
         }
     }
 }
