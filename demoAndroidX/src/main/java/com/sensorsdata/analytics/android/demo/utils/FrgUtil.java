@@ -17,7 +17,6 @@
 
 package com.sensorsdata.analytics.android.demo.utils;
 
-import android.annotation.TargetApi;
 import android.graphics.Rect;
 import android.os.Build;
 import android.view.View;
@@ -40,14 +39,14 @@ public class FrgUtil {
      * @return true 表示可见。
      * （ 当 fragment.isVisible 且 fragment.getView view 自身可见且所有的 ViewParent 可见，且所有 getParentFragment 也要符合此条件，返回 true ）
      */
-    @TargetApi(11)
     public static boolean isVisible(Object fragment) {
         //校验 Fragment
         if (!isFragment(fragment)) {
             return false;
         }
 
-        if (Build.VERSION.SDK_INT < 17) {
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1) {
             try {
                 Method isVisible = fragment.getClass().getMethod("isVisible");
                 return (boolean) isVisible.invoke(fragment);

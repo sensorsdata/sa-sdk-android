@@ -55,10 +55,6 @@ public class PersistentLoader {
         switch (persistentKey) {
             case PersistentName.APP_END_DATA:
                 return new PersistentAppEndData(storedPreferences);
-            case PersistentName.APP_PAUSED_TIME:
-                return new PersistentAppPaused(storedPreferences);
-            case PersistentName.APP_START_TIME:
-                return new PersistentAppStartTime(storedPreferences);
             case PersistentName.DISTINCT_ID:
                 return new PersistentDistinctId(storedPreferences, context);
             case PersistentName.FIRST_DAY:
@@ -86,8 +82,6 @@ public class PersistentLoader {
 
     public interface PersistentName {
         String APP_END_DATA = DbParams.TABLE_APP_END_DATA;
-        String APP_PAUSED_TIME = DbParams.TABLE_APP_END_TIME;
-        String APP_START_TIME = DbParams.TABLE_APP_START_TIME;
         String SUB_PROCESS_FLUSH_DATA = DbParams.TABLE_SUB_PROCESS_FLUSH_DATA;
         String DISTINCT_ID = "events_distinct_id";
         String FIRST_DAY = "first_day";

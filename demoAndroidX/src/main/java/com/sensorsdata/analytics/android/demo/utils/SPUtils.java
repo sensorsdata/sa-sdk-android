@@ -17,17 +17,13 @@ import java.io.Serializable;
 public class SPUtils {
     private SharedPreferences preferences = null;
     private SharedPreferences.Editor editor = null;
-    private static SPUtils preferencesUtil;
 
     public static SPUtils getInstance() {
-        if (preferencesUtil == null) {
-            synchronized (SPUtils.class) {
-                if (preferencesUtil == null) {
-                    preferencesUtil = new SPUtils();
-                }
-            }
-        }
-        return preferencesUtil;
+        return SingletonHolder.INSTANCE;
+    }
+
+    private static class SingletonHolder {
+        private static SPUtils INSTANCE = new SPUtils();
     }
 
     public void init(Context context) {

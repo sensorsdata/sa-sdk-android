@@ -148,36 +148,6 @@ public class DbAdapter {
     }
 
     /**
-     * 设置 Activity Pause 的时间戳
-     *
-     * @param appPausedTime Activity Pause 的时间戳
-     */
-    public void commitAppEndTime(long appPausedTime) {
-        try {
-            mPersistentOperation.insertData(mDbParams.getAppPausedUri(), new JSONObject().put(DbParams.VALUE, appPausedTime));
-        } catch (JSONException e) {
-            SALog.printStackTrace(e);
-        }
-    }
-
-    /**
-     * 获取 Activity Pause 的时间戳
-     *
-     * @return Activity Pause 的时间戳
-     */
-    public long getAppEndTime() {
-        try {
-            String[] values = mPersistentOperation.queryData(mDbParams.getAppPausedUri(), 1);
-            if (values != null && values.length > 0) {
-                return Long.parseLong(values[0]);
-            }
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
-        }
-        return 0;
-    }
-
-    /**
      * 设置 Activity End 的信息
      *
      * @param appEndData Activity End 的信息

@@ -17,7 +17,6 @@
 
 package com.sensorsdata.analytics.android.sdk.visual;
 
-import android.annotation.TargetApi;
 import android.os.Build;
 import android.text.TextUtils;
 import android.util.LruCache;
@@ -71,7 +70,6 @@ public class WebNodesManager {
         return mSingleton;
     }
 
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
     void handlerMessage(String message) {
         Dispatcher.getInstance().removeCallbacksAndMessages();
         if (!VisualizedAutoTrackService.getInstance().isServiceRunning() && !HeatMapService.getInstance().isServiceRunning()) {
@@ -88,7 +86,7 @@ public class WebNodesManager {
             switch (callType) {
                 case CALL_TYPE_VISUALIZED_TRACK:
                     List<WebNode> list = parseResult(message);
-                    if (list != null && list.size() > 0) {
+                    if (list != null && list.size() > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
                         if (sWebNodesCache == null) {
                             sWebNodesCache = new LruCache<>(LRU_CACHE_MAX_SIZE);
                         }
@@ -101,10 +99,12 @@ public class WebNodesManager {
                     WebNodeInfo pageInfo = parsePageInfo(message);
                     if (pageInfo != null) {
                         mWebViewUrl = pageInfo.getUrl();
-                        if (sPageInfoCache == null) {
-                            sPageInfoCache = new LruCache<>(LRU_CACHE_MAX_SIZE);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
+                            if (sPageInfoCache == null) {
+                                sPageInfoCache = new LruCache<>(LRU_CACHE_MAX_SIZE);
+                            }
+                            sPageInfoCache.put(pageInfo.getUrl(), pageInfo);
                         }
-                        sPageInfoCache.put(pageInfo.getUrl(), pageInfo);
                     }
                     break;
                 default:
@@ -117,24 +117,27 @@ public class WebNodesManager {
         }
     }
 
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
     void handlerFailure(String webViewUrl, String message) {
-        Dispatcher.getInstance().removeCallbacksAndMessages();
-        if (!VisualizedAutoTrackService.getInstance().isServiceRunning() && !HeatMapService.getInstance().isServiceRunning()) {
-            return;
-        }
-        if (TextUtils.isEmpty(message)) {
-            return;
-        }
-        SALog.i(TAG, "handlerFailure url " + webViewUrl + ",msg: " + message);
-        mHasH5AlertInfo = true;
-        mLastWebNodeMsg = String.valueOf(System.currentTimeMillis());
-        List<WebNodeInfo.AlertInfo> list = parseAlertResult(message);
-        if (list != null && list.size() > 0) {
-            if (sWebNodesCache == null) {
-                sWebNodesCache = new LruCache<>(LRU_CACHE_MAX_SIZE);
+        try {
+            Dispatcher.getInstance().removeCallbacksAndMessages();
+            if (!VisualizedAutoTrackService.getInstance().isServiceRunning() && !HeatMapService.getInstance().isServiceRunning()) {
+                return;
             }
-            sWebNodesCache.put(webViewUrl, WebNodeInfo.createWebAlertInfo(list));
+            if (TextUtils.isEmpty(message)) {
+                return;
+            }
+            SALog.i(TAG, "handlerFailure url " + webViewUrl + ",msg: " + message);
+            mHasH5AlertInfo = true;
+            mLastWebNodeMsg = String.valueOf(System.currentTimeMillis());
+            List<WebNodeInfo.AlertInfo> list = parseAlertResult(message);
+            if (list != null && list.size() > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
+                if (sWebNodesCache == null) {
+                    sWebNodesCache = new LruCache<>(LRU_CACHE_MAX_SIZE);
+                }
+                sWebNodesCache.put(webViewUrl, WebNodeInfo.createWebAlertInfo(list));
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
     }
 
@@ -308,26 +311,30 @@ public class WebNodesManager {
         }
     }
 
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
     WebNodeInfo getWebNodes(String webViewUrl) {
         if (!VisualizedAutoTrackService.getInstance().isServiceRunning() && !HeatMapService.getInstance().isServiceRunning()) {
             return null;
         }
-        if (sWebNodesCache == null) {
-            sWebNodesCache = new LruCache<>(LRU_CACHE_MAX_SIZE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
+            if (sWebNodesCache == null) {
+                sWebNodesCache = new LruCache<>(LRU_CACHE_MAX_SIZE);
+            }
+            return sWebNodesCache.get(webViewUrl);
         }
-        return sWebNodesCache.get(webViewUrl);
+        return null;
     }
 
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
     WebNodeInfo getWebPageInfo(String webViewUrl) {
         if (!VisualizedAutoTrackService.getInstance().isServiceRunning() && !HeatMapService.getInstance().isServiceRunning()) {
             return null;
         }
-        if (sPageInfoCache == null) {
-            sPageInfoCache = new LruCache<>(LRU_CACHE_MAX_SIZE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
+            if (sPageInfoCache == null) {
+                sPageInfoCache = new LruCache<>(LRU_CACHE_MAX_SIZE);
+            }
+            return sPageInfoCache.get(webViewUrl);
         }
-        return sPageInfoCache.get(webViewUrl);
+        return null;
     }
 
     // 为同时支持多 WebView 场景和 JS SDK 页面无法监听到页面变化，修改了 H5 Hash 处理逻辑，只要在 H5 页面需要始终进行上报。

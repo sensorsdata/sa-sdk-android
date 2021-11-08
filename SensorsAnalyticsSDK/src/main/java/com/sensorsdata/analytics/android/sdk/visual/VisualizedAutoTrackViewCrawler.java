@@ -17,13 +17,11 @@
 
 package com.sensorsdata.analytics.android.sdk.visual;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 
 
-@TargetApi(16)
 class VisualizedAutoTrackViewCrawler extends AbstractViewCrawler {
 
     private VisualDebugHelper mVisualDebugHelper;

@@ -205,7 +205,6 @@ public class WindowHelper {
         return null;
     }
 
-    @SuppressLint("NewApi")
     private static View findMenuItemView(View view, MenuItem item) throws InvocationTargetException, IllegalAccessException {
         // 解决 actionbar 左侧返回按钮全埋点问题
         if (ViewUtil.instanceOfActionMenuItem(item) && item.getItemId() == android.R.id.home && ViewUtil.instanceOfToolbar(view.getParent()) && view instanceof ImageButton) {

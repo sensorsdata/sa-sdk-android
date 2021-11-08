@@ -17,7 +17,6 @@
 
 package com.sensorsdata.analytics.android.demo.utils;
 
-import android.annotation.TargetApi;
 import android.graphics.Rect;
 import android.text.TextUtils;
 import android.view.View;
@@ -29,7 +28,6 @@ import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 
-import androidx.annotation.RequiresApi;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
@@ -123,7 +121,6 @@ public class ViewUtil {
      * View getVisibility 不可见，且有 Animation getFillAfter 为  false 时；返回 false 。
      * View 无 Animation 时 getVisibility 不可见时返回 false 。
      */
-    @RequiresApi(api = 11)
     public static boolean isViewSelfVisible(View view) {
         if (view == null) {
             return false;
@@ -200,7 +197,6 @@ public class ViewUtil {
         }
     }
 
-    @TargetApi(9)
     private static void checkCustomRecyclerView(Class<?> viewClass, String viewName) {
         if (!mHaveRecyclerView && !mHaveCustomRecyclerView && viewName != null && viewName.contains("RecyclerView")) {
             try {

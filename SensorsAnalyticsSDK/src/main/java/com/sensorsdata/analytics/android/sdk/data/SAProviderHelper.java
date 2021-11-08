@@ -21,7 +21,6 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.UriMatcher;
 import android.database.Cursor;
 import android.database.MatrixCursor;
@@ -31,17 +30,13 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndData;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppPaused;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppStartTime;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFlushDataState;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -51,9 +46,7 @@ import java.io.File;
 class SAProviderHelper {
     private ContentResolver contentResolver;
     private SQLiteOpenHelper mDbHelper;
-    private PersistentAppStartTime persistentAppStartTime;
     private PersistentAppEndData persistentAppEndData;
-    private PersistentAppPaused persistentAppPaused;
     private PersistentLoginId persistentLoginId;
     private PersistentFlushDataState persistentFlushDataState;
     private PersistentRemoteSDKConfig persistentRemoteSDKConfig;
@@ -61,6 +54,7 @@ class SAProviderHelper {
     private boolean isDbWritable = true;
     private boolean isFirstProcessStarted = true;
     private int startActivityCount = 0;
+    private long mAppStartTime = 0;
     private int mSessionTime = 30 * 1000;
 
     public SAProviderHelper(Context context, SQLiteOpenHelper dbHelper) {
@@ -70,8 +64,6 @@ class SAProviderHelper {
             contentResolver = context.getContentResolver();
             PersistentLoader.initLoader(context);
             persistentAppEndData = (PersistentAppEndData) PersistentLoader.loadPersistent(DbParams.TABLE_APP_END_DATA);
-            persistentAppStartTime = (PersistentAppStartTime) PersistentLoader.loadPersistent(DbParams.TABLE_APP_START_TIME);
-            persistentAppPaused = (PersistentAppPaused) PersistentLoader.loadPersistent(DbParams.TABLE_APP_END_TIME);
             persistentLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(DbParams.TABLE_LOGIN_ID);
             persistentFlushDataState = (PersistentFlushDataState) PersistentLoader.loadPersistent(DbParams.TABLE_SUB_PROCESS_FLUSH_DATA);
             persistentRemoteSDKConfig = (PersistentRemoteSDKConfig) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.REMOTE_CONFIG);
@@ -136,7 +128,6 @@ class SAProviderHelper {
             uriMatcher.addURI(authority, DbParams.TABLE_ACTIVITY_START_COUNT, URI_CODE.ACTIVITY_START_COUNT);
             uriMatcher.addURI(authority, DbParams.TABLE_APP_START_TIME, URI_CODE.APP_START_TIME);
             uriMatcher.addURI(authority, DbParams.TABLE_APP_END_DATA, URI_CODE.APP_END_DATA);
-            uriMatcher.addURI(authority, DbParams.TABLE_APP_END_TIME, URI_CODE.APP_PAUSED_TIME);
             uriMatcher.addURI(authority, DbParams.TABLE_SESSION_INTERVAL_TIME, URI_CODE.SESSION_INTERVAL_TIME);
             uriMatcher.addURI(authority, DbParams.TABLE_LOGIN_ID, URI_CODE.LOGIN_ID);
             uriMatcher.addURI(authority, DbParams.TABLE_CHANNEL_PERSISTENT, URI_CODE.CHANNEL_PERSISTENT);
@@ -230,10 +221,7 @@ class SAProviderHelper {
                     startActivityCount = values.getAsInteger(DbParams.TABLE_ACTIVITY_START_COUNT);
                     break;
                 case URI_CODE.APP_START_TIME:
-                    persistentAppStartTime.commit(values.getAsLong(DbParams.TABLE_APP_START_TIME));
-                    break;
-                case URI_CODE.APP_PAUSED_TIME:
-                    persistentAppPaused.commit(values.getAsLong(DbParams.TABLE_APP_END_TIME));
+                    mAppStartTime = values.getAsLong(DbParams.TABLE_APP_START_TIME);
                     break;
                 case URI_CODE.APP_END_DATA:
                     persistentAppEndData.commit(values.getAsString(DbParams.TABLE_APP_END_DATA));
@@ -307,12 +295,8 @@ class SAProviderHelper {
                     column = DbParams.TABLE_ACTIVITY_START_COUNT;
                     break;
                 case URI_CODE.APP_START_TIME:
-                    data = persistentAppStartTime.get();
+                    data = mAppStartTime;
                     column = DbParams.TABLE_APP_START_TIME;
-                    break;
-                case URI_CODE.APP_PAUSED_TIME:
-                    data = persistentAppPaused.get();
-                    column = DbParams.TABLE_APP_END_TIME;
                     break;
                 case URI_CODE.APP_END_DATA:
                     data = persistentAppEndData.get();

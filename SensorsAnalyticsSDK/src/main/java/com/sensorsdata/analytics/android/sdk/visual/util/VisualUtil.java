@@ -17,7 +17,6 @@
 
 package com.sensorsdata.analytics.android.sdk.visual.util;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.os.Build;
 import android.text.TextUtils;
@@ -57,9 +56,11 @@ public class VisualUtil {
         return View.VISIBLE;
     }
 
-    @SuppressLint("NewApi")
     public static boolean isSupportElementContent(View view) {
-        return !(view instanceof SeekBar || view instanceof RatingBar || view instanceof Switch);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+            return !(view instanceof SeekBar || view instanceof RatingBar || view instanceof Switch);
+        }
+        return false;
     }
 
     public static boolean isForbiddenClick(View v) {

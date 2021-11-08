@@ -17,14 +17,10 @@
 
 package com.sensorsdata.analytics.android.sdk.visual.snap;
 
-import android.annotation.TargetApi;
 import android.view.View;
-
-import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
 import java.util.List;
 
-@TargetApi(SensorsDataAPI.VTRACK_SUPPORTED_MIN_API)
 public abstract class ViewVisitor implements Pathfinder.Accumulator {
 
     private static final String TAG = "SA.ViewVisitor";

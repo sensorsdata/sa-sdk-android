@@ -32,7 +32,6 @@ public class DbParams {
     public static final int DATABASE_VERSION = 5;
     public static final String TABLE_ACTIVITY_START_COUNT = "activity_started_count";
     public static final String TABLE_APP_START_TIME = "app_start_time";
-    public static final String TABLE_APP_END_TIME = "app_end_time";
     public static final String TABLE_APP_END_DATA = "app_end_data";
     public static final String TABLE_SUB_PROCESS_FLUSH_DATA = "sub_process_flush_data";
     public static final String TABLE_FIRST_PROCESS_START = "first_process_start";
@@ -53,7 +52,7 @@ public class DbParams {
     /* 删除所有数据 */
     static final String DB_DELETE_ALL = "DB_DELETE_ALL";
     private static DbParams instance;
-    private final Uri mUri, mActivityStartCountUri, mAppStartTimeUri, mAppEndUri, mDataCollectUri,
+    private final Uri mUri, mActivityStartCountUri, mAppStartTimeUri, mDataCollectUri,
             mAppEndDataUri, mSessionTimeUri, mLoginIdUri, mChannelPersistentUri, mSubProcessUri,
             mFirstProcessUri, mEnableSDKUri, mDisableSDKUri, mRemoteConfigUri;
 
@@ -62,7 +61,6 @@ public class DbParams {
         mActivityStartCountUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_ACTIVITY_START_COUNT);
         mAppStartTimeUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_START_TIME);
         mAppEndDataUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_END_DATA);
-        mAppEndUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_END_TIME);
         mSessionTimeUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_SESSION_INTERVAL_TIME);
         mLoginIdUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_LOGIN_ID);
         mChannelPersistentUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_CHANNEL_PERSISTENT);
@@ -113,15 +111,6 @@ public class DbParams {
      */
     Uri getAppStartTimeUri() {
         return mAppStartTimeUri;
-    }
-
-    /**
-     * 获取 AppPausedTime Uri
-     *
-     * @return uri
-     */
-    Uri getAppPausedUri() {
-        return mAppEndUri;
     }
 
     /**

@@ -18,7 +18,6 @@
 package com.sensorsdata.analytics.android.sdk.visual;
 
 
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.text.TextUtils;
 import android.util.SparseArray;
@@ -45,7 +44,6 @@ import java.util.HashMap;
 import java.util.List;
 
 
-@TargetApi(16)
 public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrollChangedListener, OnGlobalFocusChangeListener {
     private static final String TAG = "ViewTreeStatusObservable";
     public static volatile ViewTreeStatusObservable viewTreeStatusObservable;

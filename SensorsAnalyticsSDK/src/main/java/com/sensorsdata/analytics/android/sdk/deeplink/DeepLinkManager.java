@@ -17,7 +17,6 @@
 
 package com.sensorsdata.analytics.android.sdk.deeplink;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -64,7 +63,6 @@ public class DeepLinkManager {
      * @param intent Intent
      * @return 是否是 UtmDeepLink
      */
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     private static boolean isUtmDeepLink(Intent intent) {
         if (!isDeepLink(intent) || intent.getData() == null) {
             return false;

@@ -19,7 +19,6 @@ package com.sensorsdata.analytics.android.sdk.util;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
@@ -276,7 +275,6 @@ public final class SensorsDataUtils {
         return SASpUtils.getSharedPreferences(context, SHARED_PREF_EDITS_FILE, Context.MODE_PRIVATE);
     }
 
-    @TargetApi(11)
     static String getToolbarTitle(Activity activity) {
         try {
             if ("com.tencent.connect.common.AssistActivity".equals(activity.getClass().getCanonicalName())) {
@@ -285,10 +283,15 @@ public final class SensorsDataUtils {
                 }
                 return null;
             }
-            ActionBar actionBar = activity.getActionBar();
+            ActionBar actionBar = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+                actionBar = activity.getActionBar();
+            }
             if (actionBar != null) {
-                if (!TextUtils.isEmpty(actionBar.getTitle())) {
-                    return actionBar.getTitle().toString();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+                    if (!TextUtils.isEmpty(actionBar.getTitle())) {
+                        return actionBar.getTitle().toString();
+                    }
                 }
             } else {
                 try {

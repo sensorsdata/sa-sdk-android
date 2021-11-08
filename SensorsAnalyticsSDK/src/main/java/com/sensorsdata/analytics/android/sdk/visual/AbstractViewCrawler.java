@@ -25,6 +25,7 @@ import android.app.Application;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -67,7 +68,6 @@ import java.util.zip.GZIPOutputStream;
 
 import javax.net.ssl.HttpsURLConnection;
 
-@TargetApi(14)
 public abstract class AbstractViewCrawler implements VTrack {
 
     private static final String TAG = "SA.AbstractViewCrawler";
@@ -100,7 +100,9 @@ public abstract class AbstractViewCrawler implements VTrack {
             mMessageObject = null;
         }
         final Application app = (Application) mActivity.getApplicationContext();
-        app.registerActivityLifecycleCallbacks(mLifecycleCallbacks);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+            app.registerActivityLifecycleCallbacks(mLifecycleCallbacks);
+        }
 
         try {
             final PackageManager manager = activity.getPackageManager();
@@ -122,7 +124,9 @@ public abstract class AbstractViewCrawler implements VTrack {
         try {
             if (!TextUtils.isEmpty(mFeatureCode) && !TextUtils.isEmpty(mPostUrl)) {
                 final Application app = (Application) mActivity.getApplicationContext();
-                app.registerActivityLifecycleCallbacks(mLifecycleCallbacks);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+                    app.registerActivityLifecycleCallbacks(mLifecycleCallbacks);
+                }
                 mMessageThreadHandler.start();
                 mMessageThreadHandler
                         .sendMessage(mMessageThreadHandler.obtainMessage(MESSAGE_SEND_STATE_FOR_EDITING));
@@ -142,7 +146,9 @@ public abstract class AbstractViewCrawler implements VTrack {
             }
             mMessageThreadHandler.removeMessages(MESSAGE_SEND_STATE_FOR_EDITING);
             final Application app = (Application) mActivity.getApplicationContext();
-            app.unregisterActivityLifecycleCallbacks(mLifecycleCallbacks);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+                app.unregisterActivityLifecycleCallbacks(mLifecycleCallbacks);
+            }
             mServiceRunning = false;
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -154,6 +160,7 @@ public abstract class AbstractViewCrawler implements VTrack {
         return mServiceRunning;
     }
 
+    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     private class LifecycleCallbacks
             implements Application.ActivityLifecycleCallbacks {
 
@@ -200,6 +207,7 @@ public abstract class AbstractViewCrawler implements VTrack {
         private StringBuilder mLastImageHash;
         private String mAppId;
         private final String mSDKVersion;
+
         private ViewCrawlerHandler(Context context, Looper looper, String resourcePackageName) {
             super(looper);
             mSnapshot = null;

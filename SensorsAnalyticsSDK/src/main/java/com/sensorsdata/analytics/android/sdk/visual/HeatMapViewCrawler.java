@@ -17,11 +17,9 @@
 
 package com.sensorsdata.analytics.android.sdk.visual;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
 
 
-@TargetApi(16)
 class HeatMapViewCrawler extends AbstractViewCrawler {
 
     HeatMapViewCrawler(Activity activity, String resourcePackageName, String featureCode, String postUrl) {

@@ -17,7 +17,6 @@
 
 package com.sensorsdata.analytics.android.sdk.visual.property;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.net.Uri;
@@ -54,7 +53,6 @@ public class VisualPropertiesManager {
 
     private static final String TAG = "SA.VP.VisualPropertiesManager";
     private static final String PROPERTY_TYPE_NUMBER = "NUMBER";
-    private static VisualPropertiesManager sInstance;
     private VisualConfig mVisualConfig;
     private VisualPropertiesCache mConfigCache;
     private VisualConfigRequestHelper mRequestHelper;
@@ -69,14 +67,11 @@ public class VisualPropertiesManager {
     }
 
     public static VisualPropertiesManager getInstance() {
-        if (sInstance == null) {
-            synchronized (VisualPropertiesManager.class) {
-                if (sInstance == null) {
-                    sInstance = new VisualPropertiesManager();
-                }
-            }
-        }
-        return sInstance;
+        return SingletonHolder.INSTANCE;
+    }
+
+    private static class SingletonHolder {
+        private static VisualPropertiesManager INSTANCE = new VisualPropertiesManager();
     }
 
     public void requestVisualConfig(Context context, SensorsDataAPI sensorsDataAPI) {
@@ -180,7 +175,6 @@ public class VisualPropertiesManager {
         }
     }
 
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
     public void mergeVisualProperties(VisualEventType eventType, JSONObject srcObject, ViewNode viewNode) {
         try {
             String screenName = srcObject.optString(AopConstants.SCREEN_NAME);
@@ -342,6 +336,10 @@ public class VisualPropertiesManager {
             return false;
         }
 
+        if (mVisualConfig == null) {
+            SALog.i(TAG, "VisualConfig is null and return");
+            return false;
+        }
         // 校验配置中的 app_id 和 当前 app_id 是否一致
         if (!TextUtils.equals(appId, mVisualConfig.appId)) {
             SALog.i(TAG, String.format("app_id is not equals: current app_id is %s, config app_id is %s ", appId, mVisualConfig.appId));

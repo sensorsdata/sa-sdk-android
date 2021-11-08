@@ -55,6 +55,8 @@ public class OaidHelper {
     };
     private static final List<String> mLoadLibrary = new LinkedList<String>() {
         {
+            add("msaoaidsec");                  // v1.0.30
+            add("nllvm1632808251147706677");    // v1.0.29
             add("nllvm1630571663641560568");    // v1.0.27
             add("nllvm1623827671");             // v1.0.26
         }

@@ -192,7 +192,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             mRemoteManager.applySDKConfigFromCache();
             // 可视化自定义属性拉取配置
             if (mSAConfigOptions.isVisualizedPropertiesEnabled()) {
-                VisualPropertiesManager.getInstance().requestVisualConfig(mContext,(SensorsDataAPI) this);
+                VisualPropertiesManager.getInstance().requestVisualConfig(mContext, (SensorsDataAPI) this);
             }
             //打开 debug 模式，弹出提示
             if (mDebugMode != SensorsDataAPI.DebugMode.DEBUG_OFF && mIsMainProcess) {

@@ -17,8 +17,6 @@
 
 package com.sensorsdata.analytics.android.sdk.util;
 
-import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
 import android.graphics.Rect;
 import android.os.Build;
 import android.text.TextUtils;
@@ -250,7 +248,6 @@ public class ViewUtil {
         }
     }
 
-    @TargetApi(12)
     private static void checkCustomRecyclerView(Class<?> viewClass, String viewName) {
         if (!sHaveRecyclerView && !sHaveCustomRecyclerView && viewName != null && viewName.contains("RecyclerView")) {
             try {
@@ -303,7 +300,6 @@ public class ViewUtil {
         return (view instanceof AdapterView) || ViewUtil.instanceOfRecyclerView(view) || ViewUtil.instanceOfAndroidXViewPager(view) || ViewUtil.instanceOfSupportViewPager(view);
     }
 
-    @SuppressLint("NewApi")
     public static boolean isViewSelfVisible(View view) {
         if (view == null || view.getWindowVisibility() == View.GONE) {
             return false;
@@ -311,8 +307,10 @@ public class ViewUtil {
         if (WindowHelper.isDecorView(view.getClass())) {
             return true;
         }
-        if (view.getWidth() <= 0 || view.getHeight() <= 0 || view.getAlpha() <= 0.0f || !view.getLocalVisibleRect(new Rect())) {
-            return false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            if (view.getWidth() <= 0 || view.getHeight() <= 0 || view.getAlpha() <= 0.0f || !view.getLocalVisibleRect(new Rect())) {
+                return false;
+            }
         }
         if ((view.getVisibility() == View.VISIBLE || view.getAnimation() == null || !view.getAnimation().getFillAfter()) && view.getVisibility() != View.VISIBLE) {
             return false;
@@ -340,22 +338,24 @@ public class ViewUtil {
         return true;
     }
 
-    @SuppressLint("NewApi")
     public static void invalidateLayerTypeView(View[] views) {
-        for (View view : views) {
-            if (ViewUtil.viewVisibilityInParents(view) && view.isHardwareAccelerated()) {
-                checkAndInvalidate(view);
-                if (view instanceof ViewGroup) {
-                    invalidateViewGroup((ViewGroup) view);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            for (View view : views) {
+                if (ViewUtil.viewVisibilityInParents(view) && view.isHardwareAccelerated()) {
+                    checkAndInvalidate(view);
+                    if (view instanceof ViewGroup) {
+                        invalidateViewGroup((ViewGroup) view);
+                    }
                 }
             }
         }
     }
 
-    @SuppressLint("NewApi")
     private static void checkAndInvalidate(View view) {
-        if (view.getLayerType() != 0) {
-            view.invalidate();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            if (view.getLayerType() != View.LAYER_TYPE_NONE) {
+                view.invalidate();
+            }
         }
     }
 
@@ -719,7 +719,7 @@ public class ViewUtil {
         if (TextUtils.isEmpty(viewText)) {
             viewText = "";
         }
-        return new ViewNode(viewText.toString(), viewType);
+        return new ViewNode(viewText == null ? "" : viewText.toString(), viewType);
     }
 
 

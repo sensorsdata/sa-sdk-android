@@ -17,11 +17,8 @@
 
 package com.sensorsdata.analytics.android.sdk.visual.bridge;
 
-import android.annotation.TargetApi;
-import android.os.Build;
 import android.os.SystemClock;
 import android.text.TextUtils;
-import android.util.ArrayMap;
 import android.util.Base64;
 import android.view.View;
 
@@ -34,14 +31,14 @@ import org.json.JSONObject;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 
-@TargetApi(Build.VERSION_CODES.KITKAT)
 public class JSBridgeHelper implements WebViewJavascriptBridge {
 
     private final static String CALLBACK_ID_FORMAT = "JAVA_CB_%s";
     private final static String CALL_TYPE_GET_VISUAL_PROPERTIES = "getJSVisualProperties";
-    private Map<String, OnBridgeCallback> mCallbacks = new ArrayMap<>();
+    private Map<String, OnBridgeCallback> mCallbacks = new HashMap<>();
     private SAJSListener mSAJSListener;
 
     public void addSAJSListener() {

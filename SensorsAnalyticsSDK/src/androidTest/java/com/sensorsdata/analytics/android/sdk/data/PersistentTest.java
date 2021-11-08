@@ -25,8 +25,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.sensorsdata.analytics.android.sdk.PropertyBuilder;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndData;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppPaused;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppStartTime;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentDistinctId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
@@ -139,42 +137,6 @@ public class PersistentTest {
             persistentAppEndData.commit(testStr);
             String tmp = persistentAppEndData.get();
             assertThat(tmp, allOf(notNullValue(), equalTo(testStr)));
-        }
-
-        //  PersistentAppPaused
-        sharedPreferences.edit().clear().apply();
-        {
-            PersistentAppPaused persistentAppPaused = (PersistentAppPaused) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.APP_PAUSED_TIME);
-            assertNotNull(persistentAppPaused);
-            long result = persistentAppPaused.get();
-            assertEquals(0L, result);
-
-            persistentAppPaused.commit(null);
-            result = persistentAppPaused.get();
-            assertEquals(0L, result);
-
-            long time = System.currentTimeMillis();
-            persistentAppPaused.commit(time);
-            result = persistentAppPaused.get();
-            assertEquals(time, result);
-        }
-
-        //  PersistentAppStartTime
-        sharedPreferences.edit().clear().apply();
-        {
-            PersistentAppStartTime persistentAppStartTime = (PersistentAppStartTime) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.APP_START_TIME);
-            assertNotNull(persistentAppStartTime);
-            long result = persistentAppStartTime.get();
-            assertEquals(0L, result);
-
-            persistentAppStartTime.commit(null);
-            result = persistentAppStartTime.get();
-            assertEquals(0L, result);
-
-            long time = System.currentTimeMillis();
-            persistentAppStartTime.commit(time);
-            result = persistentAppStartTime.get();
-            assertEquals(time, result);
         }
 
         //  PersistentDistinctId
@@ -311,24 +273,6 @@ public class PersistentTest {
             persistentRemoteSDKConfig.commit(testStr);
             String tmp = persistentRemoteSDKConfig.get();
             assertThat(tmp, allOf(notNullValue(), equalTo(testStr)));
-        }
-
-        //  PersistentSessionIntervalTime
-        sharedPreferences.edit().clear().apply();
-        {
-            PersistentSessionIntervalTime persistentSessionIntervalTime = (PersistentSessionIntervalTime) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.APP_SESSION_TIME);
-            assertNotNull(persistentSessionIntervalTime);
-            int result = persistentSessionIntervalTime.get();
-            assertEquals(30 * 1000, result);
-
-            persistentSessionIntervalTime.commit(null);
-            result = persistentSessionIntervalTime.get();
-            assertEquals(30 * 1000, result);
-
-            int session = 60 * 1000;
-            persistentSessionIntervalTime.commit(session);
-            result = persistentSessionIntervalTime.get();
-            assertEquals(session, result);
         }
         //finally
         sharedPreferences.edit().clear().apply();

@@ -184,7 +184,7 @@ public class AopUtil {
             if (TextUtils.isEmpty(viewText) && child instanceof TextView) {
                 viewText = ((TextView) child).getHint();
             }
-            if (!TextUtils.isEmpty(viewText)) {
+            if (viewText != null && !TextUtils.isEmpty(viewText)) {
                 return viewText.toString();
             }
         } catch (Exception ex) {
@@ -713,7 +713,6 @@ public class AopUtil {
      * @param activity Activity
      * @return object 这里是 fragment 实例对象
      */
-    @SuppressLint("NewApi")
     public static Object getFragmentFromView(View view, Activity activity) {
         try {
             if (view != null) {
@@ -740,23 +739,28 @@ public class AopUtil {
                     }
                 }
                 if (!TextUtils.isEmpty(fragmentName)) {
-                    WeakReference<Object> weakReference = sLruCache.get(fragmentName);
+                    WeakReference<Object> weakReference = null;
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB_MR1) {
+                        weakReference = sLruCache.get(fragmentName);
+                    }
                     Object object;
                     if (weakReference != null) {
                         object = weakReference.get();
-                        if(object != null) {
+                        if (object != null) {
                             return object;
                         }
                     }
 
                     object = Class.forName(fragmentName).newInstance();
-                    sLruCache.put(fragmentName, new WeakReference<>(object));
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
+                        sLruCache.put(fragmentName, new WeakReference<>(object));
+                    }
 
                     return object;
                 }
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
         return null;
     }
