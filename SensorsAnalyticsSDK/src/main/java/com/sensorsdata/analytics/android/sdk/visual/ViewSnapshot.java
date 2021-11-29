@@ -29,8 +29,6 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Base64;
-import android.util.Base64OutputStream;
 import android.util.DisplayMetrics;
 import android.util.JsonWriter;
 import android.util.LruCache;
@@ -48,6 +46,7 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackHelper;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
+import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.DeviceUtils;
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
 import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
@@ -731,9 +730,11 @@ public class ViewSnapshot {
                 out.write("null".getBytes());
             } else {
                 out.write('"');
-                final Base64OutputStream imageOut = new Base64OutputStream(out, Base64.NO_WRAP);
-                mCached.compress(Bitmap.CompressFormat.PNG, 100, imageOut);
-                imageOut.flush();
+                ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                mCached.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                stream.flush();
+                String bitmapStr = new String(Base64Coder.encode(stream.toByteArray()));
+                out.write(bitmapStr.getBytes());
                 out.write('"');
             }
         }

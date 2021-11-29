@@ -62,7 +62,7 @@ import java.util.Locale;
 
 public class AopUtil {
 
-    private static final String TAG = "AopUtil";
+    private static final String TAG = "SA.AopUtil";
     @SuppressLint("NewApi")
     private static LruCache<String, WeakReference<Object>> sLruCache = new LruCache<>(10);
 

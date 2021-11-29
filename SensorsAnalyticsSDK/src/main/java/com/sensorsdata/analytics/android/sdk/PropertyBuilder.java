@@ -24,7 +24,7 @@ import java.util.Map;
 
 
 public final class PropertyBuilder {
-    private static final String TAG = "PropertyBuilder";
+    private static final String TAG = "SA.PropertyBuilder";
     private final LinkedHashMap<String, Object> innerPropertyMap;
 
     private PropertyBuilder() {

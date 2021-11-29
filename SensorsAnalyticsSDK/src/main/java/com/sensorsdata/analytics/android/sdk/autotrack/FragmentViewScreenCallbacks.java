@@ -75,7 +75,7 @@ public class FragmentViewScreenCallbacks implements SAFragmentLifecycleCallbacks
             Activity activity = AopUtil.getActivityFromContext(context, rootView);
             if (activity != null) {
                 Window window = activity.getWindow();
-                if (window != null && window.isActive()) {
+                if (window != null) {
                     window.getDecorView().getRootView().setTag(R.id.sensors_analytics_tag_view_fragment_name, "");
                 }
             }

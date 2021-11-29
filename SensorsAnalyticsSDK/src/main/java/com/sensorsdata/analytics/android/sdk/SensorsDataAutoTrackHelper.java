@@ -47,6 +47,7 @@ import android.widget.TextView;
 
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
+import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.ThreadUtils;
@@ -364,6 +365,20 @@ public class SensorsDataAutoTrackHelper {
                         View view = WindowHelper.getClickView(tabName);
                         ViewNode viewNode = null;
                         if (view != null) {
+                            //循环向上获取 tabHostView
+                            View currentView = view;
+                            View tabHostView = null;
+                            while (null == tabHostView && null != currentView && null != currentView.getParent()) {
+                                currentView = (View) currentView.getParent();
+                                if (currentView instanceof TabHost) {
+                                    tabHostView = currentView;
+                                }
+                            }
+                            //tabHostView 的忽略判断
+                            if (null != tabHostView && AopUtil.isViewIgnored(tabHostView)) {
+                                return;
+                            }
+
                             Context context = view.getContext();
                             if (context == null) {
                                 return;
@@ -442,11 +457,29 @@ public class SensorsDataAutoTrackHelper {
 
             //TabLayout 被忽略
             if (supportTabLayoutCLass != null) {
+                //反射获取 TabLayout，进行 view 忽略判断。
+                if (ReflectUtil.isInstance(tab, "android.support.design.widget.TabLayout$Tab")) {
+                    View view = ReflectUtil.findField(new String[]{"android.support.design.widget.TabLayout$Tab"}, tab, "mParent");
+                    if (null != view && ReflectUtil.isInstance(view, "android.support.design.widget.TabLayout")
+                            && AopUtil.isViewIgnored(view)) {
+                        return;
+                    }
+                }
+
                 if (AopUtil.isViewIgnored(supportTabLayoutCLass)) {
                     return;
                 }
             }
             if (androidXTabLayoutCLass != null) {
+                //反射获取 TabLayout，进行 view 忽略判断。
+                if (ReflectUtil.isInstance(tab, "com.google.android.material.tabs.TabLayout$Tab")) {
+                    View view = ReflectUtil.findField(new String[]{"com.google.android.material.tabs.TabLayout$Tab"}, tab, "parent");
+                    if (null != view && ReflectUtil.isInstance(view, "com.google.android.material.tabs.TabLayout")
+                            && AopUtil.isViewIgnored(view)) {
+                        return;
+                    }
+                }
+
                 if (AopUtil.isViewIgnored(androidXTabLayoutCLass)) {
                     return;
                 }

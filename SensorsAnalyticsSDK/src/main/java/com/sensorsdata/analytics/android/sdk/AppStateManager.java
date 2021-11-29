@@ -33,7 +33,7 @@ import java.lang.reflect.Method;
 @SuppressLint("NewApi")
 public class AppStateManager implements Application.ActivityLifecycleCallbacks {
 
-    private static final String TAG = "AppStateManager";
+    private static final String TAG = "SA.AppStateManager";
     private volatile static AppStateManager mSingleton = null;
 
     private AppStateManager() {
@@ -113,15 +113,19 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
     @Override
     public void onActivityResumed(Activity activity) {
         setForegroundActivity(activity);
-        Window window = activity.getWindow();
         View decorView = null;
-        if (window != null && window.isActive()) {
-            decorView = window.getDecorView();
-        }
-        if (SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled() && Build.VERSION.SDK_INT >= 16) {
-            if (decorView != null) {
-                monitorViewTreeChange(decorView);
+        try {
+            Window window = activity.getWindow();
+            if (window != null) {
+                decorView = window.getDecorView();
             }
+            if (SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled()) {
+                if (decorView != null) {
+                    monitorViewTreeChange(decorView);
+                }
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
         if (!activity.isChild()) {
             if (decorView != null) {
@@ -132,7 +136,7 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
 
     @Override
     public void onActivityPaused(Activity activity) {
-        if (Build.VERSION.SDK_INT >= 16) {
+        if (SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled()) {
             Window window = activity.getWindow();
             if (window != null && window.isActive()) {
                 unRegisterViewTreeChange(window.getDecorView());

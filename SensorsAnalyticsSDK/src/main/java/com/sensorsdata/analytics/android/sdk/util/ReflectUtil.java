@@ -63,7 +63,7 @@ public class ReflectUtil {
         return currentClass;
     }
 
-    static boolean isInstance(Object object, String... args) {
+    public static boolean isInstance(Object object, String... args) {
         if (args == null || args.length == 0) {
             return false;
         }

@@ -33,7 +33,7 @@ import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesMan
  */
 
 public class VisualizedAutoTrackService {
-    private static final String TAG = "VisualizedAutoTrackService";
+    private static final String TAG = "SA.VisualizedAutoTrackService";
     private static VisualizedAutoTrackService instance;
     private static VisualizedAutoTrackViewCrawler mVTrack;
     private boolean mDebugModeEnabled = false;
