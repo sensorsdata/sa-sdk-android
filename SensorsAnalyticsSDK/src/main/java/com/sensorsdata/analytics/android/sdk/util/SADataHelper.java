@@ -38,7 +38,7 @@ public class SADataHelper {
     private static final String[] WHITE_LIST = {"sensorsdata_app_visual_properties"};
 
     private static final Pattern KEY_PATTERN = Pattern.compile(
-            "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
+            "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$|^user_group|^user_tag)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
             Pattern.CASE_INSENSITIVE);
 
     public static void assertPropertyTypes(JSONObject properties) throws InvalidDataException {
@@ -115,7 +115,7 @@ public class SADataHelper {
 
     public static void assertKey(String key) throws InvalidDataException {
         if (null == key || key.length() < 1) {
-            throw new InvalidDataException("The key is empty.");
+            throw new InvalidDataException("The key is empty or null.");
         }
         if (!(KEY_PATTERN.matcher(key).matches())) {
             throw new InvalidDataException("The key '" + key + "' is invalid.");
@@ -124,7 +124,7 @@ public class SADataHelper {
 
     public static void assertValue(String value) throws InvalidDataException {
         if (TextUtils.isEmpty(value)) {
-            throw new InvalidDataException("The value is empty.");
+            throw new InvalidDataException("The value is empty or null.");
         }
         if (value.length() > 255) {
             throw new InvalidDataException("The " + value + " is too long, max length is 255.");

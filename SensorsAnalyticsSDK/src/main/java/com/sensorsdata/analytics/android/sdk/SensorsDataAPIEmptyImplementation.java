@@ -23,6 +23,7 @@ import android.view.View;
 import android.webkit.WebView;
 
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.listener.SAJSListener;
 
 import org.json.JSONObject;

@@ -18,6 +18,8 @@
 package com.sensorsdata.analytics.android.sdk;
 
 
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
+
 import org.json.JSONObject;
 
 import java.io.PrintWriter;

@@ -250,17 +250,6 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
     }
 
     /**
-     * 设置匿名 ID
-     *
-     * @param anonymousId 匿名 ID
-     * @return SAOptionsConfig
-     */
-    public SAConfigOptions setAnonymousId(String anonymousId) {
-        this.mAnonymousId = anonymousId;
-        return this;
-    }
-
-    /**
      * 设置是否保存 utm 属性
      *
      * @param enableSave boolean 默认 false 不保存
@@ -348,6 +337,10 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
         return this;
     }
 
+    public boolean isDataCollect() {
+        return this.isDataCollectEnable;
+    }
+
     /**
      * 设置 SSLSocketFactory，HTTPS 请求连接时需要使用
      *
@@ -408,6 +401,26 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
             mEncryptors.add(0, encryptListener);
         }
         return this;
+    }
+
+    /**
+     * 自定义 LoginID Key
+     *
+     * @param loginIDKey LoginID Key
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions setLoginIDKey(String loginIDKey) {
+        this.mLoginIDKey = loginIDKey;
+        return this;
+    }
+
+    /**
+     * 获取 LoginID Key
+     *
+     * @return LoginID Key
+     */
+    public String getLoginIDKey() {
+        return this.mLoginIDKey;
     }
 
     @Override

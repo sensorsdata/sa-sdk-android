@@ -17,12 +17,12 @@
 package com.sensorsdata.analytics.android.sdk;
 
 import android.app.Activity;
-import android.content.Context;
 import android.view.View;
 import android.webkit.WebView;
 
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.internal.api.IFragmentAPI;
+import com.sensorsdata.analytics.android.sdk.internal.api.IUserIdentityAPI;
 
 import org.json.JSONObject;
 
@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public interface ISensorsDataAPI extends IFragmentAPI {
+public interface ISensorsDataAPI extends IFragmentAPI, IUserIdentityAPI {
     /**
      * 返回预置属性
      *

@@ -41,6 +41,8 @@ public class DbParams {
     public static final String TABLE_DATA_DISABLE_SDK = "disable_SDK";
     public static final String TABLE_REMOTE_CONFIG = "remote_config";
     public static final String TABLE_LOGIN_ID = "events_login_id";
+    public static final String PERSISTENT_USER_ID = "user_ids";
+    public static final String PERSISTENT_LOGIN_ID_KEY = "login_id_key";
     /* Event 表字段 */
     public static final String KEY_DATA = "data";
     public static final String KEY_CREATED_AT = "created_at";
@@ -54,7 +56,7 @@ public class DbParams {
     private static DbParams instance;
     private final Uri mUri, mActivityStartCountUri, mAppStartTimeUri, mDataCollectUri,
             mAppEndDataUri, mSessionTimeUri, mLoginIdUri, mChannelPersistentUri, mSubProcessUri,
-            mFirstProcessUri, mEnableSDKUri, mDisableSDKUri, mRemoteConfigUri;
+            mFirstProcessUri, mEnableSDKUri, mDisableSDKUri, mRemoteConfigUri, mUserIdentities, mLoginIdKeyUri;
 
     private DbParams(String packageName) {
         mUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_EVENTS);
@@ -63,6 +65,7 @@ public class DbParams {
         mAppEndDataUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_END_DATA);
         mSessionTimeUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_SESSION_INTERVAL_TIME);
         mLoginIdUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_LOGIN_ID);
+        mLoginIdKeyUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PERSISTENT_LOGIN_ID_KEY);
         mChannelPersistentUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_CHANNEL_PERSISTENT);
         mSubProcessUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_SUB_PROCESS_FLUSH_DATA);
         mFirstProcessUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_FIRST_PROCESS_START);
@@ -70,6 +73,7 @@ public class DbParams {
         mEnableSDKUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_DATA_ENABLE_SDK);
         mDisableSDKUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_DATA_DISABLE_SDK);
         mRemoteConfigUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_REMOTE_CONFIG);
+        mUserIdentities = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PERSISTENT_USER_ID);
     }
 
     public static DbParams getInstance(String packageName) {
@@ -186,5 +190,23 @@ public class DbParams {
 
     public Uri getRemoteConfigUri() {
         return mRemoteConfigUri;
+    }
+
+    /**
+     * 用户标识 Uri
+     *
+     * @return Uri
+     */
+    public Uri getUserIdentities() {
+        return mUserIdentities;
+    }
+
+    /**
+     * 获取 ID-Mapping 3.0 自定义的 LoginIdKey 的 Uri
+     *
+     * @return Uri
+     */
+    public Uri getLoginIdKeyUri() {
+        return mLoginIdKeyUri;
     }
 }

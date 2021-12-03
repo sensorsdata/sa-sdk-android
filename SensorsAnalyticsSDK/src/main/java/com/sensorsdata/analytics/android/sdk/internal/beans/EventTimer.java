@@ -1,5 +1,5 @@
 /*
- * Created by wangzhuozhou on 2017/4/10.
+ * Created by dengshiwei on 2021/03/26.
  * Copyright 2015－2021 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,28 +15,30 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk;
+package com.sensorsdata.analytics.android.sdk.internal.beans;
 
 import android.os.SystemClock;
+
+import com.sensorsdata.analytics.android.sdk.SALog;
 
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
-class EventTimer {
+public class EventTimer {
     private final TimeUnit timeUnit;
     private long startTime;
     private long endTime;
     private long eventAccumulatedDuration;
     private boolean isPaused = false;
 
-    EventTimer(TimeUnit timeUnit, long startTime) {
+    public EventTimer(TimeUnit timeUnit, long startTime) {
         this.startTime = startTime;
         this.timeUnit = timeUnit;
         this.eventAccumulatedDuration = 0;
         this.endTime = -1;
     }
 
-    String duration() {
+    public String duration() {
         if (isPaused) {
             endTime = startTime;
         } else {
@@ -66,31 +68,31 @@ class EventTimer {
         }
     }
 
-    long getStartTime() {
+    public long getStartTime() {
         return startTime;
     }
 
-    void setStartTime(long startTime) {
+    public void setStartTime(long startTime) {
         this.startTime = startTime;
     }
 
-    void setEndTime(long endTime) {
+    public void setEndTime(long endTime) {
         this.endTime = endTime;
     }
 
-    long getEndTime() {
+    public long getEndTime() {
         return endTime;
     }
 
-    long getEventAccumulatedDuration() {
+    public long getEventAccumulatedDuration() {
         return eventAccumulatedDuration;
     }
 
-    void setEventAccumulatedDuration(long eventAccumulatedDuration) {
+    public void setEventAccumulatedDuration(long eventAccumulatedDuration) {
         this.eventAccumulatedDuration = eventAccumulatedDuration;
     }
 
-    void setTimerState(boolean isPaused, long elapsedRealtime) {
+    public void setTimerState(boolean isPaused, long elapsedRealtime) {
         this.isPaused = isPaused;
         if (isPaused) {
             eventAccumulatedDuration = eventAccumulatedDuration + elapsedRealtime - startTime;
@@ -98,7 +100,7 @@ class EventTimer {
         startTime = elapsedRealtime;
     }
 
-    boolean isPaused() {
+    public boolean isPaused() {
         return isPaused;
     }
 }

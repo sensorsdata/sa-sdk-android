@@ -110,6 +110,20 @@ public abstract class PersistentIdentity<T> {
     }
 
     /**
+     * 判断当前 Key 是否存在
+     *
+     * @return true： 存在，false：不存在
+     */
+    public boolean isExists() {
+        try {
+            return loadStoredPreferences.get().contains(persistentKey);
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+        return false;
+    }
+
+    /**
      * Persistent 序列化接口
      *
      * @param <T> 数据类型

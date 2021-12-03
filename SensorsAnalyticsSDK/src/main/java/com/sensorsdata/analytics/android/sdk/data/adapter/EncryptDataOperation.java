@@ -114,6 +114,7 @@ class EncryptDataOperation extends DataOperation {
                                 dataEncryptMap.put(key, jsonArray);
                             }
                         } else {
+                            jsonObject.put("_flush_time", System.currentTimeMillis());
                             dataJsonArray.put(jsonObject);
                         }
                     } catch (Exception e) {

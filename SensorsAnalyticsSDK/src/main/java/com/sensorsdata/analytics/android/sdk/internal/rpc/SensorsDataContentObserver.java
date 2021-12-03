@@ -27,6 +27,7 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
+import com.sensorsdata.analytics.android.sdk.internal.api.UserIdentityAPI;
 
 /**
  * 用于跨进程业务的数据通信
@@ -35,9 +36,10 @@ public class SensorsDataContentObserver extends ContentObserver {
     public static boolean isEnableFromObserver = false;
     public static boolean isDisableFromObserver = false;
     public static boolean isLoginFromObserver = false;
-
-    public SensorsDataContentObserver() {
+    private final UserIdentityAPI mUserIdentity;
+    public SensorsDataContentObserver(UserIdentityAPI userIdentity) {
         super(new Handler(Looper.getMainLooper()));
+        this.mUserIdentity = userIdentity;
     }
 
     @Override
@@ -65,6 +67,8 @@ public class SensorsDataContentObserver extends ContentObserver {
                     isEnableFromObserver = true;
                     SensorsDataAPI.enableSDK();
                 }
+            } else if (DbParams.getInstance().getUserIdentities().equals(uri)) {
+                mUserIdentity.loadIdentitiesFromFile();
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);

@@ -125,11 +125,6 @@ abstract class AbstractSAConfigOptions {
     int mNetworkTypePolicy = SensorsNetworkType.TYPE_3G | SensorsNetworkType.TYPE_4G | SensorsNetworkType.TYPE_WIFI | SensorsNetworkType.TYPE_5G;
 
     /**
-     * AnonymousId，匿名 ID
-     */
-    String mAnonymousId;
-
-    /**
      * 是否使用上次启动时保存的 utm 属性.
      */
     boolean mEnableSaveDeepLinkInfo = false;
@@ -255,4 +250,10 @@ abstract class AbstractSAConfigOptions {
     public boolean isVisualizedPropertiesEnabled() {
         return this.mVisualizedPropertiesEnabled;
     }
+    List<SAEncryptListener> mEncryptListeners;
+
+    /**
+     * 自定义 LoginIDKey
+     */
+    String mLoginIDKey = "$identity_login_id";
 }

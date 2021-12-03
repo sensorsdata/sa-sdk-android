@@ -22,17 +22,23 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
+import com.sensorsdata.analytics.android.sdk.listener.SAFunctionListener;
 
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class SAContextManager {
     private final Context mContext;
     private boolean mDisableTrackDeviceId;
     private Map<String, Object> mDeviceInfo;
+    private List<SAEventListener> mEventListenerList;
+    private List<SAFunctionListener> mFunctionListenerList;
     /* AndroidID */
     private String mAndroidId;
     private boolean isAppStartSuccess;
@@ -55,6 +61,81 @@ public class SAContextManager {
             SALog.printStackTrace(ex);
         }
         return mDeviceInfo;
+    }
+
+    public void addFunctionListener(SAFunctionListener functionListener) {
+        try {
+            if (this.mFunctionListenerList == null) {
+                mFunctionListenerList = new ArrayList<>();
+            }
+            if (functionListener != null && !mFunctionListenerList.contains(functionListener)) {
+                mFunctionListenerList.add(functionListener);
+            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+    }
+
+    /**
+     * 移除 SDK 事件回调监听
+     *
+     * @param functionListener 事件监听
+     */
+    public void removeFunctionListener(SAFunctionListener functionListener) {
+        try {
+            if (this.mFunctionListenerList != null && functionListener != null) {
+                this.mFunctionListenerList.remove(functionListener);
+            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+    }
+
+    /**
+     * 获取 SDK 事件监听回调
+     * @return 事件监听回调
+     */
+    public List<SAEventListener> getEventListenerList() {
+        return mEventListenerList;
+    }
+
+    /**
+     * 获取 SDK 事件监听回调
+     * @return 事件监听回调
+     */
+    public List<SAFunctionListener> getFunctionListenerList() {
+        return mFunctionListenerList;
+    }
+
+    /**
+     * SDK 事件回调监听，目前用于弹窗业务
+     *
+     * @param eventListener 事件监听
+     */
+    public void addEventListener(SAEventListener eventListener) {
+        try {
+            if (this.mEventListenerList == null) {
+                this.mEventListenerList = new ArrayList<>();
+            }
+            this.mEventListenerList.add(eventListener);
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+    }
+
+    /**
+     * 移除 SDK 事件回调监听
+     *
+     * @param eventListener 事件监听
+     */
+    public void removeEventListener(SAEventListener eventListener) {
+        try {
+            if (mEventListenerList != null && mEventListenerList.contains(eventListener)) {
+                this.mEventListenerList.remove(eventListener);
+            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
     }
 
     /**

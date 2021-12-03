@@ -22,6 +22,7 @@ import android.content.Context;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.encrypt.SensorsDataEncrypt;
+import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -326,6 +327,68 @@ public class DbAdapter {
             SALog.printStackTrace(ex);
         }
         return true;
+    }
+
+    /**
+     * 存储 identities
+     *
+     * @param identities ID 标识
+     */
+    public void commitIdentities(String identities) {
+        try {
+            final String encodeIdentities = "Base64:" + Base64Coder.encodeString(identities);
+            mPersistentOperation.insertData(mDbParams.getUserIdentities(), new JSONObject().put(DbParams.VALUE, encodeIdentities));
+        } catch (JSONException e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
+    /**
+     * 获取 identities
+     *
+     * @return ID 标识
+     */
+    public String getIdentities() {
+        try {
+            String[] values = mPersistentOperation.queryData(mDbParams.getUserIdentities(), 1);
+            if (values != null && values.length > 0) {
+                final String encodeIdentities = values[0];
+                return Base64Coder.decodeString(encodeIdentities.substring(encodeIdentities.indexOf(":") + 1));
+            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+        return null;
+    }
+
+    /**
+     * 存储 LoginId
+     *
+     * @param loginIdKey 登录 Id
+     */
+    public void commitLoginIdKey(String loginIdKey) {
+        try {
+            mPersistentOperation.insertData(mDbParams.getLoginIdKeyUri(), new JSONObject().put(DbParams.VALUE, loginIdKey));
+        } catch (JSONException e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
+    /**
+     * 获取 LoginIdKey
+     *
+     * @return LoginIdKey
+     */
+    public String getLoginIdKey() {
+        try {
+            String[] values = mPersistentOperation.queryData(mDbParams.getLoginIdKeyUri(), 1);
+            if (values != null && values.length > 0) {
+                return values[0];
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return "";
     }
 
     /**

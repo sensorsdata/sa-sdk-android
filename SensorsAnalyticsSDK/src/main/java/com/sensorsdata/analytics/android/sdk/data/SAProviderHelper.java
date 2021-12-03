@@ -31,12 +31,14 @@ import android.net.Uri;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
+import com.sensorsdata.analytics.android.sdk.data.persistent.LoginIdKeyPersistent;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndData;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFlushDataState;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
+import com.sensorsdata.analytics.android.sdk.data.persistent.UserIdentityPersistent;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -50,6 +52,8 @@ class SAProviderHelper {
     private PersistentLoginId persistentLoginId;
     private PersistentFlushDataState persistentFlushDataState;
     private PersistentRemoteSDKConfig persistentRemoteSDKConfig;
+    private LoginIdKeyPersistent mLoginIdKeyPersistent;
+    private UserIdentityPersistent mUserIdsPersistent;
     private Context mContext;
     private boolean isDbWritable = true;
     private boolean isFirstProcessStarted = true;
@@ -67,6 +71,8 @@ class SAProviderHelper {
             persistentLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(DbParams.TABLE_LOGIN_ID);
             persistentFlushDataState = (PersistentFlushDataState) PersistentLoader.loadPersistent(DbParams.TABLE_SUB_PROCESS_FLUSH_DATA);
             persistentRemoteSDKConfig = (PersistentRemoteSDKConfig) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.REMOTE_CONFIG);
+            mUserIdsPersistent = (UserIdentityPersistent) PersistentLoader.loadPersistent(DbParams.PERSISTENT_USER_ID);
+            mLoginIdKeyPersistent = (LoginIdKeyPersistent) PersistentLoader.loadPersistent(DbParams.PERSISTENT_LOGIN_ID_KEY);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -135,6 +141,8 @@ class SAProviderHelper {
             uriMatcher.addURI(authority, DbParams.TABLE_FIRST_PROCESS_START, URI_CODE.FIRST_PROCESS_START);
             uriMatcher.addURI(authority, DbParams.TABLE_DATA_DISABLE_SDK, URI_CODE.DISABLE_SDK);
             uriMatcher.addURI(authority, DbParams.TABLE_REMOTE_CONFIG, URI_CODE.REMOTE_CONFIG);
+            uriMatcher.addURI(authority, DbParams.PERSISTENT_USER_ID, URI_CODE.USER_IDENTITY_ID);
+            uriMatcher.addURI(authority, DbParams.PERSISTENT_LOGIN_ID_KEY, URI_CODE.LOGIN_ID_KEY);
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
         }
@@ -243,6 +251,13 @@ class SAProviderHelper {
                 case URI_CODE.REMOTE_CONFIG:
                     persistentRemoteSDKConfig.commit(values.getAsString(DbParams.TABLE_REMOTE_CONFIG));
                     break;
+                case URI_CODE.USER_IDENTITY_ID:
+                    mUserIdsPersistent.commit(values.getAsString(DbParams.PERSISTENT_USER_ID));
+                    contentResolver.notifyChange(uri, null);
+                    break;
+                case URI_CODE.LOGIN_ID_KEY:
+                    mLoginIdKeyPersistent.commit(values.getAsString(DbParams.PERSISTENT_LOGIN_ID_KEY));
+                    break;
                 default:
                     break;
             }
@@ -328,6 +343,14 @@ class SAProviderHelper {
                 case URI_CODE.REMOTE_CONFIG:
                     data = persistentRemoteSDKConfig.get();
                     break;
+                case URI_CODE.USER_IDENTITY_ID:
+                    data = mUserIdsPersistent.get();
+                    column = DbParams.PERSISTENT_USER_ID;
+                    break;
+                case URI_CODE.LOGIN_ID_KEY:
+                    data = mLoginIdKeyPersistent.get();
+                    column = DbParams.PERSISTENT_LOGIN_ID_KEY;
+                    break;
                 default:
                     break;
             }
@@ -381,5 +404,7 @@ class SAProviderHelper {
         int FIRST_PROCESS_START = 10;
         int DISABLE_SDK = 11;
         int REMOTE_CONFIG = 12;
+        int USER_IDENTITY_ID = 13;
+        int LOGIN_ID_KEY = 14;
     }
 }

@@ -75,6 +75,10 @@ public class PersistentLoader {
                 return new PersistentFlushDataState(storedPreferences);
             case PersistentName.VISUAL_PROPERTIES:
                 return new PersistentVisualConfig(storedPreferences);
+            case DbParams.PERSISTENT_USER_ID:
+                return new UserIdentityPersistent(storedPreferences);
+            case DbParams.PERSISTENT_LOGIN_ID_KEY:
+                return new LoginIdKeyPersistent(storedPreferences);
             default:
                 return null;
         }
