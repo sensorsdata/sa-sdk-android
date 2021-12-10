@@ -26,7 +26,7 @@ public class PersistentFirstTrackInstallationWithCallback extends PersistentIden
         super(loadStoredPreferences, PersistentLoader.PersistentName.FIRST_INSTALL_CALLBACK, new PersistentSerializer<Boolean>() {
             @Override
             public Boolean load(String value) {
-                return Boolean.valueOf(value);
+                return false;
             }
 
             @Override

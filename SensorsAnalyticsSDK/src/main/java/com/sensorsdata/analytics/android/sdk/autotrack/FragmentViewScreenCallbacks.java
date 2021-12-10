@@ -19,6 +19,7 @@ package com.sensorsdata.analytics.android.sdk.autotrack;
 
 import android.app.Activity;
 import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -36,6 +37,7 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
+import com.sensorsdata.analytics.android.sdk.util.FragmentCacheUtil;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
@@ -43,6 +45,7 @@ import com.sensorsdata.analytics.android.sdk.util.WeakSet;
 
 import org.json.JSONObject;
 
+import java.lang.ref.WeakReference;
 import java.util.Set;
 
 /**
@@ -79,6 +82,8 @@ public class FragmentViewScreenCallbacks implements SAFragmentLifecycleCallbacks
                     window.getDecorView().getRootView().setTag(R.id.sensors_analytics_tag_view_fragment_name, "");
                 }
             }
+            //缓存 fragment
+            FragmentCacheUtil.setFragmentToCache(fragmentName, object);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }

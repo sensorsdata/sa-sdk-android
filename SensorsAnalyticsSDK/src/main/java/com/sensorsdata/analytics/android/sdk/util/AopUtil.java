@@ -17,7 +17,6 @@
 
 package com.sensorsdata.analytics.android.sdk.util;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -25,7 +24,6 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.text.TextUtils;
-import android.util.LruCache;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -52,7 +50,6 @@ import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Date;
@@ -61,10 +58,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class AopUtil {
-
     private static final String TAG = "SA.AopUtil";
-    @SuppressLint("NewApi")
-    private static LruCache<String, WeakReference<Object>> sLruCache = new LruCache<>(10);
 
     // 采集 viewType 忽略以下包内 view 直接返回对应的基础控件 viewType
     private static ArrayList<String> sOSViewPackage = new ArrayList<String>() {{
@@ -396,14 +390,18 @@ public class AopUtil {
         try {
             idString = (String) view.getTag(R.id.sensors_analytics_tag_view_id);
             if (TextUtils.isEmpty(idString)) {
-                if (view.getId() != View.NO_ID) {
+                if (isValid(view.getId())) {
                     idString = view.getContext().getResources().getResourceEntryName(view.getId());
                 }
             }
         } catch (Exception e) {
-            //ignore
+            SALog.printStackTrace(e);
         }
         return idString;
+    }
+
+    private static boolean isValid(int id) {
+        return id != -1 && (id & 0xff000000) != 0 && (id & 0x00ff0000) != 0;
     }
 
     /**
@@ -738,26 +736,7 @@ public class AopUtil {
                         }
                     }
                 }
-                if (!TextUtils.isEmpty(fragmentName)) {
-                    WeakReference<Object> weakReference = null;
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB_MR1) {
-                        weakReference = sLruCache.get(fragmentName);
-                    }
-                    Object object;
-                    if (weakReference != null) {
-                        object = weakReference.get();
-                        if (object != null) {
-                            return object;
-                        }
-                    }
-
-                    object = Class.forName(fragmentName).newInstance();
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
-                        sLruCache.put(fragmentName, new WeakReference<>(object));
-                    }
-
-                    return object;
-                }
+                return FragmentCacheUtil.getFragmentFromCache(fragmentName);
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
