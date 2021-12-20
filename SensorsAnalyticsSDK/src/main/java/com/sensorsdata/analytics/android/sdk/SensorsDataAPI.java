@@ -32,7 +32,6 @@ import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.internal.rpc.SensorsDataContentObserver;
-import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventTimer;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
@@ -42,6 +41,7 @@ import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.advert.utils.OaidHelper;
+import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
@@ -64,10 +64,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
-import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertKey;
-import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertPropertyLength;
-import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertPropertyTypes;
-import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertValue;
 
 /**
  * Sensors Analytics SDK
@@ -369,7 +365,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                         }
                         mGPSLocation.setLatitude((long) (latitude * Math.pow(10, 6)));
                         mGPSLocation.setLongitude((long) (longitude * Math.pow(10, 6)));
-                        mGPSLocation.setCoordinate(assertPropertyLength(coordinate));
+                        mGPSLocation.setCoordinate(SADataHelper.assertPropertyValue(coordinate));
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
                     }
@@ -1127,13 +1123,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Override
     public void identify(final String distinctId) {
         try {
-            assertValue(distinctId);
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-            return;
-        }
-
-        try {
+            SADataHelper.assertDistinctId(distinctId);
             mTrackTaskManager.addTrackEventTask(new Runnable() {
                 @Override
                 public void run() {
@@ -1157,7 +1147,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Override
     public void login(final String loginId, final JSONObject properties) {
         try {
-            assertValue(loginId);
+            SADataHelper.assertDistinctId(loginId);
             synchronized (mLoginIdLock) {
                 if (!loginId.equals(getAnonymousId())) {
                     mUserIdentityAPI.updateLoginId(loginId);
@@ -1215,7 +1205,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                     try {
                         mUserIdentityAPI.bind(key, value);
                         trackEvent(EventType.TRACK_ID_BIND, BIND_ID, null, getAnonymousId());
-                    } catch (InvalidDataException e) {
+                    } catch (Exception e) {
                         SALog.printStackTrace(e);
                     }
                 }
@@ -1468,7 +1458,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             @Override
             public void run() {
                 try {
-                    assertKey(eventName);
+                    SADataHelper.assertEventName(eventName);
                     synchronized (mTrackTimer) {
                         mTrackTimer.put(eventName, new EventTimer(timeUnit, startTime));
                     }
@@ -1485,7 +1475,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             @Override
             public void run() {
                 try {
-                    assertKey(eventName);
+                    SADataHelper.assertEventName(eventName);
                     synchronized (mTrackTimer) {
                         mTrackTimer.remove(eventName);
                     }
@@ -1886,7 +1876,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                     if (superProperties == null) {
                         return;
                     }
-                    assertPropertyTypes(superProperties);
+                    SADataHelper.assertPropertyTypes(superProperties);
                     synchronized (mSuperProperties) {
                         JSONObject properties = mSuperProperties.get();
                         mSuperProperties.commit(SensorsDataUtils.mergeSuperJSONObject(superProperties, properties));
@@ -2198,9 +2188,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             @Override
             public void run() {
                 try {
-                    assertKey(pushTypeKey);
-                    if (TextUtils.isEmpty(pushId)) {
-                        SALog.d(TAG, "pushId is empty");
+                    if (!SADataHelper.assertPropertyKey(pushTypeKey)){
                         return;
                     }
                     String distinctId = getDistinctId();
@@ -2224,7 +2212,9 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             @Override
             public void run() {
                 try {
-                    assertKey(pushTypeKey);
+                    if (!SADataHelper.assertPropertyKey(pushTypeKey)){
+                        return;
+                    }
                     String distinctId = getDistinctId();
                     SharedPreferences sp = SensorsDataUtils.getSharedPreferences(mContext);
                     String key = "distinctId_" + pushTypeKey;

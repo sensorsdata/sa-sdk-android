@@ -24,17 +24,16 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
-import com.sensorsdata.analytics.android.sdk.data.persistent.LoginIdKeyPersistent;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentDistinctId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.UserIdentityPersistent;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
-import com.sensorsdata.analytics.android.sdk.internal.rpc.SensorsDataContentObserver;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.listener.SAFunctionListener;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAContextManager;
+import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONException;
@@ -44,9 +43,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
-
-import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertKey;
-import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertValue;
 
 public final class UserIdentityAPI implements IUserIdentityAPI {
     private static final String TAG = "UserIdentityAPI";
@@ -74,14 +70,13 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
         try {
             String loginIDKey = saConfigOptions.getLoginIDKey();
             if (!LOGIN_ID.equals(loginIDKey)) {
-                assertKey(loginIDKey);
-                if (isKeyValid(loginIDKey)) {
+                if (SADataHelper.assertPropertyKey(loginIDKey) && isKeyValid(loginIDKey)) {
                     LOGIN_ID_KEY = loginIDKey;
                 } else {
                     SALog.i(TAG, "The LoginIDKey '" + loginIDKey + "' is invalid.");
                 }
             }
-        } catch (InvalidDataException e) {
+        } catch (Exception e) {
             SALog.printStackTrace(e);
         }
         initIdentities();
@@ -184,7 +179,6 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
     @Override
     public void identify(String distinctId) {
         try {
-            assertValue(distinctId);
             SALog.i(TAG, "identify is called");
             synchronized (mDistinctId) {
                 if (!distinctId.equals(mDistinctId.get())) {
@@ -306,11 +300,10 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
 
     @Override
     public void bind(String key, String value) throws InvalidDataException {
-        assertKey(key);
-        assertValue(value);
-        if (!isKeyValid(key)) {
+        if (!isKeyValid(key) || !SADataHelper.assertPropertyKey(key)) {
             throw new InvalidDataException("bind key is invalid, key = " + key);
         }
+        SADataHelper.assertDistinctId(value);
         try {
             updateIdentities(key, value);
         } catch (Exception ex) {
@@ -320,11 +313,10 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
 
     @Override
     public void unbind(String key, String value) throws InvalidDataException {
-        assertKey(key);
-        assertValue(value);
-        if (!isKeyValid(key)) {
+        if (!isKeyValid(key) || !SADataHelper.assertPropertyKey(key)) {
             throw new InvalidDataException("unbind key is invalid, key = " + key);
         }
+        SADataHelper.assertDistinctId(value);
         try {
             mUnbindIdentities = new JSONObject();
             mUnbindIdentities.put(key, value);
@@ -592,7 +584,7 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
         if (!isLoginIdValid(loginId)) {
             throw new InvalidDataException("The " + loginId + " is invalid.");
         }
-        assertValue(loginId);
+        SADataHelper.assertDistinctId(loginId);
         mIdentities.put(LOGIN_ID_KEY, loginId);
         // 合并原生部分的 Identities 属性
         SensorsDataUtils.mergeJSONObject(mIdentities, identityJson);

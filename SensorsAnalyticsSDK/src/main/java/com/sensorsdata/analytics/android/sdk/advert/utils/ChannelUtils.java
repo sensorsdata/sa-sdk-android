@@ -26,7 +26,6 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
-import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
@@ -220,13 +219,15 @@ public class ChannelUtils {
             for (String sourceKey : sChannelSourceKeySet) {
                 try {
                     //检测 key 的值,非正常 key 值直接跳过.
-                    SADataHelper.assertKey(sourceKey);
+                    if (!SADataHelper.assertPropertyKey(sourceKey)) {
+                        continue;
+                    }
                     String value = params.get(sourceKey);
                     if (!TextUtils.isEmpty(value)) {
                         sUtmProperties.put(sourceKey, value);
                         sLatestUtmProperties.put("_latest_" + sourceKey, value);
                     }
-                } catch (InvalidDataException e) {
+                } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }
             }

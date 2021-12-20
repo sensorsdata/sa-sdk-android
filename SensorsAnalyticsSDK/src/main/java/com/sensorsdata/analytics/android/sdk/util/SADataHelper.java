@@ -26,7 +26,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -35,11 +34,12 @@ import java.util.regex.Pattern;
 public class SADataHelper {
 
     private static final String TAG = "SA.SADataHelper";
-    private static final String[] WHITE_LIST = {"sensorsdata_app_visual_properties"};
 
     private static final Pattern KEY_PATTERN = Pattern.compile(
-            "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$|^user_group|^user_tag)[a-zA-Z_$][a-zA-Z\\d_$]{0,99})$",
+            "^((?!^distinct_id$|^original_id$|^time$|^properties$|^id$|^first_id$|^second_id$|^users$|^events$|^event$|^user_id$|^date$|^datetime$|^user_tag.*|^user_group.*)[a-zA-Z_$][a-zA-Z\\d_$]*)$",
             Pattern.CASE_INSENSITIVE);
+    public static final int MAX_LENGTH_1024 = 1024;
+    private static final int MAX_LENGTH_100 = 100;
 
     public static void assertPropertyTypes(JSONObject properties) throws InvalidDataException {
         if (properties == null) {
@@ -48,14 +48,16 @@ public class SADataHelper {
 
         for (Iterator<String> iterator = properties.keys(); iterator.hasNext(); ) {
             String key = iterator.next();
-
-            // Check Keys
-            assertKey(key);
-
             try {
+                // Check Keys
+                if (!assertPropertyKey(key)){
+                    iterator.remove();
+                    continue;
+                }
                 Object value = properties.get(key);
 
                 if (value == JSONObject.NULL) {
+                    SALog.i(TAG, "Property value is empty");
                     iterator.remove();
                     continue;
                 }
@@ -94,18 +96,8 @@ public class SADataHelper {
                     continue;
                 }
 
-                if ("app_crashed_reason".equals(key)) {
-                    if (value instanceof String && ((String) value).length() > 8191 * 2) {
-                        properties.put(key, ((String) value).substring(0, 8191 * 2) + "$");
-                        SALog.d(TAG, "The property value is too long. [key='" + key
-                                + "', value='" + value.toString() + "']");
-                    }
-                } else {
-                    if (!Arrays.asList(WHITE_LIST).contains(key) && value instanceof String && ((String) value).length() > 8191) {
-                        properties.put(key, ((String) value).substring(0, 8191) + "$");
-                        SALog.d(TAG, "The property value is too long. [key='" + key
-                                + "', value='" + value.toString() + "']");
-                    }
+                if (value instanceof String && ((String) value).length() > MAX_LENGTH_1024) {
+                    SALog.i(TAG, value + " length is longer than " + MAX_LENGTH_1024);
                 }
             } catch (JSONException e) {
                 throw new InvalidDataException("Unexpected property key. [key='" + key + "']");
@@ -113,28 +105,80 @@ public class SADataHelper {
         }
     }
 
-    public static void assertKey(String key) throws InvalidDataException {
-        if (null == key || key.length() < 1) {
-            throw new InvalidDataException("The key is empty or null.");
+    public static void assertEventName(String key) {
+        if (TextUtils.isEmpty(key)) {
+            SALog.i(TAG,"EventName is empty");
+            return;
+        }
+        int length = key.length();
+        if (length > MAX_LENGTH_100) {
+            SALog.i(TAG, key + "'s length is longer than " + MAX_LENGTH_100);
+            return;
         }
         if (!(KEY_PATTERN.matcher(key).matches())) {
-            throw new InvalidDataException("The key '" + key + "' is invalid.");
+            SALog.i(TAG, key + " is invalid");
         }
     }
 
-    public static void assertValue(String value) throws InvalidDataException {
+    /**
+     * 校验属性 key、item_type
+     * @param key key、item_type
+     * @return true 为不删除该属性，false 需要移除属性
+     */
+    public static boolean assertPropertyKey(String key) {
+        if (TextUtils.isEmpty(key)) {
+            SALog.i(TAG, "Property key is empty");
+            return false;
+        }
+
+        if (!(KEY_PATTERN.matcher(key).matches())) {
+            SALog.i(TAG, key + " is invalid");
+            return false;
+        }
+        int length = key.length();
+        if (length > MAX_LENGTH_100) {
+            SALog.i(TAG, key + "'s length is longer than " + MAX_LENGTH_100);
+        }
+        return true;
+    }
+
+    /**
+     * 校验 item_id
+     * @param key key、item_type
+     */
+    public static void assertItemId(String key) {
+        if (null == key) {
+            SALog.i(TAG, "ItemId is empty");
+            return;
+        }
+        int length = key.length();
+        if (length > MAX_LENGTH_1024) {
+            SALog.i(TAG, key + "'s length is longer than " + MAX_LENGTH_1024);
+        }
+    }
+
+    public static void assertDistinctId(String value) throws InvalidDataException {
         if (TextUtils.isEmpty(value)) {
-            throw new InvalidDataException("The value is empty or null.");
+            throw new InvalidDataException("Id is empty");
         }
-        if (value.length() > 255) {
-            throw new InvalidDataException("The " + value + " is too long, max length is 255.");
+        if (value.length() > MAX_LENGTH_1024) {
+            SALog.i(TAG, value + "'s length is longer than " + MAX_LENGTH_1024);
         }
     }
 
-    public static String assertPropertyLength(String property) {
-        if (property != null && property.length() > 8191) {
-            property = property.substring(0, 8191) + "$";
-            SALog.d(TAG, "The property value is too long. property=" + property);
+    /**
+     * 校验属性
+     * @param property 属性
+     * @return String
+     */
+    public static String assertPropertyValue(String property) {
+        if (property == null) {
+            SALog.i(TAG, "Property value is empty");
+            return property;
+        }
+
+        if (property.length() > MAX_LENGTH_1024) {
+            SALog.i(TAG, property + "'s length is longer than " + MAX_LENGTH_1024);
         }
         return property;
     }

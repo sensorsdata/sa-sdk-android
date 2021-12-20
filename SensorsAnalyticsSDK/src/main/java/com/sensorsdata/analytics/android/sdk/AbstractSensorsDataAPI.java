@@ -40,7 +40,6 @@ import com.sensorsdata.analytics.android.sdk.autotrack.FragmentViewScreenCallbac
 import com.sensorsdata.analytics.android.sdk.autotrack.aop.FragmentTrackHelper;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentDistinctId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallation;
@@ -86,10 +85,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertKey;
-import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertPropertyTypes;
-import static com.sensorsdata.analytics.android.sdk.util.SADataHelper.assertValue;
 
 abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     protected static final String TAG = "SA.SensorsDataAPI";
@@ -625,10 +620,9 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
 
     protected void trackItemEvent(String itemType, String itemId, String eventType, long time, JSONObject properties) {
         try {
-            assertKey(itemType);
-            assertValue(itemId);
-            assertPropertyTypes(properties);
-
+            boolean isItemTypeValid = SADataHelper.assertPropertyKey(itemType);
+            SADataHelper.assertPropertyTypes(properties);
+            SADataHelper.assertItemId(itemId);
             // 禁用采集事件时，先计算基本信息存储到缓存中
             if (!mSAConfigOptions.isDataCollectEnable) {
                 transformItemTaskQueue(itemType, itemId, eventType, time, properties);
@@ -666,7 +660,9 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             }
 
             JSONObject eventProperties = new JSONObject();
-            eventProperties.put("item_type", itemType);
+            if (isItemTypeValid) {
+                eventProperties.put("item_type", itemType);
+            }
             eventProperties.put("item_id", itemId);
             eventProperties.put("type", eventType);
             eventProperties.put("time", time);
@@ -704,13 +700,13 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             }
 
             if (eventType.isTrack()) {
-                assertKey(eventName);
+                SADataHelper.assertEventName(eventName);
                 //如果在线控制禁止了事件，则不触发
-                if (mRemoteManager != null && mRemoteManager.ignoreEvent(eventName)) {
+                if (!TextUtils.isEmpty(eventName) && mRemoteManager != null &&
+                        mRemoteManager.ignoreEvent(eventName)) {
                     return;
                 }
             }
-            assertPropertyTypes(properties);
 
             try {
                 JSONObject sendProperties;
@@ -830,7 +826,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
 
             JSONObject propertiesObject = eventObject.optJSONObject("properties");
             // 校验 H5 属性
-            assertPropertyTypes(propertiesObject);
+            SADataHelper.assertPropertyTypes(propertiesObject);
             if (propertiesObject == null) {
                 propertiesObject = new JSONObject();
             }
@@ -914,7 +910,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             String eventName = eventObject.optString("event");
             if (eventType.isTrack()) {
                 // 校验 H5 事件名称
-                assertKey(eventName);
+                SADataHelper.assertEventName(eventName);
                 boolean enterDb = isEnterDb(eventName, propertiesObject);
                 if (!enterDb) {
                     SALog.d(TAG, eventName + " event can not enter database");
@@ -935,6 +931,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                     }
                 }
             }
+            SADataHelper.assertPropertyTypes(propertiesObject);
             eventObject.put("properties", propertiesObject);
 
             if (eventType == EventType.TRACK_SIGNUP) {
@@ -1102,7 +1099,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             @Override
             public void run() {
                 try {
-                    assertKey(eventName);
+                    SADataHelper.assertEventName(eventName);
                     synchronized (mTrackTimer) {
                         EventTimer eventTimer = mTrackTimer.get(eventName);
                         if (eventTimer != null && eventTimer.isPaused() != isPause) {
@@ -1126,7 +1123,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         try {
             if (mDynamicSuperPropertiesCallBack != null) {
                 dynamicProperty = mDynamicSuperPropertiesCallBack.getDynamicSuperProperties();
-                assertPropertyTypes(dynamicProperty);
+                SADataHelper.assertPropertyTypes(dynamicProperty);
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -1187,7 +1184,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     private boolean isEnterDb(String eventName, JSONObject eventProperties) {
         boolean enterDb = true;
         if (mTrackEventCallBack != null) {
-            SALog.d(TAG, "SDK have set trackEvent callBack");
+            SALog.i(TAG, "SDK have set trackEvent callBack");
             try {
                 enterDb = mTrackEventCallBack.onTrackEvent(eventName, eventProperties);
             } catch (Exception e) {
@@ -1198,36 +1195,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                     Iterator<String> it = eventProperties.keys();
                     while (it.hasNext()) {
                         String key = it.next();
-                        try {
-                            assertKey(key);
-                        } catch (Exception e) {
-                            SALog.printStackTrace(e);
-                            return false;
-                        }
                         Object value = eventProperties.opt(key);
-                        if (!(value instanceof CharSequence || value instanceof Number || value
-                                instanceof JSONArray || value instanceof Boolean || value instanceof Date)) {
-                            SALog.d(TAG, String.format("The property value must be an instance of " +
-                                            "CharSequence/Number/Boolean/JSONArray/Date. [key='%s', value='%s', class='%s']",
-                                    key,
-                                    value == null ? "" : value.toString(),
-                                    value == null ? "" : value.getClass().getCanonicalName()));
-                            return false;
-                        }
-
-                        if ("app_crashed_reason".equals(key)) {
-                            if (value instanceof String && ((String) value).length() > 8191 * 2) {
-                                SALog.d(TAG, "The property value is too long. [key='" + key
-                                        + "', value='" + value.toString() + "']");
-                                value = ((String) value).substring(0, 8191 * 2) + "$";
-                            }
-                        } else {
-                            if (value instanceof String && ((String) value).length() > 8191) {
-                                SALog.d(TAG, "The property value is too long. [key='" + key
-                                        + "', value='" + value.toString() + "']");
-                                value = ((String) value).substring(0, 8191) + "$";
-                            }
-                        }
                         if (value instanceof Date) {
                             eventProperties.put(key, TimeUtils.formatDate((Date) value, Locale.CHINA));
                         } else {
@@ -1243,7 +1211,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     }
 
     private void trackEventInternal(final EventType eventType, final String eventName, final JSONObject properties, final JSONObject sendProperties, JSONObject identities,
-                                    String distinctId, String loginId, final String originalDistinctId, final EventTimer eventTimer) throws JSONException {
+                                    String distinctId, String loginId, final String originalDistinctId, final EventTimer eventTimer) throws JSONException, InvalidDataException {
         String libDetail = null;
         String lib_version = VERSION;
         String appEnd_app_version = null;
@@ -1470,8 +1438,8 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                 }
             }
         }
+        SADataHelper.assertPropertyTypes(sendProperties);
         dataObj.put("properties", sendProperties);
-
         try {
             if (mSAContextManager.getEventListenerList() != null && eventType.isTrack()) {
                 for (SAEventListener eventListener : mSAContextManager.getEventListenerList()) {
