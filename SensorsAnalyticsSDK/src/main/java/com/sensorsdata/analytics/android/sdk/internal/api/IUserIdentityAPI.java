@@ -101,6 +101,7 @@ public interface IUserIdentityAPI {
      *
      * @param key ID
      * @param value 值
+     * @throws InvalidDataException 数据不合法
      */
     void bind(String key, String value) throws InvalidDataException;
 
@@ -109,6 +110,7 @@ public interface IUserIdentityAPI {
      *
      * @param key ID
      * @param value 值
+     * @throws InvalidDataException 数据不合法
      */
     void unbind(String key, String value) throws InvalidDataException;
 }

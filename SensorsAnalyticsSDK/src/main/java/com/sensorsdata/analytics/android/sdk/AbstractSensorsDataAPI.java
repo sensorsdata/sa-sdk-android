@@ -281,7 +281,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
      * @param eventListener 事件监听
      */
     public void addEventListener(SAEventListener eventListener) {
-       mSAContextManager.addEventListener(eventListener);
+        mSAContextManager.addEventListener(eventListener);
     }
 
     /**
@@ -774,7 +774,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                     transformEventTaskQueue(eventType, eventName, properties, sendProperties, identitiesJson, distinctId, loginId, originalDistinctId, eventTimer);
                     return;
                 }
-                trackEventInternal(eventType, eventName, properties, sendProperties, mUserIdentityAPI.getIdentities(eventType), distinctId,  loginId, originalDistinctId, eventTimer);
+                trackEventInternal(eventType, eventName, properties, sendProperties, mUserIdentityAPI.getIdentities(eventType), distinctId, loginId, originalDistinctId, eventTimer);
             } catch (JSONException e) {
                 throw new InvalidDataException("Unexpected property");
             }
@@ -899,6 +899,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                 try {
                     long time = propertiesObject.getLong("$time");
                     if (TimeUtils.isDateValid(time)) {
+                        eventTime = time;
                         eventObject.put("time", time);
                     }
                 } catch (Exception ex) {
@@ -911,6 +912,11 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             if (eventType.isTrack()) {
                 // 校验 H5 事件名称
                 SADataHelper.assertEventName(eventName);
+                try {
+                    SessionRelatedManager.getInstance().handleEventOfSession(eventName, propertiesObject, eventTime);
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
                 boolean enterDb = isEnterDb(eventName, propertiesObject);
                 if (!enterDb) {
                     SALog.d(TAG, eventName + " event can not enter database");
@@ -1330,7 +1336,8 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                     Object timeDate = sendProperties.opt("$time");
                     if (timeDate instanceof Date) {
                         if (TimeUtils.isDateValid((Date) timeDate)) {
-                            dataObj.put("time", ((Date) timeDate).getTime());
+                            eventTime = ((Date) timeDate).getTime();
+                            dataObj.put("time", eventTime);
                         }
                     }
                 } catch (Exception ex) {
@@ -1418,7 +1425,13 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         if (sendProperties.has("$device_id")) {//由于 profileSet 等类型事件没有 $device_id 属性，故加此判断
             mSAContextManager.addKeyIfExist(sendProperties, "$device_id");
         }
+
         if (eventType.isTrack()) {
+            try {
+                SessionRelatedManager.getInstance().handleEventOfSession(eventName, sendProperties, eventTime);
+            } catch (Exception e) {
+                SALog.printStackTrace(e);
+            }
             boolean isEnterDb = isEnterDb(eventName, sendProperties);
             if (!isEnterDb) {
                 SALog.d(TAG, eventName + " event can not enter database");
@@ -1440,6 +1453,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         }
         SADataHelper.assertPropertyTypes(sendProperties);
         dataObj.put("properties", sendProperties);
+
         try {
             if (mSAContextManager.getEventListenerList() != null && eventType.isTrack()) {
                 for (SAEventListener eventListener : mSAContextManager.getEventListenerList()) {
@@ -1474,7 +1488,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     /**
      * 如果没有授权时，需要将已执行的的缓存队列切换到真正的 TaskQueue 中
      */
-    private void transformEventTaskQueue(final EventType eventType, final String eventName, final JSONObject properties, final JSONObject sendProperties,final JSONObject identities,
+    private void transformEventTaskQueue(final EventType eventType, final String eventName, final JSONObject properties, final JSONObject sendProperties, final JSONObject identities,
                                          final String distinctId, final String loginId, final String originalDistinctId, final EventTimer eventTimer) {
         try {
             if (!sendProperties.has("$time") && !("$AppStart".equals(eventName) || "$AppEnd".equals(eventName))) {

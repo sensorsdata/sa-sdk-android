@@ -332,6 +332,7 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
     /**
      * 读取对应的 identities 属性
      *
+     * @param eventType 事件类型
      * @return identities 属性
      */
     public JSONObject getIdentities(EventType eventType) {
@@ -410,6 +411,7 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
      *
      * @param eventType 事件类型
      * @param eventObject 属性
+     * @throws InvalidDataException 数据不合法
      */
     public void mergeH5Identities(EventType eventType, JSONObject eventObject) throws InvalidDataException {
         // 先判断 H5 事件中是否存在 identities

@@ -433,4 +433,14 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
         }
         return copyObject;
     }
+
+    /**
+     * 是否开启 session_id 的采集
+     * @param enableSession
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions enableSession(boolean enableSession){
+        this.mEnableSession = enableSession;
+        return this;
+    }
 }

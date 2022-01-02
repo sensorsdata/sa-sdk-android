@@ -170,6 +170,11 @@ abstract class AbstractSAConfigOptions {
     boolean isDisableSDK = false;
 
     /**
+     * 是开启 session 采集开关
+     */
+    boolean mEnableSession = false;
+
+    /**
      * 自定义加密实现接口
      */
     List<SAEncryptListener> mEncryptors = new ArrayList<>();
@@ -231,6 +236,15 @@ abstract class AbstractSAConfigOptions {
      */
     public boolean isDisableSDK() {
         return this.isDisableSDK;
+    }
+
+    /**
+     * 是否开启 session_id 的采集
+     *
+     * @return true 开启，false 关闭
+     */
+    public boolean isEnableSession() {
+        return this.mEnableSession;
     }
 
     /**

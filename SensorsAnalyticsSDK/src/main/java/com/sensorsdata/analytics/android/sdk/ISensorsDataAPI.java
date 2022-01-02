@@ -1014,6 +1014,8 @@ public interface ISensorsDataAPI extends IFragmentAPI, IUserIdentityAPI {
 
     /**
      * DeepLink 是否采集设备信息
+     *
+     * @param enable 是否开启采集设备信息
      */
     void enableDeepLinkInstallSource(boolean enable);
 

@@ -32,6 +32,7 @@ import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataActivityLifecycleCallbacks;
 import com.sensorsdata.analytics.android.sdk.SensorsDataExceptionHandler;
+import com.sensorsdata.analytics.android.sdk.SessionRelatedManager;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
@@ -93,7 +94,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
     private Set<Integer> hashSet = new HashSet<>();
 
     public ActivityLifecycleCallbacks(SensorsDataAPI instance, PersistentFirstStart firstStart,
-                                          PersistentFirstDay firstDay, Context context) {
+                                      PersistentFirstDay firstDay, Context context) {
         this.mSensorsDataInstance = instance;
         this.mFirstStart = firstStart;
         this.mFirstDay = firstDay;
@@ -401,6 +402,10 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                 }
                 endDataProperty.put(APP_START_TIME, mStartTime);
                 endDataProperty.put(EVENT_TIME, eventTime + TIME_INTERVAL);
+                if (SensorsDataAPI.getConfigOptions().isEnableSession()) {
+                    SessionRelatedManager.getInstance().refreshSessionByTimer(eventTime + TIME_INTERVAL);
+                    endDataProperty.put(SessionRelatedManager.getInstance().EVENT_SESSION_ID, SessionRelatedManager.getInstance().getSessionID());
+                }
                 endDataProperty.put(APP_VERSION, AppInfoUtils.getAppVersionName(mContext));
                 endDataProperty.put(LIB_VERSION, SensorsDataAPI.sharedInstance().getSDKVersion());
                 // 合并 $utm 信息
@@ -437,6 +442,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
 
     /**
      * 更新启动时间戳
+     *
      * @param startElapsedTime 启动时间戳
      */
     private void updateStartTime(long startElapsedTime) {
@@ -538,7 +544,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
      */
     private boolean isDeepLinkParseSuccess(Activity activity) {
         try {
-            if(!SensorsDataUtils.isUniApp() || !ChannelUtils.isDeepLinkBlackList(activity)) {
+            if (!SensorsDataUtils.isUniApp() || !ChannelUtils.isDeepLinkBlackList(activity)) {
                 Intent intent = activity.getIntent();
                 if (intent != null && intent.getData() != null) {
                     //判断 deepLink 信息是否已处理过

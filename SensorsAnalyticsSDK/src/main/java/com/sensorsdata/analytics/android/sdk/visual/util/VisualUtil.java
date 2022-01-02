@@ -160,6 +160,7 @@ public class VisualUtil {
      * 如果存在 RN 页面，优先获取 RN 的 screen_name
      *
      * @param jsonObject 原生的 object
+     * @param view View
      */
     public static void mergeRnScreenNameAndTitle(JSONObject jsonObject, View view) {
         try {

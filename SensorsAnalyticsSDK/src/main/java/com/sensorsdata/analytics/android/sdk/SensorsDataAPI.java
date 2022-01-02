@@ -1244,7 +1244,6 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             }
             addTimeProperty(eventProperties);
             final String loginId = getLoginId();
-            final String distinctId = getDistinctId();
             transformTaskQueue(new Runnable() {
                 @Override
                 public void run() {
@@ -1298,6 +1297,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                             } catch (Exception e) {
                                 SALog.printStackTrace(e);
                             }
+                            final String distinctId = getDistinctId();
                             // 先发送 track
                             trackEvent(EventType.TRACK, eventName, eventProperties, null, distinctId, loginId, null);
                             // 再发送 profile_set_once 或者 profile_set
