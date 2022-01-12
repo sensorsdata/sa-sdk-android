@@ -1,6 +1,6 @@
 /*
  * Created by dengshiwei on 2019/04/18.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
+import com.sensorsdata.analytics.android.sdk.plugin.encrypt.StorePlugin;
 import com.sensorsdata.analytics.android.sdk.encrypt.IPersistentSecretKey;
 import com.sensorsdata.analytics.android.sdk.encrypt.SAEncryptListener;
 
@@ -180,9 +181,19 @@ abstract class AbstractSAConfigOptions {
     List<SAEncryptListener> mEncryptors = new ArrayList<>();
 
     /**
+     * 自定义加密插件
+     */
+    List<StorePlugin> mStorePlugins;
+
+    /**
      * 开启采集页面停留时长
      */
     protected boolean mIsTrackPageLeave = false;
+
+    /**
+     * 自定义加密器
+     */
+    List<SAEncryptListener> mEncryptListeners;
 
     /**
      * 是否开启数据采集
@@ -264,8 +275,10 @@ abstract class AbstractSAConfigOptions {
     public boolean isVisualizedPropertiesEnabled() {
         return this.mVisualizedPropertiesEnabled;
     }
-    List<SAEncryptListener> mEncryptListeners;
 
+    public List<StorePlugin> getStorePlugins() {
+        return mStorePlugins;
+    }
     /**
      * 自定义 LoginIDKey
      */

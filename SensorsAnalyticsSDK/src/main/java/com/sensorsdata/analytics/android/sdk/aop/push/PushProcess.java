@@ -1,6 +1,6 @@
 /*
  * Created by yuejz on 2021/08/19.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.ThreadNameConstants;
+import com.sensorsdata.analytics.android.sdk.encrypt.AESSecretManager;
 import com.sensorsdata.analytics.android.sdk.util.FileUtils;
 
 import org.json.JSONException;
@@ -225,7 +226,8 @@ public class PushProcess {
                 SALog.i(TAG, "toFile exists");
                 toFile.delete();
             }
-            FileUtils.writeToFile(toFile, push.toJson());
+            String secretContent = AESSecretManager.getInstance().encryptAES(push.toJson());
+            FileUtils.writeToFile(toFile, secretContent);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -277,8 +279,9 @@ public class PushProcess {
             if (TextUtils.isEmpty(json)) {
                 return null;
             }
-            SALog.i(TAG, "cache local notification info:" + json);
-            return NotificationInfo.fromJson(json);
+            String decryptJson = AESSecretManager.getInstance().decryptAES(json);
+            SALog.i(TAG, "cache local notification info:" + decryptJson);
+            return NotificationInfo.fromJson(decryptJson);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }

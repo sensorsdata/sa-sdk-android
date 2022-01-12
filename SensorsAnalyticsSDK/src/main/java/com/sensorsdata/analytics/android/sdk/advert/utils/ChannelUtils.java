@@ -1,6 +1,6 @@
 /*
  * Created by dengshiwei on 2021/08/19.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,13 +19,15 @@ package com.sensorsdata.analytics.android.sdk.advert.utils;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
+import com.sensorsdata.analytics.android.sdk.encrypt.AESSecretManager;
+import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
@@ -241,9 +243,8 @@ public class ChannelUtils {
      */
     public static void loadUtmByLocal(Context context) {
         try {
-            SharedPreferences utmPref = SensorsDataUtils.getSharedPreferences(context);
             sLatestUtmProperties.clear();
-            String channelJson = utmPref.getString(SHARED_PREF_UTM_FILE, "");
+            String channelJson = SAStoreManager.getInstance().getString(SHARED_PREF_UTM_FILE, "");
             if (!TextUtils.isEmpty(channelJson)) {
                 JSONObject jsonObject = new JSONObject(channelJson);
                 for (Map.Entry<String, String> entry : LATEST_UTM_MAP.entrySet()) {
@@ -272,8 +273,7 @@ public class ChannelUtils {
      */
     public static void clearLocalUtm(Context context) {
         try {
-            SharedPreferences utmPref = SensorsDataUtils.getSharedPreferences(context);
-            utmPref.edit().putString(SHARED_PREF_UTM_FILE, "").apply();
+            SAStoreManager.getInstance().remove(SHARED_PREF_UTM_FILE);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -328,8 +328,7 @@ public class ChannelUtils {
     public static void saveDeepLinkInfo(Context context) {
         try {
             if (sLatestUtmProperties.size() > 0) {
-                SharedPreferences utmPref = SensorsDataUtils.getSharedPreferences(context);
-                utmPref.edit().putString(SHARED_PREF_UTM_FILE, sLatestUtmProperties.toString()).apply();
+                SAStoreManager.getInstance().setString(SHARED_PREF_UTM_FILE, sLatestUtmProperties.toString());
             } else {
                 clearLocalUtm(context);
             }
@@ -392,9 +391,11 @@ public class ChannelUtils {
      * @return 是否是首次触发
      */
     public static boolean isFirstChannelEvent(String eventName) {
-        boolean isFirst = DbAdapter.getInstance().isFirstChannelEvent(eventName);
+        boolean isDefault = SensorsDataAPI.getConfigOptions().getStorePlugins() == null || SensorsDataAPI.getConfigOptions().getStorePlugins().isEmpty();
+        String secretEventName = isDefault ? eventName : AESSecretManager.getInstance().encryptAES(eventName);
+        boolean isFirst = DbAdapter.getInstance().isFirstChannelEvent(new String[]{secretEventName, eventName});
         if (isFirst) {
-            DbAdapter.getInstance().addChannelEvent(eventName);
+            DbAdapter.getInstance().addChannelEvent(secretEventName);
         }
         return isFirst;
     }
@@ -452,8 +453,7 @@ public class ChannelUtils {
      */
     public static boolean isTrackInstallation(Context context) {
         try {
-            SharedPreferences sp = SensorsDataUtils.getSharedPreferences(context);
-            return sp.contains(SHARED_PREF_CORRECT_TRACK_INSTALLATION);
+            return SAStoreManager.getInstance().isExists(SHARED_PREF_CORRECT_TRACK_INSTALLATION);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -468,8 +468,7 @@ public class ChannelUtils {
      */
     public static boolean isCorrectTrackInstallation(Context context) {
         try {
-            SharedPreferences sp = SensorsDataUtils.getSharedPreferences(context);
-            return sp.getBoolean(SHARED_PREF_CORRECT_TRACK_INSTALLATION, false);
+            return SAStoreManager.getInstance().getBool(SHARED_PREF_CORRECT_TRACK_INSTALLATION, false);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -484,8 +483,7 @@ public class ChannelUtils {
      */
     public static void saveCorrectTrackInstallation(Context context, boolean isCorrectTrackInstallation) {
         try {
-            SharedPreferences sp = SensorsDataUtils.getSharedPreferences(context);
-            sp.edit().putBoolean(SHARED_PREF_CORRECT_TRACK_INSTALLATION, isCorrectTrackInstallation).apply();
+            SAStoreManager.getInstance().setBool(SHARED_PREF_CORRECT_TRACK_INSTALLATION, isCorrectTrackInstallation);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }

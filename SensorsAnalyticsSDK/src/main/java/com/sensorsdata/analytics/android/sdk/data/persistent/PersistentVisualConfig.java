@@ -1,6 +1,6 @@
 /*
  * Created by zhangxiangwei on 2021/01/28.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,11 @@
 
 package com.sensorsdata.analytics.android.sdk.data.persistent;
 
-import android.content.SharedPreferences;
-
-import java.util.concurrent.Future;
-
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 
 public class PersistentVisualConfig extends PersistentIdentity<String> {
-    public PersistentVisualConfig(Future<SharedPreferences> loadStoredPreferences) {
-        super(loadStoredPreferences, PersistentLoader.PersistentName.VISUAL_PROPERTIES, new PersistentSerializer<String>() {
+    public PersistentVisualConfig() {
+        super(DbParams.PersistentName.VISUAL_PROPERTIES, new PersistentSerializer<String>() {
             @Override
             public String load(String value) {
                 return value;

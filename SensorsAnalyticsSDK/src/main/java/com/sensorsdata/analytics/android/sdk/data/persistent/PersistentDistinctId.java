@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2015/08/01.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,15 @@
 package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import java.util.UUID;
-import java.util.concurrent.Future;
 
 public class PersistentDistinctId extends PersistentIdentity<String> {
-    public PersistentDistinctId(Future<SharedPreferences> loadStoredPreferences, final Context context) {
-        super(loadStoredPreferences, PersistentLoader.PersistentName.DISTINCT_ID, new PersistentSerializer<String>() {
+    public PersistentDistinctId(final Context context) {
+        super(DbParams.PersistentName.DISTINCT_ID, new PersistentSerializer<String>() {
             @Override
             public String load(String value) {
                 return value;

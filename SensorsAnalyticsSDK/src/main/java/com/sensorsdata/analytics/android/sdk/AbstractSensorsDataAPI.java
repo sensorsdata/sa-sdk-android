@@ -1,6 +1,6 @@
 /*
  * Created by dengshiwei on 2020/10/20.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,9 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrac
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallationWithCallback;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProperties;
+import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
+import com.sensorsdata.analytics.android.sdk.encrypt.AESSecretManager;
 import com.sensorsdata.analytics.android.sdk.encrypt.SensorsDataEncrypt;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.internal.api.FragmentAPI;
@@ -146,6 +148,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     private CopyOnWriteArrayList<SAJSListener> mSAJSListeners;
     protected IFragmentAPI mFragmentAPI;
     protected UserIdentityAPI mUserIdentityAPI;
+    protected SAStoreManager mStoreManager;
     SensorsDataEncrypt mSensorsDataEncrypt;
     protected SensorsDataDeepLinkCallback mDeepLinkCallback;
     // $AppDeeplinkLaunch 是否携带设备信息
@@ -164,15 +167,18 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         mHeatMapActivities = new ArrayList<>();
         mVisualizedAutoTrackActivities = new ArrayList<>();
         PersistentLoader.initLoader(context);
-        mSuperProperties = (PersistentSuperProperties) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.SUPER_PROPERTIES);
-        mFirstStart = (PersistentFirstStart) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.FIRST_START);
-        mFirstTrackInstallation = (PersistentFirstTrackInstallation) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.FIRST_INSTALL);
-        mFirstTrackInstallationWithCallback = (PersistentFirstTrackInstallationWithCallback) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.FIRST_INSTALL_CALLBACK);
-        mFirstDay = (PersistentFirstDay) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.FIRST_DAY);
+        mSuperProperties = (PersistentSuperProperties) PersistentLoader.loadPersistent(DbParams.PersistentName.SUPER_PROPERTIES);
+        mFirstStart = (PersistentFirstStart) PersistentLoader.loadPersistent(DbParams.PersistentName.FIRST_START);
+        mFirstTrackInstallation = (PersistentFirstTrackInstallation) PersistentLoader.loadPersistent(DbParams.PersistentName.FIRST_INSTALL);
+        mFirstTrackInstallationWithCallback = (PersistentFirstTrackInstallationWithCallback) PersistentLoader.loadPersistent(DbParams.PersistentName.FIRST_INSTALL_CALLBACK);
+        mFirstDay = (PersistentFirstDay) PersistentLoader.loadPersistent(DbParams.PersistentName.FIRST_DAY);
         mTrackTimer = new HashMap<>();
         mFragmentAPI = new FragmentAPI();
         try {
             mSAConfigOptions = configOptions.clone();
+            mStoreManager = SAStoreManager.getInstance();
+            mStoreManager.registerPlugins(mSAConfigOptions.getStorePlugins(), mContext);
+            mStoreManager.upgrade();
             mTrackTaskManager = TrackTaskManager.getInstance();
             mTrackTaskManagerThread = new TrackTaskManagerThread();
             new Thread(mTrackTaskManagerThread, ThreadNameConstants.THREAD_TASK_QUEUE).start();

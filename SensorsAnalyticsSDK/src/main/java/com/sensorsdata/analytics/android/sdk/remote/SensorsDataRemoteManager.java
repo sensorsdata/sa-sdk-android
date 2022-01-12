@@ -1,6 +1,6 @@
 /*
  * Created by yuejianzhong on 2020/11/04.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 
 package com.sensorsdata.analytics.android.sdk.remote;
 
-import android.content.SharedPreferences;
 import android.os.CountDownTimer;
 import android.os.SystemClock;
 import android.text.TextUtils;
@@ -25,8 +24,8 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
+import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONObject;
 
@@ -39,14 +38,15 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
     private static final String SHARED_PREF_REQUEST_TIME = "sensorsdata.request.time";
     private static final String SHARED_PREF_REQUEST_TIME_RANDOM = "sensorsdata.request.time.random";
     private static final String TAG = "SA.SensorsDataRemoteManager";
-    private SharedPreferences mSharedPreferences;
 
     // 每次启动 App 时，最多尝试三次
     private CountDownTimer mPullSDKConfigCountDownTimer;
+    private final SAStoreManager mStorageManager;
 
     public SensorsDataRemoteManager(
             SensorsDataAPI sensorsDataAPI) {
         super(sensorsDataAPI);
+        mStorageManager = SAStoreManager.getInstance();
         SALog.i(TAG, "Construct a SensorsDataRemoteManager");
     }
 
@@ -58,8 +58,8 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
     private boolean isRequestValid() {
         boolean isRequestValid = true;
         try {
-            long lastRequestTime = getSharedPreferences().getLong(SHARED_PREF_REQUEST_TIME, 0);
-            int randomTime = getSharedPreferences().getInt(SHARED_PREF_REQUEST_TIME_RANDOM, 0);
+            long lastRequestTime = mStorageManager.getLong(SHARED_PREF_REQUEST_TIME,0);
+            int randomTime = mStorageManager.getInteger(SHARED_PREF_REQUEST_TIME_RANDOM, 0);
             if (lastRequestTime != 0 && randomTime != 0) {
                 float requestInterval = SystemClock.elapsedRealtime() - lastRequestTime;
                 // 当前的时间减去上次请求的时间，为间隔时间，当间隔时间小于随机时间，则不请求后端
@@ -87,20 +87,16 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
         if (mSAConfigOptions.mMaxRequestInterval > mSAConfigOptions.mMinRequestInterval) {
             randomTime += new SecureRandom().nextInt(mSAConfigOptions.mMaxRequestInterval - mSAConfigOptions.mMinRequestInterval + 1);
         }
-        getSharedPreferences().edit()
-                .putLong(SHARED_PREF_REQUEST_TIME, currentTime)
-                .putInt(SHARED_PREF_REQUEST_TIME_RANDOM, randomTime)
-                .apply();
+        mStorageManager.setLong(SHARED_PREF_REQUEST_TIME, currentTime);
+        mStorageManager.setInteger(SHARED_PREF_REQUEST_TIME_RANDOM, randomTime);
     }
 
     /**
      * 清除远程控制随机时间的本地缓存
      */
     private void cleanRemoteRequestRandomTime() {
-        getSharedPreferences().edit()
-                .putLong(SHARED_PREF_REQUEST_TIME, 0)
-                .putInt(SHARED_PREF_REQUEST_TIME_RANDOM, 0)
-                .apply();
+        mStorageManager.remove(SHARED_PREF_REQUEST_TIME);
+        mStorageManager.remove(SHARED_PREF_REQUEST_TIME_RANDOM);
     }
 
     @Override
@@ -275,12 +271,5 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
-    }
-
-    private SharedPreferences getSharedPreferences() {
-        if (this.mSharedPreferences == null) {
-            this.mSharedPreferences = SensorsDataUtils.getSharedPreferences(mContext);
-        }
-        return mSharedPreferences;
     }
 }

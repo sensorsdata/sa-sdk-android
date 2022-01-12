@@ -1,6 +1,6 @@
 /*
  * Created by chenru on 2019/07/24.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ package com.sensorsdata.analytics.android.demo.activity;
 import android.os.Bundle;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.widget.TableLayout;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
@@ -86,6 +87,7 @@ public class TabVPFragActivity extends AppCompatActivity {
         super.onDestroy();
         fragments.clear();
     }
+
 
     private ViewPager findViewGroup(ViewParent parent) {
         if (parent == null) {

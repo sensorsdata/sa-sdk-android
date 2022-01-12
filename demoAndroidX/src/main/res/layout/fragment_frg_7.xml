@@ -1,29 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <LinearLayout
-        android:id="@+id/ll"
+    <FrameLayout
+        android:id="@+id/fragment_fl_tab_frg"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_weight="1">
 
-        <FrameLayout
-            android:id="@+id/fl_frg_1"
-            android:layout_marginTop="20dp"
-            android:layout_gravity="center_horizontal"
-            android:layout_width="200dp"
-            android:layout_height="200dp"/>
+    </FrameLayout>
 
-        <TextView
-            android:layout_marginTop="50dp"
-            android:layout_gravity="center_horizontal"
-            android:id="@+id/tv_frg_7"
-            android:text="Frg_7，Frg_7 中又包含了 Frg_1"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/fl_tab_frg"
+        android:layout_gravity="center"
+        app:cardBackgroundColor="#ffffff"
+        app:cardCornerRadius="3dp"
+        app:cardElevation="1dp"
+        app:cardUseCompatPadding="true"
+        app:contentPadding="2dp">
 
-    </LinearLayout>
-
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/fragment_tablayout_tab_frg"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:tabBackground="@android:color/transparent" />
+    </androidx.cardview.widget.CardView>
 </FrameLayout>

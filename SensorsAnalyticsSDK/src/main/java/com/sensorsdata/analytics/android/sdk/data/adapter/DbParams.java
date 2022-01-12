@@ -1,6 +1,6 @@
 /*
  * Created by dengshiwei on 2021/04/07.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,17 +32,14 @@ public class DbParams {
     public static final int DATABASE_VERSION = 5;
     public static final String TABLE_ACTIVITY_START_COUNT = "activity_started_count";
     public static final String TABLE_APP_START_TIME = "app_start_time";
-    public static final String TABLE_APP_END_DATA = "app_end_data";
-    public static final String TABLE_SUB_PROCESS_FLUSH_DATA = "sub_process_flush_data";
     public static final String TABLE_FIRST_PROCESS_START = "first_process_start";
     public static final String TABLE_SESSION_INTERVAL_TIME = "session_interval_time";
     public static final String TABLE_DATA_COLLECT = "data_collect";
     public static final String TABLE_DATA_ENABLE_SDK = "enable_SDK";
     public static final String TABLE_DATA_DISABLE_SDK = "disable_SDK";
-    public static final String TABLE_REMOTE_CONFIG = "remote_config";
-    public static final String TABLE_LOGIN_ID = "events_login_id";
-    public static final String PERSISTENT_USER_ID = "user_ids";
-    public static final String PERSISTENT_LOGIN_ID_KEY = "login_id_key";
+    public static final String PUSH_ID_KEY = "push_key";
+    public static final String PUSH_ID_VALUE = "push_value";
+    public static final String REMOVE_SP_KEY = "remove_key";
     /* Event 表字段 */
     public static final String KEY_DATA = "data";
     public static final String KEY_CREATED_AT = "created_at";
@@ -56,24 +53,41 @@ public class DbParams {
     private static DbParams instance;
     private final Uri mUri, mActivityStartCountUri, mAppStartTimeUri, mDataCollectUri,
             mAppEndDataUri, mSessionTimeUri, mLoginIdUri, mChannelPersistentUri, mSubProcessUri,
-            mFirstProcessUri, mEnableSDKUri, mDisableSDKUri, mRemoteConfigUri, mUserIdentities, mLoginIdKeyUri;
+            mFirstProcessUri, mEnableSDKUri, mDisableSDKUri, mRemoteConfigUri, mUserIdentities, mLoginIdKeyUri, mPushIdUri;
+
+    public interface PersistentName {
+        String APP_END_DATA = "app_end_data";
+        String SUB_PROCESS_FLUSH_DATA = "sub_process_flush_data";
+        String DISTINCT_ID = "events_distinct_id";
+        String FIRST_DAY = "first_day";
+        String FIRST_START = "first_start";
+        String FIRST_INSTALL = "first_track_installation";
+        String FIRST_INSTALL_CALLBACK = "first_track_installation_with_callback";
+        String LOGIN_ID = "events_login_id";
+        String REMOTE_CONFIG = "sensorsdata_sdk_configuration";
+        String SUPER_PROPERTIES = "super_properties";
+        String VISUAL_PROPERTIES = "visual_properties";
+        String PERSISTENT_USER_ID = "user_ids";
+        String PERSISTENT_LOGIN_ID_KEY = "login_id_key";
+    }
 
     private DbParams(String packageName) {
         mUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_EVENTS);
         mActivityStartCountUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_ACTIVITY_START_COUNT);
         mAppStartTimeUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_START_TIME);
-        mAppEndDataUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_END_DATA);
+        mAppEndDataUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PersistentName.APP_END_DATA);
         mSessionTimeUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_SESSION_INTERVAL_TIME);
-        mLoginIdUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_LOGIN_ID);
-        mLoginIdKeyUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PERSISTENT_LOGIN_ID_KEY);
+        mLoginIdUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PersistentName.LOGIN_ID);
+        mLoginIdKeyUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PersistentName.PERSISTENT_LOGIN_ID_KEY);
         mChannelPersistentUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_CHANNEL_PERSISTENT);
-        mSubProcessUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_SUB_PROCESS_FLUSH_DATA);
+        mSubProcessUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PersistentName.SUB_PROCESS_FLUSH_DATA);
         mFirstProcessUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_FIRST_PROCESS_START);
         mDataCollectUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_DATA_COLLECT);
         mEnableSDKUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_DATA_ENABLE_SDK);
         mDisableSDKUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_DATA_DISABLE_SDK);
-        mRemoteConfigUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_REMOTE_CONFIG);
-        mUserIdentities = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PERSISTENT_USER_ID);
+        mRemoteConfigUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PersistentName.REMOTE_CONFIG);
+        mUserIdentities = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PersistentName.PERSISTENT_USER_ID);
+        mPushIdUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PUSH_ID_KEY);
     }
 
     public static DbParams getInstance(String packageName) {
@@ -208,5 +222,9 @@ public class DbParams {
      */
     public Uri getLoginIdKeyUri() {
         return mLoginIdKeyUri;
+    }
+
+    public Uri getPushIdUri() {
+        return mPushIdUri;
     }
 }

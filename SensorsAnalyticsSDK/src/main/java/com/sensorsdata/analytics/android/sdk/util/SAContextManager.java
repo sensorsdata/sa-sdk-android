@@ -1,6 +1,6 @@
 /*
  * Created by dengshiwei on 2021/07/04.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -193,8 +193,8 @@ public class SAContextManager {
             properties.put("$carrier", mDeviceInfo.get("$carrier"));
             properties.put("$app_id", mDeviceInfo.get("$app_id"));
             properties.put("$timezone_offset", mDeviceInfo.get("$timezone_offset"));
-            if (mDeviceInfo.containsKey("$device_id")) {
-                properties.put("$device_id", mDeviceInfo.get("$device_id"));
+            if (mDeviceInfo.containsKey("$anonymization_id")) {
+                properties.put("$anonymization_id", mDeviceInfo.get("$anonymization_id"));
             }
             properties.put("$app_name", mDeviceInfo.get("$app_name"));
         } catch (Exception e) {
@@ -234,7 +234,7 @@ public class SAContextManager {
 
         mAndroidId = SensorsDataUtils.getAndroidID(mContext);
         if (!mDisableTrackDeviceId && !TextUtils.isEmpty(mAndroidId)) {
-            deviceInfo.put("$device_id", mAndroidId);
+            deviceInfo.put("$anonymization_id", Base64Coder.encodeString(mAndroidId));
         }
 
         Integer zone_offset = TimeUtils.getZoneOffset();

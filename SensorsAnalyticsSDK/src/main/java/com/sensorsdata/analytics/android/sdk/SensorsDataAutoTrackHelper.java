@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2015/08/01.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -454,7 +454,7 @@ public class SensorsDataAutoTrackHelper {
             if (supportTabLayoutCLass == null && androidXTabLayoutCLass == null) {
                 return;
             }
-
+            View tabLayout = null;
             //TabLayout 被忽略
             if (supportTabLayoutCLass != null) {
                 //反射获取 TabLayout，进行 view 忽略判断。
@@ -464,6 +464,7 @@ public class SensorsDataAutoTrackHelper {
                             && AopUtil.isViewIgnored(view)) {
                         return;
                     }
+                    tabLayout = view;
                 }
 
                 if (AopUtil.isViewIgnored(supportTabLayoutCLass)) {
@@ -478,6 +479,7 @@ public class SensorsDataAutoTrackHelper {
                             && AopUtil.isViewIgnored(view)) {
                         return;
                     }
+                    tabLayout = view;
                 }
 
                 if (AopUtil.isViewIgnored(androidXTabLayoutCLass)) {
@@ -517,6 +519,16 @@ public class SensorsDataAutoTrackHelper {
                     SALog.printStackTrace(e);
                 }
             }
+            // object 非 Activity/Fragment
+            if (activity == null && !isFragment && tabLayout != null) {
+                activity = AopUtil.getActivityFromContext(tabLayout.getContext(), null);
+                // 获取 tabLayout 所在的 fragment
+                Object fragment = AopUtil.getFragmentFromView(tabLayout, activity);
+                if (fragment != null) {
+                    object = fragment;
+                    isFragment = true;
+                }
+            }
             //Activity 被忽略
             if (activity != null) {
                 if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(activity.getClass())) {
@@ -536,7 +548,9 @@ public class SensorsDataAutoTrackHelper {
 
             //$screen_name & $title
             if (isFragment) {
-                activity = AopUtil.getActivityFromFragment(object);
+                if (activity == null) {
+                    activity = AopUtil.getActivityFromFragment(object);
+                }
                 AopUtil.getScreenNameAndTitleFromFragment(properties, object, activity);
             } else if (activity != null) {
                 SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);

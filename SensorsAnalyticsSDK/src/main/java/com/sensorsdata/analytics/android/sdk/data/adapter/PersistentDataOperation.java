@@ -1,6 +1,6 @@
 /*
  * Created by dengshiwei on 2021/04/07.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,8 +61,8 @@ class PersistentDataOperation extends DataOperation {
                     case DbParams.TABLE_ACTIVITY_START_COUNT:
                         contentValues.put(DbParams.TABLE_ACTIVITY_START_COUNT, jsonObject.optInt(DbParams.VALUE));
                         break;
-                    case DbParams.TABLE_APP_END_DATA:
-                        contentValues.put(DbParams.TABLE_APP_END_DATA, jsonObject.optString(DbParams.VALUE));
+                    case DbParams.PersistentName.APP_END_DATA:
+                        contentValues.put(DbParams.PersistentName.APP_END_DATA, jsonObject.optString(DbParams.VALUE));
                         break;
                     case DbParams.TABLE_APP_START_TIME:
                         contentValues.put(DbParams.TABLE_APP_START_TIME, jsonObject.optLong(DbParams.VALUE));
@@ -70,23 +70,27 @@ class PersistentDataOperation extends DataOperation {
                     case DbParams.TABLE_SESSION_INTERVAL_TIME:
                         contentValues.put(DbParams.TABLE_SESSION_INTERVAL_TIME, jsonObject.optLong(DbParams.VALUE));
                         break;
-                    case DbParams.TABLE_LOGIN_ID:
-                        contentValues.put(DbParams.TABLE_LOGIN_ID, jsonObject.optString(DbParams.VALUE));
+                    case DbParams.PersistentName.LOGIN_ID:
+                        contentValues.put(DbParams.PersistentName.LOGIN_ID, jsonObject.optString(DbParams.VALUE));
                         break;
-                    case DbParams.TABLE_SUB_PROCESS_FLUSH_DATA:
-                        contentValues.put(DbParams.TABLE_SUB_PROCESS_FLUSH_DATA, jsonObject.optBoolean(DbParams.VALUE));
+                    case DbParams.PersistentName.SUB_PROCESS_FLUSH_DATA:
+                        contentValues.put(DbParams.PersistentName.SUB_PROCESS_FLUSH_DATA, jsonObject.optBoolean(DbParams.VALUE));
                         break;
                     case DbParams.TABLE_FIRST_PROCESS_START:
                         contentValues.put(DbParams.TABLE_FIRST_PROCESS_START, jsonObject.optBoolean(DbParams.VALUE));
                         break;
-                    case DbParams.TABLE_REMOTE_CONFIG:
-                        contentValues.put(DbParams.TABLE_REMOTE_CONFIG, jsonObject.optString(DbParams.VALUE));
+                    case DbParams.PersistentName.REMOTE_CONFIG:
+                        contentValues.put(DbParams.PersistentName.REMOTE_CONFIG, jsonObject.optString(DbParams.VALUE));
                         break;
-                    case DbParams.PERSISTENT_USER_ID:
-                        contentValues.put(DbParams.PERSISTENT_USER_ID, jsonObject.optString(DbParams.VALUE));
+                    case DbParams.PersistentName.PERSISTENT_USER_ID:
+                        contentValues.put(DbParams.PersistentName.PERSISTENT_USER_ID, jsonObject.optString(DbParams.VALUE));
                         break;
-                    case DbParams.PERSISTENT_LOGIN_ID_KEY:
-                        contentValues.put(DbParams.PERSISTENT_LOGIN_ID_KEY, jsonObject.optString(DbParams.VALUE));
+                    case DbParams.PersistentName.PERSISTENT_LOGIN_ID_KEY:
+                        contentValues.put(DbParams.PersistentName.PERSISTENT_LOGIN_ID_KEY, jsonObject.optString(DbParams.VALUE));
+                        break;
+                    case DbParams.PUSH_ID_KEY:
+                        contentValues.put(DbParams.PUSH_ID_KEY, jsonObject.optString(DbParams.PUSH_ID_KEY));
+                        contentValues.put(DbParams.PUSH_ID_VALUE, jsonObject.optString(DbParams.PUSH_ID_VALUE));
                         break;
                     default:
                         return -1;
@@ -111,14 +115,15 @@ class PersistentDataOperation extends DataOperation {
                 cursor.moveToNext();
                 switch (path) {
                     case DbParams.TABLE_ACTIVITY_START_COUNT:
-                    case DbParams.TABLE_SUB_PROCESS_FLUSH_DATA:
+                    case DbParams.PersistentName.SUB_PROCESS_FLUSH_DATA:
                     case DbParams.TABLE_FIRST_PROCESS_START:
                         return new String[]{String.valueOf(cursor.getInt(0))};
-                    case DbParams.TABLE_APP_END_DATA:
-                    case DbParams.TABLE_LOGIN_ID:
-                    case DbParams.TABLE_REMOTE_CONFIG:
-                    case DbParams.PERSISTENT_USER_ID:
-                    case DbParams.PERSISTENT_LOGIN_ID_KEY:
+                    case DbParams.PersistentName.APP_END_DATA:
+                    case DbParams.PersistentName.LOGIN_ID:
+                    case DbParams.PersistentName.REMOTE_CONFIG:
+                    case DbParams.PersistentName.PERSISTENT_USER_ID:
+                    case DbParams.PersistentName.PERSISTENT_LOGIN_ID_KEY:
+                    case DbParams.PUSH_ID_KEY:
                         return new String[]{cursor.getString(0)};
                     case DbParams.TABLE_SESSION_INTERVAL_TIME:
                     case DbParams.TABLE_APP_START_TIME:
@@ -135,5 +140,11 @@ class PersistentDataOperation extends DataOperation {
             }
         }
         return null;
+    }
+
+    @Override
+    void deleteData(Uri uri, String key) {
+        contentResolver.delete(uri.buildUpon().appendQueryParameter(DbParams.REMOVE_SP_KEY, key).build(),
+                null, null);
     }
 }

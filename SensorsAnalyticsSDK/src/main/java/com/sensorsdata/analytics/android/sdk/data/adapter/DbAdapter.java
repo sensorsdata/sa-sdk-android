@@ -1,6 +1,6 @@
 /*
  * Created by dengshiwei on 2021/04/07.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -244,9 +244,10 @@ public class DbAdapter {
      * @param eventName 事件名
      * @return false 表示已存在，true 表示不存在，是首次
      */
-    public boolean isFirstChannelEvent(String eventName) {
+    public boolean isFirstChannelEvent(String[] eventName) {
         try {
-            return mTrackEventOperation.queryDataCount(mDbParams.getChannelPersistentUri(), null, DbParams.KEY_CHANNEL_EVENT_NAME + " = ? ", new String[]{eventName}, null) <= 0;
+            return mTrackEventOperation.queryDataCount(mDbParams.getChannelPersistentUri(),
+                    null, DbParams.KEY_CHANNEL_EVENT_NAME + " = ? or " + DbParams.KEY_CHANNEL_EVENT_NAME + " = ? ", eventName, null) <= 0;
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -262,7 +263,6 @@ public class DbAdapter {
         try {
             ContentValues values = new ContentValues();
             values.put(DbParams.KEY_CHANNEL_EVENT_NAME, eventName);
-            values.put(DbParams.KEY_CHANNEL_RESULT, true);
             mTrackEventOperation.insertData(mDbParams.getChannelPersistentUri(), values);
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -419,6 +419,33 @@ public class DbAdapter {
             SALog.printStackTrace(e);
         }
         return "";
+    }
+
+    public void commitPushID(String key, String pushId) {
+        try {
+            JSONObject jsonObject = new JSONObject().put(DbParams.PUSH_ID_KEY, key).put(DbParams.PUSH_ID_VALUE, pushId);
+            mPersistentOperation.insertData(mDbParams.getPushIdUri(), jsonObject);
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+    }
+
+
+    public String getPushId(String key) {
+        try {
+            String[] values = mPersistentOperation.queryData(mDbParams.getPushIdUri().buildUpon().appendQueryParameter(DbParams.PUSH_ID_KEY, key).build(), 1);
+            if (values != null && values.length > 0) {
+                return values[0];
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return "";
+    }
+
+
+    public void removePushId(String key) {
+        mPersistentOperation.deleteData(mDbParams.getPushIdUri(), key);
     }
 
     /**

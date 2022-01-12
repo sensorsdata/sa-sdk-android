@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2015/08/01.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,28 +18,24 @@
 package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import android.annotation.SuppressLint;
-import android.content.SharedPreferences;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 
 @SuppressLint("CommitPrefEdits")
 public abstract class PersistentIdentity<T> {
 
     private static final String TAG = "SA.PersistentIdentity";
-    private final Future<SharedPreferences> loadStoredPreferences;
     private final PersistentSerializer serializer;
     private final String persistentKey;
+    private final SAStoreManager saStoreManager;
     private T item;
 
-    PersistentIdentity(final Future<SharedPreferences> loadStoredPreferences, final String
-            persistentKey, final PersistentSerializer<T> serializer) {
-        this.loadStoredPreferences = loadStoredPreferences;
+    PersistentIdentity(final String persistentKey, final PersistentSerializer<T> serializer) {
         this.serializer = serializer;
         this.persistentKey = persistentKey;
+        this.saStoreManager = SAStoreManager.getInstance();
     }
 
     /**
@@ -51,18 +47,8 @@ public abstract class PersistentIdentity<T> {
     public T get() {
         if (this.item == null) {
             String data = null;
-            synchronized (loadStoredPreferences) {
-                try {
-                    SharedPreferences sharedPreferences = loadStoredPreferences.get();
-                    if (sharedPreferences != null) {
-                        data = sharedPreferences.getString(persistentKey, null);
-                    }
-                } catch (final ExecutionException e) {
-                    SALog.d(TAG, "Cannot read distinct ids from sharedPreferences.", e.getCause());
-                } catch (final InterruptedException e) {
-                    SALog.d(TAG, "Cannot read distinct ids from sharedPreferences.", e);
-                }
-
+            synchronized (saStoreManager) {
+                data = saStoreManager.getString(persistentKey, null);
                 if (data == null) {
                     item = (T) serializer.create();
                     commit(item);
@@ -86,26 +72,11 @@ public abstract class PersistentIdentity<T> {
         }
         this.item = item;
 
-        synchronized (loadStoredPreferences) {
-            SharedPreferences sharedPreferences = null;
-            try {
-                sharedPreferences = loadStoredPreferences.get();
-            } catch (final ExecutionException e) {
-                SALog.d(TAG, "Cannot read distinct ids from sharedPreferences.", e.getCause());
-            } catch (final InterruptedException e) {
-                SALog.d(TAG, "Cannot read distinct ids from sharedPreferences.", e);
-            }
-
-            if (sharedPreferences == null) {
-                return;
-            }
-
-            final SharedPreferences.Editor editor = sharedPreferences.edit();
+        synchronized (saStoreManager) {
             if (this.item == null) {
                 this.item = (T) serializer.create();
             }
-            editor.putString(persistentKey, serializer.save(this.item));
-            editor.apply();
+            saStoreManager.setString(persistentKey, serializer.save(this.item));
         }
     }
 
@@ -116,11 +87,20 @@ public abstract class PersistentIdentity<T> {
      */
     public boolean isExists() {
         try {
-            return loadStoredPreferences.get().contains(persistentKey);
+            return saStoreManager.isExists(persistentKey);
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
         }
         return false;
+    }
+
+    /**
+     * 删除数据
+     */
+    public void remove() {
+        synchronized (saStoreManager) {
+            saStoreManager.remove(persistentKey);
+        }
     }
 
     /**

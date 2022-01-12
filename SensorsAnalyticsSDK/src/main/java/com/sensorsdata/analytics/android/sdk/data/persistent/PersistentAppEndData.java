@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2015/08/01.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +17,11 @@
 
 package com.sensorsdata.analytics.android.sdk.data.persistent;
 
-import android.content.SharedPreferences;
-
-import java.util.concurrent.Future;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 
 public class PersistentAppEndData extends PersistentIdentity<String> {
-    public PersistentAppEndData(Future<SharedPreferences> loadStoredPreferences) {
-        super(loadStoredPreferences, PersistentLoader.PersistentName.APP_END_DATA, new PersistentSerializer<String>() {
+    public PersistentAppEndData() {
+        super(DbParams.PersistentName.APP_END_DATA, new PersistentSerializer<String>() {
             @Override
             public String load(String value) {
                 return value;

@@ -1,6 +1,6 @@
 /*
  * Created by zhangxiangwei on 2021/01/28.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import android.text.TextUtils;
 import android.view.View;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentVisualConfig;
 import com.sensorsdata.analytics.android.sdk.visual.ViewTreeStatusObservable;
@@ -43,7 +44,7 @@ public class VisualPropertiesCache {
     private PersistentVisualConfig mPersistentVisualConfig;
 
     public VisualPropertiesCache() {
-        this.mPersistentVisualConfig = (PersistentVisualConfig) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.VISUAL_PROPERTIES);
+        this.mPersistentVisualConfig = (PersistentVisualConfig) PersistentLoader.loadPersistent(DbParams.PersistentName.VISUAL_PROPERTIES);
     }
 
     public void save2Cache(String config) {

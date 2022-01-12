@@ -1,6 +1,6 @@
 /*
  * Created by dengshiwei on 2020/05/18.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,10 @@
 package com.sensorsdata.analytics.android.sdk.encrypt;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -34,7 +33,7 @@ import java.util.zip.GZIPOutputStream;
 public class SensorsDataEncrypt {
     private static final String SP_SECRET_KEY = "secret_key";
     private static final int KEY_VERSION_DEFAULT = 0;
-    private static final String TAG = "SensorsDataEncrypt";
+    private static final String TAG = "SA.SensorsDataEncrypt";
     private List<SAEncryptListener> mListeners;
     private SecreteKey mSecreteKey;
 
@@ -132,9 +131,9 @@ public class SensorsDataEncrypt {
                 if (mPersistentSecretKey != null) {
                     mPersistentSecretKey.saveSecretKey(secreteKey);
                     // 同时删除本地的密钥
-                    saveLocalSecretKey("");
+                    SAStoreManager.getInstance().setString(SP_SECRET_KEY, "");
                 } else {
-                    saveLocalSecretKey(secreteKey.toString());
+                    SAStoreManager.getInstance().setString(SP_SECRET_KEY, secreteKey.toString());
                 }
             }
         } catch (Exception e) {
@@ -247,18 +246,6 @@ public class SensorsDataEncrypt {
     }
 
     /**
-     * 存储密钥
-     *
-     * @param key 密钥
-     */
-    private void saveLocalSecretKey(String key) {
-        SharedPreferences preferences = SensorsDataUtils.getSharedPreferences(mContext);
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putString(SP_SECRET_KEY, key);
-        editor.apply();
-    }
-
-    /**
      * 加载密钥
      *
      * @throws JSONException 异常
@@ -300,8 +287,7 @@ public class SensorsDataEncrypt {
         int keyVersion = 0;
         String symmetricEncryptType = null;
         String asymmetricEncryptType = null;
-        final SharedPreferences preferences = SensorsDataUtils.getSharedPreferences(mContext);
-        String secretKey = preferences.getString(SP_SECRET_KEY, "");
+        String secretKey = SAStoreManager.getInstance().getString(SP_SECRET_KEY, "");
         if (!TextUtils.isEmpty(secretKey)) {
             JSONObject jsonObject = new JSONObject(secretKey);
             publicKey = jsonObject.optString("key", "");

@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2015/08/01.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
@@ -40,6 +39,7 @@ import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackAppViewScreenUrl;
+import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 
 import org.json.JSONObject;
 
@@ -269,10 +269,6 @@ public final class SensorsDataUtils {
         }
         return jsonObject.optString(mccMnc);
 
-    }
-
-    public static SharedPreferences getSharedPreferences(Context context) {
-        return SASpUtils.getSharedPreferences(context, SHARED_PREF_EDITS_FILE, Context.MODE_PRIVATE);
     }
 
     static String getToolbarTitle(Activity activity) {
@@ -690,11 +686,9 @@ public final class SensorsDataUtils {
      */
     public static boolean checkVersionIsNew(Context context, String currVersion) {
         try {
-            SharedPreferences appVersionPref = getSharedPreferences(context);
-            String localVersion = appVersionPref.getString(SHARED_PREF_APP_VERSION, "");
-
+            String localVersion = SAStoreManager.getInstance().getString(SHARED_PREF_APP_VERSION, "");
             if (!TextUtils.isEmpty(currVersion) && !currVersion.equals(localVersion)) {
-                appVersionPref.edit().putString(SHARED_PREF_APP_VERSION, currVersion).apply();
+                SAStoreManager.getInstance().setString(SHARED_PREF_APP_VERSION, currVersion);
                 return true;
             }
         } catch (Exception ex) {

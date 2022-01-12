@@ -1,9 +1,8 @@
 package com.sensorsdata.analytics.android.sdk;
 
-import android.content.SharedPreferences;
 import android.text.TextUtils;
 
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -28,7 +27,6 @@ public class SessionRelatedManager {
     private final String KEY_LAST_EVENT_TIME = "lastEventTime";
     private final long SESSION_LAST_INTERVAL_TIME = 30 * 60 * 1000;
     private final long SESSION_START_INTERVAL_TIME = 12 * 60 * 60 * 1000;
-    private SharedPreferences mStorePreferences;
 
     /**
      * UUID
@@ -56,9 +54,6 @@ public class SessionRelatedManager {
 
     private SessionRelatedManager() {
         try {
-            if (SensorsDataAPI.sharedInstance().mContext != null) {
-                mStorePreferences = SensorsDataUtils.getSharedPreferences(SensorsDataAPI.sharedInstance().mContext);
-            }
             if (!SensorsDataAPI.getConfigOptions().isEnableSession()) {
                 deleteSessionData();
             } else {
@@ -98,7 +93,7 @@ public class SessionRelatedManager {
      */
     private void updateSessionLastTime(long eventTime) {
         mLastEventTime = eventTime;
-        mStorePreferences.edit().putString(SHARED_PREF_SESSION_CUTDATA, getSessionDataPack()).apply();
+        SAStoreManager.getInstance().setString(SHARED_PREF_SESSION_CUTDATA, getSessionDataPack());
     }
 
     /**
@@ -108,7 +103,7 @@ public class SessionRelatedManager {
         mSessionID = null;
         mStartTime = -1;
         mLastEventTime = -1;
-        mStorePreferences.edit().remove(SHARED_PREF_SESSION_CUTDATA).apply();
+        SAStoreManager.getInstance().remove(SHARED_PREF_SESSION_CUTDATA);
     }
 
     /**
@@ -120,15 +115,14 @@ public class SessionRelatedManager {
             mStartTime = eventTime;
         }
         mLastEventTime = Math.max(eventTime, mLastEventTime);  // 避免补发 $AppEnd 事件时间戳被覆盖
-        mStorePreferences.edit().putString(SHARED_PREF_SESSION_CUTDATA, getSessionDataPack()).apply();
+        SAStoreManager.getInstance().setString(SHARED_PREF_SESSION_CUTDATA, getSessionDataPack());
     }
 
     /**
      * 从 Sp 中读取 session 的数据
      */
     private void readSessionData() {
-        SharedPreferences sessionPref = SensorsDataUtils.getSharedPreferences(SensorsDataAPI.sharedInstance().mContext);
-        String sessionJson = sessionPref.getString(SHARED_PREF_SESSION_CUTDATA, "");
+        String sessionJson = SAStoreManager.getInstance().getString(SHARED_PREF_SESSION_CUTDATA, "");
         if (TextUtils.isEmpty(sessionJson)) return;
         try {
             JSONObject jsonObject = new JSONObject(sessionJson);

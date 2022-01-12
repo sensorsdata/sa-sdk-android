@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2015/08/01.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,10 @@
  */
 package com.sensorsdata.analytics.android.sdk;
 
+import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
+
 import android.app.Activity;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Build;
@@ -28,6 +29,8 @@ import android.view.View;
 import android.view.Window;
 import android.webkit.WebView;
 
+import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
+import com.sensorsdata.analytics.android.sdk.advert.utils.OaidHelper;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
@@ -39,8 +42,6 @@ import com.sensorsdata.analytics.android.sdk.listener.SAFunctionListener;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
-import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
-import com.sensorsdata.analytics.android.sdk.advert.utils.OaidHelper;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
@@ -62,8 +63,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
-import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
 
 /**
  * Sensors Analytics SDK
@@ -2193,11 +2192,10 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                     }
                     String distinctId = getDistinctId();
                     String distinctPushId = distinctId + pushId;
-                    SharedPreferences sp = SensorsDataUtils.getSharedPreferences(mContext);
-                    String spDistinctPushId = sp.getString("distinctId_" + pushTypeKey, "");
-                    if (!spDistinctPushId.equals(distinctPushId)) {
+                    String spDistinctPushId = DbAdapter.getInstance().getPushId("distinctId_" + pushTypeKey);
+                    if (!TextUtils.equals(spDistinctPushId, distinctPushId)) {
                         profileSet(pushTypeKey, pushId);
-                        sp.edit().putString("distinctId_" + pushTypeKey, distinctPushId).apply();
+                        DbAdapter.getInstance().commitPushID("distinctId_" + pushTypeKey, distinctPushId);
                     }
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
@@ -2216,13 +2214,12 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                         return;
                     }
                     String distinctId = getDistinctId();
-                    SharedPreferences sp = SensorsDataUtils.getSharedPreferences(mContext);
                     String key = "distinctId_" + pushTypeKey;
-                    String spDistinctPushId = sp.getString(key, "");
-
-                    if (spDistinctPushId.startsWith(distinctId)) {
+                    String spDistinctPushId = DbAdapter.getInstance().getPushId(key);
+                    if (!TextUtils.isEmpty(spDistinctPushId) &&
+                            spDistinctPushId.startsWith(distinctId)) {
                         profileUnset(pushTypeKey);
-                        sp.edit().remove(key).apply();
+                        DbAdapter.getInstance().removePushId(key);
                     }
                 } catch (Exception e) {
                     SALog.printStackTrace(e);

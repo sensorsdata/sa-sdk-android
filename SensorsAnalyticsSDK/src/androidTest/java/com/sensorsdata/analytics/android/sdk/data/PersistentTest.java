@@ -1,6 +1,6 @@
 /*
  * Created by zhangwei on 2019/04/30.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.sensorsdata.analytics.android.sdk.PropertyBuilder;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndData;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentDistinctId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
@@ -96,7 +97,7 @@ public class PersistentTest {
         // PersistentSuperProperties
         sharedPreferences.edit().clear().apply();
         {
-            PersistentSuperProperties persistentSuperProperties = (PersistentSuperProperties) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.SUPER_PROPERTIES);
+            PersistentSuperProperties persistentSuperProperties = (PersistentSuperProperties) PersistentLoader.loadPersistent(DbParams.PersistentName.SUPER_PROPERTIES);
             assertNotNull(persistentSuperProperties);
             //获取初始化的值
             JSONObject jsonObject = persistentSuperProperties.get();
@@ -124,7 +125,7 @@ public class PersistentTest {
         //  PersistentAppEndData
         sharedPreferences.edit().clear().apply();
         {
-            PersistentAppEndData persistentAppEndData = (PersistentAppEndData) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.APP_END_DATA);
+            PersistentAppEndData persistentAppEndData = (PersistentAppEndData) PersistentLoader.loadPersistent(DbParams.PersistentName.APP_END_DATA);
             assertNotNull(persistentAppEndData);
             String dataStr = persistentAppEndData.get();
             assertThat(dataStr, allOf(notNullValue(), equalTo("")));
@@ -142,7 +143,7 @@ public class PersistentTest {
         //  PersistentDistinctId
         sharedPreferences.edit().clear().apply();
         {
-            PersistentDistinctId persistentDistinctId = (PersistentDistinctId) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.DISTINCT_ID);
+            PersistentDistinctId persistentDistinctId = (PersistentDistinctId) PersistentLoader.loadPersistent(DbParams.PersistentName.DISTINCT_ID);
             assertNotNull(persistentDistinctId);
             String dataStr = persistentDistinctId.get();
             assertThat(dataStr, allOf(notNullValue(), equalTo(SensorsDataUtils.getAndroidID(context))));
@@ -160,7 +161,7 @@ public class PersistentTest {
         //  PersistentFirstDay
         sharedPreferences.edit().clear().apply();
         {
-            PersistentFirstDay persistentFirstDay = (PersistentFirstDay) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.FIRST_DAY);
+            PersistentFirstDay persistentFirstDay = (PersistentFirstDay) PersistentLoader.loadPersistent(DbParams.PersistentName.FIRST_DAY);
             assertNotNull(persistentFirstDay);
             String dataStr = persistentFirstDay.get();
             assertNull(dataStr);
@@ -178,7 +179,7 @@ public class PersistentTest {
         // PersistentFirstStart
         sharedPreferences.edit().clear().apply();
         {
-            PersistentFirstStart persistentFirstStart = (PersistentFirstStart) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.FIRST_START);
+            PersistentFirstStart persistentFirstStart = (PersistentFirstStart) PersistentLoader.loadPersistent(DbParams.PersistentName.FIRST_START);
             assertNotNull(persistentFirstStart);
             boolean result = persistentFirstStart.get();
             assertTrue(result);
@@ -199,7 +200,7 @@ public class PersistentTest {
         // PersistentFirstTrackInstallation
         sharedPreferences.edit().clear().apply();
         {
-            PersistentFirstTrackInstallation persistentFirstTrackInstallation = (PersistentFirstTrackInstallation) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.FIRST_INSTALL);
+            PersistentFirstTrackInstallation persistentFirstTrackInstallation = (PersistentFirstTrackInstallation) PersistentLoader.loadPersistent(DbParams.PersistentName.FIRST_INSTALL);
             assertNotNull(persistentFirstTrackInstallation);
             boolean result = persistentFirstTrackInstallation.get();
             assertTrue(result);
@@ -221,7 +222,7 @@ public class PersistentTest {
         sharedPreferences.edit().clear().apply();
         {
             PersistentFirstTrackInstallationWithCallback persistentFirstTrackInstallationWithCallback =
-                    (PersistentFirstTrackInstallationWithCallback) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.FIRST_INSTALL_CALLBACK);
+                    (PersistentFirstTrackInstallationWithCallback) PersistentLoader.loadPersistent(DbParams.PersistentName.FIRST_INSTALL_CALLBACK);
             assertNotNull(persistentFirstTrackInstallationWithCallback);
             boolean result = persistentFirstTrackInstallationWithCallback.get();
             assertTrue(result);
@@ -242,7 +243,7 @@ public class PersistentTest {
         //  PersistentLoginId
         sharedPreferences.edit().clear().apply();
         {
-            PersistentLoginId persistentLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.LOGIN_ID);
+            PersistentLoginId persistentLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(DbParams.PersistentName.LOGIN_ID);
             assertNotNull(persistentLoginId);
             String dataStr = persistentLoginId.get();
             assertNull(dataStr);
@@ -260,7 +261,7 @@ public class PersistentTest {
         //  PersistentRemoteSDKConfig
         sharedPreferences.edit().clear().apply();
         {
-            PersistentRemoteSDKConfig persistentRemoteSDKConfig = (PersistentRemoteSDKConfig) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.REMOTE_CONFIG);
+            PersistentRemoteSDKConfig persistentRemoteSDKConfig = (PersistentRemoteSDKConfig) PersistentLoader.loadPersistent(DbParams.PersistentName.REMOTE_CONFIG);
             assertNotNull(persistentRemoteSDKConfig);
             String dataStr = persistentRemoteSDKConfig.get();
             assertNull(dataStr);

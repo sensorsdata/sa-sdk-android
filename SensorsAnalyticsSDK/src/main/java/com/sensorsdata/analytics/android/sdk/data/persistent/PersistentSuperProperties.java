@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2017/4/10.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,18 +17,15 @@
 
 package com.sensorsdata.analytics.android.sdk.data.persistent;
 
-import android.content.SharedPreferences;
-
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.concurrent.Future;
-
 public class PersistentSuperProperties extends PersistentIdentity<JSONObject> {
-    public PersistentSuperProperties(Future<SharedPreferences> loadStoredPreferences) {
-        super(loadStoredPreferences, PersistentLoader.PersistentName.SUPER_PROPERTIES, new PersistentSerializer<JSONObject>() {
+    public PersistentSuperProperties() {
+        super(DbParams.PersistentName.SUPER_PROPERTIES, new PersistentSerializer<JSONObject>() {
             @Override
             public JSONObject load(String value) {
                 try {

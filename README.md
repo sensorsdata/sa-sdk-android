@@ -60,7 +60,7 @@ Android 4.0 及以上。
 
 ## License
 
-Copyright 2015－2021 Sensors Data Inc.
+Copyright 2015－2022 Sensors Data Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

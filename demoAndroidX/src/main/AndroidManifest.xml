@@ -27,7 +27,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".activity.BasePropertyActivity" />
-        <activity android:name=".activity.TrackProfileSettingsActivity" />
+        <activity android:name=".activity.TrackProfileSettingsActivity"/>
         <activity android:name=".activity.H5Activity" />
         <activity android:name=".activity.WidgetTestActivity" />
         <activity android:name=".activity.DataBindingLambdaActivity" />

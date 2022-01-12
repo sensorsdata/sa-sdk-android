@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2019/02/01.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,24 +18,17 @@
 package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
-
-import java.util.concurrent.Future;
 
 public class PersistentLoader {
 
     private static volatile PersistentLoader instance;
     private static Context context;
-    private static Future<SharedPreferences> storedPreferences;
 
     private PersistentLoader(Context context) {
         PersistentLoader.context = context.getApplicationContext();
-        final SharedPreferencesLoader sPrefsLoader = new SharedPreferencesLoader();
-        final String prefsName = "com.sensorsdata.analytics.android.sdk.SensorsDataAPI";
-        storedPreferences = sPrefsLoader.loadPreferences(context, prefsName);
     }
 
     public static PersistentLoader initLoader(Context context) {
@@ -45,7 +38,7 @@ public class PersistentLoader {
         return instance;
     }
 
-    public static PersistentIdentity loadPersistent(String persistentKey) {
+    public static PersistentIdentity<?> loadPersistent(String persistentKey) {
         if (instance == null) {
             throw new RuntimeException("you should call 'PersistentLoader.initLoader(Context)' first");
         }
@@ -53,48 +46,34 @@ public class PersistentLoader {
             return null;
         }
         switch (persistentKey) {
-            case PersistentName.APP_END_DATA:
-                return new PersistentAppEndData(storedPreferences);
-            case PersistentName.DISTINCT_ID:
-                return new PersistentDistinctId(storedPreferences, context);
-            case PersistentName.FIRST_DAY:
-                return new PersistentFirstDay(storedPreferences);
-            case PersistentName.FIRST_INSTALL:
-                return new PersistentFirstTrackInstallation(storedPreferences);
-            case PersistentName.FIRST_INSTALL_CALLBACK:
-                return new PersistentFirstTrackInstallationWithCallback(storedPreferences);
-            case PersistentName.FIRST_START:
-                return new PersistentFirstStart(storedPreferences);
-            case PersistentName.LOGIN_ID:
-                return new PersistentLoginId(storedPreferences);
-            case PersistentName.REMOTE_CONFIG:
-                return new PersistentRemoteSDKConfig(storedPreferences);
-            case PersistentName.SUPER_PROPERTIES:
-                return new PersistentSuperProperties(storedPreferences);
-            case PersistentName.SUB_PROCESS_FLUSH_DATA:
-                return new PersistentFlushDataState(storedPreferences);
-            case PersistentName.VISUAL_PROPERTIES:
-                return new PersistentVisualConfig(storedPreferences);
-            case DbParams.PERSISTENT_USER_ID:
-                return new UserIdentityPersistent(storedPreferences);
-            case DbParams.PERSISTENT_LOGIN_ID_KEY:
-                return new LoginIdKeyPersistent(storedPreferences);
+            case DbParams.PersistentName.APP_END_DATA:
+                return new PersistentAppEndData();
+            case DbParams.PersistentName.DISTINCT_ID:
+                return new PersistentDistinctId(context);
+            case DbParams.PersistentName.FIRST_DAY:
+                return new PersistentFirstDay();
+            case DbParams.PersistentName.FIRST_INSTALL:
+                return new PersistentFirstTrackInstallation();
+            case DbParams.PersistentName.FIRST_INSTALL_CALLBACK:
+                return new PersistentFirstTrackInstallationWithCallback();
+            case DbParams.PersistentName.FIRST_START:
+                return new PersistentFirstStart();
+            case DbParams.PersistentName.LOGIN_ID:
+                return new PersistentLoginId();
+            case DbParams.PersistentName.REMOTE_CONFIG:
+                return new PersistentRemoteSDKConfig();
+            case DbParams.PersistentName.SUPER_PROPERTIES:
+                return new PersistentSuperProperties();
+            case DbParams.PersistentName.SUB_PROCESS_FLUSH_DATA:
+                return new PersistentFlushDataState();
+            case DbParams.PersistentName.VISUAL_PROPERTIES:
+                return new PersistentVisualConfig();
+            case DbParams.PersistentName.PERSISTENT_USER_ID:
+                return new UserIdentityPersistent();
+            case DbParams.PersistentName.PERSISTENT_LOGIN_ID_KEY:
+                return new LoginIdKeyPersistent();
             default:
                 return null;
         }
-    }
-
-    public interface PersistentName {
-        String APP_END_DATA = DbParams.TABLE_APP_END_DATA;
-        String SUB_PROCESS_FLUSH_DATA = DbParams.TABLE_SUB_PROCESS_FLUSH_DATA;
-        String DISTINCT_ID = "events_distinct_id";
-        String FIRST_DAY = "first_day";
-        String FIRST_START = "first_start";
-        String FIRST_INSTALL = "first_track_installation";
-        String FIRST_INSTALL_CALLBACK = "first_track_installation_with_callback";
-        String LOGIN_ID = "events_login_id";
-        String REMOTE_CONFIG = "sensorsdata_sdk_configuration";
-        String SUPER_PROPERTIES = "super_properties";
-        String VISUAL_PROPERTIES = "visual_properties";
     }
 }

@@ -1,6 +1,6 @@
 /*
  * Created by dengshiwei on 2021/03/26.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,16 +17,12 @@
 
 package com.sensorsdata.analytics.android.sdk.data.persistent;
 
-import android.content.SharedPreferences;
-
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
-
-import java.util.concurrent.Future;
 
 public class UserIdentityPersistent extends PersistentIdentity<String> {
 
-    public UserIdentityPersistent(Future<SharedPreferences> loadStoredPreferences) {
-        super(loadStoredPreferences, DbParams.PERSISTENT_USER_ID, new PersistentSerializer<String>() {
+    public UserIdentityPersistent() {
+        super(DbParams.PersistentName.PERSISTENT_USER_ID, new PersistentSerializer<String>() {
             @Override
             public String load(String value) {
                 return value;

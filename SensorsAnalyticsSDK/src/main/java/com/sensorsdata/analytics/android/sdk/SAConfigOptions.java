@@ -1,6 +1,6 @@
 /*
  * Created by dengshiwei on 2019/03/11.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,13 @@ package com.sensorsdata.analytics.android.sdk;
 
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.plugin.encrypt.StorePlugin;
 import com.sensorsdata.analytics.android.sdk.encrypt.IPersistentSecretKey;
 import com.sensorsdata.analytics.android.sdk.encrypt.SAEncryptListener;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -400,6 +404,19 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
         if (!mEncryptors.contains(encryptListener)) {
             mEncryptors.add(0, encryptListener);
         }
+        return this;
+    }
+
+    /**
+     * 注册自定义插件，适用于 SP 加密
+     * @param plugin 自定义插件
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions registerStorePlugin(StorePlugin plugin) {
+        if (mStorePlugins == null) {
+            mStorePlugins = new ArrayList<>();
+        }
+        mStorePlugins.add(plugin);
         return this;
     }
 

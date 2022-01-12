@@ -1,6 +1,6 @@
 /*
  * Created by dengshiwei on 2021/03/25.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
 
     public UserIdentityAPI(SAContextManager contextManager, SAConfigOptions saConfigOptions) {
         this.mSAContextManager = contextManager;
-        this.mDistinctId = (PersistentDistinctId) PersistentLoader.loadPersistent(PersistentLoader.PersistentName.DISTINCT_ID);
+        this.mDistinctId = (PersistentDistinctId) PersistentLoader.loadPersistent(DbParams.PersistentName.DISTINCT_ID);
         try {
             String loginIDKey = saConfigOptions.getLoginIDKey();
             if (!LOGIN_ID.equals(loginIDKey)) {
@@ -490,7 +490,7 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
             mIdentities = new JSONObject();
             mLoginIdentities = new JSONObject();
             // 判断 identities 是否存在
-            final UserIdentityPersistent userPersistent = (UserIdentityPersistent) PersistentLoader.loadPersistent(DbParams.PERSISTENT_USER_ID);
+            final UserIdentityPersistent userPersistent = (UserIdentityPersistent) PersistentLoader.loadPersistent(DbParams.PersistentName.PERSISTENT_USER_ID);
             if (userPersistent != null && userPersistent.isExists()) {
                 String identities = DbAdapter.getInstance().getIdentities();
                 if (!TextUtils.isEmpty(identities)) {

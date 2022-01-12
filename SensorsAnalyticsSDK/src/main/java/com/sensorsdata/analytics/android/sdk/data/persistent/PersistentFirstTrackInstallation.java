@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2017/4/10.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +17,11 @@
 
 package com.sensorsdata.analytics.android.sdk.data.persistent;
 
-import android.content.SharedPreferences;
-
-import java.util.concurrent.Future;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 
 public class PersistentFirstTrackInstallation extends PersistentIdentity<Boolean> {
-    public PersistentFirstTrackInstallation(Future<SharedPreferences> loadStoredPreferences) {
-        super(loadStoredPreferences, PersistentLoader.PersistentName.FIRST_INSTALL, new PersistentSerializer<Boolean>() {
+    public PersistentFirstTrackInstallation() {
+        super(DbParams.PersistentName.FIRST_INSTALL, new PersistentSerializer<Boolean>() {
             @Override
             public Boolean load(String value) {
                 return false;

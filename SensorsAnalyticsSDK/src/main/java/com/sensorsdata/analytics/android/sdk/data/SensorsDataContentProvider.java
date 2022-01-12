@@ -1,6 +1,6 @@
 /*
  * Created by wangzhuozhou on 2017/5/5.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,8 +25,10 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.net.Uri;
+import android.os.Bundle;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 
 public class SensorsDataContentProvider extends ContentProvider {
@@ -65,6 +67,8 @@ public class SensorsDataContentProvider extends ContentProvider {
             int code = uriMatcher.match(uri);
             if (SAProviderHelper.URI_CODE.EVENTS == code) {
                 return mProviderHelper.deleteEvents(selection, selectionArgs);
+            } else if (code == SAProviderHelper.URI_CODE.PUSH_ID_KEY) {
+                return mProviderHelper.removeSP(uri.getQueryParameter(DbParams.REMOVE_SP_KEY));
             }
             //目前逻辑不处理其他 Code
         } catch (Exception e) {
@@ -135,7 +139,7 @@ public class SensorsDataContentProvider extends ContentProvider {
             } else if (code == SAProviderHelper.URI_CODE.CHANNEL_PERSISTENT) {
                 cursor = mProviderHelper.queryByTable(DbParams.TABLE_CHANNEL_PERSISTENT, projection, selection, selectionArgs, sortOrder);
             } else {
-                cursor = mProviderHelper.queryPersistent(code);
+                cursor = mProviderHelper.queryPersistent(code, uri);
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
