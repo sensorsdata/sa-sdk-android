@@ -17,13 +17,16 @@
 
 package com.sensorsdata.analytics.android.sdk.visual.snap;
 
+import android.os.Handler;
+
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.visual.ViewSnapshot;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class EditProtocol {
@@ -31,13 +34,32 @@ public class EditProtocol {
     private static final Class<?>[] NO_PARAMS = new Class[0];
     private static final String TAG = "SA.EProtocol";
     private final ResourceIds mResourceIds;
+    private List<PropertyDescription> propertyDescriptionList;
 
     public EditProtocol(ResourceIds resourceIds) {
         mResourceIds = resourceIds;
+
+        try {
+            JSONObject mMessageObject = new JSONObject("{\"type\":\"snapshot_request\",\"payload\":{\"config\":{\"classes\":[{\"name\":\"android.view.View\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]},{\"name\":\"android.widget.TextView\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]},{\"name\":\"android.widget.ImageView\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]}]}}}");
+
+            final JSONObject payload = mMessageObject.getJSONObject("payload");
+            if (payload.has("config")) {
+                propertyDescriptionList = getListPropertyDescription(payload);
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
-    public ViewSnapshot readSnapshotConfig(JSONObject source) throws BadInstructionsException {
-        final List<PropertyDescription> properties = new ArrayList<PropertyDescription>();
+    public ViewSnapshot readSnapshotConfig(Handler mMainThreadHandler) throws BadInstructionsException {
+        if (propertyDescriptionList == null) {
+            return null;
+        }
+        return new ViewSnapshot(propertyDescriptionList, mResourceIds, mMainThreadHandler);
+    }
+
+    private List<PropertyDescription> getListPropertyDescription(JSONObject source) throws BadInstructionsException {
+        final List<PropertyDescription> properties = new LinkedList<>();
 
         try {
             final JSONObject config = source.getJSONObject("config");
@@ -54,12 +76,12 @@ public class EditProtocol {
                     properties.add(desc);
                 }
             }
-            return new ViewSnapshot(properties, mResourceIds);
         } catch (JSONException e) {
             throw new BadInstructionsException("Can't read snapshot configuration", e);
         } catch (final ClassNotFoundException e) {
             throw new BadInstructionsException("Can't resolve types for snapshot configuration", e);
         }
+        return properties;
     }
 
     private PropertyDescription readPropertyDescription(Class<?> targetClass, JSONObject propertyDesc)

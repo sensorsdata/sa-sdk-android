@@ -154,8 +154,10 @@ public class AppInfoUtils {
             try {
                 final ApplicationInfo appInfo = context.getApplicationContext().getPackageManager()
                         .getApplicationInfo(context.getPackageName(), PackageManager.GET_META_DATA);
-                mConfigBundle = appInfo.metaData;
-            } catch (final PackageManager.NameNotFoundException e) {
+                if(appInfo != null) {
+                    mConfigBundle = appInfo.metaData;
+                }
+            } catch (final Exception e) {
                 SALog.printStackTrace(e);
             }
         }

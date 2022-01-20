@@ -27,10 +27,8 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Handler;
-import android.os.Looper;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
-import android.util.JsonWriter;
 import android.util.LruCache;
 import android.view.View;
 import android.view.ViewGroup;
@@ -57,17 +55,18 @@ import com.sensorsdata.analytics.android.sdk.visual.model.WebNode;
 import com.sensorsdata.analytics.android.sdk.visual.model.WebNodeInfo;
 import com.sensorsdata.analytics.android.sdk.visual.snap.PropertyDescription;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceIds;
+import com.sensorsdata.analytics.android.sdk.visual.snap.SnapCache;
 import com.sensorsdata.analytics.android.sdk.visual.snap.SoftWareCanvas;
-import com.sensorsdata.analytics.android.sdk.visual.snap.UIThreadSet;
 import com.sensorsdata.analytics.android.sdk.visual.util.Dispatcher;
 import com.sensorsdata.analytics.android.sdk.visual.util.VisualUtil;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -83,7 +82,7 @@ public class ViewSnapshot {
 
     private static final int MAX_CLASS_NAME_CACHE_SIZE = 255;
     private static final int JS_NOT_INTEGRATED_ALERT_TIME_OUT = 5000;
-    private static final String TAG = "SA.Snapshot";
+    private static final String TAG = "SA.ViewSnapshot";
     private final RootViewFinder mRootViewFinder;
     private final List<PropertyDescription> mProperties;
     private final ClassNameCache mClassnameCache;
@@ -92,76 +91,84 @@ public class ViewSnapshot {
     private final ResourceIds mResourceIds;
     private SnapInfo mSnapInfo = new SnapInfo();
 
-    public ViewSnapshot(List<PropertyDescription> properties, ResourceIds resourceIds) {
+    public ViewSnapshot(List<PropertyDescription> properties, ResourceIds resourceIds, Handler mainThreadHandler) {
         mProperties = properties;
         mResourceIds = resourceIds;
-        mMainThreadHandler = new Handler(Looper.getMainLooper());
+        mMainThreadHandler = mainThreadHandler;
         mRootViewFinder = new RootViewFinder();
         mClassnameCache = new ClassNameCache(MAX_CLASS_NAME_CACHE_SIZE);
     }
 
-    public synchronized SnapInfo snapshots(UIThreadSet<Activity> liveActivities, OutputStream out, StringBuilder lastImageHash) throws IOException {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
-            return null;
-        }
+    public SnapInfo snapshots(OutputStream out, StringBuilder lastImageHash) throws IOException {
+        final long startSnapshot = System.currentTimeMillis();
         final FutureTask<List<RootViewInfo>> infoFuture =
-                new FutureTask<List<RootViewInfo>>(mRootViewFinder);
+                new FutureTask<>(mRootViewFinder);
         mMainThreadHandler.post(infoFuture);
 
-        final OutputStreamWriter writer = new OutputStreamWriter(out);
+        final OutputStream writer = new BufferedOutputStream(out);
         List<RootViewInfo> infoList = Collections.emptyList();
-        writer.write("[");
+        writer.write("[".getBytes());
 
         try {
-            infoList = infoFuture.get(1, TimeUnit.SECONDS);
+            infoList = infoFuture.get(2, TimeUnit.SECONDS);
         } catch (final InterruptedException e) {
             SALog.i(TAG, "Screenshot interrupted, no screenshot will be sent.", e);
         } catch (final TimeoutException e) {
-            SALog.i(TAG, "Screenshot took more than 1 second to be scheduled and executed. No screenshot will be sent.", e);
+            SALog.i(TAG, "Screenshot took more than 2 second to be scheduled and executed. No screenshot will be sent.", e);
         } catch (final ExecutionException e) {
             SALog.i(TAG, "Exception thrown during screenshot attempt", e);
+        } catch (Throwable e) {
+            SALog.i(TAG, "Throwable thrown during screenshot attempt", e);
+        } finally {
+            infoFuture.cancel(true);
+            mMainThreadHandler.removeCallbacks(infoFuture);
         }
 
         String screenName = null, activityTitle = null;
         final int infoCount = infoList.size();
+        SALog.i(TAG, "infoCount:" + infoCount + ",time:" + (System.currentTimeMillis() - startSnapshot));
         for (int i = 0; i < infoCount; i++) {
             final RootViewInfo info = infoList.get(i);
             if (i > 0) {
-                writer.write(",");
+                writer.write(",".getBytes());
             }
             if (info != null && info.screenshot != null && (isSnapShotUpdated(info.screenshot.getImageHash(), lastImageHash) || i > 0)) {
-                writer.write("{");
-                writer.write("\"activity\":");
+                writer.write("{".getBytes());
+                writer.write("\"activity\":".getBytes());
                 screenName = info.screenName;
                 activityTitle = info.activityTitle;
-                writer.write(JSONObject.quote(info.screenName));
-                writer.write(",");
-                writer.write("\"scale\":");
-                writer.write(String.format("%s", info.scale));
-                writer.write(",");
-                writer.write("\"serialized_objects\":");
-                {
-                    final JsonWriter j = new JsonWriter(writer);
-                    j.beginObject();
-                    j.name("rootObject").value(info.rootView.hashCode());
-                    j.name("objects");
-                    snapshotViewHierarchy(j, info.rootView);
-                    j.endObject();
-                    j.flush();
+                writer.write(JSONObject.quote(info.screenName).getBytes());
+                writer.write(",".getBytes());
+                writer.write(("\"scale\":").getBytes());
+                writer.write((String.format("%s", info.scale)).getBytes());
+                writer.write(",".getBytes());
+                writer.write(("\"serialized_objects\":").getBytes());
+
+                try {
+                    JSONObject jsonRootObject = new JSONObject();
+                    jsonRootObject.put("rootObject", info.rootView.hashCode());
+                    JSONArray jsonObjects = new JSONArray();
+                    snapshotViewHierarchy(jsonObjects, info.rootView);
+                    jsonRootObject.put("objects", jsonObjects);
+                    writer.write(jsonRootObject.toString().getBytes());
+                    SALog.i(TAG, "snapshotViewHierarchy:" + (System.currentTimeMillis() - startSnapshot));
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
                 }
-                writer.write(",");
-                writer.write("\"image_hash\":");
-                writer.write(JSONObject.quote(info.screenshot.getImageHash()));
-                writer.write(",");
-                writer.write("\"screenshot\":");
+
+                writer.write(",".getBytes());
+                writer.write(("\"image_hash\":").getBytes());
+                writer.write((JSONObject.quote(info.screenshot.getImageHash())).getBytes());
+                writer.write(",".getBytes());
+                writer.write(("\"screenshot\":").getBytes());
                 writer.flush();
                 info.screenshot.writeBitmapJSON(Bitmap.CompressFormat.PNG, 70, out);
-                writer.write("}");
+                writer.write("}".getBytes());
             } else {
-                writer.write("{}");
+                writer.write("{}".getBytes());
             }
         }
-        writer.write("]");
+        writer.write("]".getBytes());
         writer.flush();
         mSnapInfo.screenName = screenName;
         mSnapInfo.activityTitle = activityTitle;
@@ -175,24 +182,22 @@ public class ViewSnapshot {
         }
         int[] offset = new int[2];
         view.getLocationOnScreen(offset);
-        view.getLocalVisibleRect(rect);
+        boolean visibleRect = view.getLocalVisibleRect(rect);
+        SnapCache.getInstance().setLocalVisibleRect(view, visibleRect);
         rect.offset(offset[0], offset[1]);
     }
 
-    private void snapshotViewHierarchy(JsonWriter j, View rootView)
-            throws IOException {
+    private void snapshotViewHierarchy(JSONArray j, View rootView)
+            throws Exception {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
             reset();
-            j.beginArray();
             snapshotView(j, rootView, 0);
-            j.endArray();
             WebNodesManager.getInstance().setHasWebView(mSnapInfo.isWebView);
         }
     }
 
     private void reset() {
         mSnapInfo = new SnapInfo();
-        ViewUtil.clear();
     }
 
     public static class AlertRunnable implements Runnable {
@@ -215,11 +220,8 @@ public class ViewSnapshot {
     }
 
 
-    private void snapshotView(final JsonWriter j, final View view, int viewIndex)
-            throws IOException {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
-            return;
-        }
+    private void snapshotView(final JSONArray j, final View view, int viewIndex)
+            throws Exception {
         // 处理内嵌 H5 页面
         if (ViewUtil.isViewSelfVisible(view)) {
             List<String> webNodeIds = null;
@@ -282,48 +284,48 @@ public class ViewSnapshot {
                 }
             }
             // 处理原生页面
-            j.beginObject();
-            j.name("hashCode").value(view.hashCode());
-            j.name("id").value(view.getId());
-            j.name("index").value(VisualUtil.getChildIndex(view.getParent(), view));
+            JSONObject jsonSnapObject = new JSONObject();
+            jsonSnapObject.put("hashCode", view.hashCode());
+            jsonSnapObject.put("id", view.getId());
+            jsonSnapObject.put("index", VisualUtil.getChildIndex(view.getParent(), view));
             if (ViewUtil.instanceOfWebView(view)) {
-                j.name("element_level").value(webViewElementLevel);
+                jsonSnapObject.put("element_level", webViewElementLevel);
             } else {
-                j.name("element_level").value(++mSnapInfo.elementLevel);
+                jsonSnapObject.put("element_level", ++mSnapInfo.elementLevel);
             }
-            j.name("element_selector").value(ViewUtil.getElementSelector(view));
+            jsonSnapObject.put("element_selector", ViewUtil.getElementSelector(view));
 
             JSONObject object = VisualUtil.getScreenNameAndTitle(view, mSnapInfo);
             if (object != null) {
                 String screenName = object.optString(AopConstants.SCREEN_NAME);
                 String title = object.optString(AopConstants.TITLE);
                 if (!TextUtils.isEmpty(screenName)) {
-                    j.name("screen_name").value(screenName);
+                    jsonSnapObject.put("screen_name", screenName);
                 }
                 if (!TextUtils.isEmpty(title)) {
-                    j.name("title").value(title);
+                    jsonSnapObject.put("title", title);
                 }
             }
 
             ViewNode viewNode = ViewUtil.getViewNode(view, viewIndex, true);
             if (viewNode != null) {
                 if (!TextUtils.isEmpty(viewNode.getViewPath())) {
-                    j.name("element_path").value(viewNode.getViewPath());
+                    jsonSnapObject.put("element_path", viewNode.getViewPath());
                 }
                 if (!TextUtils.isEmpty(viewNode.getViewPosition())) {
-                    j.name("element_position").value(viewNode.getViewPosition());
+                    jsonSnapObject.put("element_position", viewNode.getViewPosition());
                 }
                 if (!TextUtils.isEmpty(viewNode.getViewContent()) && VisualUtil.isSupportElementContent(view)) {
-                    j.name("element_content").value(viewNode.getViewContent());
+                    jsonSnapObject.put("element_content", viewNode.getViewContent());
                 }
-                j.name("is_list_view").value(viewNode.isListView());
+                jsonSnapObject.put("is_list_view", viewNode.isListView());
             }
 
-            j.name("sa_id_name").value(getResName(view));
+            jsonSnapObject.put("sa_id_name", getResName(view));
             try {
                 String saId = (String) view.getTag(R.id.sensors_analytics_tag_view_id);
                 if (!TextUtils.isEmpty(saId)) {
-                    j.name("sa_id_name").value(saId);
+                    jsonSnapObject.put("sa_id_name", saId);
                 }
             } catch (Exception e) {
                 SALog.printStackTrace(e);
@@ -334,31 +336,31 @@ public class ViewSnapshot {
                     final DisplayMetrics displayMetrics = view.getContext().getResources().getDisplayMetrics();
                     int screenWidth = displayMetrics.widthPixels;
                     int screenHeight = displayMetrics.heightPixels;
-                    j.name("top").value(view.getTop());
-                    j.name("left").value(view.getLeft());
-                    j.name("width").value(screenWidth);
-                    j.name("height").value(screenHeight);
+                    jsonSnapObject.put("top", view.getTop());
+                    jsonSnapObject.put("left", view.getLeft());
+                    jsonSnapObject.put("width", screenWidth);
+                    jsonSnapObject.put("height", screenHeight);
                 } else {
                     ViewParent parent = view.getParent();
                     if (parent != null && WindowHelper.isDecorView(parent.getClass())) {
                         Rect rect = new Rect();
                         getVisibleRect(view, rect, false);
-                        j.name("top").value(rect.top);
-                        j.name("left").value(rect.left);
-                        j.name("width").value(rect.width());
-                        j.name("height").value(rect.height());
+                        jsonSnapObject.put("top", rect.top);
+                        jsonSnapObject.put("left", rect.left);
+                        jsonSnapObject.put("width", rect.width());
+                        jsonSnapObject.put("height", rect.height());
                     } else {
-                        j.name("top").value(view.getTop());
-                        j.name("left").value(view.getLeft());
-                        j.name("width").value(view.getWidth());
-                        j.name("height").value(view.getHeight());
+                        jsonSnapObject.put("top", view.getTop());
+                        jsonSnapObject.put("left", view.getLeft());
+                        jsonSnapObject.put("width", view.getWidth());
+                        jsonSnapObject.put("height", view.getHeight());
                     }
                 }
             } else {
-                j.name("top").value(view.getTop());
-                j.name("left").value(view.getLeft());
-                j.name("width").value(view.getWidth());
-                j.name("height").value(view.getHeight());
+                jsonSnapObject.put("top", view.getTop());
+                jsonSnapObject.put("left", view.getLeft());
+                jsonSnapObject.put("width", view.getWidth());
+                jsonSnapObject.put("height", view.getHeight());
             }
 
             int scrollX = view.getScrollX();
@@ -374,56 +376,52 @@ public class ViewSnapshot {
             // x5WebView 无法直接获取到 scrollX、scrollY
             if (ViewUtil.instanceOfX5WebView(view)) {
                 try {
-                    j.name("scrollX").value((Integer) ReflectUtil.callMethod(view, "getWebScrollX"));
-                    j.name("scrollY").value((Integer) ReflectUtil.callMethod(view, "getWebScrollY"));
-                } catch (IOException e) {
+                    jsonSnapObject.put("scrollX", (Integer) ReflectUtil.callMethod(view, "getWebScrollX"));
+                    jsonSnapObject.put("scrollY", (Integer) ReflectUtil.callMethod(view, "getWebScrollY"));
+                } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }
             } else {
-                j.name("scrollX").value(scrollX);
-                j.name("scrollY").value(view.getScrollY());
+                jsonSnapObject.put("scrollX", scrollX);
+                jsonSnapObject.put("scrollY", view.getScrollY());
             }
-            j.name("visibility").value(VisualUtil.getVisibility(view));
+            jsonSnapObject.put("visibility", VisualUtil.getVisibility(view));
             float translationX = 0;
             float translationY = 0;
             if (Build.VERSION.SDK_INT >= 11) {
                 translationX = view.getTranslationX();
                 translationY = view.getTranslationY();
             }
-            j.name("translationX").value(translationX);
-            j.name("translationY").value(translationY);
+            jsonSnapObject.put("translationX", translationX);
+            jsonSnapObject.put("translationY", translationY);
 
-            j.name("classes");
-            j.beginArray();
+            JSONArray classesArray = new JSONArray();
             Class<?> klass = view.getClass();
             do {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
-                    j.value(mClassnameCache.get(klass));
+                    classesArray.put(mClassnameCache.get(klass));
                 }
                 klass = klass.getSuperclass();
             } while (klass != Object.class && klass != null);
-            j.endArray();
+            jsonSnapObject.put("classes", classesArray);
 
-            addProperties(j, view);
+            addProperties(jsonSnapObject, view);
 
             ViewGroup.LayoutParams layoutParams = view.getLayoutParams();
             if (layoutParams instanceof RelativeLayout.LayoutParams) {
                 RelativeLayout.LayoutParams relativeLayoutParams = (RelativeLayout.LayoutParams) layoutParams;
                 int[] rules = relativeLayoutParams.getRules();
-                j.name("layoutRules");
-                j.beginArray();
+                JSONArray layoutArray = new JSONArray();
                 for (int rule : rules) {
-                    j.value(rule);
+                    layoutArray.put(rule);
                 }
-                j.endArray();
+                jsonSnapObject.put("layoutRules", layoutArray);
             }
-
-            j.name("subviews");
-            j.beginArray();
+            JSONArray subviewsArray = new JSONArray();
             // 添加 WebView 控件所有子元素
             if (webNodeIds != null && webNodeIds.size() > 0) {
                 for (String id : webNodeIds) {
-                    j.value(id);
+                    subviewsArray.put(id);
                 }
             } else if (view instanceof ViewGroup) {
                 final ViewGroup group = (ViewGroup) view;
@@ -431,12 +429,12 @@ public class ViewSnapshot {
                 for (int i = 0; i < childCount; i++) {
                     final View child = group.getChildAt(i);
                     if (null != child) {
-                        j.value(child.hashCode());
+                        subviewsArray.put(child.hashCode());
                     }
                 }
             }
-            j.endArray();
-            j.endObject();
+            jsonSnapObject.put("subviews", subviewsArray);
+            j.put(jsonSnapObject);
         }
         if (view instanceof ViewGroup) {
             final ViewGroup group = (ViewGroup) view;
@@ -451,11 +449,8 @@ public class ViewSnapshot {
         }
     }
 
-    private void addProperties(JsonWriter j, View v)
-            throws IOException {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
-            return;
-        }
+    private void addProperties(JSONObject j, View v)
+            throws Exception {
         final Class<?> viewClass = v.getClass();
         for (final PropertyDescription desc : mProperties) {
             if (desc.targetClass.isAssignableFrom(viewClass) && null != desc.accessor) {
@@ -463,46 +458,46 @@ public class ViewSnapshot {
                 if (null == value) {
                     // Don't produce anything in this case
                 } else if (value instanceof Number) {
-                    j.name(desc.name).value((Number) value);
+                    j.put(desc.name, (Number) value);
                 } else if (value instanceof Boolean) {
                     boolean clickable = (boolean) value;
-                    if (TextUtils.equals("clickable", desc.name)) {
+                    if ("clickable".equals(desc.name)) {
                         if (VisualUtil.isSupportClick(v)) {
                             clickable = true;
                         } else if (VisualUtil.isForbiddenClick(v)) {
                             clickable = false;
                         }
                     }
-                    j.name(desc.name).value(clickable);
+                    j.put(desc.name, clickable);
                 } else if (value instanceof ColorStateList) {
-                    j.name(desc.name).value((Integer) ((ColorStateList) value).getDefaultColor());
+                    j.put(desc.name, (Integer) ((ColorStateList) value).getDefaultColor());
                 } else if (value instanceof Drawable) {
                     final Drawable drawable = (Drawable) value;
                     final Rect bounds = drawable.getBounds();
-                    j.name(desc.name);
-                    j.beginObject();
-                    j.name("classes");
-                    j.beginArray();
+                    JSONObject json = new JSONObject();
+                    JSONArray classesArray = new JSONArray();
                     Class klass = drawable.getClass();
-                    while (klass != Object.class) {
-                        j.value(klass.getCanonicalName());
+                    while (klass != Object.class && klass != null) {
+                        String canonicalName = SnapCache.getInstance().getCanonicalName(klass);
+                        classesArray.put(canonicalName);
                         klass = klass.getSuperclass();
                     }
-                    j.endArray();
-                    j.name("dimensions");
-                    j.beginObject();
-                    j.name("left").value(bounds.left);
-                    j.name("right").value(bounds.right);
-                    j.name("top").value(bounds.top);
-                    j.name("bottom").value(bounds.bottom);
-                    j.endObject();
+                    json.put("classes", classesArray);
+                    JSONObject jsonDimensions = new JSONObject();
+                    jsonDimensions.put("left", bounds.left);
+                    jsonDimensions.put("right", bounds.right);
+                    jsonDimensions.put("top", bounds.top);
+                    jsonDimensions.put("bottom", bounds.bottom);
+                    json.put("dimensions", jsonDimensions);
                     if (drawable instanceof ColorDrawable) {
                         final ColorDrawable colorDrawable = (ColorDrawable) drawable;
-                        j.name("color").value(colorDrawable.getColor());
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+                            json.put("color", colorDrawable.getColor());
+                        }
                     }
-                    j.endObject();
+                    j.put(desc.name, json);
                 } else {
-                    j.name(desc.name).value(value.toString());
+                    j.put(desc.name, value.toString());
                 }
             }
         }
@@ -516,7 +511,13 @@ public class ViewSnapshot {
      * @return 是否上报页面信息
      */
     private boolean isSnapShotUpdated(String newImageHash, StringBuilder lastImageHash) {
-        boolean isUpdated = !TextUtils.equals(newImageHash, lastImageHash) || WebNodesManager.getInstance().hasH5AlertInfo();
+        boolean isUpdated = false;
+
+        if (newImageHash != null && lastImageHash != null) {
+            isUpdated = newImageHash.equals(lastImageHash.toString());
+        }
+
+        isUpdated = !isUpdated || WebNodesManager.getInstance().hasH5AlertInfo();
         if (lastImageHash != null) {
             lastImageHash.delete(0, lastImageHash.length()).append(newImageHash);
         }
@@ -559,39 +560,43 @@ public class ViewSnapshot {
         @Override
         public List<RootViewInfo> call() throws Exception {
             mRootViews.clear();
-            Activity activity = AppStateManager.getInstance().getForegroundActivity();
-            if (activity != null) {
-                JSONObject object = AopUtil.buildTitleAndScreenName(activity);
-                VisualUtil.mergeRnScreenNameAndTitle(object);
-                String screenName = object.optString(AopConstants.SCREEN_NAME);
-                String activityTitle = object.optString(AopConstants.TITLE);
-                View rootView = null;
-                final Window window = activity.getWindow();
-                if (window != null && window.isActive()) {
-                    rootView = window.getDecorView().getRootView();
-                }
-                if (rootView == null) {
-                    return mRootViews;
-                }
-                final RootViewInfo info = new RootViewInfo(screenName, activityTitle, rootView);
-                final View[] views = WindowHelper.getSortedWindowViews();
-                Bitmap bitmap = null;
-                if (views != null && views.length > 0) {
-                    bitmap = mergeViewLayers(views, info);
-                    for (View view : views) {
-                        if (view.getWindowVisibility() != View.VISIBLE || view.getVisibility() != View.VISIBLE
-                                || view.getWidth() == 0 || view.getHeight() == 0
-                                || TextUtils.equals(WindowHelper.getWindowPrefix(view), WindowHelper.getMainWindowPrefix()))
-                            continue;
-                        RootViewInfo subInfo = new RootViewInfo(screenName, activityTitle, view.getRootView());
-                        scaleBitmap(subInfo, bitmap);
-                        mRootViews.add(subInfo);
+            try {
+                Activity activity = AppStateManager.getInstance().getForegroundActivity();
+                if (activity != null) {
+                    JSONObject object = AopUtil.buildTitleAndScreenName(activity);
+                    VisualUtil.mergeRnScreenNameAndTitle(object);
+                    String screenName = object.optString(AopConstants.SCREEN_NAME);
+                    String activityTitle = object.optString(AopConstants.TITLE);
+                    View rootView = null;
+                    final Window window = activity.getWindow();
+                    if (window != null && window.isActive()) {
+                        rootView = window.getDecorView().getRootView();
+                    }
+                    if (rootView == null) {
+                        return mRootViews;
+                    }
+                    final RootViewInfo info = new RootViewInfo(screenName, activityTitle, rootView);
+                    final View[] views = WindowHelper.getSortedWindowViews();
+                    Bitmap bitmap = null;
+                    if (views != null && views.length > 0) {
+                        bitmap = mergeViewLayers(views, info);
+                        for (View view : views) {
+                            if (view.getWindowVisibility() != View.VISIBLE || view.getVisibility() != View.VISIBLE
+                                    || view.getWidth() == 0 || view.getHeight() == 0
+                                    || TextUtils.equals(WindowHelper.getWindowPrefix(view), WindowHelper.getMainWindowPrefix()))
+                                continue;
+                            RootViewInfo subInfo = new RootViewInfo(screenName, activityTitle, view.getRootView());
+                            scaleBitmap(subInfo, bitmap);
+                            mRootViews.add(subInfo);
+                        }
+                    }
+                    if (mRootViews.size() == 0) {
+                        scaleBitmap(info, bitmap);
+                        mRootViews.add(info);
                     }
                 }
-                if (mRootViews.size() == 0) {
-                    scaleBitmap(info, bitmap);
-                    mRootViews.add(info);
-                }
+            } catch (Throwable e) {
+                SALog.d(TAG, "" + e);
             }
             return mRootViews;
         }
@@ -673,7 +678,7 @@ public class ViewSnapshot {
             if (null == mCached || mCached.getWidth() != width || mCached.getHeight() != height) {
                 try {
                     mCached = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
-                } catch (final OutOfMemoryError e) {
+                } catch (final Throwable e) {
                     mCached = null;
                 }
 
@@ -770,68 +775,64 @@ public class ViewSnapshot {
         }
     }
 
-    private void mergeWebViewNodes(JsonWriter j, WebNode view, View webView, float webViewScale) {
+    private void mergeWebViewNodes(JSONArray j, WebNode view, View webView, float webViewScale) {
         try {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
-                return;
-            }
-            j.beginObject();
-            j.name("hashCode").value(view.getId() + webView.hashCode());
-            j.name("index").value(0);
+            JSONObject jsonWebView = new JSONObject();
+            jsonWebView.put("hashCode", view.getId() + webView.hashCode());
+            jsonWebView.put("index", 0);
             if (!TextUtils.isEmpty(view.get$element_selector())) {
-                j.name("element_selector").value(view.get$element_selector());
+                jsonWebView.put("element_selector", view.get$element_selector());
             }
             if (!TextUtils.isEmpty(view.get$element_content())) {
-                j.name("element_content").value(view.get$element_content());
+                jsonWebView.put("element_content", view.get$element_content());
             }
-            j.name("element_level").value(++mSnapInfo.elementLevel);
-            j.name("h5_title").value(view.get$title());
+            jsonWebView.put("element_level", ++mSnapInfo.elementLevel);
+            jsonWebView.put("h5_title", view.get$title());
             if (webViewScale == 0) {
                 webViewScale = view.getScale();
             }
             float top = view.getTop() * webViewScale;
             float left = view.getLeft() * webViewScale;
-            j.name("left").value(left);
-            j.name("top").value(top);
-            j.name("width").value((int) (view.getWidth() * webViewScale));
-            j.name("height").value((int) (view.getHeight() * webViewScale));
-            j.name("scrollX").value(0);
-            j.name("scrollY").value(0);
+            jsonWebView.put("left", left);
+            jsonWebView.put("top", top);
+            jsonWebView.put("width", (int) (view.getWidth() * webViewScale));
+            jsonWebView.put("height", (int) (view.getHeight() * webViewScale));
+            jsonWebView.put("scrollX", 0);
+            jsonWebView.put("scrollY", 0);
             boolean insideWebView = view.getOriginTop() * webViewScale <= webView.getHeight() && view.getOriginLeft() * webViewScale <= webView.getWidth();
-            j.name("visibility").value(view.isVisibility() && insideWebView ? View.VISIBLE : View.GONE);
-            j.name("url").value(view.get$url());
-            j.name("clickable").value(view.isEnable_click());
-            j.name("importantForAccessibility").value(true);
-            j.name("is_h5").value(true);
-            j.name("is_list_view").value(view.isIs_list_view());
-            j.name("element_path").value(view.get$element_path());
-            j.name("tag_name").value(view.getTagName());
+            jsonWebView.put("visibility", view.isVisibility() && insideWebView ? View.VISIBLE : View.GONE);
+            jsonWebView.put("url", view.get$url());
+            jsonWebView.put("clickable", view.isEnable_click());
+            jsonWebView.put("importantForAccessibility", true);
+            jsonWebView.put("is_h5", true);
+            jsonWebView.put("is_list_view", view.isIs_list_view());
+            jsonWebView.put("element_path", view.get$element_path());
+            jsonWebView.put("tag_name", view.getTagName());
             if (!TextUtils.isEmpty(view.get$element_position())) {
-                j.name("element_position").value(view.get$element_position());
+                jsonWebView.put("element_position", view.get$element_position());
             }
             // 通过 lib_version 字段用来区分是否可支持 App 内嵌 H5 自定义属性
             mSnapInfo.webLibVersion = view.getLib_version();
-            j.name("list_selector").value(view.getList_selector());
-            j.name("classes");
-            j.beginArray();
-            j.value(view.getTagName());
+            jsonWebView.put("list_selector", view.getList_selector());
+            JSONArray classesArray = new JSONArray();
+            classesArray.put(view.getTagName());
             Class<?> klass = webView.getClass();
             do {
-                j.value(klass.getCanonicalName());
+                String canonicalName = SnapCache.getInstance().getCanonicalName(klass);
+                classesArray.put(canonicalName);
                 klass = klass.getSuperclass();
             } while (klass != Object.class && klass != null);
-            j.endArray();
+            jsonWebView.put("classes", classesArray);
 
             List<String> list = view.getSubelements();
+            JSONArray subviewsArray = new JSONArray();
             if (list != null && list.size() > 0) {
-                j.name("subviews");
-                j.beginArray();
                 for (String id : list) {
-                    j.value(id + webView.hashCode());
+                    subviewsArray.put(id + webView.hashCode());
                 }
-                j.endArray();
             }
-            j.endObject();
+            jsonWebView.put("subviews", subviewsArray);
+            j.put(jsonWebView);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }

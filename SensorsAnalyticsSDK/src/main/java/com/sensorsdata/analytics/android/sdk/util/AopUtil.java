@@ -46,14 +46,15 @@ import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataFragmentTitle;
 import com.sensorsdata.analytics.android.sdk.visual.ViewTreeStatusObservable;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
+import com.sensorsdata.analytics.android.sdk.visual.snap.SnapCache;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 
@@ -61,7 +62,7 @@ public class AopUtil {
     private static final String TAG = "SA.AopUtil";
 
     // 采集 viewType 忽略以下包内 view 直接返回对应的基础控件 viewType
-    private static ArrayList<String> sOSViewPackage = new ArrayList<String>() {{
+    private static List<String> sOSViewPackage = new LinkedList<String>() {{
         add("android##widget");
         add("android##support##v7##widget");
         add("android##support##design##widget");
@@ -114,20 +115,26 @@ public class AopUtil {
     }
 
     public static String getViewText(View child) {
-        if (child instanceof EditText) {
+        if (child == null || child instanceof EditText) {
             return "";
         }
+
+        String text = SnapCache.getInstance().getViewText(child);
+        if (text != null) {
+            return text;
+        }
+
         try {
             Class<?> switchCompatClass = null;
             try {
-                switchCompatClass = Class.forName("android.support.v7.widget.SwitchCompat");
+                switchCompatClass = ReflectUtil.getClassByName("android.support.v7.widget.SwitchCompat");
             } catch (Exception e) {
                 //ignored
             }
 
             if (switchCompatClass == null) {
                 try {
-                    switchCompatClass = Class.forName("androidx.appcompat.widget.SwitchCompat");
+                    switchCompatClass = ReflectUtil.getClassByName("androidx.appcompat.widget.SwitchCompat");
                 } catch (Exception e) {
                     //ignored
                 }
@@ -175,11 +182,15 @@ public class AopUtil {
             } else {
                 viewText = child.getContentDescription();
             }
-            if (TextUtils.isEmpty(viewText) && child instanceof TextView) {
+
+
+            if ((viewText == null || viewText.equals("")) && child instanceof TextView) {
                 viewText = ((TextView) child).getHint();
             }
-            if (viewText != null && !TextUtils.isEmpty(viewText)) {
-                return viewText.toString();
+            if (viewText != null) {
+                text = viewText.toString();
+                SnapCache.getInstance().setViewText(child, text);
+                return text;
             }
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
@@ -243,15 +254,15 @@ public class AopUtil {
                 }
             }
 
-            if (TextUtils.isEmpty(title) && fragment.getClass().isAnnotationPresent(SensorsDataFragmentTitle.class)) {
+            boolean isTitleNull = TextUtils.isEmpty(title);
+            boolean isScreenNameNull = TextUtils.isEmpty(screenName);
+            if (isTitleNull && fragment.getClass().isAnnotationPresent(SensorsDataFragmentTitle.class)) {
                 SensorsDataFragmentTitle sensorsDataFragmentTitle = fragment.getClass().getAnnotation(SensorsDataFragmentTitle.class);
                 if (sensorsDataFragmentTitle != null) {
                     title = sensorsDataFragmentTitle.title();
                 }
             }
 
-            boolean isTitleNull = TextUtils.isEmpty(title);
-            boolean isScreenNameNull = TextUtils.isEmpty(screenName);
             if (isTitleNull || isScreenNameNull) {
                 if (activity == null) {
                     activity = getActivityFromFragment(fragment);
@@ -391,7 +402,11 @@ public class AopUtil {
             idString = (String) view.getTag(R.id.sensors_analytics_tag_view_id);
             if (TextUtils.isEmpty(idString)) {
                 if (isValid(view.getId())) {
-                    idString = view.getContext().getResources().getResourceEntryName(view.getId());
+                    idString = SnapCache.getInstance().getViewId(view);
+                    if (idString == null) {
+                        idString = view.getContext().getResources().getResourceEntryName(view.getId());
+                        SnapCache.getInstance().setViewId(view, idString);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -434,20 +449,20 @@ public class AopUtil {
      */
     public static String getViewGroupTypeByReflect(View view) {
         Class<?> compatClass;
-        String viewType = view.getClass().getCanonicalName();
-        compatClass = getClassByName("android.support.v7.widget.CardView");
+        String viewType = SnapCache.getInstance().getCanonicalName(view.getClass());
+        compatClass = ReflectUtil.getClassByName("android.support.v7.widget.CardView");
         if (compatClass != null && compatClass.isInstance(view)) {
             return getViewType(viewType, "CardView");
         }
-        compatClass = getClassByName("androidx.cardview.widget.CardView");
+        compatClass = ReflectUtil.getClassByName("androidx.cardview.widget.CardView");
         if (compatClass != null && compatClass.isInstance(view)) {
             return getViewType(viewType, "CardView");
         }
-        compatClass = getClassByName("android.support.design.widget.NavigationView");
+        compatClass = ReflectUtil.getClassByName("android.support.design.widget.NavigationView");
         if (compatClass != null && compatClass.isInstance(view)) {
             return getViewType(viewType, "NavigationView");
         }
-        compatClass = getClassByName("com.google.android.material.navigation.NavigationView");
+        compatClass = ReflectUtil.getClassByName("com.google.android.material.navigation.NavigationView");
         if (compatClass != null && compatClass.isInstance(view)) {
             return getViewType(viewType, "NavigationView");
         }
@@ -462,30 +477,20 @@ public class AopUtil {
      */
     public static String getViewTypeByReflect(View view) {
         Class<?> compatClass;
-        String viewType = view.getClass().getCanonicalName();
-        compatClass = getClassByName("android.widget.Switch");
+        String viewType = SnapCache.getInstance().getCanonicalName(view.getClass());
+        compatClass = ReflectUtil.getClassByName("android.widget.Switch");
         if (compatClass != null && compatClass.isInstance(view)) {
             return getViewType(viewType, "Switch");
         }
-        compatClass = getClassByName("android.support.v7.widget.SwitchCompat");
+        compatClass = ReflectUtil.getClassByName("android.support.v7.widget.SwitchCompat");
         if (compatClass != null && compatClass.isInstance(view)) {
             return getViewType(viewType, "SwitchCompat");
         }
-        compatClass = getClassByName("androidx.appcompat.widget.SwitchCompat");
+        compatClass = ReflectUtil.getClassByName("androidx.appcompat.widget.SwitchCompat");
         if (compatClass != null && compatClass.isInstance(view)) {
             return getViewType(viewType, "SwitchCompat");
         }
         return viewType;
-    }
-
-    private static Class<?> getClassByName(String name) {
-        Class<?> compatClass;
-        try {
-            compatClass = Class.forName(name);
-        } catch (ClassNotFoundException e) {
-            return null;
-        }
-        return compatClass;
     }
 
     /**

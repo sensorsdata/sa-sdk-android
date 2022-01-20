@@ -39,6 +39,7 @@ import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackAppViewScreenUrl;
+import com.sensorsdata.analytics.android.sdk.visual.snap.SnapCache;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 
 import org.json.JSONObject;
@@ -273,7 +274,8 @@ public final class SensorsDataUtils {
 
     static String getToolbarTitle(Activity activity) {
         try {
-            if ("com.tencent.connect.common.AssistActivity".equals(activity.getClass().getCanonicalName())) {
+            String canonicalName = SnapCache.getInstance().getCanonicalName(activity.getClass());
+            if ("com.tencent.connect.common.AssistActivity".equals(canonicalName)) {
                 if (!TextUtils.isEmpty(activity.getTitle())) {
                     return activity.getTitle().toString();
                 }
@@ -316,13 +318,13 @@ public final class SensorsDataUtils {
     private static Class<?> compatActivity() {
         Class<?> appCompatActivityClass = null;
         try {
-            appCompatActivityClass = Class.forName("android.support.v7.app.AppCompatActivity");
+            appCompatActivityClass = ReflectUtil.getClassByName("android.support.v7.app.AppCompatActivity");
         } catch (Exception e) {
             //ignored
         }
         if (appCompatActivityClass == null) {
             try {
-                appCompatActivityClass = Class.forName("androidx.appcompat.app.AppCompatActivity");
+                appCompatActivityClass = ReflectUtil.getClassByName("androidx.appcompat.app.AppCompatActivity");
             } catch (Exception e) {
                 //ignored
             }

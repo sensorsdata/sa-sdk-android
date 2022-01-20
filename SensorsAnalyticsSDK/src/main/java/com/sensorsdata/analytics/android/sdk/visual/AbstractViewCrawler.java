@@ -48,18 +48,16 @@ import com.sensorsdata.analytics.android.sdk.visual.snap.EditProtocol;
 import com.sensorsdata.analytics.android.sdk.visual.snap.EditState;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceIds;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceReader;
+import com.sensorsdata.analytics.android.sdk.visual.snap.SnapCache;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -78,7 +76,7 @@ public abstract class AbstractViewCrawler implements VTrack {
     private final LifecycleCallbacks mLifecycleCallbacks;
     private final EditState mEditState;
     private final ViewCrawlerHandler mMessageThreadHandler;
-    private JSONObject mMessageObject;
+    private final Handler mMainThreadHandler;
     private String mFeatureCode;
     private String mPostUrl;
     private String mAppVersion;
@@ -94,10 +92,8 @@ public abstract class AbstractViewCrawler implements VTrack {
         mLifecycleCallbacks = new LifecycleCallbacks();
         try {
             mPostUrl = URLDecoder.decode(postUrl, CHARSET_UTF8);
-            mMessageObject = new JSONObject("{\"type\":\"snapshot_request\",\"payload\":{\"config\":{\"classes\":[{\"name\":\"android.view.View\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]},{\"name\":\"android.widget.TextView\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]},{\"name\":\"android.widget.ImageView\",\"properties\":[{\"name\":\"importantForAccessibility\",\"get\":{\"selector\":\"isImportantForAccessibility\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}},{\"name\":\"clickable\",\"get\":{\"selector\":\"isClickable\",\"parameters\":[],\"result\":{\"type\":\"java.lang.Boolean\"}}}]}]}}}");
         } catch (Exception e) {
             SALog.printStackTrace(e);
-            mMessageObject = null;
         }
         final Application app = (Application) mActivity.getApplicationContext();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
@@ -117,6 +113,7 @@ public abstract class AbstractViewCrawler implements VTrack {
         thread.start();
 
         mMessageThreadHandler = new ViewCrawlerHandler(mActivity, thread.getLooper(), resourcePackageName);
+        mMainThreadHandler = new Handler(Looper.getMainLooper());
     }
 
     @Override
@@ -227,7 +224,7 @@ public abstract class AbstractViewCrawler implements VTrack {
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case MESSAGE_SEND_STATE_FOR_EDITING:
-                    sendSnapshot(mMessageObject);
+                    sendSnapshot();
                     break;
             }
         }
@@ -235,42 +232,35 @@ public abstract class AbstractViewCrawler implements VTrack {
         /**
          * Send a snapshot response, with crawled views and screenshot image, to the connected web UI.
          */
-        private void sendSnapshot(JSONObject message) {
+        private void sendSnapshot() {
             final long startSnapshot = System.currentTimeMillis();
             try {
-                final JSONObject payload = message.getJSONObject("payload");
-                if (payload.has("config")) {
-                    mSnapshot = mProtocol.readSnapshotConfig(payload);
-                }
+                mSnapshot = mProtocol.readSnapshotConfig(mMainThreadHandler);
 
                 if (null == mSnapshot) {
                     SALog.i(TAG, "Snapshot should be initialize at first calling.");
                     return;
                 }
-            } catch (final JSONException e) {
-                SALog.i(TAG, "Payload with snapshot config required with snapshot request", e);
-                return;
             } catch (final EditProtocol.BadInstructionsException e) {
                 SALog.i(TAG, "VisualizedAutoTrack server sent malformed message with snapshot request", e);
                 return;
             }
-
             final ByteArrayOutputStream out = new ByteArrayOutputStream();
-            final OutputStreamWriter writer = new OutputStreamWriter(out);
+            final OutputStream writer = new BufferedOutputStream(out);
             ByteArrayOutputStream payload_out = null;
             GZIPOutputStream gos = null;
             ByteArrayOutputStream os = null;
             SnapInfo info = null;
             try {
-                writer.write("{");
-                writer.write("\"type\": \"snapshot_response\",");
-                writer.write("\"feature_code\": \"" + mFeatureCode + "\",");
-                writer.write("\"app_version\": \"" + mAppVersion + "\",");
-                writer.write("\"lib_version\": \"" + mSDKVersion + "\",");
-                writer.write("\"os\": \"Android\",");
-                writer.write("\"lib\": \"Android\",");
-                writer.write("\"app_id\": \"" + mAppId + "\",");
-                writer.write("\"app_enablevisualizedproperties\": " + SensorsDataAPI.getConfigOptions().isVisualizedPropertiesEnabled() + ",");
+                writer.write("{".getBytes());
+                writer.write(("\"type\": \"snapshot_response\",").getBytes());
+                writer.write(("\"feature_code\": \"" + mFeatureCode + "\",").getBytes());
+                writer.write(("\"app_version\": \"" + mAppVersion + "\",").getBytes());
+                writer.write(("\"lib_version\": \"" + mSDKVersion + "\",").getBytes());
+                writer.write(("\"os\": \"Android\",").getBytes());
+                writer.write(("\"lib\": \"Android\",").getBytes());
+                writer.write(("\"app_id\": \"" + mAppId + "\",").getBytes());
+                writer.write(("\"app_enablevisualizedproperties\": " + SensorsDataAPI.getConfigOptions().isVisualizedPropertiesEnabled() + ",").getBytes());
                 // 需要把全埋点的开关状态，透传给前端，前端进行错误提示
                 try {
                     JSONArray array = new JSONArray();
@@ -280,39 +270,39 @@ public abstract class AbstractViewCrawler implements VTrack {
                     if (!SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
                         array.put("$AppViewScreen");
                     }
-                    writer.write("\"app_autotrack\": " + array.toString() + ",");
+                    writer.write(("\"app_autotrack\": " + array.toString() + ",").getBytes());
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }
                 // 添加可视化配置的版本号
                 String version = VisualPropertiesManager.getInstance().getVisualConfigVersion();
                 if (!TextUtils.isEmpty(version)) {
-                    writer.write("\"config_version\": \"" + version + "\",");
+                    writer.write(("\"config_version\": \"" + version + "\",").getBytes());
                 }
                 if (mUseGzip) {
                     payload_out = new ByteArrayOutputStream();
-                    final OutputStreamWriter payload_writer = new OutputStreamWriter(payload_out);
-                    payload_writer.write("{\"activities\":");
+                    final OutputStream payload_writer = new BufferedOutputStream(payload_out);
+                    payload_writer.write(("{\"activities\":").getBytes());
                     payload_writer.flush();
-                    info = mSnapshot.snapshots(mEditState, payload_out, mLastImageHash);
+                    info = mSnapshot.snapshots(payload_out, mLastImageHash);
                     final long snapshotTime = System.currentTimeMillis() - startSnapshot;
-                    payload_writer.write(",\"snapshot_time_millis\": ");
-                    payload_writer.write(Long.toString(snapshotTime));
+                    payload_writer.write((",\"snapshot_time_millis\": ").getBytes());
+                    payload_writer.write(Long.toString(snapshotTime).getBytes());
                     // 添加调试信息
                     String visualDebugInfo = VisualizedAutoTrackService.getInstance().getDebugInfo();
                     if (!TextUtils.isEmpty(visualDebugInfo)) {
-                        payload_writer.write(",");
-                        payload_writer.write("\"event_debug\": ");
-                        payload_writer.write(visualDebugInfo);
+                        payload_writer.write(",".getBytes());
+                        payload_writer.write(("\"event_debug\": ").getBytes());
+                        payload_writer.write(visualDebugInfo.getBytes());
                     }
                     // 添加诊断信息日志
                     String visualLogInfo = VisualizedAutoTrackService.getInstance().getVisualLogInfo();
                     if (!TextUtils.isEmpty(visualLogInfo)) {
-                        payload_writer.write(",");
-                        payload_writer.write("\"log_info\":");
-                        payload_writer.write(visualLogInfo);
+                        payload_writer.write(",".getBytes());
+                        payload_writer.write(("\"log_info\":").getBytes());
+                        payload_writer.write(visualLogInfo.getBytes());
                     }
-                    payload_writer.write("}");
+                    payload_writer.write("}".getBytes());
                     payload_writer.flush();
                     payload_out.close();
                     byte[] payloadData = payload_out.toString().getBytes();
@@ -323,26 +313,26 @@ public abstract class AbstractViewCrawler implements VTrack {
                     byte[] compressed = os.toByteArray();
                     os.close();
 
-                    writer.write("\"gzip_payload\": \"" + new String(Base64Coder.encode(compressed)) + "\"");
+                    writer.write(("\"gzip_payload\": \"" + new String(Base64Coder.encode(compressed)) + "\"").getBytes());
                 } else {
-                    writer.write("\"payload\": {");
+                    writer.write(("\"payload\": {").getBytes());
 
                     {
-                        writer.write("\"activities\":");
+                        writer.write(("\"activities\":").getBytes());
                         writer.flush();
-                        info = mSnapshot.snapshots(mEditState, out, mLastImageHash);
+                        info = mSnapshot.snapshots(out, mLastImageHash);
                     }
 
                     final long snapshotTime = System.currentTimeMillis() - startSnapshot;
-                    writer.write(",\"snapshot_time_millis\": ");
-                    writer.write(Long.toString(snapshotTime));
+                    writer.write((",\"snapshot_time_millis\": ").getBytes());
+                    writer.write(Long.toString(snapshotTime).getBytes());
 
-                    writer.write("}");
+                    writer.write("}".getBytes());
                 }
 
                 String pageName = null;
                 if (!TextUtils.isEmpty(info.screenName)) {
-                    writer.write(",\"screen_name\": \"" + info.screenName + "\"");
+                    writer.write((",\"screen_name\": \"" + info.screenName + "\"").getBytes());
                     pageName = info.screenName;
                 }
 
@@ -356,63 +346,63 @@ public abstract class AbstractViewCrawler implements VTrack {
 
                 SALog.i(TAG, "page_name： " + pageName);
                 if (!TextUtils.isEmpty(pageName)) {
-                    writer.write(",\"page_name\": \"" + pageName + "\"");
+                    writer.write((",\"page_name\": \"" + pageName + "\"").getBytes());
                 }
 
                 if (!TextUtils.isEmpty(info.activityTitle)) {
-                    writer.write(",\"title\": \"" + info.activityTitle + "\"");
+                    writer.write((",\"title\": \"" + info.activityTitle + "\"").getBytes());
                 }
 
-                writer.write(",\"is_webview\": " + info.isWebView);
+                writer.write((",\"is_webview\": " + info.isWebView).getBytes());
 
                 if (!TextUtils.isEmpty(info.webLibVersion)) {
-                    writer.write(",\"web_lib_version\": \"" + info.webLibVersion + "\"");
+                    writer.write((",\"web_lib_version\": \"" + info.webLibVersion + "\"").getBytes());
                 }
 
                 if (info.isWebView && !TextUtils.isEmpty(info.webViewUrl)) {
                     WebNodeInfo pageInfo = WebNodesManager.getInstance().getWebPageInfo(info.webViewUrl);
                     if (pageInfo != null) {
                         if (!TextUtils.isEmpty(pageInfo.getUrl())) {
-                            writer.write(",\"h5_url\": \"" + pageInfo.getUrl() + "\"");
+                            writer.write((",\"h5_url\": \"" + pageInfo.getUrl() + "\"").getBytes());
                         }
                         if (!TextUtils.isEmpty(pageInfo.getTitle())) {
-                            writer.write(",\"h5_title\": \"" + pageInfo.getTitle() + "\"");
+                            writer.write((",\"h5_title\": \"" + pageInfo.getTitle() + "\"").getBytes());
                         }
                     }
                     List<WebNodeInfo.AlertInfo> list = info.alertInfos;
                     if (list != null && list.size() > 0) {
-                        writer.write(",\"app_alert_infos\":");
+                        writer.write((",\"app_alert_infos\":").getBytes());
                         writer.flush();
-                        writer.write("[");
+                        writer.write("[".getBytes());
                         for (int i = 0; i < list.size(); i++) {
                             if (i > 0) {
-                                writer.write(",");
+                                writer.write(",".getBytes());
                             }
                             WebNodeInfo.AlertInfo alertInfo = list.get(i);
                             if (alertInfo != null) {
                                 if (TextUtils.equals(TYPE_HEAT_MAP, mType)) {
                                     alertInfo.title = alertInfo.title.replace("可视化全埋点", "点击分析");
                                 }
-                                writer.write("{");
-                                writer.write("\"title\":");
-                                writer.write("\"" + alertInfo.title + "\"");
-                                writer.write(",");
-                                writer.write("\"message\":");
-                                writer.write("\"" + alertInfo.message + "\"");
-                                writer.write(",");
-                                writer.write("\"link_text\":");
-                                writer.write("\"" + alertInfo.linkText + "\"");
-                                writer.write(",");
-                                writer.write("\"link_url\":");
-                                writer.write("\"" + alertInfo.linkUrl + "\"");
-                                writer.write("}");
+                                writer.write("{".getBytes());
+                                writer.write(("\"title\":").getBytes());
+                                writer.write(("\"" + alertInfo.title + "\"").getBytes());
+                                writer.write(",".getBytes());
+                                writer.write(("\"message\":").getBytes());
+                                writer.write(("\"" + alertInfo.message + "\"").getBytes());
+                                writer.write(",".getBytes());
+                                writer.write(("\"link_text\":").getBytes());
+                                writer.write(("\"" + alertInfo.linkText + "\"").getBytes());
+                                writer.write(",".getBytes());
+                                writer.write(("\"link_url\":").getBytes());
+                                writer.write(("\"" + alertInfo.linkUrl + "\"").getBytes());
+                                writer.write("}".getBytes());
                             }
                         }
-                        writer.write("]");
+                        writer.write("]".getBytes());
                         writer.flush();
                     }
                 }
-                writer.write("}");
+                writer.write("}".getBytes());
                 writer.flush();
             } catch (final IOException e) {
                 SALog.i(TAG, "Can't write snapshot request to server", e);

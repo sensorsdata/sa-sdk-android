@@ -39,6 +39,7 @@ import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
 import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
 import com.sensorsdata.analytics.android.sdk.visual.model.SnapInfo;
 import com.sensorsdata.analytics.android.sdk.visual.snap.Pathfinder;
+import com.sensorsdata.analytics.android.sdk.visual.snap.SnapCache;
 
 import org.json.JSONObject;
 
@@ -96,7 +97,8 @@ public class VisualUtil {
             }
             ViewGroup viewParent = (ViewGroup) parent;
             final String childIdName = AopUtil.getViewId(child);
-            String childClassName = child.getClass().getCanonicalName();
+
+            String childClassName = SnapCache.getInstance().getCanonicalName(child.getClass());
             int index = 0;
             for (int i = 0; i < viewParent.getChildCount(); i++) {
                 View brother = viewParent.getChildAt(i);

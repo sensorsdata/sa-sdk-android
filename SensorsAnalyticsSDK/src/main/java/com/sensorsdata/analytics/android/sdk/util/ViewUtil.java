@@ -20,7 +20,6 @@ package com.sensorsdata.analytics.android.sdk.util;
 import android.graphics.Rect;
 import android.os.Build;
 import android.text.TextUtils;
-import android.util.LruCache;
 import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
@@ -44,12 +43,14 @@ import android.widget.ToggleButton;
 import com.sensorsdata.analytics.android.sdk.AppStateManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
+import com.sensorsdata.analytics.android.sdk.visual.snap.SnapCache;
 import com.sensorsdata.analytics.android.sdk.visual.util.VisualUtil;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 
@@ -59,9 +60,8 @@ public class ViewUtil {
     private static boolean sHaveCustomRecyclerView = false;
     private static boolean sHaveRecyclerView = haveRecyclerView();
     private static Method sRecyclerViewGetChildAdapterPositionMethod;
-    private static Class sRecyclerViewClass;
-    private static LruCache<Class, String> sClassNameCache;
-    private static SparseArray sViewCache;
+    private static Class<?> sRecyclerViewClass;
+    private static SparseArray<String> sViewCache;
 
     private static boolean instanceOfSupportSwipeRefreshLayout(Object view) {
         return ReflectUtil.isInstance(view, "android.support.v4.widget.SwipeRefreshLayout", "androidx.swiperefreshlayout.widget.SwipeRefreshLayout");
@@ -131,26 +131,14 @@ public class ViewUtil {
     }
 
     /**
-     * 获取 class name
+     * 获取 class name 和 刷新自定义 RecyclerView 状态
+     *
+     * @param clazz 需要获取名字的类
+     * @return 获取的类名字
      */
-    private static String getCanonicalName(Class clazz) {
-        String name = null;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
-            if (sClassNameCache == null) {
-                sClassNameCache = new LruCache<Class, String>(100);
-            }
-            name = sClassNameCache.get(clazz);
-        }
-        if (TextUtils.isEmpty(name)) {
-            name = clazz.getCanonicalName();
-            if (TextUtils.isEmpty(name)) {
-                name = "Anonymous";
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
-                synchronized (ViewUtil.class) {
-                    sClassNameCache.put(clazz, name);
-                }
-            }
+    private static String getCanonicalAndCheckCustomView(Class<?> clazz) {
+        String name = SnapCache.getInstance().getCanonicalName(clazz);
+        if (name != null) {
             checkCustomRecyclerView(clazz, name);
         }
         return name;
@@ -308,7 +296,15 @@ public class ViewUtil {
             return true;
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            if (view.getWidth() <= 0 || view.getHeight() <= 0 || view.getAlpha() <= 0.0f || !view.getLocalVisibleRect(new Rect())) {
+            Boolean localVisibleRect = SnapCache.getInstance().getLocalVisibleRect(view);
+            boolean viewLocalVisiable;
+            if (localVisibleRect == null) {
+                viewLocalVisiable = view.getLocalVisibleRect(new Rect());
+                SnapCache.getInstance().setLocalVisibleRect(view, viewLocalVisiable);
+            } else {
+                viewLocalVisiable = localVisibleRect;
+            }
+            if (view.getWidth() <= 0 || view.getHeight() <= 0 || view.getAlpha() <= 0.0f || !viewLocalVisiable) {
                 return false;
             }
         }
@@ -397,9 +393,6 @@ public class ViewUtil {
         return false;
     }
 
-    public static ViewNode getViewPathAndPosition(View clickView) {
-        return getViewPathAndPosition(clickView, false);
-    }
 
     public static ViewNode getViewPathAndPosition(View clickView, boolean fromVisual) {
         ArrayList<View> arrayList = new ArrayList<View>(8);
@@ -442,8 +435,49 @@ public class ViewUtil {
     }
 
     public static String getElementSelector(View view) {
+        String currentPath = SnapCache.getInstance().getSelectPath(view);
+        if (currentPath != null) {
+            return currentPath;
+        }
         ViewParent viewParent;
-        List<String> viewPath = new ArrayList<>();
+        String selectPath;
+        View parent_view = null;
+        viewParent = view.getParent();
+        if (viewParent instanceof ViewGroup) {
+            parent_view = (View) viewParent;
+        }
+        String parentPath = null;
+        if (parent_view != null) {
+            parentPath = SnapCache.getInstance().getSelectPath(parent_view);
+        }
+        String path = SnapCache.getInstance().getCanonicalName(view.getClass());
+
+        if (parent_view != null) {
+            if (parentPath == null) {
+                parentPath = getElementSelectorOrigin(parent_view);
+                SnapCache.getInstance().setSelectPath(parent_view, parentPath);
+            }
+            StringBuilder sb = new StringBuilder();
+            if (parentPath != null && !parentPath.equals("")) {
+                sb.append(parentPath);
+                sb.append("/");
+            }
+            int index = VisualUtil.getChildIndex(viewParent, view);
+            sb.append(path);
+            sb.append("[");
+            sb.append(index);
+            sb.append("]");
+            selectPath = sb.toString();
+        } else {
+            selectPath = getElementSelectorOrigin(view);
+        }
+        SnapCache.getInstance().setSelectPath(view, selectPath);
+        return selectPath;
+    }
+
+    private static String getElementSelectorOrigin(View view) {
+        ViewParent viewParent;
+        List<String> viewPath = new LinkedList<>();
         do {
             viewParent = view.getParent();
             int index = VisualUtil.getChildIndex(viewParent, view);
@@ -454,6 +488,7 @@ public class ViewUtil {
         } while (viewParent instanceof ViewGroup);
 
         Collections.reverse(viewPath);
+
         StringBuilder stringBuffer = new StringBuilder();
         for (int i = 1; i < viewPath.size(); i++) {
             stringBuffer.append(viewPath.get(i));
@@ -493,7 +528,7 @@ public class ViewUtil {
                 View parentView = (View) parentObject;
                 StringBuilder opx = new StringBuilder();
                 StringBuilder px = new StringBuilder();
-                String viewName = ViewUtil.getCanonicalName(view.getClass());
+                String viewName = ViewUtil.getCanonicalAndCheckCustomView(view.getClass());
                 Object fragment = null;
                 String listPos = null;
                 boolean isListView = false;
@@ -542,7 +577,7 @@ public class ViewUtil {
                     opx.append("/").append(viewName).append("[0]");
                     px.append("/").append(viewName).append("[0]");
                 } else if ((fragment = ViewUtil.instanceOfFragmentRootView(parentView, view)) != null) {
-                    viewName = ViewUtil.getCanonicalName(fragment.getClass());
+                    viewName = ViewUtil.getCanonicalAndCheckCustomView(fragment.getClass());
                     opx.append("/").append(viewName).append("[0]");
                     px.append("/").append(viewName).append("[0]");
                 } else {
@@ -608,85 +643,56 @@ public class ViewUtil {
     }
 
     public static ViewNode getViewContentAndType(View view, boolean fromVisual) {
-        String viewType = view.getClass().getCanonicalName();
+        String cacheViewType = SnapCache.getInstance().getViewType(view);
+        String cacheViewText = SnapCache.getInstance().getViewText(view);
+
         CharSequence viewText = null;
+        String viewType = null;
         Object tab = null;
-        if (view instanceof CheckBox) { // CheckBox
-            viewType = AopUtil.getViewType(viewType, "CheckBox");
-            CheckBox checkBox = (CheckBox) view;
-            viewText = checkBox.getText();
-        } else if (view instanceof RadioButton) { // RadioButton
-            viewType = AopUtil.getViewType(viewType, "RadioButton");
-            RadioButton radioButton = (RadioButton) view;
-            viewText = radioButton.getText();
-        } else if (view instanceof ToggleButton) { // ToggleButton
-            viewType = AopUtil.getViewType(viewType, "ToggleButton");
-            viewText = AopUtil.getCompoundButtonText(view);
-        } else if (view instanceof CompoundButton) {
-            viewType = AopUtil.getViewTypeByReflect(view);
-            viewText = AopUtil.getCompoundButtonText(view);
-        } else if (view instanceof Button) { // Button
-            viewType = AopUtil.getViewType(viewType, "Button");
-            Button button = (Button) view;
-            viewText = button.getText();
-        } else if (view instanceof CheckedTextView) { // CheckedTextView
-            viewType = AopUtil.getViewType(viewType, "CheckedTextView");
-            CheckedTextView textView = (CheckedTextView) view;
-            viewText = textView.getText();
-        } else if (view instanceof TextView) { // TextView
-            viewType = AopUtil.getViewType(viewType, "TextView");
-            TextView textView = (TextView) view;
-            viewText = textView.getText();
-        } else if (view instanceof ImageView) { // ImageView
-            viewType = AopUtil.getViewType(viewType, "ImageView");
-            ImageView imageView = (ImageView) view;
-            if (!TextUtils.isEmpty(imageView.getContentDescription())) {
-                viewText = imageView.getContentDescription().toString();
-            }
-        } else if (view instanceof RatingBar) {
-            viewType = AopUtil.getViewType(viewType, "RatingBar");
-            RatingBar ratingBar = (RatingBar) view;
-            viewText = String.valueOf(ratingBar.getRating());
-        } else if (view instanceof SeekBar) {
-            viewType = AopUtil.getViewType(viewType, "SeekBar");
-            SeekBar seekBar = (SeekBar) view;
-            viewText = String.valueOf(seekBar.getProgress());
-        } else if (view instanceof Spinner) {
-            viewType = AopUtil.getViewType(viewType, "Spinner");
-            try {
-                StringBuilder stringBuilder = new StringBuilder();
-                viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
-                if (!TextUtils.isEmpty(viewText)) {
-                    viewText = viewText.toString().substring(0, viewText.length() - 1);
+        if (cacheViewType == null || cacheViewText == null) {
+            viewType = SnapCache.getInstance().getCanonicalName(view.getClass());
+            if (view instanceof CheckBox) { // CheckBox
+                viewType = AopUtil.getViewType(viewType, "CheckBox");
+                CheckBox checkBox = (CheckBox) view;
+                viewText = checkBox.getText();
+            } else if (view instanceof RadioButton) { // RadioButton
+                viewType = AopUtil.getViewType(viewType, "RadioButton");
+                RadioButton radioButton = (RadioButton) view;
+                viewText = radioButton.getText();
+            } else if (view instanceof ToggleButton) { // ToggleButton
+                viewType = AopUtil.getViewType(viewType, "ToggleButton");
+                viewText = AopUtil.getCompoundButtonText(view);
+            } else if (view instanceof CompoundButton) {
+                viewType = AopUtil.getViewTypeByReflect(view);
+                viewText = AopUtil.getCompoundButtonText(view);
+            } else if (view instanceof Button) { // Button
+                viewType = AopUtil.getViewType(viewType, "Button");
+                Button button = (Button) view;
+                viewText = button.getText();
+            } else if (view instanceof CheckedTextView) { // CheckedTextView
+                viewType = AopUtil.getViewType(viewType, "CheckedTextView");
+                CheckedTextView textView = (CheckedTextView) view;
+                viewText = textView.getText();
+            } else if (view instanceof TextView) { // TextView
+                viewType = AopUtil.getViewType(viewType, "TextView");
+                TextView textView = (TextView) view;
+                viewText = textView.getText();
+            } else if (view instanceof ImageView) { // ImageView
+                viewType = AopUtil.getViewType(viewType, "ImageView");
+                ImageView imageView = (ImageView) view;
+                if (!TextUtils.isEmpty(imageView.getContentDescription())) {
+                    viewText = imageView.getContentDescription().toString();
                 }
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
-            }
-        } else if ((tab = instanceOfTabView(view)) != null) {
-            viewText = getTabLayoutContent(tab);
-            viewType = AopUtil.getViewType(viewType, "TabLayout");
-        } else if (ViewUtil.instanceOfBottomNavigationItemView(view)) {
-            Object itemData = ViewUtil.getItemData(view);
-            if (itemData != null) {
-                try {
-                    Class<?> menuItemImplClass = ReflectUtil.getCurrentClass(new String[]{"androidx.appcompat.view.menu.MenuItemImpl"});
-                    if (menuItemImplClass != null) {
-                        String title = ReflectUtil.findField(menuItemImplClass, itemData, new String[]{"mTitle"});
-                        if (!TextUtils.isEmpty(title)) {
-                            viewText = title;
-                        }
-                    }
-                } catch (Exception e) {
-                    //ignored
-                }
-            }
-        } else if (ViewUtil.instanceOfNavigationView(view)) {
-            viewText = ViewUtil.isViewSelfVisible(view) ? "Open" : "Close";
-            viewType = AopUtil.getViewType(viewType, "NavigationView");
-        } else if (view instanceof ViewGroup) {
-            viewType = AopUtil.getViewGroupTypeByReflect(view);
-            viewText = view.getContentDescription();
-            if (TextUtils.isEmpty(viewText)) {
+            } else if (view instanceof RatingBar) {
+                viewType = AopUtil.getViewType(viewType, "RatingBar");
+                RatingBar ratingBar = (RatingBar) view;
+                viewText = String.valueOf(ratingBar.getRating());
+            } else if (view instanceof SeekBar) {
+                viewType = AopUtil.getViewType(viewType, "SeekBar");
+                SeekBar seekBar = (SeekBar) view;
+                viewText = String.valueOf(seekBar.getProgress());
+            } else if (view instanceof Spinner) {
+                viewType = AopUtil.getViewType(viewType, "Spinner");
                 try {
                     StringBuilder stringBuilder = new StringBuilder();
                     viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
@@ -694,17 +700,61 @@ public class ViewUtil {
                         viewText = viewText.toString().substring(0, viewText.length() - 1);
                     }
                 } catch (Exception e) {
-                    //ignored
+                    SALog.printStackTrace(e);
+                }
+            } else if ((tab = instanceOfTabView(view)) != null) {
+                viewText = getTabLayoutContent(tab);
+                viewType = AopUtil.getViewType(viewType, "TabLayout");
+            } else if (ViewUtil.instanceOfBottomNavigationItemView(view)) {
+                Object itemData = ViewUtil.getItemData(view);
+                if (itemData != null) {
+                    try {
+                        Class<?> menuItemImplClass = ReflectUtil.getCurrentClass(new String[]{"androidx.appcompat.view.menu.MenuItemImpl"});
+                        if (menuItemImplClass != null) {
+                            String title = ReflectUtil.findField(menuItemImplClass, itemData, new String[]{"mTitle"});
+                            if (!TextUtils.isEmpty(title)) {
+                                viewText = title;
+                            }
+                        }
+                    } catch (Exception e) {
+                        //ignored
+                    }
+                }
+            } else if (ViewUtil.instanceOfNavigationView(view)) {
+                viewText = ViewUtil.isViewSelfVisible(view) ? "Open" : "Close";
+                viewType = AopUtil.getViewType(viewType, "NavigationView");
+            } else if (view instanceof ViewGroup) {
+                viewType = AopUtil.getViewGroupTypeByReflect(view);
+                viewText = view.getContentDescription();
+                if (TextUtils.isEmpty(viewText)) {
+                    try {
+                        StringBuilder stringBuilder = new StringBuilder();
+                        viewText = AopUtil.traverseView(stringBuilder, (ViewGroup) view);
+                        if (!TextUtils.isEmpty(viewText)) {
+                            viewText = viewText.toString().substring(0, viewText.length() - 1);
+                        }
+                    } catch (Exception e) {
+                        //ignored
+                    }
                 }
             }
-        }
 
-        if (TextUtils.isEmpty(viewText) && view instanceof TextView) {
-            viewText = ((TextView) view).getHint();
-        }
+            if (TextUtils.isEmpty(viewText) && view instanceof TextView) {
+                viewText = ((TextView) view).getHint();
+            }
 
-        if (TextUtils.isEmpty(viewText)) {
-            viewText = view.getContentDescription();
+            if (TextUtils.isEmpty(viewText)) {
+                viewText = view.getContentDescription();
+            }
+
+            if (viewText == null) {
+                viewText = "";
+            }
+            SnapCache.getInstance().setViewType(view, viewType);
+            SnapCache.getInstance().setViewText(view, viewText.toString());
+        } else {
+            viewText = cacheViewText;
+            viewType = cacheViewType;
         }
 
         if (view instanceof EditText) {
@@ -716,10 +766,10 @@ public class ViewUtil {
             }
         }
 
-        if (TextUtils.isEmpty(viewText)) {
+        if (viewText == null) {
             viewText = "";
         }
-        return new ViewNode(viewText == null ? "" : viewText.toString(), viewType);
+        return new ViewNode(viewText.toString(), viewType);
     }
 
 

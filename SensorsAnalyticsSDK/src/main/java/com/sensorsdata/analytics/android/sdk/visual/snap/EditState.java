@@ -40,7 +40,7 @@ import java.util.Set;
  */
 public class EditState extends UIThreadSet<Activity> {
 
-    private static final String LOGTAG = "SA.EditState";
+    private static final String TAG = "SA.EditState";
     private final Handler mUiThreadHandler;
     private final Map<String, List<ViewVisitor>> mIntendedEdits;
     private final Map<Activity, Set<EditBinding>> mCurrentEdits;

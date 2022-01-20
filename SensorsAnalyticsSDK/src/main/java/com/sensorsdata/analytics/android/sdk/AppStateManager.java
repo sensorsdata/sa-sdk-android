@@ -25,6 +25,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
 
+import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
 import com.sensorsdata.analytics.android.sdk.visual.ViewTreeStatusObservable;
 
 import java.lang.ref.WeakReference;
@@ -160,6 +161,7 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
     @Override
     public void onActivityDestroyed(Activity activity) {
         ViewTreeStatusObservable.getInstance().clearWebViewCache();
+        ViewUtil.clear();
     }
 
     private void unRegisterViewTreeChange(View root) {

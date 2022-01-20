@@ -50,6 +50,7 @@ public class Caller {
         }
 
         mTargetClass = mTargetMethod.getDeclaringClass();
+        mTargetMethod.setAccessible(true);
     }
 
     private static Class<?> assignableArgType(Class<?> type) {

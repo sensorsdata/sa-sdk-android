@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title> Web SDK demo</title>
+	<script src="./popup22.js"></script>
+	<script>
+		(function(para) {
+			var p = para.sdk_url, n = para.name, w = window, d = document, s = 'script', x = null, y = null;
+			if (typeof (w['sensorsDataAnalytic201505']) !== 'undefined') {
+				return false;
+			}
+			w['sensorsDataAnalytic201505'] = n;
+			w[n] = w[n] || function (a) { return function () { (w[n]._q = w[n]._q || []).push([a, arguments]); } };
+			var ifs = ['track', 'quick', 'register', 'registerPage', 'registerOnce', 'trackSignup', 'trackAbtest', 'setProfile', 'setOnceProfile', 'appendProfile', 'incrementProfile', 'deleteProfile', 'unsetProfile', 'identify', 'login', 'logout', 'trackLink', 'clearAllRegister', 'getAppStatus'];
+			for (var i = 0; i < ifs.length; i++) {
+				w[n][ifs[i]] = w[n].call(null, ifs[i]);
+			}
+			if (!w[n]._t) {
+				x = d.createElement(s), y = d.getElementsByTagName(s)[0];
+				x.async = 1;
+				x.src = p;
+				x.setAttribute('charset', 'UTF-8');
+				w[n].para = para;
+				y.parentNode.insertBefore(x, y);
+			}
+		})({
+			//sdk_url: 'https://cdn.jsdelivr.net/npm/sa-sdk-javascript@1.15.20/sensorsdata.min.js',
+			sdk_url: 'https://static.sensorsdata.cn/sdk/1.18.20/sensorsdata.min.js',
+			//heatmap_url: 'https://cdn.jsdelivr.net/npm/sa-sdk-javascript@1.14.9/heatmap.min.js',
+			name: 'sensors',
+			use_client_time: true,
+			//配置打通 App 与 H5 的参数
+      		use_app_track: true,
+      		//app_js_bridge:true ,
+      		//app_js_bridge:{
+      			//white_list:['https://newsdktest.datasink.sensorsdata.cn/sa?project=liuweiqiang&token=5a394d2405c147ca']
+      			//is_send:true
+      		//},
+			//server_url: 'https://demosink.focus.sensorsdata.cn/sa?project=default',
+			//server_url: 'https://newsdktest.datasink.sensorsdata.cn/sa?project=liuweiqiang&token=5a394d2405c147ca',
+			server_url: 'http://vis.product.debugbox.sensorsdata.cn:8106/sa?project=default',
+			//server_url: 'http://vis.product.debugbox.sensorsdata.cn:8106/sa?project=default',
+			heatmap: {
+			collect_tags: {
+                 div: true
+                }
+			}
+		});
+		sensors.quick('autoTrack');
+		sensors.quick('setPlugin',{
+			popup: function(popup) {
+				popup.init({
+				show_log:true,
+				api_base_url:'http://sfn-uc-beijing-01.sfnfresh1.sensorsdata.cn/api/v2'
+				})
+			}
+		});
+	</script>
+</head>
+
+<body>
+	<p>测试</p>
+	<a href="#/miao?utm_source=gzgzgz">锚点</a>
+	<br>
+	<div id="testgz" style="display:inline-block;height:200px;width:200px;background-color:aquamarine;">
+		<a href="https://www.baidu.com">baidu</a>
+	</div>
+	<br>
+	<br>
+	<div id="testdiv" style="display:inline-block;height:100px;width:100px;background-color:aquamarine;">
+	</div>
+	<br>
+	<br>
+	<a href="javascript:;" id="123" data='test'> 点击按钮触发</a>
+	<a href="javascript:;" name='testdisplay' style="display:inline-block;width:20px;height:20px;background-color:red">
+		<i style="display:none"></i>
+	</a>
+	<br>
+	<input type="checkbox" value='test' name='gz' checked='checked' /> 测试的checkbox点击
+	<br>
+	<button type="button" id="testClick" onclick="sensors.track('sf_test',{'test':'111','proportion':'80%'})">测试点击</button>
+	<br>
+	<br>
+	<button type="button" id="btn2" name="btn2">第二个按钮</button>
+	<br>
+	<br>
+	<button type="button" id="btn3" name="btn3" >第三个按钮</button>
+	<br>
+	<br>
+	<textarea >输入内容</textarea>
+	<br>
+	<br>
+
+</body>
+
+	<script type="text/javascript">
+	document.getElementById("btn3").onclick = function(){
+			//sensors.track('sf_registered')
+			//sensors.track('testTrack')
+			sensors.logout('t07071445')
+			//var person= new Object;
+			//sensors.track('sf_test',{'test':'111','proportion':'80%','ga':preson})
+		}
+</script>
+
+<script type="text/javascript">
+	document.getElementById("btn2").onclick = function(){
+			sensors.login('t07071445')
+		}
+</script>
+
+</html>

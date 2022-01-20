@@ -60,6 +60,8 @@ import com.sensorsdata.analytics.android.sdk.internal.rpc.SensorsDataContentObse
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.listener.SAFunctionListener;
 import com.sensorsdata.analytics.android.sdk.listener.SAJSListener;
+import com.sensorsdata.analytics.android.sdk.plugin.property.SAPresetPropertyPlugin;
+import com.sensorsdata.analytics.android.sdk.plugin.property.SensorsDataPropertyPluginManager;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
 import com.sensorsdata.analytics.android.sdk.remote.SensorsDataRemoteManager;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
@@ -184,7 +186,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             new Thread(mTrackTaskManagerThread, ThreadNameConstants.THREAD_TASK_QUEUE).start();
             SensorsDataExceptionHandler.init();
             initSAConfig(mSAConfigOptions.mServerUrl, packageName);
-            mSAContextManager = new SAContextManager(mContext, mDisableTrackDeviceId);
+            mSAContextManager = new SAContextManager(mContext);
             mMessages = AnalyticsMessages.getInstance(mContext, (SensorsDataAPI) this);
             mRemoteManager = new SensorsDataRemoteManager((SensorsDataAPI) this);
             //先从缓存中读取 SDKConfig
@@ -216,6 +218,11 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         } catch (Throwable ex) {
             SALog.d(TAG, ex.getMessage());
         }
+        registerDefaultPropertiesPlugin();
+    }
+
+    private void registerDefaultPropertiesPlugin() {
+        SensorsDataPropertyPluginManager.getInstance().registerPropertyPlugin(new SAPresetPropertyPlugin(mContext, mDisableTrackDeviceId));
     }
 
     protected AbstractSensorsDataAPI() {
@@ -715,21 +722,22 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             }
 
             try {
-                JSONObject sendProperties;
-
+                JSONObject sendProperties = new JSONObject();
                 if (eventType.isTrack()) {
-                    Map<String, Object> deviceInfo = mSAContextManager.getDeviceInfo();
-                    if (deviceInfo != null) {
-                        sendProperties = new JSONObject(deviceInfo);
-                    } else {
-                        sendProperties = new JSONObject();
-                    }
                     //之前可能会因为没有权限无法获取运营商信息，检测再次获取
                     getCarrier(sendProperties);
                     if (!"$AppEnd".equals(eventName) && !"$AppDeeplinkLaunch".equals(eventName)) {
                         //合并 $latest_utm 属性
                         SensorsDataUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), sendProperties);
                     }
+                }
+
+                // 将属性插件的属性合并到 sendProperties
+                sendProperties = SensorsDataUtils.mergeSuperJSONObject(
+                        SensorsDataPropertyPluginManager.getInstance().properties(eventName, eventType, properties),
+                        sendProperties);
+
+                if (eventType.isTrack()) {
                     mergerDynamicAndSuperProperties(sendProperties, dynamicProperty);
 
                     if (mReferrerScreenTitle != null) {
@@ -759,10 +767,10 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
                     }
-                } else if (eventType.isProfile()) {
-                    sendProperties = new JSONObject();
                 } else {
-                    return;
+                    if (!eventType.isProfile()) {
+                        return;
+                    }
                 }
 
                 // 禁用采集事件时，先计算基本信息存储到缓存中
@@ -849,19 +857,21 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                 }
             }
 
-            if (eventType.isTrack()) {
-                Map<String, Object> deviceInfo = mSAContextManager.getDeviceInfo();
-                if (deviceInfo != null) {
-                    for (Map.Entry<String, Object> entry : deviceInfo.entrySet()) {
-                        String key = entry.getKey();
-                        if (!TextUtils.isEmpty(key)) {
-                            if ("$lib".equals(key) || "$lib_version".equals(key)) {
-                                continue;
-                            }
-                            propertiesObject.put(entry.getKey(), entry.getValue());
+            String eventName = eventObject.optString("event");
+            JSONObject deviceInfo = SensorsDataPropertyPluginManager.getInstance().properties(eventName, eventType, null);
+            if (deviceInfo != null) {
+                Iterator<String> iterator = deviceInfo.keys();
+                while (iterator.hasNext()) {
+                    String key = iterator.next();
+                    if (!TextUtils.isEmpty(key)) {
+                        if ("$lib".equals(key) || "$lib_version".equals(key)) {
+                            continue;
                         }
+                        propertiesObject.put(key, deviceInfo.opt(key));
                     }
                 }
+            }
+            if (eventType.isTrack()) {
                 //之前可能会因为没有权限无法获取运营商信息，检测再次获取
                 getCarrier(propertiesObject);
                 // 当前网络状况
@@ -914,7 +924,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                 propertiesObject.remove("$time");
             }
 
-            String eventName = eventObject.optString("event");
             if (eventType.isTrack()) {
                 // 校验 H5 事件名称
                 SADataHelper.assertEventName(eventName);
@@ -1508,7 +1517,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             public void run() {
                 try {
                     if (eventType.isTrack()) {
-                        JSONObject jsonObject = new JSONObject(mSAContextManager.getDeviceInfo());
+                        JSONObject jsonObject = SensorsDataPropertyPluginManager.getInstance().properties(eventName, eventType, properties);
                         JSONUtils.mergeDistinctProperty(jsonObject, sendProperties);
                     }
 

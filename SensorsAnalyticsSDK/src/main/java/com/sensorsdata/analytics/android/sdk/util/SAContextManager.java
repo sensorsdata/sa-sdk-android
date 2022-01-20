@@ -24,18 +24,18 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.listener.SAFunctionListener;
+import com.sensorsdata.analytics.android.sdk.plugin.property.SAPresetPropertyPlugin;
+import com.sensorsdata.analytics.android.sdk.plugin.property.SensorsDataPropertyPluginManager;
 
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class SAContextManager {
     private final Context mContext;
-    private boolean mDisableTrackDeviceId;
     private Map<String, Object> mDeviceInfo;
     private List<SAEventListener> mEventListenerList;
     private List<SAFunctionListener> mFunctionListenerList;
@@ -43,24 +43,8 @@ public class SAContextManager {
     private String mAndroidId;
     private boolean isAppStartSuccess;
 
-    public SAContextManager(Context context, boolean isTrackDeviceId) {
+    public SAContextManager(Context context) {
         this.mContext = context;
-        this.mDisableTrackDeviceId = isTrackDeviceId;
-    }
-
-    /**
-     * 获取 DeviceInfo
-     * @return DeviceInfo
-     */
-    public Map<String, Object> getDeviceInfo() {
-        try {
-            if (mDeviceInfo == null && SensorsDataAPI.getConfigOptions().isDataCollectEnable()) {
-                setupDeviceInfo();
-            }
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
-        }
-        return mDeviceInfo;
     }
 
     public void addFunctionListener(SAFunctionListener functionListener) {
@@ -93,6 +77,7 @@ public class SAContextManager {
 
     /**
      * 获取 SDK 事件监听回调
+     *
      * @return 事件监听回调
      */
     public List<SAEventListener> getEventListenerList() {
@@ -101,6 +86,7 @@ public class SAContextManager {
 
     /**
      * 获取 SDK 事件监听回调
+     *
      * @return 事件监听回调
      */
     public List<SAFunctionListener> getFunctionListenerList() {
@@ -140,14 +126,13 @@ public class SAContextManager {
 
     /**
      * 从 DeviceInfo 中添加指定 Key
+     *
      * @param jsonObject JSONObject
      * @param key 指定 Key
      */
     public void addKeyIfExist(JSONObject jsonObject, String key) {
         try {
-            if (mDeviceInfo == null && SensorsDataAPI.getConfigOptions().isDataCollectEnable()) {
-                setupDeviceInfo();
-            }
+            setupDeviceInfo();
             if (mDeviceInfo != null && mDeviceInfo.containsKey(key)) {
                 jsonObject.put(key, mDeviceInfo.get(key));
             }
@@ -158,6 +143,7 @@ public class SAContextManager {
 
     /**
      * 获取 AndroidID
+     *
      * @return AndroidID
      */
     public String getAndroidId() {
@@ -169,14 +155,13 @@ public class SAContextManager {
 
     /**
      * 获取预置属性信息
+     *
      * @return 预置属性信息
      */
     public JSONObject getPresetProperties() {
         JSONObject properties = new JSONObject();
         try {
-            if (mDeviceInfo == null) {
-                setupDeviceInfo();
-            }
+            setupDeviceInfo();
             properties.put("$app_version", mDeviceInfo.get("$app_version"));
             properties.put("$lib", "Android");
             properties.put("$lib_version", mDeviceInfo.get("$lib_version"));
@@ -207,44 +192,9 @@ public class SAContextManager {
      * 获取并配置 App 的一些基本属性
      */
     private void setupDeviceInfo() {
-        final Map<String, Object> deviceInfo = new HashMap<>();
-        String osVersion = DeviceUtils.getHarmonyOSVersion();
-        if (!TextUtils.isEmpty(osVersion)) {
-            deviceInfo.put("$os", "HarmonyOS");
-            deviceInfo.put("$os_version", osVersion);
-        } else {
-            deviceInfo.put("$os", "Android");
-            deviceInfo.put("$os_version", DeviceUtils.getOS());
+        if (mDeviceInfo == null || mDeviceInfo.isEmpty()) {
+            mDeviceInfo = Collections.unmodifiableMap(SensorsDataPropertyPluginManager.getInstance().getPropertiesByPlugin(SAPresetPropertyPlugin.class));
         }
-
-        deviceInfo.put("$lib", "Android");
-        deviceInfo.put("$lib_version", SensorsDataAPI.sharedInstance().getSDKVersion());
-        deviceInfo.put("$manufacturer", DeviceUtils.getManufacturer());
-        deviceInfo.put("$model", DeviceUtils.getModel());
-        deviceInfo.put("$brand", DeviceUtils.getBrand());
-        deviceInfo.put("$app_version", AppInfoUtils.getAppVersionName(mContext));
-        int[] size = DeviceUtils.getDeviceSize(mContext);
-        deviceInfo.put("$screen_width", size[0]);
-        deviceInfo.put("$screen_height", size[1]);
-
-        String carrier = SensorsDataUtils.getCarrier(mContext);
-        if (!TextUtils.isEmpty(carrier)) {
-            deviceInfo.put("$carrier", carrier);
-        }
-
-        mAndroidId = SensorsDataUtils.getAndroidID(mContext);
-        if (!mDisableTrackDeviceId && !TextUtils.isEmpty(mAndroidId)) {
-            deviceInfo.put("$anonymization_id", Base64Coder.encodeString(mAndroidId));
-        }
-
-        Integer zone_offset = TimeUtils.getZoneOffset();
-        if (zone_offset != null) {
-            deviceInfo.put("$timezone_offset", zone_offset);
-        }
-
-        deviceInfo.put("$app_id", AppInfoUtils.getProcessName(mContext));
-        deviceInfo.put("$app_name", AppInfoUtils.getAppName(mContext));
-        mDeviceInfo =  Collections.unmodifiableMap(deviceInfo);
     }
 
     public boolean isAppStartSuccess() {

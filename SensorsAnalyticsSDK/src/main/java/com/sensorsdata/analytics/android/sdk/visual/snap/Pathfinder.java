@@ -42,16 +42,16 @@ public class Pathfinder {
 
     public static boolean hasClassName(Object o, String className) {
         Class<?> klass = o.getClass();
-        while (klass.getCanonicalName() != null) {
-            if (klass.getCanonicalName().equals(className)) {
+        String canonicalName = SnapCache.getInstance().getCanonicalName(klass);
+        while (canonicalName != null) {
+            if (canonicalName.equals(className)) {
                 return true;
             }
-
             if (klass == Object.class) {
                 break;
             }
-
             klass = klass.getSuperclass();
+            canonicalName = SnapCache.getInstance().getCanonicalName(klass);
         }
         return false;
     }

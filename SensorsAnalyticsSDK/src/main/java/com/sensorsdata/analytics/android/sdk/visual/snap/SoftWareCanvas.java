@@ -81,7 +81,6 @@ public class SoftWareCanvas extends Canvas {
                     return saPaint;
                 }
             } catch (Exception e) {
-                SALog.i(TAG, e.toString());
             }
         }
         return paint;
@@ -96,7 +95,10 @@ public class SoftWareCanvas extends Canvas {
     }
 
     public void drawLines(float[] pts, int offset, int count, Paint paint) {
-        super.drawLines(pts, offset, count, replaceBitmapShader(paint));
+        try {
+            super.drawLines(pts, offset, count, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawBitmap(Bitmap bitmap, float left, float top, Paint paint) {
@@ -120,15 +122,24 @@ public class SoftWareCanvas extends Canvas {
     }
 
     public void drawBitmap(int[] colors, int offset, int stride, float x, float y, int width, int height, boolean hasAlpha, Paint paint) {
-        super.drawBitmap(colors, offset, stride, x, y, width, height, hasAlpha, replaceBitmapShader(paint));
+        try {
+            super.drawBitmap(colors, offset, stride, x, y, width, height, hasAlpha, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawBitmap(int[] colors, int offset, int stride, int x, int y, int width, int height, boolean hasAlpha, Paint paint) {
-        super.drawBitmap(colors, offset, stride, x, y, width, height, hasAlpha, replaceBitmapShader(paint));
+        try {
+            super.drawBitmap(colors, offset, stride, x, y, width, height, hasAlpha, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawBitmap(Bitmap bitmap, Matrix matrix, Paint paint) {
-        super.drawBitmap(drawOnSFCanvas(bitmap), matrix, replaceBitmapShader(paint));
+        try {
+            super.drawBitmap(drawOnSFCanvas(bitmap), matrix, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawBitmapMesh(Bitmap bitmap, int meshWidth, int meshHeight, float[] verts, int vertOffset, int[] colors, int colorOffset, Paint paint) {
@@ -136,11 +147,17 @@ public class SoftWareCanvas extends Canvas {
     }
 
     public void drawRoundRect(RectF rect, float rx, float ry, Paint paint) {
-        super.drawRoundRect(rect, rx, ry, replaceBitmapShader(paint));
+        try {
+            super.drawRoundRect(rect, rx, ry, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawRoundRect(float left, float top, float right, float bottom, float rx, float ry, Paint paint) {
-        super.drawRoundRect(left, top, right, bottom, rx, ry, replaceBitmapShader(paint));
+        try {
+            super.drawRoundRect(left, top, right, bottom, rx, ry, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void setBitmap(Bitmap bitmap) {
@@ -164,90 +181,158 @@ public class SoftWareCanvas extends Canvas {
     }
 
     public void drawArc(RectF oval, float startAngle, float sweepAngle, boolean useCenter, Paint paint) {
-        super.drawArc(oval, startAngle, sweepAngle, useCenter, replaceBitmapShader(paint));
+        try {
+            super.drawArc(oval, startAngle, sweepAngle, useCenter, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawCircle(float cx, float cy, float radius, Paint paint) {
-        super.drawCircle(cx, cy, radius, replaceBitmapShader(paint));
+        try {
+            super.drawCircle(cx, cy, radius, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawLine(float startX, float startY, float stopX, float stopY, Paint paint) {
-        super.drawLine(startX, startY, stopX, stopY, replaceBitmapShader(paint));
+        try {
+            super.drawLine(startX, startY, stopX, stopY, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawLines(float[] pts, Paint paint) {
-        super.drawLines(pts, replaceBitmapShader(paint));
+        try {
+            super.drawLines(pts, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawOval(RectF oval, Paint paint) {
-        super.drawOval(oval, replaceBitmapShader(paint));
+        try {
+            super.drawOval(oval, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawOval(float left, float top, float right, float bottom, Paint paint) {
-        super.drawOval(left, top, right, bottom, replaceBitmapShader(paint));
+        try {
+            super.drawOval(left, top, right, bottom, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawPaint(Paint paint) {
-        super.drawPaint(replaceBitmapShader(paint));
+        try {
+            super.drawPaint(replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawPath(Path path, Paint paint) {
-        super.drawPath(path, replaceBitmapShader(paint));
+        try {
+            super.drawPath(path, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawPoint(float x, float y, Paint paint) {
-        super.drawPoint(x, y, replaceBitmapShader(paint));
+        try {
+            super.drawPoint(x, y, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawPoints(float[] pts, int offset, int count, Paint paint) {
-        super.drawPoints(pts, offset, count, replaceBitmapShader(paint));
+        try {
+            super.drawPoints(pts, offset, count, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawPoints(float[] pts, Paint paint) {
-        super.drawPoints(pts, replaceBitmapShader(paint));
+        try {
+            super.drawPoints(pts, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawPosText(char[] text, int index, int count, float[] pos, Paint paint) {
-        super.drawPosText(text, index, count, pos, replaceBitmapShader(paint));
+        try {
+            super.drawPosText(text, index, count, pos, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawPosText(String text, float[] pos, Paint paint) {
-        super.drawPosText(text, pos, replaceBitmapShader(paint));
+        try {
+            super.drawPosText(text, pos, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawRect(RectF rect, Paint paint) {
-        super.drawRect(rect, replaceBitmapShader(paint));
+        try {
+            super.drawRect(rect, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawRect(Rect r, Paint paint) {
-        super.drawRect(r, replaceBitmapShader(paint));
+        try {
+            super.drawRect(r, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawRect(float left, float top, float right, float bottom, Paint paint) {
-        super.drawRect(left, top, right, bottom, replaceBitmapShader(paint));
+        try {
+            super.drawRect(left, top, right, bottom, replaceBitmapShader(paint));
+        } catch (Exception e) {
+
+        }
     }
 
     public void drawText(char[] text, int index, int count, float x, float y, Paint paint) {
-        super.drawText(text, index, count, x, y, replaceBitmapShader(paint));
+        try {
+            super.drawText(text, index, count, x, y, replaceBitmapShader(paint));
+        } catch (Exception e) {
+
+        }
     }
 
     public void drawText(String text, float x, float y, Paint paint) {
-        super.drawText(text, x, y, replaceBitmapShader(paint));
+        try {
+            super.drawText(text, x, y, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawText(String text, int start, int end, float x, float y, Paint paint) {
-        super.drawText(text, start, end, x, y, replaceBitmapShader(paint));
+        try {
+            super.drawText(text, start, end, x, y, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawText(CharSequence text, int start, int end, float x, float y, Paint paint) {
-        super.drawText(text, start, end, x, y, replaceBitmapShader(paint));
+        try {
+            super.drawText(text, start, end, x, y, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawTextOnPath(char[] text, int index, int count, Path path, float hOffset, float vOffset, Paint paint) {
-        super.drawTextOnPath(text, index, count, path, hOffset, vOffset, replaceBitmapShader(paint));
+        try {
+            super.drawTextOnPath(text, index, count, path, hOffset, vOffset, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 
     public void drawTextOnPath(String text, Path path, float hOffset, float vOffset, Paint paint) {
-        super.drawTextOnPath(text, path, hOffset, vOffset, replaceBitmapShader(paint));
+        try {
+            super.drawTextOnPath(text, path, hOffset, vOffset, replaceBitmapShader(paint));
+        } catch (Exception e) {
+        }
     }
 }

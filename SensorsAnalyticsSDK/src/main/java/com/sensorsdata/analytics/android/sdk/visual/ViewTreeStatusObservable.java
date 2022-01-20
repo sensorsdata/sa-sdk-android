@@ -23,6 +23,7 @@ import android.text.TextUtils;
 import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.ViewTreeObserver.OnGlobalFocusChangeListener;
 import android.view.ViewTreeObserver.OnGlobalLayoutListener;
 import android.view.ViewTreeObserver.OnScrollChangedListener;
@@ -47,7 +48,7 @@ import java.util.List;
 public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrollChangedListener, OnGlobalFocusChangeListener {
     private static final String TAG = "SA.ViewTreeStatusObservable";
     public static volatile ViewTreeStatusObservable viewTreeStatusObservable;
-    private Runnable mTraverseRunnable = new TraverseRunnable();
+    private final Runnable mTraverseRunnable = new TraverseRunnable();
     private SparseArray<ViewNode> mViewNodesWithHashCode = new SparseArray<>();
     private HashMap<String, ViewNode> mViewNodesHashMap = new HashMap<>();
     private HashMap<String, ViewNode> mWebViewHashMap = new HashMap<>();
@@ -68,9 +69,10 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
         }
 
         public void run() {
+            long startTime = System.currentTimeMillis();
             SALog.i(TAG, "start traverse...");
             traverseNode();
-            SALog.i(TAG, "stop traverse...");
+            SALog.i(TAG, "stop traverse...:" + (System.currentTimeMillis() - startTime));
         }
     }
 
@@ -102,7 +104,7 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
         try {
             viewNode = mViewNodesWithHashCode.get(view.hashCode());
             if (viewNode == null) {
-                viewNode = ViewUtil.getViewPathAndPosition(view);
+                viewNode = getViewPathAndPosition(view);
                 if (viewNode != null) {
                     mViewNodesWithHashCode.put(view.hashCode(), viewNode);
                 }
@@ -182,6 +184,9 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
     }
 
     private void traverseNode() {
+        mViewNodesHashMap.clear();
+        mViewNodesWithHashCode.clear();
+        mWebViewHashMap.clear();
         traverseNode(null);
     }
 
@@ -200,9 +205,6 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
                     traverseNode(view, tempSparseArray, tempHashMap, tempWebViewHashMap);
                 }
             }
-            mViewNodesHashMap.clear();
-            mViewNodesWithHashCode.clear();
-            mWebViewHashMap.clear();
             mViewNodesHashMap = tempHashMap;
             mViewNodesWithHashCode = tempSparseArray;
             mWebViewHashMap = tempWebViewHashMap;
@@ -249,6 +251,7 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
             if (view == null) {
                 return;
             }
+//            ViewNode viewNode = getCacheViewPathAndPosition(view, true);
             ViewNode viewNode = ViewUtil.getViewPathAndPosition(view, true);
             if (viewNode != null) {
                 // 缓存 ViewNode,用于获取 $element_path
@@ -281,5 +284,72 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
+    }
+
+
+    /**
+     * 获取 view 控件的 ViewNode 信息
+     *
+     * @param clickView 需要获取 ViewNode 信息的 View 对象
+     * @return 返回 View 对象的 ViewNode 信息
+     */
+    public ViewNode getViewPathAndPosition(View clickView) {
+//        return getCacheViewPathAndPosition(clickView, false);
+        return ViewUtil.getViewPathAndPosition(clickView, false);
+    }
+
+    /**
+     * 对 view 进行遍历的过程中进行父控件的缓存读取
+     *
+     * @param clickView 需要获取 ViewNode 信息的 View 对象
+     * @param fromVisual 是否主动获取
+     * @return 当前 clickView 的 ViewNode 节点信息
+     */
+    private ViewNode getCacheViewPathAndPosition(View clickView, boolean fromVisual) {
+        ViewNode currrentNode = mViewNodesWithHashCode.get(clickView.hashCode());
+
+        if (currrentNode != null) {
+            return currrentNode;
+        }
+        ViewParent viewParent;
+        View parent_view = null;
+        viewParent = clickView.getParent();
+        if (viewParent instanceof ViewGroup) {
+            parent_view = (View) viewParent;
+        }
+        if (parent_view == null) {
+            currrentNode = ViewUtil.getViewPathAndPosition(clickView, fromVisual);
+            mViewNodesWithHashCode.put(clickView.hashCode(), currrentNode);
+        } else {
+            StringBuilder opx = new StringBuilder();
+            StringBuilder px = new StringBuilder();
+            ViewNode parentNode = mViewNodesWithHashCode.get(parent_view.hashCode());
+            if (parentNode == null) {
+                parentNode = ViewUtil.getViewPathAndPosition(parent_view, fromVisual);
+                mViewNodesWithHashCode.put(parent_view.hashCode(), parentNode);
+            }
+
+            opx.append(parentNode.getViewOriginalPath());
+            px.append(parentNode.getViewPath());
+
+            String listPosition = parentNode.getViewPosition();
+            if (!TextUtils.isEmpty(parentNode.getViewPath()) && parentNode.getViewPath().contains("-") && !TextUtils.isEmpty(listPosition)) {
+                String[] partition_path = parentNode.getViewPath().split("/");
+                if (partition_path[partition_path.length - 1].contains("-")) {
+                    int replacePosition = px.lastIndexOf("-");
+                    if (replacePosition != -1) {
+                        px.replace(replacePosition, replacePosition + 1, String.valueOf(listPosition));
+                    }
+                }
+            }
+            final int viewPosition = ((ViewGroup) parent_view).indexOfChild(clickView);
+            currrentNode = ViewUtil.getViewNode(clickView, viewPosition, fromVisual);
+
+            opx.append(currrentNode.getViewOriginalPath());
+            px.append(currrentNode.getViewPath());
+            currrentNode = new ViewNode(clickView, currrentNode.getViewPosition(), opx.toString(), px.toString(), currrentNode.getViewContent());
+            mViewNodesWithHashCode.put(clickView.hashCode(), currrentNode);
+        }
+        return currrentNode;
     }
 }

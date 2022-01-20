@@ -27,6 +27,7 @@ import java.util.List;
 public class H5VisualTestActivity extends BaseActivity {
 
     private List<String> mItems = Arrays.asList(
+            "file:///android_asset/test.html",
             "https://869359954.github.io/sadefine/vue/index.html",
             "https://869359954.github.io/sadefine/definedemo.html",
             "file:///android_asset/visual_h5_test/definedemo.html",

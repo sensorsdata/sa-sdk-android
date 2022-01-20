@@ -34,10 +34,10 @@ import com.sensorsdata.analytics.android.sdk.advert.utils.OaidHelper;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
-import com.sensorsdata.analytics.android.sdk.internal.rpc.SensorsDataContentObserver;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventTimer;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
+import com.sensorsdata.analytics.android.sdk.internal.rpc.SensorsDataContentObserver;
 import com.sensorsdata.analytics.android.sdk.listener.SAFunctionListener;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
@@ -1820,7 +1820,6 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                     mSAConfigOptions.isDataCollectEnable = true;
                     // 同意合规时重新判断当前进程是否主进程
                     mIsMainProcess = AppInfoUtils.isMainProcess(mContext, null);
-                    mSAContextManager.getDeviceInfo();
                     mUserIdentityAPI.enableDataCollect(mSAContextManager.getAndroidId());
                     mTrackTaskManager.setDataCollectEnable(true);
                     // 同意合规时更新首日首次

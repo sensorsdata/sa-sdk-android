@@ -17,10 +17,20 @@
 
 package com.sensorsdata.analytics.android.sdk.util;
 
+import android.annotation.SuppressLint;
+import android.os.Build;
+import android.util.LruCache;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.HashSet;
+import java.util.Set;
 
 public class ReflectUtil {
+
+    @SuppressLint("NewApi")
+    private static final LruCache<String, Class<?>> mObjectLruCache = new LruCache<>(64);
+    private static final Set<String> mObjectSet = new HashSet<String>();
 
     static <T> T findField(Class<?> clazz, Object instance, String... fieldName) {
         T t = null;
@@ -52,15 +62,46 @@ public class ReflectUtil {
         Class<?> currentClass = null;
         for (int i = 0; i < className.length; i++) {
             try {
-                currentClass = Class.forName(className[i]);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
+                    currentClass = mObjectLruCache.get(className[i]);
+                }
+                if (currentClass == null && !mObjectSet.contains(className[i])) {
+                    currentClass = Class.forName(className[i]);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
+                        mObjectLruCache.put(className[i], currentClass);
+                    }
+                }
             } catch (Exception e) {
                 currentClass = null;
+                mObjectSet.add(className[i]);
             }
             if (currentClass != null) {
                 break;
             }
         }
         return currentClass;
+    }
+
+    public static Class<?> getClassByName(String name) {
+        Class<?> compatClass = null;
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
+                compatClass = mObjectLruCache.get(name);
+            }
+            if (compatClass == null && !mObjectSet.contains(name)) {
+                compatClass = Class.forName(name);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
+                    mObjectLruCache.put(name, compatClass);
+                }
+            }
+
+        } catch (ClassNotFoundException e) {
+            mObjectSet.add(name);
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+        return compatClass;
     }
 
     public static boolean isInstance(Object object, String... args) {
@@ -71,10 +112,20 @@ public class ReflectUtil {
         boolean result = false;
         for (String arg : args) {
             try {
-                clazz = Class.forName(arg);
-                result = clazz.isInstance(object);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
+                    clazz = mObjectLruCache.get(arg);
+                }
+                if (clazz == null && !mObjectSet.contains(arg)) {
+                    clazz = Class.forName(arg);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
+                        mObjectLruCache.put(arg, clazz);
+                    }
+                }
+                if (clazz != null) {
+                    result = clazz.isInstance(object);
+                }
             } catch (Exception e) {
-                //ignored
+                mObjectSet.add(arg);
             }
             if (result) {
                 break;
@@ -100,18 +151,19 @@ public class ReflectUtil {
     }
 
     public static <T> T callStaticMethod(Class<?> clazz, String methodName, Object... args) {
+        if (clazz == null) {
+            return null;
+        }
         Class[] argsClass = new Class[args.length];
         for (int i = 0; i < args.length; i++) {
             argsClass[i] = args[i].getClass();
         }
-        if (clazz != null) {
-            Method method = getMethod(clazz, methodName, argsClass);
-            if (method != null) {
-                try {
-                    return (T) method.invoke(null, args);
-                } catch (Exception e) {
-                    // Ignored
-                }
+        Method method = getMethod(clazz, methodName, argsClass);
+        if (method != null) {
+            try {
+                return (T) method.invoke(null, args);
+            } catch (Exception e) {
+                // Ignored
             }
         }
         return null;
@@ -155,7 +207,7 @@ public class ReflectUtil {
                     break;
                 }
             }
-            if(field == null){
+            if (field == null) {
                 return null;
             }
             field.setAccessible(true);

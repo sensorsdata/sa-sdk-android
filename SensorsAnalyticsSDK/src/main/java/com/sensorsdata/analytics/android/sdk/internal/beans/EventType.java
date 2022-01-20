@@ -28,10 +28,14 @@ public enum EventType {
     PROFILE_INCREMENT("profile_increment", false, true),
     PROFILE_APPEND("profile_append", false, true),
     PROFILE_DELETE("profile_delete", false, true),
-    REGISTER_SUPER_PROPERTIES("register_super_properties", false, false),
     ITEM_SET("item_set", false, false),
     ITEM_DELETE("item_delete", false, false),
-    DEFAULT("default", false, false);
+    DEFAULT("default", false, false),
+
+    /**
+     * 特殊枚举对象用于标记所有事件类型，不可用于触发事件设置类型
+     */
+    ALL("all", false, false);
 
     private String eventType;
     private boolean track;
