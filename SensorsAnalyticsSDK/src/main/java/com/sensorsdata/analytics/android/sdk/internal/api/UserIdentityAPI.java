@@ -26,7 +26,6 @@ import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentDistinctId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
-import com.sensorsdata.analytics.android.sdk.data.persistent.UserIdentityPersistent;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
@@ -347,6 +346,7 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
 
     /**
      * 用于主线程调用 login 时及时更新 LoginId 值
+     *
      * @param loginId LoginId
      */
     public void updateLoginId(String loginId) {
@@ -489,15 +489,12 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
         try {
             mIdentities = new JSONObject();
             mLoginIdentities = new JSONObject();
-            // 判断 identities 是否存在
-            final UserIdentityPersistent userPersistent = (UserIdentityPersistent) PersistentLoader.loadPersistent(DbParams.PersistentName.PERSISTENT_USER_ID);
-            if (userPersistent != null && userPersistent.isExists()) {
-                String identities = DbAdapter.getInstance().getIdentities();
-                if (!TextUtils.isEmpty(identities)) {
-                    mIdentities = new JSONObject(identities);
-                    if (mIdentities.has(ANONYMOUS_ID)) {
-                        mIdentities.put(ANONYMOUS_ID, mDistinctId.get());
-                    }
+            // 判断缓存中 identities 是否存在
+            String cacheIdentities = DbAdapter.getInstance().getIdentitiesFromLocal();
+            if (!TextUtils.isEmpty(cacheIdentities)) {
+                mIdentities = new JSONObject(cacheIdentities);
+                if (mIdentities.has(ANONYMOUS_ID)) {
+                    mIdentities.put(ANONYMOUS_ID, mDistinctId.get());
                 }
             } else {
                 // 判断匿名 ID 是否存在
@@ -514,8 +511,8 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
                 }
             }
 
-            String loginIdValue = DbAdapter.getInstance().getLoginId();
-            String oldLoginKey = DbAdapter.getInstance().getLoginIdKey();
+            String loginIdValue = DbAdapter.getInstance().getLoginIdFromLocal();
+            String oldLoginKey = DbAdapter.getInstance().getLoginIdKeyFromLocal();
             if (!TextUtils.isEmpty(loginIdValue)) {
                 mLoginIdValue = loginIdValue;
                 if (mIdentities.has(oldLoginKey)) {

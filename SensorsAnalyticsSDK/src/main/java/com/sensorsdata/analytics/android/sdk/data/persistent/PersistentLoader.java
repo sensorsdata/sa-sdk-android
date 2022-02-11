@@ -64,8 +64,6 @@ public class PersistentLoader {
                 return new PersistentRemoteSDKConfig();
             case DbParams.PersistentName.SUPER_PROPERTIES:
                 return new PersistentSuperProperties();
-            case DbParams.PersistentName.SUB_PROCESS_FLUSH_DATA:
-                return new PersistentFlushDataState();
             case DbParams.PersistentName.VISUAL_PROPERTIES:
                 return new PersistentVisualConfig();
             case DbParams.PersistentName.PERSISTENT_USER_ID:

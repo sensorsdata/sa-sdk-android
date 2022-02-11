@@ -28,7 +28,6 @@ import android.os.Looper;
 import android.os.SystemClock;
 import android.text.TextUtils;
 import android.view.View;
-import android.widget.Toast;
 
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.advert.utils.OaidHelper;
@@ -71,6 +70,7 @@ import com.sensorsdata.analytics.android.sdk.util.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
+import com.sensorsdata.analytics.android.sdk.util.ToastUtil;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
 
@@ -1042,12 +1042,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             mSAConfigOptions.setMaxCacheSize(32 * 1024 * 1024L);
         }
 
-        if (mSAConfigOptions.isSubProcessFlushData && DbAdapter.getInstance().isFirstProcess()) {
-            //如果是首个进程
-            DbAdapter.getInstance().commitFirstProcessState(false);
-            DbAdapter.getInstance().commitSubProcessFlushState(false);
-        }
-
         this.mAutoTrack = configBundle.getBoolean("com.sensorsdata.analytics.android.AutoTrack",
                 false);
         if (mSAConfigOptions.mAutoTrackEventType != 0) {
@@ -1189,7 +1183,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                     if (!TextUtils.isEmpty(appName)) {
                         info = String.format(Locale.CHINA, "%s：%s", appName, info);
                     }
-                    Toast.makeText(mContext, info, Toast.LENGTH_LONG).show();
+                    ToastUtil.showLong(mContext, info);
                 }
             });
         } catch (Exception e) {

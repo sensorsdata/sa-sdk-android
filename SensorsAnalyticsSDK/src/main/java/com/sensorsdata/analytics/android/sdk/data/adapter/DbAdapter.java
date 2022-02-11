@@ -21,6 +21,11 @@ import android.content.ContentValues;
 import android.content.Context;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.data.persistent.LoginIdKeyPersistent;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
+import com.sensorsdata.analytics.android.sdk.data.persistent.UserIdentityPersistent;
 import com.sensorsdata.analytics.android.sdk.encrypt.SensorsDataEncrypt;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 
@@ -209,6 +214,21 @@ public class DbAdapter {
     }
 
     /**
+     * 获取 LoginId，从当前进程读取
+     *
+     * @return LoginId
+     */
+    public String getLoginIdFromLocal() {
+        try {
+            PersistentLoginId persistentLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(DbParams.PersistentName.LOGIN_ID);
+            return  (persistentLoginId == null) ? "" : persistentLoginId.get();
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return "";
+    }
+
+    /**
      * 设置 Session 的时长
      *
      * @param sessionIntervalTime Session 的时长
@@ -300,36 +320,6 @@ public class DbAdapter {
     }
 
     /**
-     * 保存首个启动进程的标记
-     *
-     * @param isFirst 是否首个进程
-     */
-    public void commitFirstProcessState(boolean isFirst) {
-        try {
-            mPersistentOperation.insertData(mDbParams.getFirstProcessUri(), new JSONObject().put(DbParams.VALUE, isFirst));
-        } catch (JSONException e) {
-            SALog.printStackTrace(e);
-        }
-    }
-
-    /**
-     * 获取是否首个启动进程的标记
-     *
-     * @return 是否首个进程
-     */
-    public boolean isFirstProcess() {
-        try {
-            String[] values = mPersistentOperation.queryData(mDbParams.getFirstProcessUri(), 1);
-            if (values != null && values.length > 0) {
-                return Integer.parseInt(values[0]) == 1;
-            }
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
-        }
-        return true;
-    }
-
-    /**
      * 存储 identities
      *
      * @param identities ID 标识
@@ -352,13 +342,31 @@ public class DbAdapter {
         try {
             String[] values = mPersistentOperation.queryData(mDbParams.getUserIdentities(), 1);
             if (values != null && values.length > 0) {
-                final String encodeIdentities = values[0];
-                return Base64Coder.decodeString(encodeIdentities.substring(encodeIdentities.indexOf(":") + 1));
+                return decodeIdentities(values[0]);
             }
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
         }
         return null;
+    }
+
+    /**
+     * 获取 identities，从当前进程读取
+     *
+     * @return ID 标识
+     */
+    public String getIdentitiesFromLocal() {
+        try {
+            UserIdentityPersistent userPersistent = (UserIdentityPersistent) PersistentLoader.loadPersistent(DbParams.PersistentName.PERSISTENT_USER_ID);
+            return decodeIdentities(userPersistent.get());
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return null;
+    }
+
+    private String decodeIdentities(String identities) {
+        return Base64Coder.decodeString(identities.substring(identities.indexOf(":") + 1));
     }
 
     /**
@@ -392,6 +400,21 @@ public class DbAdapter {
     }
 
     /**
+     * 获取 LoginIdKey，从当前进程读取
+     *
+     * @return LoginIdKey
+     */
+    public String getLoginIdKeyFromLocal() {
+        try {
+            LoginIdKeyPersistent loginIdKeyPersistent = (LoginIdKeyPersistent) PersistentLoader.loadPersistent(DbParams.PersistentName.PERSISTENT_LOGIN_ID_KEY);
+            return  (loginIdKeyPersistent == null) ? "" : loginIdKeyPersistent.get();
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return "";
+    }
+
+    /**
      * 保存远程控制下发字段
      *
      * @param config 下发字段
@@ -415,6 +438,21 @@ public class DbAdapter {
             if (values != null && values.length > 0) {
                 return values[0];
             }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return "";
+    }
+
+    /**
+     * 获取远程控制下发字段，从当前进程读取
+     *
+     * @return 下发字段
+     */
+    public String getRemoteConfigFromLocal() {
+        try {
+            PersistentRemoteSDKConfig persistentRemoteSDKConfig = (PersistentRemoteSDKConfig) PersistentLoader.loadPersistent(DbParams.PersistentName.REMOTE_CONFIG);
+            return persistentRemoteSDKConfig == null ? "" : persistentRemoteSDKConfig.get();
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }

@@ -253,7 +253,6 @@ public class AopUtil {
                     SensorsDataUtils.mergeJSONObject(trackProperties, properties);
                 }
             }
-
             boolean isTitleNull = TextUtils.isEmpty(title);
             boolean isScreenNameNull = TextUtils.isEmpty(screenName);
             if (isTitleNull && fragment.getClass().isAnnotationPresent(SensorsDataFragmentTitle.class)) {
@@ -262,7 +261,7 @@ public class AopUtil {
                     title = sensorsDataFragmentTitle.title();
                 }
             }
-
+            isTitleNull = TextUtils.isEmpty(title);
             if (isTitleNull || isScreenNameNull) {
                 if (activity == null) {
                     activity = getActivityFromFragment(fragment);

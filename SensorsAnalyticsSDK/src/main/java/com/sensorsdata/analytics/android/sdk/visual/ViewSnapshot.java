@@ -451,6 +451,7 @@ public class ViewSnapshot {
 
     private void addProperties(JSONObject j, View v)
             throws Exception {
+        j.put("importantForAccessibility", true);
         final Class<?> viewClass = v.getClass();
         for (final PropertyDescription desc : mProperties) {
             if (desc.targetClass.isAssignableFrom(viewClass) && null != desc.accessor) {

@@ -33,7 +33,6 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.LoginIdKeyPersistent;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndData;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFlushDataState;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
@@ -51,13 +50,12 @@ class SAProviderHelper {
     private SQLiteOpenHelper mDbHelper;
     private PersistentAppEndData persistentAppEndData;
     private PersistentLoginId persistentLoginId;
-    private PersistentFlushDataState persistentFlushDataState;
     private PersistentRemoteSDKConfig persistentRemoteSDKConfig;
     private LoginIdKeyPersistent mLoginIdKeyPersistent;
     private UserIdentityPersistent mUserIdsPersistent;
     private Context mContext;
     private boolean isDbWritable = true;
-    private boolean isFirstProcessStarted = true;
+    private boolean mIsFlushDataState = false;
     private int startActivityCount = 0;
     private long mAppStartTime = 0;
     private int mSessionTime = 30 * 1000;
@@ -70,7 +68,6 @@ class SAProviderHelper {
             PersistentLoader.initLoader(context);
             persistentAppEndData = (PersistentAppEndData) PersistentLoader.loadPersistent(DbParams.PersistentName.APP_END_DATA);
             persistentLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(DbParams.PersistentName.LOGIN_ID);
-            persistentFlushDataState = (PersistentFlushDataState) PersistentLoader.loadPersistent(DbParams.PersistentName.SUB_PROCESS_FLUSH_DATA);
             persistentRemoteSDKConfig = (PersistentRemoteSDKConfig) PersistentLoader.loadPersistent(DbParams.PersistentName.REMOTE_CONFIG);
             mUserIdsPersistent = (UserIdentityPersistent) PersistentLoader.loadPersistent(DbParams.PersistentName.PERSISTENT_USER_ID);
             mLoginIdKeyPersistent = (LoginIdKeyPersistent) PersistentLoader.loadPersistent(DbParams.PersistentName.PERSISTENT_LOGIN_ID_KEY);
@@ -244,10 +241,7 @@ class SAProviderHelper {
                     contentResolver.notifyChange(uri, null);
                     break;
                 case URI_CODE.FLUSH_DATA:
-                    persistentFlushDataState.commit(values.getAsBoolean(DbParams.PersistentName.SUB_PROCESS_FLUSH_DATA));
-                    break;
-                case URI_CODE.FIRST_PROCESS_START:
-                    isFirstProcessStarted = values.getAsBoolean(DbParams.TABLE_FIRST_PROCESS_START);
+                    mIsFlushDataState = values.getAsBoolean(DbParams.PersistentName.SUB_PROCESS_FLUSH_DATA);
                     break;
                 case URI_CODE.REMOTE_CONFIG:
                     persistentRemoteSDKConfig.commit(values.getAsString(DbParams.PersistentName.REMOTE_CONFIG));
@@ -331,19 +325,8 @@ class SAProviderHelper {
                     column = DbParams.PersistentName.LOGIN_ID;
                     break;
                 case URI_CODE.FLUSH_DATA:
-                    synchronized (SensorsDataContentProvider.class) {
-                        if (persistentFlushDataState.get()) {
-                            data = 1;
-                        } else {
-                            data = 0;
-                            persistentFlushDataState.commit(true);
-                        }
-                        column = DbParams.PersistentName.SUB_PROCESS_FLUSH_DATA;
-                    }
-                    break;
-                case URI_CODE.FIRST_PROCESS_START:
-                    data = isFirstProcessStarted ? 1 : 0;
-                    column = DbParams.TABLE_FIRST_PROCESS_START;
+                    data = mIsFlushDataState ? 1 : 0;
+                    column = DbParams.PersistentName.SUB_PROCESS_FLUSH_DATA;
                     break;
                 case URI_CODE.REMOTE_CONFIG:
                     data = persistentRemoteSDKConfig.get();

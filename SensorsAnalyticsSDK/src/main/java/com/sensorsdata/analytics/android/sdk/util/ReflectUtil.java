@@ -71,7 +71,7 @@ public class ReflectUtil {
                         mObjectLruCache.put(className[i], currentClass);
                     }
                 }
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 currentClass = null;
                 mObjectSet.add(className[i]);
             }
@@ -98,7 +98,7 @@ public class ReflectUtil {
         } catch (ClassNotFoundException e) {
             mObjectSet.add(name);
             return null;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             return null;
         }
         return compatClass;
@@ -124,7 +124,7 @@ public class ReflectUtil {
                 if (clazz != null) {
                     result = clazz.isInstance(object);
                 }
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 mObjectSet.add(arg);
             }
             if (result) {

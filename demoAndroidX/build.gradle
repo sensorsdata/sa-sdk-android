@@ -5,12 +5,12 @@ apply plugin: 'kotlin-android'
 apply plugin: 'com.sensorsdata.analytics.android'
 
 android {
-    compileSdkVersion 30
+    compileSdkVersion 31
 
     defaultConfig {
         applicationId "com.sensorsdata.analytics.android.demo"
         minSdkVersion 15
-        targetSdkVersion 30
+        targetSdkVersion 31
         versionCode 1
         versionName "1.0"
     }
@@ -61,5 +61,5 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'com.google.android:flexbox:1.1.0'
     implementation 'com.tencent.tbs.tbssdk:sdk:43697'
-    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.4'
+//    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.4'
 }

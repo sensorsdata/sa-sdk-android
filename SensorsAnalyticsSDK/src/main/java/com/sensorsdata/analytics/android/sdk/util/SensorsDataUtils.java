@@ -75,6 +75,7 @@ public final class SensorsDataUtils {
     private static final Map<String, String> deviceUniqueIdentifiersMap = new HashMap<>();
 
     private static boolean isUniApp = false;
+    private static String androidID = "";
 
     private static final Map<String, String> sCarrierMap = new HashMap<String, String>() {
         {
@@ -107,6 +108,7 @@ public final class SensorsDataUtils {
         {
             add("9774d56d682e549c");
             add("0123456789abcdef");
+            add("0000000000000000");
         }
     };
     private static final String TAG = "SA.SensorsDataUtils";
@@ -234,8 +236,8 @@ public final class SensorsDataUtils {
     /**
      * 根据 operator，获取本地化运营商信息
      *
-     * @param context context
-     * @param operator sim operator
+     * @param context         context
+     * @param operator        sim operator
      * @param alternativeName 备选名称
      * @return local carrier name
      */
@@ -336,7 +338,7 @@ public final class SensorsDataUtils {
      * 尝试读取页面 title
      *
      * @param properties JSONObject
-     * @param activity Activity
+     * @param activity   Activity
      */
     public static void getScreenNameAndTitleFromActivity(JSONObject properties, Activity activity) {
         if (activity == null || properties == null) {
@@ -395,7 +397,7 @@ public final class SensorsDataUtils {
      * 合并、去重公共属性
      *
      * @param source 新加入或者优先级高的属性
-     * @param dest 本地缓存或者优先级低的属性，如果有重复会删除该属性
+     * @param dest   本地缓存或者优先级低的属性，如果有重复会删除该属性
      * @return 合并后的属性
      */
     public static JSONObject mergeSuperJSONObject(JSONObject source, JSONObject dest) {
@@ -429,7 +431,7 @@ public final class SensorsDataUtils {
     /**
      * 检测权限
      *
-     * @param context Context
+     * @param context    Context
      * @param permission 权限名称
      * @return true:已允许该权限; false:没有允许该权限
      */
@@ -523,7 +525,7 @@ public final class SensorsDataUtils {
      * 获取设备标识
      *
      * @param context Context
-     * @param number 卡槽位置
+     * @param number  卡槽位置
      * @return 设备标识
      */
     public static String getSlot(Context context, int number) {
@@ -544,7 +546,7 @@ public final class SensorsDataUtils {
      * 获取设备唯一标识
      *
      * @param context Context
-     * @param number 卡槽
+     * @param number  卡槽
      * @return 设备唯一标识
      */
     @SuppressLint({"MissingPermission", "HardwareIds"})
@@ -597,9 +599,10 @@ public final class SensorsDataUtils {
      */
     @SuppressLint("HardwareIds")
     public static String getAndroidID(Context context) {
-        String androidID = "";
         try {
-            androidID = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
+            if (TextUtils.isEmpty(androidID)) {
+                androidID = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
+            }
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -682,7 +685,7 @@ public final class SensorsDataUtils {
     /**
      * 检查版本是否经过升级
      *
-     * @param context context
+     * @param context     context
      * @param currVersion 当前 SDK 版本
      * @return true，老版本升级到新版本。false，当前已是最新版本
      */
@@ -762,7 +765,7 @@ public final class SensorsDataUtils {
      * 并且此 Activity 的 launchMode 为 singleTop 或者 singleTask 或者为 singleInstance。
      *
      * @param activity activity
-     * @param intent intent
+     * @param intent   intent
      */
     public static void handleSchemeUrl(Activity activity, Intent intent) {
         SASchemeHelper.handleSchemeUrl(activity, intent);

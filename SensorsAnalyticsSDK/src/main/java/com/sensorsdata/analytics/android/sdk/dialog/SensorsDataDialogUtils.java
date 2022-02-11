@@ -31,10 +31,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Handler;
-import android.os.Looper;
 import android.text.TextUtils;
-import android.widget.Toast;
 
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
@@ -48,6 +45,7 @@ import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
 import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+import com.sensorsdata.analytics.android.sdk.util.ToastUtil;
 import com.sensorsdata.analytics.android.sdk.visual.HeatMapService;
 import com.sensorsdata.analytics.android.sdk.visual.VisualizedAutoTrackService;
 import com.sensorsdata.analytics.android.sdk.visual.view.PairingCodeEditDialog;
@@ -265,7 +263,7 @@ public class SensorsDataDialogUtils {
                     } else if (mCurrentDebugMode == SensorsDataAPI.DebugMode.DEBUG_AND_TRACK) {
                         currentDebugToastMsg = "开启调试模式，校验数据，并将数据导入到神策分析中；关闭 App 进程后，将自动关闭调试模式";
                     }
-                    Toast.makeText(activity, currentDebugToastMsg, Toast.LENGTH_LONG).show();
+                    ToastUtil.showLong(activity, currentDebugToastMsg);
                     SALog.info(TAG, "您当前的调试模式是：" + mCurrentDebugMode, null);
                     startLaunchActivity(activity);
                 }

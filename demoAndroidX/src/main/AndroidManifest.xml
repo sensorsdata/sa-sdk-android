@@ -19,6 +19,7 @@
         android:usesCleartextTraffic="true">
         <activity
             android:name=".activity.TestMainActivity"
+            android:exported="true"
             android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -61,6 +62,7 @@
         <activity android:name=".activity.TabAppParentFrgActivity" />
         <activity android:name=".activity.VPAppParentFrgActivity" />
         <activity android:name=".activity.TabParentFrgActivity1" />
+        <activity android:name=".activity.TestMultiProcessSubActivity" android:process=":subprocess"/>
         <activity
             android:name=".activity.LambdaTestPageActivity"
             android:theme="@style/AppThemeNoBar" />
@@ -68,6 +70,7 @@
         <activity
             android:name="com.sensorsdata.analytics.android.sdk.dialog.SchemeActivity"
             android:configChanges="orientation|screenSize"
+            android:exported="true"
             android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

@@ -53,7 +53,7 @@ public class DbParams {
     private static DbParams instance;
     private final Uri mUri, mActivityStartCountUri, mAppStartTimeUri, mDataCollectUri,
             mAppEndDataUri, mSessionTimeUri, mLoginIdUri, mChannelPersistentUri, mSubProcessUri,
-            mFirstProcessUri, mEnableSDKUri, mDisableSDKUri, mRemoteConfigUri, mUserIdentities, mLoginIdKeyUri, mPushIdUri;
+            mEnableSDKUri, mDisableSDKUri, mRemoteConfigUri, mUserIdentities, mLoginIdKeyUri, mPushIdUri;
 
     public interface PersistentName {
         String APP_END_DATA = "app_end_data";
@@ -81,7 +81,6 @@ public class DbParams {
         mLoginIdKeyUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PersistentName.PERSISTENT_LOGIN_ID_KEY);
         mChannelPersistentUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_CHANNEL_PERSISTENT);
         mSubProcessUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PersistentName.SUB_PROCESS_FLUSH_DATA);
-        mFirstProcessUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_FIRST_PROCESS_START);
         mDataCollectUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_DATA_COLLECT);
         mEnableSDKUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_DATA_ENABLE_SDK);
         mDisableSDKUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_DATA_DISABLE_SDK);
@@ -174,15 +173,6 @@ public class DbParams {
      */
     Uri getSubProcessUri() {
         return mSubProcessUri;
-    }
-
-    /**
-     * 是否首个启动的进程 Uri
-     *
-     * @return Uri
-     */
-    public Uri getFirstProcessUri() {
-        return mFirstProcessUri;
     }
 
     /**

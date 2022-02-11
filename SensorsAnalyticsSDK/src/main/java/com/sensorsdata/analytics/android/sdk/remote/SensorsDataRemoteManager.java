@@ -24,8 +24,8 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
-import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
+import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 
 import org.json.JSONObject;
 
@@ -42,6 +42,7 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
     // 每次启动 App 时，最多尝试三次
     private CountDownTimer mPullSDKConfigCountDownTimer;
     private final SAStoreManager mStorageManager;
+    private volatile boolean mIsInit = true;
 
     public SensorsDataRemoteManager(
             SensorsDataAPI sensorsDataAPI) {
@@ -58,7 +59,7 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
     private boolean isRequestValid() {
         boolean isRequestValid = true;
         try {
-            long lastRequestTime = mStorageManager.getLong(SHARED_PREF_REQUEST_TIME,0);
+            long lastRequestTime = mStorageManager.getLong(SHARED_PREF_REQUEST_TIME, 0);
             int randomTime = mStorageManager.getInteger(SHARED_PREF_REQUEST_TIME_RANDOM, 0);
             if (lastRequestTime != 0 && randomTime != 0) {
                 float requestInterval = SystemClock.elapsedRealtime() - lastRequestTime;
@@ -247,7 +248,14 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
     @Override
     public void applySDKConfigFromCache() {
         try {
-            SensorsDataSDKRemoteConfig sdkRemoteConfig = toSDKRemoteConfig(DbAdapter.getInstance().getRemoteConfig());
+            String remoteConfig;
+            if (mIsInit) {
+                remoteConfig = DbAdapter.getInstance().getRemoteConfigFromLocal();
+                mIsInit = false;
+            } else {
+                remoteConfig = DbAdapter.getInstance().getRemoteConfig();
+            }
+            SensorsDataSDKRemoteConfig sdkRemoteConfig = toSDKRemoteConfig(remoteConfig);
             if (SALog.isLogEnabled()) {
                 SALog.i(TAG, "Cache remote config is " + sdkRemoteConfig.toString());
             }

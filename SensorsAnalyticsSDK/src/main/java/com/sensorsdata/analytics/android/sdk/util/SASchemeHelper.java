@@ -21,7 +21,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.text.TextUtils;
-import android.widget.Toast;
 
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
@@ -99,7 +98,7 @@ public class SASchemeHelper {
                     } else {
                         tip = "当前 App 未开启加密，请开启加密后再试";
                     }
-                    Toast.makeText(activity, tip, Toast.LENGTH_LONG).show();
+                    ToastUtil.showLong(activity, tip);
                     SensorsDataDialogUtils.startLaunchActivity(activity);
                     intent.setData(null);
                 } else if ("channeldebug".equals(host)) {
