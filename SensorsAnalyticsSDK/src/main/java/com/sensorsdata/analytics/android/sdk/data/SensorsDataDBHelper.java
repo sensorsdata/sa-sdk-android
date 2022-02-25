@@ -54,4 +54,8 @@ class SensorsDataDBHelper extends SQLiteOpenHelper {
         db.execSQL(EVENTS_TIME_INDEX);
         db.execSQL(CHANNEL_EVENT_PERSISTENT_TABLE);
     }
+
+    @Override
+    public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+    }
 }

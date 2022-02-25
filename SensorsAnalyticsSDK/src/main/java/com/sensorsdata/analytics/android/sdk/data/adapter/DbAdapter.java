@@ -221,7 +221,7 @@ public class DbAdapter {
     public String getLoginIdFromLocal() {
         try {
             PersistentLoginId persistentLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(DbParams.PersistentName.LOGIN_ID);
-            return  (persistentLoginId == null) ? "" : persistentLoginId.get();
+            return (persistentLoginId == null) ? "" : persistentLoginId.get();
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -366,6 +366,9 @@ public class DbAdapter {
     }
 
     private String decodeIdentities(String identities) {
+        if (identities == null) {
+            return null;
+        }
         return Base64Coder.decodeString(identities.substring(identities.indexOf(":") + 1));
     }
 
@@ -407,7 +410,7 @@ public class DbAdapter {
     public String getLoginIdKeyFromLocal() {
         try {
             LoginIdKeyPersistent loginIdKeyPersistent = (LoginIdKeyPersistent) PersistentLoader.loadPersistent(DbParams.PersistentName.PERSISTENT_LOGIN_ID_KEY);
-            return  (loginIdKeyPersistent == null) ? "" : loginIdKeyPersistent.get();
+            return (loginIdKeyPersistent == null) ? "" : loginIdKeyPersistent.get();
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }

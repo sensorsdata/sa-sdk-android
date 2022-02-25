@@ -602,6 +602,9 @@ public final class SensorsDataUtils {
         try {
             if (TextUtils.isEmpty(androidID)) {
                 androidID = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
+                if (!isValidAndroidId(androidID)) {
+                    androidID = "";
+                }
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);

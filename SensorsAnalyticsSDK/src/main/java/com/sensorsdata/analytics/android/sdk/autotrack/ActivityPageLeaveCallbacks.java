@@ -67,7 +67,17 @@ public class ActivityPageLeaveCallbacks implements SensorsDataActivityLifecycleC
         try {
             int hashCode = activity.hashCode();
             if (mResumedActivities.containsKey(hashCode)) {
-                trackAppPageLeave(mResumedActivities.get(hashCode));
+                JSONObject properties = mResumedActivities.get(hashCode);
+                String referrer = properties == null ? "" : properties.optString("$referrer");
+                long startTime = properties == null ? 0 : properties.optLong(START_TIME);
+                properties = AopUtil.buildTitleAndScreenName(activity);
+                properties.put(START_TIME, startTime);
+                String url = SensorsDataUtils.getScreenUrl(activity);
+                properties.put("$url", url);
+                if (!TextUtils.isEmpty(referrer)) {
+                    properties.put("$referrer", referrer);
+                }
+                trackAppPageLeave(properties);
                 mResumedActivities.remove(hashCode);
             }
         } catch (Exception e) {
@@ -122,7 +132,7 @@ public class ActivityPageLeaveCallbacks implements SensorsDataActivityLifecycleC
             String url = SensorsDataUtils.getScreenUrl(activity);
             properties.put("$url", url);
             String referrer = AutoTrackUtils.getLastScreenUrl();
-            if (!TextUtils.isEmpty(referrer)) {
+            if (!properties.has("$referrer") && !TextUtils.isEmpty(referrer)) {
                 properties.put("$referrer", referrer);
             }
             properties.put(START_TIME, SystemClock.elapsedRealtime());

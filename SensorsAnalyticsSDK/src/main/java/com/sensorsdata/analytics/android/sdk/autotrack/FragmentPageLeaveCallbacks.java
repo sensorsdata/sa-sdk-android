@@ -106,10 +106,19 @@ public class FragmentPageLeaveCallbacks implements SAFragmentLifecycleCallbacks,
             int hashCode = object.hashCode();
             if (mResumedFragments.containsKey(hashCode)) {
                 JSONObject properties = mResumedFragments.get(hashCode);
-                mResumedFragments.remove(hashCode);
-                if (properties != null) {
-                    trackPageLeaveEvent(properties);
+                long startTime = properties == null ? 0 : properties.optLong(START_TIME);
+                String referrer = properties == null ? "" : properties.optString("$referrer");
+
+                properties = new JSONObject();
+                AopUtil.getScreenNameAndTitleFromFragment(properties, object, null);
+                properties.put(START_TIME, startTime);
+                String url = SensorsDataUtils.getScreenUrl(object);
+                properties.put("$url", url);
+                if (!TextUtils.isEmpty(referrer)) {
+                    properties.put("$referrer", referrer);
                 }
+                mResumedFragments.remove(hashCode);
+                trackPageLeaveEvent(properties);
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
