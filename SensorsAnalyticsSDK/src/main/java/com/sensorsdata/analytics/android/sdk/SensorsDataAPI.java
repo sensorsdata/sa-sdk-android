@@ -38,7 +38,7 @@ import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventTimer;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.internal.rpc.SensorsDataContentObserver;
-import com.sensorsdata.analytics.android.sdk.listener.SAFunctionListener;
+import com.sensorsdata.analytics.android.sdk.monitor.TrackMonitor;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
@@ -1827,11 +1827,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                         mFirstDay.commit(TimeUtils.formatTime(System.currentTimeMillis(), TimeUtils.YYYY_MM_DD));
                     }
                     try {
-                        if (mSAContextManager.getFunctionListenerList() != null) {
-                            for (SAFunctionListener functionListener : mSAContextManager.getFunctionListenerList()) {
-                                functionListener.call("enableDataCollect", null);
-                            }
-                        }
+                        TrackMonitor.getInstance().callEnableDataCollect();
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
                     }

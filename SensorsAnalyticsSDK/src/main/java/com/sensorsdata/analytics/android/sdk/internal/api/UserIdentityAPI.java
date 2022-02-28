@@ -22,6 +22,7 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.monitor.TrackMonitor;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentDistinctId;
@@ -29,7 +30,6 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
-import com.sensorsdata.analytics.android.sdk.listener.SAFunctionListener;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
@@ -149,18 +149,7 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
                         }
                     }
                 }
-
-                if (mSAContextManager.getFunctionListenerList() != null) {
-                    JSONObject jsonObject = new JSONObject();
-                    jsonObject.put("distinctId", newDistinctId);
-                    for (SAFunctionListener listener : mSAContextManager.getFunctionListenerList()) {
-                        try {
-                            listener.call("resetAnonymousId", jsonObject);
-                        } catch (Exception e) {
-                            SALog.printStackTrace(e);
-                        }
-                    }
-                }
+                TrackMonitor.getInstance().callResetAnonymousId(newDistinctId);
             }
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
@@ -193,18 +182,7 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
                             }
                         }
                     }
-
-                    if (mSAContextManager.getFunctionListenerList() != null) {
-                        JSONObject jsonObject = new JSONObject();
-                        jsonObject.put("distinctId", distinctId);
-                        for (SAFunctionListener listener : mSAContextManager.getFunctionListenerList()) {
-                            try {
-                                listener.call("identify", jsonObject);
-                            } catch (Exception e) {
-                                SALog.printStackTrace(e);
-                            }
-                        }
-                    }
+                    TrackMonitor.getInstance().callIdentify(distinctId);
                 }
             }
         } catch (Exception ex) {
@@ -238,17 +216,7 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
                     }
                 }
             }
-            if (mSAContextManager.getFunctionListenerList() != null) {
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put("distinctId", loginId);
-                for (SAFunctionListener listener : mSAContextManager.getFunctionListenerList()) {
-                    try {
-                        listener.call("login", jsonObject);
-                    } catch (Exception e) {
-                        SALog.printStackTrace(e);
-                    }
-                }
-            }
+            TrackMonitor.getInstance().callLogin(loginId);
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
         }
@@ -277,16 +245,7 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
                             }
                         }
                     }
-
-                    if (mSAContextManager.getFunctionListenerList() != null) {
-                        for (SAFunctionListener listener : mSAContextManager.getFunctionListenerList()) {
-                            try {
-                                listener.call("logout", null);
-                            } catch (Exception e) {
-                                SALog.printStackTrace(e);
-                            }
-                        }
-                    }
+                    TrackMonitor.getInstance().callLogout();
                     SALog.i(TAG, "Clean loginId");
                 }
                 DbAdapter.getInstance().commitLoginIdKey("");
@@ -655,17 +614,7 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
-        if (mSAContextManager.getFunctionListenerList() != null) {
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put("eventJSON", eventObject);
-            for (SAFunctionListener listener : mSAContextManager.getFunctionListenerList()) {
-                try {
-                    listener.call("trackEvent", jsonObject);
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
-                }
-            }
-        }
+        TrackMonitor.getInstance().callTrack(eventObject);
     }
 
     /**

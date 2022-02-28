@@ -45,9 +45,9 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrac
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallationWithCallback;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProperties;
+import com.sensorsdata.analytics.android.sdk.monitor.TrackMonitor;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
-import com.sensorsdata.analytics.android.sdk.encrypt.AESSecretManager;
 import com.sensorsdata.analytics.android.sdk.encrypt.SensorsDataEncrypt;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.internal.api.FragmentAPI;
@@ -358,8 +358,14 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
      *
      * @param functionListener 事件监听
      */
-    public void addFunctionListener(SAFunctionListener functionListener) {
-        mSAContextManager.addFunctionListener(functionListener);
+    public void addFunctionListener(final SAFunctionListener functionListener) {
+        //在事件队列中操作了 mFunctionListenerList，此处也需要放在事件队列中
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
+            @Override
+            public void run() {
+                TrackMonitor.getInstance().addFunctionListener(functionListener);
+            }
+        });
     }
 
     /**
@@ -367,8 +373,17 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
      *
      * @param functionListener 事件监听
      */
-    public void removeFunctionListener(SAFunctionListener functionListener) {
-        mSAContextManager.removeFunctionListener(functionListener);
+    public void removeFunctionListener(final SAFunctionListener functionListener) {
+        try {
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
+                    TrackMonitor.getInstance().removeFunctionListener(functionListener);
+                }
+            });
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
     }
 
     public static SAConfigOptions getConfigOptions() {
@@ -1474,12 +1489,8 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         }
 
         try {
-            if (mSAContextManager.getFunctionListenerList() != null && eventType.isTrack()) {
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put("eventJSON", dataObj);
-                for (SAFunctionListener listener : mSAContextManager.getFunctionListenerList()) {
-                    listener.call("trackEvent", jsonObject);
-                }
+            if (eventType.isTrack()) {
+                TrackMonitor.getInstance().callTrack(dataObj);
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);

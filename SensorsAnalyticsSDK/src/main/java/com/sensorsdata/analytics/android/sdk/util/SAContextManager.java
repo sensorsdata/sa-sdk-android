@@ -38,41 +38,12 @@ public class SAContextManager {
     private final Context mContext;
     private Map<String, Object> mDeviceInfo;
     private List<SAEventListener> mEventListenerList;
-    private List<SAFunctionListener> mFunctionListenerList;
     /* AndroidID */
     private String mAndroidId;
     private boolean isAppStartSuccess;
 
     public SAContextManager(Context context) {
         this.mContext = context;
-    }
-
-    public void addFunctionListener(SAFunctionListener functionListener) {
-        try {
-            if (this.mFunctionListenerList == null) {
-                mFunctionListenerList = new ArrayList<>();
-            }
-            if (functionListener != null && !mFunctionListenerList.contains(functionListener)) {
-                mFunctionListenerList.add(functionListener);
-            }
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
-        }
-    }
-
-    /**
-     * 移除 SDK 事件回调监听
-     *
-     * @param functionListener 事件监听
-     */
-    public void removeFunctionListener(SAFunctionListener functionListener) {
-        try {
-            if (this.mFunctionListenerList != null && functionListener != null) {
-                this.mFunctionListenerList.remove(functionListener);
-            }
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
-        }
     }
 
     /**
@@ -82,15 +53,6 @@ public class SAContextManager {
      */
     public List<SAEventListener> getEventListenerList() {
         return mEventListenerList;
-    }
-
-    /**
-     * 获取 SDK 事件监听回调
-     *
-     * @return 事件监听回调
-     */
-    public List<SAFunctionListener> getFunctionListenerList() {
-        return mFunctionListenerList;
     }
 
     /**
