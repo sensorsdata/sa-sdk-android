@@ -432,6 +432,16 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
     }
 
     /**
+     * 将 $device_id 修改为 $anonymization_id
+     *
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions disableDeviceId() {
+        this.mDisableDeviceId = true;
+        return this;
+    }
+
+    /**
      * 获取 LoginID Key
      *
      * @return LoginID Key

@@ -222,7 +222,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     }
 
     private void registerDefaultPropertiesPlugin() {
-        SensorsDataPropertyPluginManager.getInstance().registerPropertyPlugin(new SAPresetPropertyPlugin(mContext, mDisableTrackDeviceId));
+        SensorsDataPropertyPluginManager.getInstance().registerPropertyPlugin(new SAPresetPropertyPlugin(mContext, mDisableTrackDeviceId, mSAConfigOptions.isDisableDeviceId()));
     }
 
     protected AbstractSensorsDataAPI() {
@@ -1445,12 +1445,20 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
 
         libProperties.put("$lib_detail", libDetail);
 
-        //防止用户自定义事件以及公共属性可能会加 $device_id 属性，导致覆盖 sdk 原始的 $device_id 属性值
-        if (sendProperties.has("$device_id")) {//由于 profileSet 等类型事件没有 $device_id 属性，故加此判断
-            mSAContextManager.addKeyIfExist(sendProperties, "$device_id");
-        }
-
         if (eventType.isTrack()) {
+            if (mSAConfigOptions.isDisableDeviceId()) {
+                //防止用户自定义事件以及公共属性可能会加 $device_id 属性，导致覆盖 sdk 原始的 $device_id 属性值
+                if (sendProperties.has("$anonymization_id")) {//由于 profileSet 等类型事件没有 $device_id 属性，故加此判断
+                    mSAContextManager.addKeyIfExist(sendProperties, "$anonymization_id");
+                }
+                sendProperties.remove("$device_id");
+            } else {
+                if (sendProperties.has("$device_id")) {
+                    mSAContextManager.addKeyIfExist(sendProperties, "$device_id");
+                }
+                sendProperties.remove("$anonymization_id");
+            }
+
             try {
                 SessionRelatedManager.getInstance().handleEventOfSession(eventName, sendProperties, eventTime);
             } catch (Exception e) {

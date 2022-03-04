@@ -23,7 +23,6 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
-import com.sensorsdata.analytics.android.sdk.listener.SAFunctionListener;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPresetPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SensorsDataPropertyPluginManager;
 
@@ -142,6 +141,9 @@ public class SAContextManager {
             properties.put("$timezone_offset", mDeviceInfo.get("$timezone_offset"));
             if (mDeviceInfo.containsKey("$anonymization_id")) {
                 properties.put("$anonymization_id", mDeviceInfo.get("$anonymization_id"));
+            }
+            if (mDeviceInfo.containsKey("$device_id")) {
+                properties.put("$device_id", mDeviceInfo.get("$device_id"));
             }
             properties.put("$app_name", mDeviceInfo.get("$app_name"));
         } catch (Exception e) {

@@ -196,6 +196,11 @@ abstract class AbstractSAConfigOptions {
     List<SAEncryptListener> mEncryptListeners;
 
     /**
+     * 是否不采集 $device_id 属性
+     */
+    boolean mDisableDeviceId = false;
+
+    /**
      * 是否开启数据采集
      *
      * @return true 开启，false 未开启
@@ -278,6 +283,15 @@ abstract class AbstractSAConfigOptions {
 
     public List<StorePlugin> getStorePlugins() {
         return mStorePlugins;
+    }
+
+    /**
+     * 是否将 $device_id 修改为 $anonymization_id
+     *
+     * @return false 不替换、true 替换
+     */
+    public boolean isDisableDeviceId() {
+        return this.mDisableDeviceId;
     }
     /**
      * 自定义 LoginIDKey
