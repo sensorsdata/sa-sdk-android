@@ -24,9 +24,6 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 
 public class OldBDatabaseHelper extends SQLiteOpenHelper {
     OldBDatabaseHelper(Context context, String dbName) {
@@ -43,27 +40,26 @@ public class OldBDatabaseHelper extends SQLiteOpenHelper {
 
     }
 
-    JSONArray getAllEvents() {
-        final JSONArray arr = new JSONArray();
+    void getAllEvents(SQLiteDatabase sqLiteDatabase, SAProviderHelper.QueryEventsListener listener) {
         Cursor c = null;
         try {
             final SQLiteDatabase db = getReadableDatabase();
             c = db.rawQuery(String.format("SELECT * FROM %s ORDER BY %s", DbParams.TABLE_EVENTS, DbParams.KEY_CREATED_AT), null);
+            sqLiteDatabase.beginTransaction();
             while (c.moveToNext()) {
-                JSONObject jsonObject = new JSONObject();
-                jsonObject.put("created_at", c.getString(c.getColumnIndex("created_at")));
-                jsonObject.put("data", c.getString(c.getColumnIndex("data")));
-                arr.put(jsonObject);
+                int dataIndex = c.getColumnIndex("data");
+                int createIndex = c.getColumnIndex("created_at");
+                listener.insert(c.getString(dataIndex), c.getString(createIndex));
             }
+            sqLiteDatabase.setTransactionSuccessful();
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         } finally {
+            sqLiteDatabase.endTransaction();
             close();
             if (c != null) {
                 c.close();
             }
         }
-
-        return arr;
     }
 }

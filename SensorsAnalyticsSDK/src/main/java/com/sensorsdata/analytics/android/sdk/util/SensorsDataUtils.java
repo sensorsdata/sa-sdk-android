@@ -648,7 +648,7 @@ public final class SensorsDataUtils {
      * @param context Context
      * @return String 当前手机的 Mac 地址
      */
-    @SuppressLint("HardwareIds")
+    @SuppressLint("MissingPermission")
     public static String getMacAddress(Context context) {
         String macAddress = "";
         try {

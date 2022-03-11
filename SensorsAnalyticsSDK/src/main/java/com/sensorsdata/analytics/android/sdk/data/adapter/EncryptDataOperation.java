@@ -34,7 +34,7 @@ import java.util.Map;
 
 class EncryptDataOperation extends DataOperation {
 
-    private SensorsDataEncrypt mSensorsDataEncrypt;
+    private final SensorsDataEncrypt mSensorsDataEncrypt;
 
     EncryptDataOperation(Context context, SensorsDataEncrypt sensorsDataEncrypt) {
         super(context);
@@ -89,10 +89,10 @@ class EncryptDataOperation extends DataOperation {
                 final String PAYLOADS = "payloads";
                 while (cursor.moveToNext()) {
                     if (cursor.isLast()) {
-                        last_id = cursor.getString(cursor.getColumnIndex("_id"));
+                        last_id = cursor.getString(cursor.getColumnIndexOrThrow("_id"));
                     }
                     try {
-                        keyData = cursor.getString(cursor.getColumnIndex(DbParams.KEY_DATA));
+                        keyData = cursor.getString(cursor.getColumnIndexOrThrow(DbParams.KEY_DATA));
                         keyData = parseData(keyData);
                         if (TextUtils.isEmpty(keyData)) {
                             continue;

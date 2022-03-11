@@ -80,10 +80,10 @@ class EventDataOperation extends DataOperation {
                 while (cursor.moveToNext()) {
                     if (cursor.isLast()) {
                         suffix = "]";
-                        last_id = cursor.getString(cursor.getColumnIndex("_id"));
+                        last_id = cursor.getString(cursor.getColumnIndexOrThrow("_id"));
                     }
                     try {
-                        keyData = cursor.getString(cursor.getColumnIndex(DbParams.KEY_DATA));
+                        keyData = cursor.getString(cursor.getColumnIndexOrThrow(DbParams.KEY_DATA));
                         keyData = parseData(keyData);
                         if (!TextUtils.isEmpty(keyData)) {
                             dataBuilder.append(keyData, 0, keyData.length() - 1)

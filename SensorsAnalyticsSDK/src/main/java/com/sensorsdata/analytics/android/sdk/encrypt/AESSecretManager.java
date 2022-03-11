@@ -57,6 +57,8 @@ public class AESSecretManager {
 
     /**
      *  获取秘钥
+     *
+     * @param context Context
      */
     public void initSecretKey(Context context){
         SharedPreferences secretSp = context.getSharedPreferences(SECRET_KEY_FILE, Context.MODE_PRIVATE);

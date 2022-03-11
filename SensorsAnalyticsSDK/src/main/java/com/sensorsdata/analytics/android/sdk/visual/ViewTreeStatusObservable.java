@@ -251,8 +251,7 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
             if (view == null) {
                 return;
             }
-//            ViewNode viewNode = getCacheViewPathAndPosition(view, true);
-            ViewNode viewNode = ViewUtil.getViewPathAndPosition(view, true);
+            ViewNode viewNode = getCacheViewPathAndPosition(view, true);
             if (viewNode != null) {
                 // 缓存 ViewNode,用于获取 $element_path
                 sparseArray.put(view.hashCode(), viewNode);
@@ -294,8 +293,7 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
      * @return 返回 View 对象的 ViewNode 信息
      */
     public ViewNode getViewPathAndPosition(View clickView) {
-//        return getCacheViewPathAndPosition(clickView, false);
-        return ViewUtil.getViewPathAndPosition(clickView, false);
+        return getCacheViewPathAndPosition(clickView, false);
     }
 
     /**
@@ -306,10 +304,9 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
      * @return 当前 clickView 的 ViewNode 节点信息
      */
     private ViewNode getCacheViewPathAndPosition(View clickView, boolean fromVisual) {
-        ViewNode currrentNode = mViewNodesWithHashCode.get(clickView.hashCode());
-
-        if (currrentNode != null) {
-            return currrentNode;
+        ViewNode currentNode = mViewNodesWithHashCode.get(clickView.hashCode());
+        if (currentNode != null) {
+            return currentNode;
         }
         ViewParent viewParent;
         View parent_view = null;
@@ -318,8 +315,7 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
             parent_view = (View) viewParent;
         }
         if (parent_view == null) {
-            currrentNode = ViewUtil.getViewPathAndPosition(clickView, fromVisual);
-            mViewNodesWithHashCode.put(clickView.hashCode(), currrentNode);
+            currentNode = ViewUtil.getViewPathAndPosition(clickView, fromVisual);
         } else {
             StringBuilder opx = new StringBuilder();
             StringBuilder px = new StringBuilder();
@@ -328,28 +324,23 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
                 parentNode = ViewUtil.getViewPathAndPosition(parent_view, fromVisual);
                 mViewNodesWithHashCode.put(parent_view.hashCode(), parentNode);
             }
-
             opx.append(parentNode.getViewOriginalPath());
             px.append(parentNode.getViewPath());
-
+            final int viewPosition = ((ViewGroup) parent_view).indexOfChild(clickView);
+            currentNode = ViewUtil.getViewNode(clickView, viewPosition, fromVisual);
             String listPosition = parentNode.getViewPosition();
-            if (!TextUtils.isEmpty(parentNode.getViewPath()) && parentNode.getViewPath().contains("-") && !TextUtils.isEmpty(listPosition)) {
-                String[] partition_path = parentNode.getViewPath().split("/");
-                if (partition_path[partition_path.length - 1].contains("-")) {
-                    int replacePosition = px.lastIndexOf("-");
-                    if (replacePosition != -1) {
-                        px.replace(replacePosition, replacePosition + 1, String.valueOf(listPosition));
-                    }
+            // 这个地方由于 viewPosition 当前控件是列表的子控件的时候，表示当前控件位于父控件的位置；当前控件是非列表的子控件的时候，表示上一个列表的位置。因此通过上一个 View 的 listPosition 进行替换[-]没有什么大的问题
+            if (!TextUtils.isEmpty(currentNode.getViewPath()) && currentNode.getViewPath().contains("-") && !TextUtils.isEmpty(listPosition)) {
+                int replacePosition = px.lastIndexOf("-");
+                if (replacePosition != -1) {
+                    px.replace(replacePosition, replacePosition + 1, String.valueOf(listPosition));
                 }
             }
-            final int viewPosition = ((ViewGroup) parent_view).indexOfChild(clickView);
-            currrentNode = ViewUtil.getViewNode(clickView, viewPosition, fromVisual);
-
-            opx.append(currrentNode.getViewOriginalPath());
-            px.append(currrentNode.getViewPath());
-            currrentNode = new ViewNode(clickView, currrentNode.getViewPosition(), opx.toString(), px.toString(), currrentNode.getViewContent());
-            mViewNodesWithHashCode.put(clickView.hashCode(), currrentNode);
+            opx.append(currentNode.getViewOriginalPath());
+            px.append(currentNode.getViewPath());
+            currentNode = new ViewNode(clickView, currentNode.getViewPosition(), opx.toString(), px.toString(), currentNode.getViewContent());
         }
-        return currrentNode;
+        mViewNodesWithHashCode.put(clickView.hashCode(), currentNode);
+        return currentNode;
     }
 }

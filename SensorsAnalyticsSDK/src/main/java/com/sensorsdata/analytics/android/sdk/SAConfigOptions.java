@@ -384,8 +384,32 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
      * @param isTrackPageLeave 是否开启页面停留时长
      * @return SAConfigOptions
      */
+    @Deprecated
     public SAConfigOptions enableTrackPageLeave(boolean isTrackPageLeave) {
+        return enableTrackPageLeave(isTrackPageLeave, false);
+    }
+
+    /**
+     * 是否开启页面停留时长
+     *
+     * @param isTrackPageLeave 是否开启页面停留时长
+     * @param isTrackFragmentPageLeave 是否采集 Fragment 页面停留时长，需开启页面停留时长采集
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions enableTrackPageLeave(boolean isTrackPageLeave, boolean isTrackFragmentPageLeave) {
         this.mIsTrackPageLeave = isTrackPageLeave;
+        this.mIsTrackFragmentPageLeave = isTrackFragmentPageLeave;
+        return this;
+    }
+
+    /**
+     * 指定哪些 Activity/Fragment 不采集页面停留时长
+     * 指定 Activity/Fragment 的格式为：****.class
+     *
+     * @param ignoreList activity/Fragment 列表
+     */
+    public SAConfigOptions ignorePageLeave(List<Class<?>> ignoreList) {
+        mIgnorePageLeave = ignoreList;
         return this;
     }
 
@@ -409,6 +433,7 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
 
     /**
      * 注册自定义插件，适用于 SP 加密
+     *
      * @param plugin 自定义插件
      * @return SAConfigOptions
      */
@@ -463,10 +488,11 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
 
     /**
      * 是否开启 session_id 的采集
-     * @param enableSession
+     *
+     * @param enableSession 是否开启 Session 采集
      * @return SAConfigOptions
      */
-    public SAConfigOptions enableSession(boolean enableSession){
+    public SAConfigOptions enableSession(boolean enableSession) {
         this.mEnableSession = enableSession;
         return this;
     }

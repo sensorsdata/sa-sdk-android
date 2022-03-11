@@ -40,9 +40,6 @@ import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.data.persistent.UserIdentityPersistent;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.io.File;
 
 class SAProviderHelper {
@@ -94,17 +91,19 @@ class SAProviderHelper {
                     try {
                         File oldDatabase = context.getDatabasePath(packageName);
                         if (oldDatabase.exists()) {
-                            OldBDatabaseHelper oldBDatabaseHelper = new OldBDatabaseHelper(context, packageName);
-                            SQLiteDatabase database = getWritableDatabase();
+                            final OldBDatabaseHelper oldBDatabaseHelper = new OldBDatabaseHelper(context, packageName);
+                            final SQLiteDatabase database = getWritableDatabase();
                             if (database != null) {
-                                JSONArray oldEvents = oldBDatabaseHelper.getAllEvents();
-                                for (int i = 0; i < oldEvents.length(); i++) {
-                                    JSONObject jsonObject = oldEvents.getJSONObject(i);
-                                    final ContentValues cv = new ContentValues();
-                                    cv.put(DbParams.KEY_DATA, jsonObject.getString(DbParams.KEY_DATA));
-                                    cv.put(DbParams.KEY_CREATED_AT, jsonObject.getString(DbParams.KEY_CREATED_AT));
-                                    database.insert(DbParams.TABLE_EVENTS, "_id", cv);
-                                }
+                                final ContentValues cv = new ContentValues();
+                                oldBDatabaseHelper.getAllEvents(database, new QueryEventsListener() {
+                                    @Override
+                                    public void insert(String data, String keyCreated) {
+                                        cv.put(DbParams.KEY_DATA, data);
+                                        cv.put(DbParams.KEY_CREATED_AT, keyCreated);
+                                        database.insert(DbParams.TABLE_EVENTS, "_id", cv);
+                                        cv.clear();
+                                    }
+                                });
                             }
                         }
                         if (isDbWritable) {
@@ -118,6 +117,10 @@ class SAProviderHelper {
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
+    }
+
+    interface QueryEventsListener {
+        void insert(String data, String keyCreated);
     }
 
     /**

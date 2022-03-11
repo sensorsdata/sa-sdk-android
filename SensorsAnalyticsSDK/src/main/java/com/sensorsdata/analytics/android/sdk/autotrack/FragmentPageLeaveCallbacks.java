@@ -36,13 +36,26 @@ import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Fragment 页面停留时长监听
  */
 public class FragmentPageLeaveCallbacks implements SAFragmentLifecycleCallbacks, SensorsDataExceptionHandler.SAExceptionListener {
     private final HashMap<Integer, JSONObject> mResumedFragments = new HashMap<>();
+    private List<Class<?>> mIgnoreList ;
+    private final boolean mIsEmpty;
+
     private static final String START_TIME = "sa_start_time";
+
+    public FragmentPageLeaveCallbacks(List<Class<?>> ignoreList) {
+        if (ignoreList != null && !ignoreList.isEmpty()) {
+            mIgnoreList = ignoreList;
+            mIsEmpty = false;
+        } else {
+            mIsEmpty = true;
+        }
+    }
 
     @Override
     public void onCreate(Object object) {
@@ -61,7 +74,7 @@ public class FragmentPageLeaveCallbacks implements SAFragmentLifecycleCallbacks,
 
     @Override
     public void onResume(Object object) {
-        if (SAFragmentUtils.isFragmentVisible(object)) {
+        if (!ignorePage(object) && SAFragmentUtils.isFragmentVisible(object)) {
             trackFragmentStart(object);
         }
     }
@@ -85,19 +98,23 @@ public class FragmentPageLeaveCallbacks implements SAFragmentLifecycleCallbacks,
 
     @Override
     public void onHiddenChanged(Object object, boolean hidden) {
-        if (SAFragmentUtils.isFragmentVisible(object)) {
-            trackFragmentStart(object);
-        } else {
-            trackAppPageLeave(object);
+        if (!ignorePage(object)) {
+            if (SAFragmentUtils.isFragmentVisible(object)) {
+                trackFragmentStart(object);
+            } else {
+                trackAppPageLeave(object);
+            }
         }
     }
 
     @Override
     public void setUserVisibleHint(Object object, boolean isVisibleToUser) {
-        if (SAFragmentUtils.isFragmentVisible(object)) {
-            trackFragmentStart(object);
-        } else {
-            trackAppPageLeave(object);
+        if (!ignorePage(object)) {
+            if (SAFragmentUtils.isFragmentVisible(object)) {
+                trackFragmentStart(object);
+            } else {
+                trackAppPageLeave(object);
+            }
         }
     }
 
@@ -174,5 +191,12 @@ public class FragmentPageLeaveCallbacks implements SAFragmentLifecycleCallbacks,
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
+    }
+
+    private boolean ignorePage(Object fragment) {
+        if (!mIsEmpty) {
+            return mIgnoreList.contains(fragment.getClass());
+        }
+        return false;
     }
 }

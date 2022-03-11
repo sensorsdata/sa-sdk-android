@@ -191,6 +191,16 @@ abstract class AbstractSAConfigOptions {
     protected boolean mIsTrackPageLeave = false;
 
     /**
+     * 是否采集 Fragment 页面停留时长
+     */
+    protected boolean mIsTrackFragmentPageLeave = false;
+
+    /**
+     * 忽略页面停留时长采集 List
+     */
+    List<Class<?>> mIgnorePageLeave;
+
+    /**
      * 自定义加密器
      */
     List<SAEncryptListener> mEncryptListeners;
@@ -234,6 +244,15 @@ abstract class AbstractSAConfigOptions {
      */
     public boolean isTrackPageLeave() {
         return mIsTrackPageLeave;
+    }
+
+    /**
+     * 是否开启页面停留时长采集
+     *
+     * @return true 开启，false 未开启
+     */
+    public boolean isTrackFragmentPageLeave() {
+        return mIsTrackPageLeave && mIsTrackFragmentPageLeave;
     }
 
     /**

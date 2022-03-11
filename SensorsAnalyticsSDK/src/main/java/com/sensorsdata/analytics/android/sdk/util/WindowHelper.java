@@ -362,4 +362,8 @@ public class WindowHelper {
         return TextUtils.equals(sDialogWindowPrefix, prefix) || TextUtils.equals(sPopupWindowPrefix, prefix);
     }
 
+    public static boolean isCustomWindow(View root) {
+        String prefix = getSubWindowPrefix(root);
+        return TextUtils.equals(sCustomWindowPrefix, prefix);
+    }
 }

@@ -586,9 +586,13 @@ public class ViewSnapshot {
                                     || view.getWidth() == 0 || view.getHeight() == 0
                                     || TextUtils.equals(WindowHelper.getWindowPrefix(view), WindowHelper.getMainWindowPrefix()))
                                 continue;
-                            RootViewInfo subInfo = new RootViewInfo(screenName, activityTitle, view.getRootView());
-                            scaleBitmap(subInfo, bitmap);
-                            mRootViews.add(subInfo);
+                            //解决自定义框：比如通过 Window.addView 加的悬浮框
+                            if (!WindowHelper.isCustomWindow(view)) {
+                                //自定义框图层只参与底图绘制 mergeViewLayers ，不参与页面数据信息处理
+                                RootViewInfo subInfo = new RootViewInfo(screenName, activityTitle, view.getRootView());
+                                scaleBitmap(subInfo, bitmap);
+                                mRootViews.add(subInfo);
+                            }
                         }
                     }
                     if (mRootViews.size() == 0) {
@@ -636,10 +640,10 @@ public class ViewSnapshot {
                         }
                     }
                     view.draw(canvas);
-                    canvas.restore();
-                    canvas.destroy();
+                    canvas.restoreToCount(1);
                 }
             }
+            canvas.destroy();
             return fullScreenBitmap;
         }
 

@@ -379,7 +379,7 @@ public class ViewUtil {
     }
 
     public static boolean isWindowNeedTraverse(View root, String prefix, boolean skipOtherActivity) {
-        if (root.hashCode() == AppStateManager.getInstance().getCurrentRootWindowsHashCode()) {
+        if ((root.hashCode() == AppStateManager.getInstance().getCurrentRootWindowsHashCode())) {
             return true;
         }
         if (root instanceof ViewGroup) {
@@ -387,6 +387,11 @@ public class ViewUtil {
                 return true;
             }
             if (!(root.getWindowVisibility() == View.GONE || root.getVisibility() != View.VISIBLE || TextUtils.equals(prefix, WindowHelper.getMainWindowPrefix()) || root.getWidth() == 0 || root.getHeight() == 0)) {
+                return true;
+            }
+        }
+        if (root.getWindowVisibility() == View.VISIBLE || root.getVisibility() == View.VISIBLE) {
+            if (WindowHelper.isCustomWindow(root)) {
                 return true;
             }
         }
@@ -413,6 +418,7 @@ public class ViewUtil {
                 final int viewPosition = parentView.indexOfChild(childView);
                 final ViewNode viewNode = getViewNode(childView, viewPosition, fromVisual);
                 if (viewNode != null) {
+                    // 这个地方由于 viewPosition 当前控件是列表的子控件的时候，表示当前控件位于父控件的位置；当前控件是非列表的子控件的时候，表示上一个列表的位置。因此通过上一个 View 的 listPosition 进行替换[-]没有什么大的问题
                     if (!TextUtils.isEmpty(viewNode.getViewPath()) && viewNode.getViewPath().contains("-") && !TextUtils.isEmpty(listPosition)) {
                         int replacePosition = px.indexOf("-");
                         if (replacePosition != -1) {

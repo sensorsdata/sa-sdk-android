@@ -37,6 +37,7 @@ import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Activity 页面停留时长
@@ -44,8 +45,19 @@ import java.util.Iterator;
 public class ActivityPageLeaveCallbacks implements SensorsDataActivityLifecycleCallbacks.SAActivityLifecycleCallbacks, SensorsDataExceptionHandler.SAExceptionListener {
     private static final String START_TIME = "sa_start_time";
     private final HashMap<Integer, JSONObject> mResumedActivities = new HashMap<>();
+    private List<Class<?>> mIgnoreList;
     // 弹窗页面
     private final String DIALOG_ACTIVITY = "com.sensorsdata.sf.ui.view.DialogActivity";
+    private final boolean mIsEmpty;
+
+    public ActivityPageLeaveCallbacks(List<Class<?>> ignoreList) {
+        if (ignoreList != null && !ignoreList.isEmpty()) {
+            mIgnoreList = ignoreList;
+            mIsEmpty = false;
+        } else {
+            mIsEmpty = true;
+        }
+    }
 
     @Override
     public void onActivityCreated(Activity activity, Bundle bundle) {
@@ -59,7 +71,9 @@ public class ActivityPageLeaveCallbacks implements SensorsDataActivityLifecycleC
 
     @Override
     public void onActivityResumed(Activity activity) {
-        trackActivityStart(activity);
+        if (!ignorePage(activity)) {
+            trackActivityStart(activity);
+        }
     }
 
     @Override
@@ -156,5 +170,12 @@ public class ActivityPageLeaveCallbacks implements SensorsDataActivityLifecycleC
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
+    }
+
+    private boolean ignorePage(Object fragment) {
+        if (!mIsEmpty) {
+            return mIgnoreList.contains(fragment.getClass());
+        }
+        return false;
     }
 }

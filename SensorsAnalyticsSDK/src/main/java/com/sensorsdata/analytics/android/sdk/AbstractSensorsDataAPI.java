@@ -1621,13 +1621,14 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                 FragmentTrackHelper.addFragmentCallbacks(new FragmentViewScreenCallbacks());
 
                 if (mSAConfigOptions.isTrackPageLeave()) {
-                    ActivityPageLeaveCallbacks pageLeaveCallbacks = new ActivityPageLeaveCallbacks();
+                    ActivityPageLeaveCallbacks pageLeaveCallbacks = new ActivityPageLeaveCallbacks(mSAConfigOptions.mIgnorePageLeave);
                     lifecycleCallbacks.addActivityLifecycleCallbacks(pageLeaveCallbacks);
                     SensorsDataExceptionHandler.addExceptionListener(pageLeaveCallbacks);
-
-                    FragmentPageLeaveCallbacks fragmentPageLeaveCallbacks = new FragmentPageLeaveCallbacks();
-                    FragmentTrackHelper.addFragmentCallbacks(fragmentPageLeaveCallbacks);
-                    SensorsDataExceptionHandler.addExceptionListener(fragmentPageLeaveCallbacks);
+                    if (mSAConfigOptions.isTrackFragmentPageLeave()) {
+                        FragmentPageLeaveCallbacks fragmentPageLeaveCallbacks = new FragmentPageLeaveCallbacks(mSAConfigOptions.mIgnorePageLeave);
+                        FragmentTrackHelper.addFragmentCallbacks(fragmentPageLeaveCallbacks);
+                        SensorsDataExceptionHandler.addExceptionListener(fragmentPageLeaveCallbacks);
+                    }
                 }
                 if (mSAConfigOptions.isEnableTrackPush()) {
                     lifecycleCallbacks.addActivityLifecycleCallbacks(new PushLifecycleCallbacks());
