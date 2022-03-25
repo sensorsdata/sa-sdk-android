@@ -162,13 +162,13 @@ public class ViewUtil {
     private static int getChildAdapterPositionInRecyclerView(View childView, ViewGroup parentView) {
         if (instanceOfRecyclerView(parentView)) {
             try {
-                sRecyclerViewGetChildAdapterPositionMethod = parentView.getClass().getDeclaredMethod("getChildAdapterPosition", new Class[]{View.class});
+                sRecyclerViewGetChildAdapterPositionMethod = parentView.getClass().getMethod("getChildAdapterPosition", new Class[]{View.class});
             } catch (NoSuchMethodException e) {
                 //ignored
             }
             if (sRecyclerViewGetChildAdapterPositionMethod == null) {
                 try {
-                    sRecyclerViewGetChildAdapterPositionMethod = parentView.getClass().getDeclaredMethod("getChildPosition", new Class[]{View.class});
+                    sRecyclerViewGetChildAdapterPositionMethod = parentView.getClass().getMethod("getChildPosition", new Class[]{View.class});
                 } catch (NoSuchMethodException e2) {
                     //ignored
                 }
@@ -252,13 +252,13 @@ public class ViewUtil {
     private static Class<?> findRecyclerInSuper(Class<?> viewClass) {
         while (viewClass != null && !viewClass.equals(ViewGroup.class)) {
             try {
-                sRecyclerViewGetChildAdapterPositionMethod = viewClass.getDeclaredMethod("getChildAdapterPosition", new Class[]{View.class});
+                sRecyclerViewGetChildAdapterPositionMethod = viewClass.getMethod("getChildAdapterPosition", new Class[]{View.class});
             } catch (NoSuchMethodException e) {
                 //ignored
             }
             if (sRecyclerViewGetChildAdapterPositionMethod == null) {
                 try {
-                    sRecyclerViewGetChildAdapterPositionMethod = viewClass.getDeclaredMethod("getChildPosition", new Class[]{View.class});
+                    sRecyclerViewGetChildAdapterPositionMethod = viewClass.getMethod("getChildPosition", new Class[]{View.class});
                 } catch (NoSuchMethodException e2) {
                     //ignored
                 }

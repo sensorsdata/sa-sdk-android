@@ -213,13 +213,13 @@ public class ViewUtil {
     private static Class<?> findRecyclerInSuper(Class<?> viewClass) {
         while (viewClass != null && !viewClass.equals(ViewGroup.class)) {
             try {
-                mRecyclerViewGetChildAdapterPositionMethod = viewClass.getDeclaredMethod("getChildAdapterPosition", new Class[]{View.class});
+                mRecyclerViewGetChildAdapterPositionMethod = viewClass.getMethod("getChildAdapterPosition", new Class[]{View.class});
             } catch (NoSuchMethodException e) {
                 SALog.printStackTrace(e);
             }
             if (mRecyclerViewGetChildAdapterPositionMethod == null) {
                 try {
-                    mRecyclerViewGetChildAdapterPositionMethod = viewClass.getDeclaredMethod("getChildPosition", new Class[]{View.class});
+                    mRecyclerViewGetChildAdapterPositionMethod = viewClass.getMethod("getChildPosition", new Class[]{View.class});
                 } catch (NoSuchMethodException e2) {
                     e2.printStackTrace();
                 }

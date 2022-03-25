@@ -1613,7 +1613,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
                 final Application app = (Application) mContext.getApplicationContext();
                 final SensorsDataActivityLifecycleCallbacks lifecycleCallbacks = new SensorsDataActivityLifecycleCallbacks();
-                app.registerActivityLifecycleCallbacks(lifecycleCallbacks);
                 app.registerActivityLifecycleCallbacks(AppStateManager.getInstance());
                 mActivityLifecycleCallbacks = new ActivityLifecycleCallbacks((SensorsDataAPI) this, mFirstStart, mFirstDay, mContext);
                 lifecycleCallbacks.addActivityLifecycleCallbacks(mActivityLifecycleCallbacks);
@@ -1633,6 +1632,8 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                 if (mSAConfigOptions.isEnableTrackPush()) {
                     lifecycleCallbacks.addActivityLifecycleCallbacks(new PushLifecycleCallbacks());
                 }
+                /** 防止并发问题注册一定要在 {@link SensorsDataActivityLifecycleCallbacks#addActivityLifecycleCallbacks(SensorsDataActivityLifecycleCallbacks.SAActivityLifecycleCallbacks)} 之后执行 */
+                app.registerActivityLifecycleCallbacks(lifecycleCallbacks);
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);

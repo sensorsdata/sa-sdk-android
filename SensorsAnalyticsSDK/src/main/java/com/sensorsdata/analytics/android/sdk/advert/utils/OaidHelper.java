@@ -22,6 +22,7 @@ import android.content.res.AssetManager;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.advert.oaid.impl.OAIDFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -73,15 +74,23 @@ public class OaidHelper {
      * @return OAID
      */
     public static String getOAID(final Context context) {
-        String romOAID = getRomOAID(context);
-        SALog.i(TAG, "romOAID is " + romOAID);
-        if (mBlackOAIDs.contains(romOAID)) {
-            romOAID = "";
+        String OAID = getMSAOAID(context);
+        SALog.i(TAG, "MSA OAID is " + OAID);
+        if (TextUtils.isEmpty(OAID) ) {
+            OAID = getROMOAID(context);
+            SALog.i(TAG, "Rom OAID is" + OAID);
         }
-        return romOAID;
+        if (TextUtils.isEmpty(OAID) || mBlackOAIDs.contains(OAID)) {
+            OAID = "";
+        }
+        return OAID;
     }
 
-    private static String getRomOAID(final Context context) {
+    private static String getROMOAID(Context context) {
+        return OAIDFactory.create(context).getRomOAID();
+    }
+
+    private static String getMSAOAID(final Context context) {
         try {
             mCountDownLatch = new CountDownLatch(1);
             initInvokeListener();

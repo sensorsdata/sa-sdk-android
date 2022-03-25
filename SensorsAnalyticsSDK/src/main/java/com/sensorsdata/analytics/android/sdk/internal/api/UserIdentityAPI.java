@@ -85,9 +85,6 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
     public String getDistinctId() {
         try {
             String loginId = getLoginId();
-            if (TextUtils.isEmpty(loginId)) {// 如果从本地缓存读取失败，则尝试使用内存中的 LoginId 值
-                loginId = mLoginIdValue;
-            }
             if (!TextUtils.isEmpty(loginId)) {
                 return loginId;
             }
@@ -95,7 +92,7 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
         }
-        return null;
+        return "";
     }
 
     @Override

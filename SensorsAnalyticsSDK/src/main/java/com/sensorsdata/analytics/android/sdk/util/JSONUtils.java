@@ -18,6 +18,7 @@
 package com.sensorsdata.analytics.android.sdk.util;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -142,5 +143,32 @@ public class JSONUtils {
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
         }
+    }
+
+    /**
+     * clone 新的 JSONObject
+     * @param jsonObject
+     * @return clone 新的 JSONObject
+     * @throws InvalidDataException
+     */
+    public static JSONObject cloneJsonObject(JSONObject jsonObject) throws InvalidDataException {
+        if (jsonObject == null) {
+            return null;
+        }
+        JSONObject cloneProperties;
+        try {
+            SADataHelper.assertPropertyTypes(jsonObject);
+            cloneProperties = new JSONObject(jsonObject.toString());
+            for (Iterator<String> iterator = jsonObject.keys(); iterator.hasNext(); ) {
+                String key = iterator.next();
+                Object value = jsonObject.get(key);
+                if (value instanceof Date) {
+                    cloneProperties.put(key, new Date(((Date) value).getTime()));
+                }
+            }
+        } catch (JSONException e) {
+            cloneProperties = jsonObject;
+        }
+        return cloneProperties;
     }
 }

@@ -42,6 +42,7 @@ import com.sensorsdata.analytics.android.sdk.monitor.TrackMonitor;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
@@ -118,7 +119,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     /**
      * 初始化神策 SDK
      *
-     * @param context App 的 Context
+     * @param context         App 的 Context
      * @param saConfigOptions SDK 的配置项
      */
     public static void startWithConfigOptions(Context context, SAConfigOptions saConfigOptions) {
@@ -1146,6 +1147,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Override
     public void login(final String loginId, final JSONObject properties) {
         try {
+            final JSONObject cloneProperties = JSONUtils.cloneJsonObject(properties);
             SADataHelper.assertDistinctId(loginId);
             synchronized (mLoginIdLock) {
                 if (!loginId.equals(getAnonymousId())) {
@@ -1160,8 +1162,8 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                             try {
                                 synchronized (mLoginIdLock) {
                                     if (mUserIdentityAPI.isLoginIdValid(loginId)) {
-                                        mUserIdentityAPI.login(loginId, properties);
-                                        trackEvent(EventType.TRACK_SIGNUP, "$SignUp", properties, getAnonymousId());
+                                        mUserIdentityAPI.login(loginId, cloneProperties);
+                                        trackEvent(EventType.TRACK_SIGNUP, "$SignUp", cloneProperties, getAnonymousId());
                                     }
                                 }
                             } catch (Exception e) {
@@ -1239,7 +1241,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             //只在主进程触发 trackInstallation
             final JSONObject eventProperties = new JSONObject();
             if (properties != null) {
-                SensorsDataUtils.mergeJSONObject(properties, eventProperties);
+                SensorsDataUtils.mergeJSONObject(JSONUtils.cloneJsonObject(properties), eventProperties);
             }
             addTimeProperty(eventProperties);
             final String loginId = getLoginId();
@@ -1431,11 +1433,12 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Override
     public void track(final String eventName, final JSONObject properties) {
         try {
+            final JSONObject cloneProperties = JSONUtils.cloneJsonObject(properties);
             final JSONObject dynamicProperty = getDynamicProperty();
             mTrackTaskManager.addTrackEventTask(new Runnable() {
                 @Override
                 public void run() {
-                    JSONObject _properties = ChannelUtils.checkOrSetChannelCallbackEvent(getConfigOptions().isAutoAddChannelCallbackEvent, eventName, properties, mContext);
+                    JSONObject _properties = ChannelUtils.checkOrSetChannelCallbackEvent(getConfigOptions().isAutoAddChannelCallbackEvent, eventName, cloneProperties, mContext);
                     trackEvent(EventType.TRACK, eventName, _properties, dynamicProperty, getDistinctId(), getLoginId(), null);
                 }
             });
@@ -1511,25 +1514,30 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Override
     public void trackTimerEnd(final String eventName, final JSONObject properties) {
         final long endTime = SystemClock.elapsedRealtime();
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                if (eventName != null) {
-                    synchronized (mTrackTimer) {
-                        EventTimer eventTimer = mTrackTimer.get(eventName);
-                        if (eventTimer != null) {
-                            eventTimer.setEndTime(endTime);
+        try {
+            final JSONObject cloneProperties = JSONUtils.cloneJsonObject(properties);
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
+                    if (eventName != null) {
+                        synchronized (mTrackTimer) {
+                            EventTimer eventTimer = mTrackTimer.get(eventName);
+                            if (eventTimer != null) {
+                                eventTimer.setEndTime(endTime);
+                            }
                         }
                     }
+                    try {
+                        JSONObject _properties = ChannelUtils.checkOrSetChannelCallbackEvent(getConfigOptions().isAutoAddChannelCallbackEvent, eventName, cloneProperties, mContext);
+                        trackEvent(EventType.TRACK, eventName, _properties, null);
+                    } catch (Exception e) {
+                        SALog.printStackTrace(e);
+                    }
                 }
-                try {
-                    JSONObject _properties = ChannelUtils.checkOrSetChannelCallbackEvent(getConfigOptions().isAutoAddChannelCallbackEvent, eventName, properties, mContext);
-                    trackEvent(EventType.TRACK, eventName, _properties, null);
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
-                }
-            }
-        });
+            });
+        } catch (InvalidDataException e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override
@@ -1578,42 +1586,47 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Override
     @Deprecated
     public void trackViewScreen(final String url, final JSONObject properties) {
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (!TextUtils.isEmpty(url) || properties != null) {
-                        String currentUrl = url;
-                        JSONObject trackProperties = new JSONObject();
-                        mLastScreenTrackProperties = properties;
+        try {
+            final JSONObject cloneProperties = JSONUtils.cloneJsonObject(properties);
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (!TextUtils.isEmpty(url) || cloneProperties != null) {
+                            String currentUrl = url;
+                            JSONObject trackProperties = new JSONObject();
+                            mLastScreenTrackProperties = cloneProperties;
 
-                        if (mLastScreenUrl != null) {
-                            trackProperties.put("$referrer", mLastScreenUrl);
-                        }
+                            if (mLastScreenUrl != null) {
+                                trackProperties.put("$referrer", mLastScreenUrl);
+                            }
 
-                        mReferrerScreenTitle = mCurrentScreenTitle;
-                        if (properties != null) {
-                            if (properties.has("$title")) {
-                                mCurrentScreenTitle = properties.getString("$title");
-                            } else {
-                                mCurrentScreenTitle = null;
+                            mReferrerScreenTitle = mCurrentScreenTitle;
+                            if (cloneProperties != null) {
+                                if (cloneProperties.has("$title")) {
+                                    mCurrentScreenTitle = cloneProperties.getString("$title");
+                                } else {
+                                    mCurrentScreenTitle = null;
+                                }
+                                if (cloneProperties.has("$url")) {
+                                    currentUrl = cloneProperties.optString("$url");
+                                }
                             }
-                            if (properties.has("$url")) {
-                                currentUrl = properties.optString("$url");
+                            trackProperties.put("$url", currentUrl);
+                            mLastScreenUrl = currentUrl;
+                            if (cloneProperties != null) {
+                                SensorsDataUtils.mergeJSONObject(cloneProperties, trackProperties);
                             }
+                            trackEvent(EventType.TRACK, "$AppViewScreen", trackProperties, null);
                         }
-                        trackProperties.put("$url", currentUrl);
-                        mLastScreenUrl = currentUrl;
-                        if (properties != null) {
-                            SensorsDataUtils.mergeJSONObject(properties, trackProperties);
-                        }
-                        trackEvent(EventType.TRACK, "$AppViewScreen", trackProperties, null);
+                    } catch (Exception e) {
+                        SALog.printStackTrace(e);
                     }
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
                 }
-            }
-        });
+            });
+        } catch (InvalidDataException e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override
@@ -1735,12 +1748,17 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         if (view == null) {
             return;
         }
-        if (properties == null) {
-            properties = new JSONObject();
-        }
-        if (AopUtil.injectClickInfo(view, properties, true)) {
-            Activity activity = AopUtil.getActivityFromContext(view.getContext(), view);
-            trackInternal(AopConstants.APP_CLICK_EVENT_NAME, properties, AopUtil.addViewPathProperties(activity, view, properties));
+        try {
+            JSONObject cloneProperties = JSONUtils.cloneJsonObject(properties);
+            if (cloneProperties == null) {
+                cloneProperties = new JSONObject();
+            }
+            if (AopUtil.injectClickInfo(view, cloneProperties, true)) {
+                Activity activity = AopUtil.getActivityFromContext(view.getContext(), view);
+                trackInternal(AopConstants.APP_CLICK_EVENT_NAME, cloneProperties, AopUtil.addViewPathProperties(activity, view, cloneProperties));
+            }
+        } catch (InvalidDataException e) {
+            SALog.printStackTrace(e);
         }
     }
 
@@ -1863,23 +1881,27 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public void registerSuperProperties(final JSONObject superProperties) {
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (superProperties == null) {
-                        return;
+        try {
+            final JSONObject cloneSuperProperties = JSONUtils.cloneJsonObject(superProperties);
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (cloneSuperProperties == null) {
+                            return;
+                        }
+                        synchronized (mSuperProperties) {
+                            JSONObject properties = mSuperProperties.get();
+                            mSuperProperties.commit(SensorsDataUtils.mergeSuperJSONObject(cloneSuperProperties, properties));
+                        }
+                    } catch (Exception e) {
+                        SALog.printStackTrace(e);
                     }
-                    SADataHelper.assertPropertyTypes(superProperties);
-                    synchronized (mSuperProperties) {
-                        JSONObject properties = mSuperProperties.get();
-                        mSuperProperties.commit(SensorsDataUtils.mergeSuperJSONObject(superProperties, properties));
-                    }
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
                 }
-            }
-        });
+            });
+        } catch (InvalidDataException e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override
@@ -1914,16 +1936,21 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public void profileSet(final JSONObject properties) {
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    trackEvent(EventType.PROFILE_SET, null, properties, null);
-                } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+        try {
+            final JSONObject cloneProperties = JSONUtils.cloneJsonObject(properties);
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        trackEvent(EventType.PROFILE_SET, null, cloneProperties, null);
+                    } catch (Exception e) {
+                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                    }
                 }
-            }
-        });
+            });
+        } catch (InvalidDataException e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override
@@ -1942,16 +1969,21 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public void profileSetOnce(final JSONObject properties) {
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    trackEvent(EventType.PROFILE_SET_ONCE, null, properties, null);
-                } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+        try {
+            final JSONObject cloneProperties = JSONUtils.cloneJsonObject(properties);
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        trackEvent(EventType.PROFILE_SET_ONCE, null, cloneProperties, null);
+                    } catch (Exception e) {
+                        com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+                    }
                 }
-            }
-        });
+            });
+        } catch (InvalidDataException e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override
@@ -2182,7 +2214,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             @Override
             public void run() {
                 try {
-                    if (!SADataHelper.assertPropertyKey(pushTypeKey)){
+                    if (!SADataHelper.assertPropertyKey(pushTypeKey)) {
                         return;
                     }
                     String distinctId = getDistinctId();
@@ -2205,7 +2237,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             @Override
             public void run() {
                 try {
-                    if (!SADataHelper.assertPropertyKey(pushTypeKey)){
+                    if (!SADataHelper.assertPropertyKey(pushTypeKey)) {
                         return;
                     }
                     String distinctId = getDistinctId();
@@ -2225,12 +2257,17 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public void itemSet(final String itemType, final String itemId, final JSONObject properties) {
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                trackItemEvent(itemType, itemId, EventType.ITEM_SET.getEventType(), System.currentTimeMillis(), properties);
-            }
-        });
+        try {
+            final JSONObject cloneProperties = JSONUtils.cloneJsonObject(properties);
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
+                    trackItemEvent(itemType, itemId, EventType.ITEM_SET.getEventType(), System.currentTimeMillis(), cloneProperties);
+                }
+            });
+        } catch (InvalidDataException e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override
@@ -2297,6 +2334,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     public String getSDKVersion() {
         return VERSION;
     }
+
 
     /**
      * Debug 模式，用于检验数据导入是否正确。该模式下，事件会逐条实时发送到 Sensors Analytics，并根据返回值检查
