@@ -31,8 +31,6 @@ import android.view.Window;
 import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.CompoundButton;
-import android.widget.EditText;
 import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
 import android.widget.GridView;
@@ -43,10 +41,10 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TabHost;
-import android.widget.TextView;
 
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
+import com.sensorsdata.analytics.android.sdk.util.KeyboardViewUtil;
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
@@ -1148,6 +1146,9 @@ public class SensorsDataAutoTrackHelper {
                     return;
                 }
             }
+            if(KeyboardViewUtil.isKeyboardView(view)){
+                return;
+            }
 
             //ViewId
             String idString = AopUtil.getViewId(adapterView);
@@ -1298,6 +1299,10 @@ public class SensorsDataAutoTrackHelper {
             }
 
             if (SensorsDataUtils.isDoubleClick(view)) {
+                return;
+            }
+
+            if (KeyboardViewUtil.isKeyboardView(view)) {
                 return;
             }
 

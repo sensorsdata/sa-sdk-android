@@ -35,6 +35,11 @@ public class SchemeActivity extends Activity {
     private static final String TAG = "SA.SchemeActivity";
 
     /**
+     * 判断多 SDK 下是否拉起了 SchemeActivity 唯一标识
+     */
+    public static final String SCHEME_ACTIVITY_SIGN= "#*#scheme_activity_sign#*#";
+
+    /**
      * 是否是弹窗扫码
      */
     public static boolean isPopWindow = false;

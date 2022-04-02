@@ -39,6 +39,7 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.sensorsdata.analytics.android.sdk.AopConstants;
+import com.sensorsdata.analytics.android.sdk.AppStateManager;
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
@@ -409,9 +410,41 @@ public class AopUtil {
                 }
             }
         } catch (Exception e) {
-            SALog.printStackTrace(e);
+            if (SALog.isLogEnabled()) {
+                exceptionCollect(view);
+            }
         }
         return idString;
+    }
+
+    private static void exceptionCollect(View view) {
+        try {
+            if (view != null) {
+                SALog.i(TAG, "viewClass:" + view.getClass());
+                SALog.i(TAG, "viewId:" + view.getId());
+                Activity activity = AppStateManager.getInstance().getForegroundActivity();
+                if (activity != null) {
+                    SALog.i(TAG, "currentName:" + activity.getClass().getCanonicalName());
+                }
+                ViewParent viewParent = view.getParent();
+                if (viewParent != null) {
+                    if (viewParent instanceof View) {
+                        View tmpParent = (View) viewParent;
+                        SALog.i(TAG, "viewParentClass->ID:" + tmpParent.getId());
+                    }
+                } else {
+                    if (view instanceof ViewGroup) {
+                        int count = ((ViewGroup) view).getChildCount();
+                        if (count > 0) {
+                            View childView = ((ViewGroup) view).getChildAt(0);
+                            SALog.i(TAG, "childView->ID:" + childView.getId());
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+
+        }
     }
 
     private static boolean isValid(int id) {

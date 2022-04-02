@@ -230,7 +230,7 @@ public class ReflectUtil {
         return null;
     }
 
-    static <T> T findFieldRecur(Object instance, String fieldName) {
+   public static <T> T findFieldRecur(Object instance, String fieldName) {
         Field field = findFieldObjRecur(instance.getClass(), fieldName);
         if (field != null) {
             try {

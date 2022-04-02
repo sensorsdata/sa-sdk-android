@@ -74,16 +74,19 @@ public class OaidHelper {
      * @return OAID
      */
     public static String getOAID(final Context context) {
-        String OAID = getMSAOAID(context);
-        SALog.i(TAG, "MSA OAID is " + OAID);
-        if (TextUtils.isEmpty(OAID) ) {
-            OAID = getROMOAID(context);
-            SALog.i(TAG, "Rom OAID is" + OAID);
+        if (!TextUtils.isEmpty(mOAID)) {
+            return mOAID;
         }
-        if (TextUtils.isEmpty(OAID) || mBlackOAIDs.contains(OAID)) {
-            OAID = "";
+        mOAID = getMSAOAID(context);
+        SALog.i(TAG, "MSA OAID is " + mOAID);
+        if (TextUtils.isEmpty(mOAID) ) {
+            mOAID = getROMOAID(context);
+            SALog.i(TAG, "Rom OAID is " + mOAID);
         }
-        return OAID;
+        if (TextUtils.isEmpty(mOAID) || mBlackOAIDs.contains(mOAID)) {
+            mOAID = "";
+        }
+        return mOAID;
     }
 
     private static String getROMOAID(Context context) {

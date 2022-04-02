@@ -100,3 +100,8 @@
 -keep class androidx.appcompat.app.ActionBar {*;}
 -keep class * extends android.support.v7.app.ActionBar {*;}
 -keep class * extends androidx.appcompat.app.ActionBar {*;}
+
+# Annotation
+-keepattributes *Annotation*
+-keepattributes *JavascriptInterface*
+-keep class android.webkit.JavascriptInterface {*;}

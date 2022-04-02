@@ -44,6 +44,7 @@ import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
 import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
+import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.ToastUtil;
 import com.sensorsdata.analytics.android.sdk.visual.HeatMapService;
@@ -477,7 +478,17 @@ public class SensorsDataDialogUtils {
         if (context == null) {
             return false;
         }
-        return context instanceof SchemeActivity;
+        String name = context.getClass().getName();
+        if (TextUtils.isEmpty(name)) {
+            return false;
+        }
+        if (name.endsWith(SchemeActivity.class.getSimpleName())) {
+            Object scheme_activity_sign = ReflectUtil.findFieldRecur(context, "SCHEME_ACTIVITY_SIGN");
+            if (scheme_activity_sign instanceof String) {
+                return TextUtils.equals((String) scheme_activity_sign, SchemeActivity.SCHEME_ACTIVITY_SIGN);
+            }
+        }
+        return false;
     }
 
 
