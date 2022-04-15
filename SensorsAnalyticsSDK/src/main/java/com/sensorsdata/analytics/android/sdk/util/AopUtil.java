@@ -174,7 +174,10 @@ public class AopUtil {
                 viewText = textView.getText();
             } else if (child instanceof TextView) {
                 TextView textView = (TextView) child;
-                viewText = textView.getText();
+                Object object = ReflectUtil.findField(new String[]{"androidx.appcompat.widget.AppCompatTextView"}, textView, "mPrecomputedTextFuture");
+                if (object == null) {
+                    viewText = textView.getText();
+                }
             } else if (child instanceof ImageView) {
                 ImageView imageView = (ImageView) child;
                 if (!TextUtils.isEmpty(imageView.getContentDescription())) {

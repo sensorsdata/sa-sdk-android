@@ -29,6 +29,7 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.NetworkRequest;
+import android.net.Uri;
 import android.os.Build;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -38,6 +39,8 @@ import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 
 public class NetworkUtils {
@@ -393,5 +396,31 @@ public class NetworkUtils {
             NetworkUtils.cleanNetworkTypeCache();
             SALog.i(TAG, "onLost is calling");
         }
+    }
+
+    /**
+     * 拼接网络请求接口
+     *
+     * @param serverUrl 数据接收地址
+     * @param path path
+     * @return 拼接后的接口地址
+     */
+    public static String getRequestUrl(String serverUrl, String path) {
+        if (!TextUtils.isEmpty(serverUrl) && (serverUrl.startsWith("http://") || serverUrl.startsWith("https://"))) {
+            Uri uri = Uri.parse(serverUrl);
+            try {
+                return new URI(uri.getScheme(), uri.getUserInfo(), uri.getHost(), uri.getPort(), null, null, null) + "/" + path;
+            } catch (URISyntaxException e) {
+                SALog.printStackTrace(e);
+            }
+        }
+        return "";
+    }
+
+    public static String getHost(String url) {
+        if (!TextUtils.isEmpty(url) && (url.startsWith("http://") || url.startsWith("https://"))) {
+            return Uri.parse(url).getHost();
+        }
+        return "";
     }
 }

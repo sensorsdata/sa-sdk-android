@@ -27,7 +27,8 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
-import com.sensorsdata.analytics.android.sdk.internal.api.UserIdentityAPI;
+import com.sensorsdata.analytics.android.sdk.useridentity.LoginIDAndKey;
+import com.sensorsdata.analytics.android.sdk.useridentity.UserIdentityAPI;
 
 /**
  * 用于跨进程业务的数据通信
@@ -37,6 +38,7 @@ public class SensorsDataContentObserver extends ContentObserver {
     public static boolean isDisableFromObserver = false;
     public static boolean isLoginFromObserver = false;
     private final UserIdentityAPI mUserIdentity;
+
     public SensorsDataContentObserver(UserIdentityAPI userIdentity) {
         super(new Handler(Looper.getMainLooper()));
         this.mUserIdentity = userIdentity;
@@ -50,12 +52,16 @@ public class SensorsDataContentObserver extends ContentObserver {
             } else if (DbParams.getInstance().getSessionTimeUri().equals(uri)) {
                 SensorsDataAPI.sharedInstance().setSessionIntervalTime(DbAdapter.getInstance().getSessionIntervalTime());
             } else if (DbParams.getInstance().getLoginIdUri().equals(uri)) {
-                String loginId = DbAdapter.getInstance().getLoginId();
-                if (TextUtils.isEmpty(loginId)) {
+                //临时方案兼容跨进程 getLognID 立即获取接口
+                String loginIDKey = DbAdapter.getInstance().getLoginIdKey();
+                String loginID = DbAdapter.getInstance().getLoginId();
+                boolean flag = TextUtils.isEmpty(loginID) || loginIDKey.equals(LoginIDAndKey.LOGIN_ID_KEY_DEFAULT);
+                flag = flag && TextUtils.isEmpty(loginID);
+                if (flag) {
                     SensorsDataAPI.sharedInstance().logout();
                 } else {
                     isLoginFromObserver = true;
-                    SensorsDataAPI.sharedInstance().login(loginId);
+                    SensorsDataAPI.sharedInstance().loginWithKey(loginIDKey, loginID);
                 }
             } else if (DbParams.getInstance().getDisableSDKUri().equals(uri)) {
                 if (!SensorsDataAPI.getConfigOptions().isDisableSDK()) {
@@ -68,7 +74,7 @@ public class SensorsDataContentObserver extends ContentObserver {
                     SensorsDataAPI.enableSDK();
                 }
             } else if (DbParams.getInstance().getUserIdentities().equals(uri)) {
-                mUserIdentity.loadIdentitiesFromFile();
+                mUserIdentity.getIdentitiesInstance().updateIdentities();
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);

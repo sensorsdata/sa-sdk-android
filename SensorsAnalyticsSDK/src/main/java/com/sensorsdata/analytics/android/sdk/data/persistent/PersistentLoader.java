@@ -58,6 +58,8 @@ public class PersistentLoader {
                 return new PersistentFirstTrackInstallationWithCallback();
             case DbParams.PersistentName.FIRST_START:
                 return new PersistentFirstStart();
+            case DbParams.PersistentName.REQUEST_DEFERRER_DEEPLINK:
+                return new PersistentRequestDeferrerDeepLink();
             case DbParams.PersistentName.LOGIN_ID:
                 return new PersistentLoginId();
             case DbParams.PersistentName.REMOTE_CONFIG:
@@ -70,6 +72,8 @@ public class PersistentLoader {
                 return new UserIdentityPersistent();
             case DbParams.PersistentName.PERSISTENT_LOGIN_ID_KEY:
                 return new LoginIdKeyPersistent();
+            case DbParams.APP_EXIT_DATA:
+                return new PersistentAppExitData();
             default:
                 return null;
         }

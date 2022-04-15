@@ -28,7 +28,9 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.ServerUrl;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
-import com.sensorsdata.analytics.android.sdk.advert.utils.OaidHelper;
+import com.sensorsdata.analytics.android.sdk.advert.utils.SAOaidHelper;
+import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
+import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONException;
@@ -41,6 +43,7 @@ import java.util.Set;
 public class DeepLinkManager {
     public static final String IS_ANALYTICS_DEEPLINK = "is_analytics_deeplink";
     private static DeepLinkProcessor mDeepLinkProcessor;
+    private static boolean mIsDeepLink = false;
 
     public enum DeepLinkType {
         CHANNEL,
@@ -54,7 +57,7 @@ public class DeepLinkManager {
      * @return 是否是 DeepLink 唤起
      */
     private static boolean isDeepLink(Intent intent) {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB && intent != null && Intent.ACTION_VIEW.equals(intent.getAction());
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB && intent != null && Intent.ACTION_VIEW.equals(intent.getAction()) && intent.getData() != null;
     }
 
     /**
@@ -64,7 +67,7 @@ public class DeepLinkManager {
      * @return 是否是 UtmDeepLink
      */
     private static boolean isUtmDeepLink(Intent intent) {
-        if (!isDeepLink(intent) || intent.getData() == null) {
+        if (!isDeepLink(intent)) {
             return false;
         }
         Uri uri = intent.getData();
@@ -83,31 +86,34 @@ public class DeepLinkManager {
      * 是否是神策 DeepLink
      *
      * @param serverHost 数据接收地址 host
+     * @param customADChannelUrl 广告集群接收地址
      * @param intent DeepLink 唤起的 Intent
      * @return 是否是神策 DeepLink
      */
-    private static boolean isSensorsDataDeepLink(Intent intent, String serverHost) {
-        if (!isDeepLink(intent) || TextUtils.isEmpty(serverHost) || intent.getData() == null) {
+    private static boolean isSensorsDataDeepLink(Intent intent, String serverHost, String customADChannelUrl) {
+        if (!isDeepLink(intent)) {
             return false;
         }
         Uri uri = intent.getData();
         List<String> paths = uri.getPathSegments();
         if (paths != null && !paths.isEmpty()) {
-            if (paths.get(0).equals("sd")) {
-                String host = uri.getHost();
+            String host = uri.getHost();
+            if (paths.get(0).equals("slink")) {
+                return !TextUtils.isEmpty(host) && !TextUtils.isEmpty(customADChannelUrl) && (host.equals(customADChannelUrl) || host.equals("sensorsdata"));
+            } else if (paths.get(0).equals("sd") && !TextUtils.isEmpty(serverHost)) {
                 return !TextUtils.isEmpty(host) && (host.equals(serverHost) || host.equals("sensorsdata"));
             }
         }
         return false;
     }
 
-    private static DeepLinkProcessor createDeepLink(Intent intent, String serverUrl) {
+    private static DeepLinkProcessor createDeepLink(Intent intent, String serverUrl, String customADChannelUrl) {
         if (intent == null) {
             return null;
         }
         //优先判断是否是神策 DeepLink 短链
-        if (isSensorsDataDeepLink(intent, new ServerUrl(serverUrl).getHost())) {
-            return new SensorsDataDeepLink(intent, serverUrl);
+        if (isSensorsDataDeepLink(intent, new ServerUrl(serverUrl).getHost(), NetworkUtils.getHost(customADChannelUrl))) {
+            return new SensorsDataDeepLink(intent, serverUrl, customADChannelUrl);
         }
         if (isUtmDeepLink(intent)) {
             return new ChannelDeepLink(intent);
@@ -133,7 +139,7 @@ public class DeepLinkManager {
                 if (isDeepLinkInstallSource) {
                     try {
                         properties.put("$ios_install_source", ChannelUtils.getDeviceInfo(context,
-                                SensorsDataUtils.getAndroidID(context), OaidHelper.getOAID(context)));
+                                SensorsDataUtils.getAndroidID(context), SAOaidHelper.getOAID(context)));
                     } catch (JSONException e) {
                         SALog.printStackTrace(e);
                     }
@@ -147,13 +153,14 @@ public class DeepLinkManager {
         void onFinish(DeepLinkType deepLinkStatus, String pageParams, boolean success, long duration);
     }
 
-    public static boolean parseDeepLink(final Activity activity, final boolean isSaveDeepLinkInfo, final SensorsDataDeepLinkCallback callback) {
+    public static boolean parseDeepLink(final Activity activity, final boolean isSaveDeepLinkInfo, final SensorsDataDeepLinkCallback callback, final SensorsDataDeferredDeepLinkCallback deferredDeepLinkCallback) {
         try {
             Intent intent = activity.getIntent();
-            mDeepLinkProcessor = createDeepLink(intent, SensorsDataAPI.sharedInstance().getServerUrl());
+            mDeepLinkProcessor = createDeepLink(intent, SensorsDataAPI.sharedInstance().getServerUrl(), SensorsDataAPI.getConfigOptions().getCustomADChannelUrl());
             if (mDeepLinkProcessor == null) {
                 return false;
             }
+            mIsDeepLink = true;
             //清除本地 utm 属性
             ChannelUtils.clearUtm(activity.getApplicationContext());
             // 注册 DeepLink 解析完成 callback.
@@ -163,8 +170,16 @@ public class DeepLinkManager {
                     if (isSaveDeepLinkInfo) {
                         ChannelUtils.saveDeepLinkInfo(activity.getApplicationContext());
                     }
-                    if (callback != null && deepLinkStatus == DeepLinkType.SENSORSDATA) {
-                        callback.onReceive(params, success, duration);
+                    if (deepLinkStatus == DeepLinkType.SENSORSDATA) {
+                        try {
+                            if (null != deferredDeepLinkCallback) {
+                                deferredDeepLinkCallback.onReceive(new SADeepLinkObject(params, "", success, duration));
+                            } else if (null != callback) {
+                                callback.onReceive(params, success, duration);
+                            }
+                        } catch (Exception e) {
+                            SALog.printStackTrace(e);
+                        }
                     }
                 }
             });
@@ -198,5 +213,44 @@ public class DeepLinkManager {
      */
     public static void resetDeepLinkProcessor() {
         mDeepLinkProcessor = null;
+    }
+
+    public static void requestDeferredDeepLink(Context context, JSONObject params, String androidId, String oaid, JSONObject presetProperties, final SensorsDataDeferredDeepLinkCallback callBack, String url, boolean isSaveDeepLinkInfo) {
+        if (mIsDeepLink) return;
+        try {
+            JSONObject jsonObject = new JSONObject();
+            String ids;
+            if (params != null) {
+                if (params.has("$oaid")) {
+                    oaid = params.optString("$oaid");
+                    params.remove("$oaid");
+                }
+                ids = ChannelUtils.getDeviceInfo(context, androidId, oaid);
+                if (params.has("$gaid")) {
+                    String gaid = params.optString("$gaid");
+                    ids = String.format("%s##gaid=%s", ids, gaid);
+                    params.remove("$gaid");
+                }
+                if (params.has("$user_agent")) {
+                    jsonObject.put("ua", params.optString("$user_agent"));
+                    params.remove("$user_agent");
+                }
+                jsonObject.put("app_parameter", params.toString());
+            } else {
+                ids = ChannelUtils.getDeviceInfo(context, androidId, oaid);
+            }
+            jsonObject.put("ids", Base64Coder.encodeString(ids));
+            jsonObject.put("model", presetProperties.optString("$model"));
+            jsonObject.put("os", presetProperties.optString("$os"));
+            jsonObject.put("os_version", presetProperties.optString("$os_version"));
+            jsonObject.put("network", presetProperties.optString("$network_type"));
+            jsonObject.put("app_id", presetProperties.optString("$app_id"));
+            jsonObject.put("app_version", presetProperties.optString("$app_version"));
+            jsonObject.put("timestamp", String.valueOf(System.currentTimeMillis()));
+            jsonObject.put("project", new ServerUrl(SensorsDataAPI.sharedInstance().getServerUrl()).getProject());
+            DeferredDeepLinkHelper.request(context, jsonObject, callBack, url, isSaveDeepLinkInfo);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 }

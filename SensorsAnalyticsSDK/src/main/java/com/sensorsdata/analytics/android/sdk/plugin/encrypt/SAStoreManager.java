@@ -33,6 +33,7 @@ public class SAStoreManager extends AbstractStoreManager {
     private static final String TAG = "SA.SAStoreManager";
     private static final String SP_SENSORS_DATA_API = "com.sensorsdata.analytics.android.sdk.SensorsDataAPI";
     private static final String SP_SENSORS_DATA = "sensorsdata";
+    private static final String SP_SENSORS_DATA_EXIT = "sensorsdata.exit";
     private final ArrayList<String> mAPIStoreKeys = new ArrayList<>();
 
     private SAStoreManager() {
@@ -51,14 +52,20 @@ public class SAStoreManager extends AbstractStoreManager {
     public void registerPlugins(List<StorePlugin> configPlugins, Context context) {
         if (configPlugins == null || configPlugins.isEmpty()) {// 注册默认的 Plugin
             mDefaultState = true;
+            registerExitPlugin(context);
             registerAPIPlugin(context);
+            /* 此 plugin storeKeys 返回值是 null，默认是使用最后注册的 plugin 保存，所以一定要在最后注册 */
             registerSensorsDataPlugin(context);
         } else {
             mDefaultState = false;
             AESSecretManager.getInstance().initSecretKey(context);
+            if (isRegisterPlugin(context, SP_SENSORS_DATA_EXIT)) {
+                registerExitPlugin(context);
+            }
             if (isRegisterPlugin(context, SP_SENSORS_DATA_API)) {
                 registerAPIPlugin(context);
             }
+            /* 此 plugin storeKeys 返回值是 null，默认是使用最后注册的 plugin 保存，所以一定要在最后注册 */
             if (isRegisterPlugin(context, SP_SENSORS_DATA)) {
                 registerSensorsDataPlugin(context);
             }
@@ -71,6 +78,21 @@ public class SAStoreManager extends AbstractStoreManager {
 
     private static class SingletonHolder {
         private static final SAStoreManager INSTANCE = new SAStoreManager();
+    }
+
+    /**
+     * 注册名为 "sensorsdata.exit" SP 的插件
+     * @param context Context
+     */
+    private void registerExitPlugin(Context context) {
+        final List<String> exitKeys = new ArrayList<>();
+        exitKeys.add(DbParams.APP_EXIT_DATA);
+        registerPlugin(new DefaultStorePlugin(context, SP_SENSORS_DATA_EXIT) {
+            @Override
+            public List<String> storeKeys() {
+                return exitKeys;
+            }
+        });
     }
 
     /**

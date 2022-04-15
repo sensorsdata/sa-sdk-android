@@ -28,11 +28,13 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
+import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.LoginIdKeyPersistent;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndData;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppExitData;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
@@ -46,6 +48,7 @@ class SAProviderHelper {
     private ContentResolver contentResolver;
     private SQLiteOpenHelper mDbHelper;
     private PersistentAppEndData persistentAppEndData;
+    private PersistentAppExitData persistentAppExitData;
     private PersistentLoginId persistentLoginId;
     private PersistentRemoteSDKConfig persistentRemoteSDKConfig;
     private LoginIdKeyPersistent mLoginIdKeyPersistent;
@@ -64,6 +67,7 @@ class SAProviderHelper {
             contentResolver = context.getContentResolver();
             PersistentLoader.initLoader(context);
             persistentAppEndData = (PersistentAppEndData) PersistentLoader.loadPersistent(DbParams.PersistentName.APP_END_DATA);
+            persistentAppExitData = (PersistentAppExitData) PersistentLoader.loadPersistent(DbParams.APP_EXIT_DATA);
             persistentLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(DbParams.PersistentName.LOGIN_ID);
             persistentRemoteSDKConfig = (PersistentRemoteSDKConfig) PersistentLoader.loadPersistent(DbParams.PersistentName.REMOTE_CONFIG);
             mUserIdsPersistent = (UserIdentityPersistent) PersistentLoader.loadPersistent(DbParams.PersistentName.PERSISTENT_USER_ID);
@@ -134,7 +138,7 @@ class SAProviderHelper {
             uriMatcher.addURI(authority, DbParams.TABLE_EVENTS, URI_CODE.EVENTS);
             uriMatcher.addURI(authority, DbParams.TABLE_ACTIVITY_START_COUNT, URI_CODE.ACTIVITY_START_COUNT);
             uriMatcher.addURI(authority, DbParams.TABLE_APP_START_TIME, URI_CODE.APP_START_TIME);
-            uriMatcher.addURI(authority, DbParams.PersistentName.APP_END_DATA, URI_CODE.APP_END_DATA);
+            uriMatcher.addURI(authority, DbParams.APP_EXIT_DATA, URI_CODE.APP_EXIT_DATA);
             uriMatcher.addURI(authority, DbParams.TABLE_SESSION_INTERVAL_TIME, URI_CODE.SESSION_INTERVAL_TIME);
             uriMatcher.addURI(authority, DbParams.PersistentName.LOGIN_ID, URI_CODE.LOGIN_ID);
             uriMatcher.addURI(authority, DbParams.TABLE_CHANNEL_PERSISTENT, URI_CODE.CHANNEL_PERSISTENT);
@@ -232,8 +236,8 @@ class SAProviderHelper {
                 case URI_CODE.APP_START_TIME:
                     mAppStartTime = values.getAsLong(DbParams.TABLE_APP_START_TIME);
                     break;
-                case URI_CODE.APP_END_DATA:
-                    persistentAppEndData.commit(values.getAsString(DbParams.PersistentName.APP_END_DATA));
+                case URI_CODE.APP_EXIT_DATA:
+                    persistentAppExitData.commit(values.getAsString(DbParams.APP_EXIT_DATA));
                     break;
                 case URI_CODE.SESSION_INTERVAL_TIME:
                     mSessionTime = values.getAsInteger(DbParams.TABLE_SESSION_INTERVAL_TIME);
@@ -315,9 +319,14 @@ class SAProviderHelper {
                     data = mAppStartTime;
                     column = DbParams.TABLE_APP_START_TIME;
                     break;
-                case URI_CODE.APP_END_DATA:
-                    data = persistentAppEndData.get();
-                    column = DbParams.PersistentName.APP_END_DATA;
+                case URI_CODE.APP_EXIT_DATA:
+                    String exitData = persistentAppExitData.get();
+                    if(TextUtils.isEmpty(exitData)) {
+                        exitData = persistentAppEndData.get();
+                        persistentAppEndData.remove();
+                    }
+                    data = exitData;
+                    column = DbParams.APP_EXIT_DATA;
                     break;
                 case URI_CODE.SESSION_INTERVAL_TIME:
                     data = mSessionTime;
@@ -395,7 +404,7 @@ class SAProviderHelper {
         int EVENTS = 1;
         int ACTIVITY_START_COUNT = 2;
         int APP_START_TIME = 3;
-        int APP_END_DATA = 4;
+        int APP_EXIT_DATA = 4;
         int APP_PAUSED_TIME = 5;
         int SESSION_INTERVAL_TIME = 6;
         int LOGIN_ID = 7;

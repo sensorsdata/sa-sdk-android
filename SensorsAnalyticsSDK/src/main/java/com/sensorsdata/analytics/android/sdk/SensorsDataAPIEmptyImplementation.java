@@ -18,10 +18,10 @@ package com.sensorsdata.analytics.android.sdk;
 
 
 import android.app.Activity;
-import android.content.Context;
 import android.view.View;
 import android.webkit.WebView;
 
+import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.listener.SAJSListener;
@@ -356,8 +356,23 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
+    public void loginWithKey(String loginIDKey, String loginId) {
+
+    }
+
+    @Override
+    public void loginWithKey(String loginIDKey, String loginId, JSONObject properties) {
+
+    }
+
+    @Override
     public void logout() {
 
+    }
+
+    @Override
+    public JSONObject getIdentities() {
+        return new JSONObject();
     }
 
     @Override
@@ -516,6 +531,11 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public void setDeepLinkCallback(SensorsDataDeepLinkCallback deepLinkCallback) {
+
+    }
+
+    @Override
+    public void setDeepLinkCompletion(SensorsDataDeferredDeepLinkCallback callback) {
 
     }
 
@@ -778,6 +798,11 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public void trackDeepLinkLaunch(String deepLinkUrl, String oaid) {
+
+    }
+
+    @Override
+    public void requestDeferredDeepLink(JSONObject params) {
 
     }
 }

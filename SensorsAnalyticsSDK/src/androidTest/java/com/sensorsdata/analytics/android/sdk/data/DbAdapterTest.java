@@ -84,7 +84,7 @@ public class DbAdapterTest {
 
             int count = DbAdapter.getInstance().addJSON(jsonObject);
             Thread.sleep(1000);
-            assertEquals(count, 3);
+            assertEquals(count, 1);
             // 清空数据库
             DbAdapter.getInstance().deleteAllEvents();
             Thread.sleep(1000);

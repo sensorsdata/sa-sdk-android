@@ -39,7 +39,7 @@ import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackHelper;
 import com.sensorsdata.analytics.android.sdk.ThreadNameConstants;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
-import com.sensorsdata.analytics.android.sdk.advert.utils.OaidHelper;
+import com.sensorsdata.analytics.android.sdk.advert.utils.SAOaidHelper;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
 import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
@@ -103,7 +103,7 @@ public class SensorsDataDialogUtils {
                 boolean isTrackInstallation = ChannelUtils.isTrackInstallation(context);
                 if (!isTrackInstallation || ChannelUtils.isCorrectTrackInstallation(context)) {
                     String androidId = SensorsDataUtils.getAndroidID(context);
-                    String oaid = OaidHelper.getOAID(context);
+                    String oaid = SAOaidHelper.getOAID(context);
                     if (isTrackInstallation && !ChannelUtils.isGetDeviceInfo(context, androidId, oaid)) {
                         showChannelDebugErrorDialog(activity);
                         return;

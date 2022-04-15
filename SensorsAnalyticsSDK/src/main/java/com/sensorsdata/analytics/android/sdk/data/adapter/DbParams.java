@@ -52,8 +52,10 @@ public class DbParams {
     static final String DB_DELETE_ALL = "DB_DELETE_ALL";
     private static DbParams instance;
     private final Uri mUri, mActivityStartCountUri, mAppStartTimeUri, mDataCollectUri,
-            mAppEndDataUri, mSessionTimeUri, mLoginIdUri, mChannelPersistentUri, mSubProcessUri,
+            mAppExitDataUri, mSessionTimeUri, mLoginIdUri, mChannelPersistentUri, mSubProcessUri,
             mEnableSDKUri, mDisableSDKUri, mRemoteConfigUri, mUserIdentities, mLoginIdKeyUri, mPushIdUri;
+    /* 替换 APP_END_DATA 数据，使用新的 SP 文件保存 */
+    public static final String APP_EXIT_DATA = "app_exit_data";
 
     public interface PersistentName {
         String APP_END_DATA = "app_end_data";
@@ -62,6 +64,7 @@ public class DbParams {
         String FIRST_DAY = "first_day";
         String FIRST_START = "first_start";
         String FIRST_INSTALL = "first_track_installation";
+        String REQUEST_DEFERRER_DEEPLINK = "request_deferrer_deeplink";
         String FIRST_INSTALL_CALLBACK = "first_track_installation_with_callback";
         String LOGIN_ID = "events_login_id";
         String REMOTE_CONFIG = "sensorsdata_sdk_configuration";
@@ -75,7 +78,7 @@ public class DbParams {
         mUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_EVENTS);
         mActivityStartCountUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_ACTIVITY_START_COUNT);
         mAppStartTimeUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_APP_START_TIME);
-        mAppEndDataUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PersistentName.APP_END_DATA);
+        mAppExitDataUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + APP_EXIT_DATA);
         mSessionTimeUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_SESSION_INTERVAL_TIME);
         mLoginIdUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PersistentName.LOGIN_ID);
         mLoginIdKeyUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PersistentName.PERSISTENT_LOGIN_ID_KEY);
@@ -135,8 +138,8 @@ public class DbParams {
      *
      * @return Uri
      */
-    Uri getAppEndDataUri() {
-        return mAppEndDataUri;
+    Uri getAppExitDataUri() {
+        return mAppExitDataUri;
     }
 
     /**

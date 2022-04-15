@@ -33,6 +33,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 /**
  * AES 加密工具，针对 SP、t_channel 数据表、push File 文件加密
+ * SF SDK 会根据此类获取秘钥，谨慎修改
  */
 public class AESSecretManager {
     private static final String TAG = "SA.AESSecretManager";
@@ -98,7 +99,7 @@ public class AESSecretManager {
     }
 
     /**
-     * 加密
+     * 加密，SF SDK 会调用此方法
      *
      * @param content 待加密内容
      * @return 加密后的密文
@@ -119,7 +120,7 @@ public class AESSecretManager {
     }
 
     /**
-     * 解密
+     * 解密，SF SDK 会调用此类
      *
      * @param content 待解密内容
      * @return 解密后的明文

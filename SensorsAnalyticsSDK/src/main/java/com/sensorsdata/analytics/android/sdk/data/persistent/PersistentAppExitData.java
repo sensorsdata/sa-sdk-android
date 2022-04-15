@@ -19,13 +19,9 @@ package com.sensorsdata.analytics.android.sdk.data.persistent;
 
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 
-/**
- * APP_END_DATA 字段弃用，使用 app_exit_data 替换
- * {@link PersistentAppExitData} 替换
- */
-public class PersistentAppEndData extends PersistentIdentity<String> {
-    public PersistentAppEndData() {
-        super(DbParams.PersistentName.APP_END_DATA, new PersistentSerializer<String>() {
+public class PersistentAppExitData extends PersistentIdentity<String> {
+    public PersistentAppExitData() {
+        super(DbParams.APP_EXIT_DATA, new PersistentSerializer<String>() {
             @Override
             public String load(String value) {
                 return value;

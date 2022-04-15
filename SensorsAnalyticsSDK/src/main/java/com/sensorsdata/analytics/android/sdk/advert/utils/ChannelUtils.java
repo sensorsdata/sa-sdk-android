@@ -516,7 +516,7 @@ public class ChannelUtils {
             return false;
         }
         return (deviceMaps.containsKey("oaid")//防止都为 null 返回 true
-                && TextUtils.equals(deviceMaps.get("oaid"), OaidHelper.getOAID(context))) ||
+                && TextUtils.equals(deviceMaps.get("oaid"), SAOaidHelper.getOAID(context))) ||
                 (deviceMaps.containsKey("imei") &&
                         TextUtils.equals(deviceMaps.get("imei"), SensorsDataUtils.getIMEI(context))) ||
                 (deviceMaps.containsKey("imei_old") &&

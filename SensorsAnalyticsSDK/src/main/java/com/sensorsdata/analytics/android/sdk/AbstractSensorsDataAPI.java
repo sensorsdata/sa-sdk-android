@@ -30,7 +30,7 @@ import android.text.TextUtils;
 import android.view.View;
 
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
-import com.sensorsdata.analytics.android.sdk.advert.utils.OaidHelper;
+import com.sensorsdata.analytics.android.sdk.advert.utils.SAOaidHelper;
 import com.sensorsdata.analytics.android.sdk.aop.push.PushLifecycleCallbacks;
 import com.sensorsdata.analytics.android.sdk.autotrack.ActivityLifecycleCallbacks;
 import com.sensorsdata.analytics.android.sdk.autotrack.ActivityPageLeaveCallbacks;
@@ -40,19 +40,22 @@ import com.sensorsdata.analytics.android.sdk.autotrack.aop.FragmentTrackHelper;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRequestDeferrerDeepLink;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallation;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstTrackInstallationWithCallback;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRequestDeferrerDeepLink;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProperties;
 import com.sensorsdata.analytics.android.sdk.monitor.TrackMonitor;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
+import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.encrypt.SensorsDataEncrypt;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.internal.api.FragmentAPI;
 import com.sensorsdata.analytics.android.sdk.internal.api.IFragmentAPI;
-import com.sensorsdata.analytics.android.sdk.internal.api.UserIdentityAPI;
+import com.sensorsdata.analytics.android.sdk.useridentity.UserIdentityAPI;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventTimer;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.internal.rpc.SensorsDataContentObserver;
@@ -110,6 +113,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     protected final PersistentFirstDay mFirstDay;
     protected final PersistentFirstTrackInstallation mFirstTrackInstallation;
     protected final PersistentFirstTrackInstallationWithCallback mFirstTrackInstallationWithCallback;
+    protected final PersistentRequestDeferrerDeepLink mRequestDeferrerDeepLink;
     protected final Map<String, EventTimer> mTrackTimer;
     protected final Object mLoginIdLock = new Object();
     protected List<Class> mIgnoredViewTypeList = new ArrayList<>();
@@ -153,6 +157,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     protected SAStoreManager mStoreManager;
     SensorsDataEncrypt mSensorsDataEncrypt;
     protected SensorsDataDeepLinkCallback mDeepLinkCallback;
+    protected SensorsDataDeferredDeepLinkCallback mDeferredDeepLinkCallback;
     // $AppDeeplinkLaunch 是否携带设备信息
     boolean mEnableDeepLinkInstallSource = false;
     BaseSensorsDataSDKRemoteManager mRemoteManager;
@@ -174,6 +179,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         mFirstTrackInstallation = (PersistentFirstTrackInstallation) PersistentLoader.loadPersistent(DbParams.PersistentName.FIRST_INSTALL);
         mFirstTrackInstallationWithCallback = (PersistentFirstTrackInstallationWithCallback) PersistentLoader.loadPersistent(DbParams.PersistentName.FIRST_INSTALL_CALLBACK);
         mFirstDay = (PersistentFirstDay) PersistentLoader.loadPersistent(DbParams.PersistentName.FIRST_DAY);
+        mRequestDeferrerDeepLink = (PersistentRequestDeferrerDeepLink) PersistentLoader.loadPersistent(DbParams.PersistentName.REQUEST_DEFERRER_DEEPLINK);
         mTrackTimer = new HashMap<>();
         mFragmentAPI = new FragmentAPI();
         try {
@@ -204,7 +210,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                 }
             }
 
-            mUserIdentityAPI = new UserIdentityAPI(mSAContextManager, mSAConfigOptions);
+            mUserIdentityAPI = new UserIdentityAPI(mSAContextManager);
             registerLifecycleCallbacks();
             registerObserver();
             if (!mSAConfigOptions.isDisableSDK()) {
@@ -215,6 +221,15 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                         + " url '%s', flush interval %d ms, debugMode: %s", mServerUrl, mSAConfigOptions.mFlushInterval, debugMode));
             }
             SensorsDataUtils.initUniAppStatus();
+            if (mIsMainProcess && null != mRequestDeferrerDeepLink) {// 多进程影响数据，保证只有主进程操作
+                Boolean isFirstRun = mRequestDeferrerDeepLink.get();
+                if (isFirstRun != null && isFirstRun) {
+                    mRequestDeferrerDeepLink.commit(false);
+                }
+                if (mRequestDeferrerDeepLink.get() && null != mFirstDay && !TextUtils.isEmpty(mFirstDay.get())) { //升级场景，首次安装但 mFirstDay 已经有数据
+                    mRequestDeferrerDeepLink.commit(false);
+                }
+            }
         } catch (Throwable ex) {
             SALog.d(TAG, ex.getMessage());
         }
@@ -233,6 +248,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         mFirstDay = null;
         mFirstTrackInstallation = null;
         mFirstTrackInstallationWithCallback = null;
+        mRequestDeferrerDeepLink = null;
         mTrackTimer = null;
         mSensorsDataEncrypt = null;
     }
@@ -402,6 +418,10 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         return mDeepLinkCallback;
     }
 
+    public SensorsDataDeferredDeepLinkCallback getDeferredDeepLinkCallback() {
+        return mDeferredDeepLinkCallback;
+    }
+
     boolean _trackEventFromH5(String eventInfo) {
         try {
             if (TextUtils.isEmpty(eventInfo)) {
@@ -558,7 +578,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             public void run() {
                 try {
                     _properties.put("$ios_install_source", ChannelUtils.getDeviceInfo(mContext,
-                            mSAContextManager.getAndroidId(), OaidHelper.getOAID(mContext)));
+                            mSAContextManager.getAndroidId(), SAOaidHelper.getOAID(mContext)));
                     // 先发送 track
                     trackEvent(EventType.TRACK, "$ChannelDebugInstall", _properties, null);
 
@@ -972,20 +992,22 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
 
             if (eventType == EventType.TRACK_SIGNUP) {
                 synchronized (mLoginIdLock) {
-                    mUserIdentityAPI.mergeH5Identities(eventType, eventObject);
-                    mMessages.enqueueEventMessage(type, eventObject);
-                    if (SALog.isLogEnabled()) {
-                        SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(eventObject.toString()));
+                    if (mUserIdentityAPI.mergeH5Identities(eventType, eventObject)) {
+                        mMessages.enqueueEventMessage(type, eventObject);
+                        if (SALog.isLogEnabled()) {
+                            SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(eventObject.toString()));
+                        }
                     }
                 }
             } else {
                 if (!TextUtils.isEmpty(getLoginId())) {
                     eventObject.put("login_id", getLoginId());
                 }
-                mUserIdentityAPI.mergeH5Identities(eventType, eventObject);
-                mMessages.enqueueEventMessage(type, eventObject);
-                if (SALog.isLogEnabled()) {
-                    SALog.i(TAG, "track event from H5:\n" + JSONUtils.formatJson(eventObject.toString()));
+                if (mUserIdentityAPI.mergeH5Identities(eventType, eventObject)) {
+                    mMessages.enqueueEventMessage(type, eventObject);
+                    if (SALog.isLogEnabled()) {
+                        SALog.i(TAG, "track event from H5:\n" + JSONUtils.formatJson(eventObject.toString()));
+                    }
                 }
             }
         } catch (Exception e) {
@@ -1700,6 +1722,12 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
+        }
+    }
+
+    public void setDeferredDeepLinkStateToFalse() {
+        if (null != mRequestDeferrerDeepLink && "true".equals(String.valueOf(mRequestDeferrerDeepLink.get()))) {
+            mRequestDeferrerDeepLink.commit(false);
         }
     }
 }

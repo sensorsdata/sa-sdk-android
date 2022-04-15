@@ -57,7 +57,7 @@ public class SADataHelper {
                 Object value = properties.get(key);
 
                 if (value == JSONObject.NULL) {
-                    SALog.i(TAG, "Property value is empty");
+                    SALog.i(TAG, "Property value is empty or null");
                     iterator.remove();
                     continue;
                 }
@@ -101,13 +101,15 @@ public class SADataHelper {
                 }
             } catch (JSONException e) {
                 throw new InvalidDataException("Unexpected property key. [key='" + key + "']");
+            } catch (Error e) {
+                SALog.i(TAG, e);
             }
         }
     }
 
     public static void assertEventName(String key) {
         if (TextUtils.isEmpty(key)) {
-            SALog.i(TAG,"EventName is empty");
+            SALog.i(TAG,"EventName is empty or null");
             return;
         }
         int length = key.length();
@@ -127,7 +129,7 @@ public class SADataHelper {
      */
     public static boolean assertPropertyKey(String key) {
         if (TextUtils.isEmpty(key)) {
-            SALog.i(TAG, "Property key is empty");
+            SALog.i(TAG, "Property key is empty or null");
             return false;
         }
 
@@ -148,7 +150,7 @@ public class SADataHelper {
      */
     public static void assertItemId(String key) {
         if (null == key) {
-            SALog.i(TAG, "ItemId is empty");
+            SALog.i(TAG, "ItemId is empty or null");
             return;
         }
         int length = key.length();
@@ -159,7 +161,7 @@ public class SADataHelper {
 
     public static void assertDistinctId(String value) throws InvalidDataException {
         if (TextUtils.isEmpty(value)) {
-            throw new InvalidDataException("Id is empty");
+            throw new InvalidDataException("Id is empty or null");
         }
         if (value.length() > MAX_LENGTH_1024) {
             SALog.i(TAG, value + "'s length is longer than " + MAX_LENGTH_1024);
@@ -173,7 +175,7 @@ public class SADataHelper {
      */
     public static String assertPropertyValue(String property) {
         if (property == null) {
-            SALog.i(TAG, "Property value is empty");
+            SALog.i(TAG, "Property value is empty or null");
             return property;
         }
 

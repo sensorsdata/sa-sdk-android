@@ -9,7 +9,7 @@ import androidx.test.rule.GrantPermissionRule;
 
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.advert.utils.OaidHelper;
+import com.sensorsdata.analytics.android.sdk.advert.utils.SAOaidHelper;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -26,7 +26,7 @@ public class SADeviceUtilsTest {
     @Before
     public void initSensorsDataAPI() {
         Context context = ApplicationProvider.getApplicationContext();
-        SensorsDataAPI.sharedInstance(context, new SAConfigOptions("").enableLog(true));
+        SensorsDataAPI.startWithConfigOptions(context, new SAConfigOptions("").enableLog(true));
     }
 
     /**
@@ -35,7 +35,7 @@ public class SADeviceUtilsTest {
     @Test
     public void getOAID() {
         try {
-            String oaid = OaidHelper.getOAID(ApplicationProvider.getApplicationContext());
+            String oaid = SAOaidHelper.getOAID(ApplicationProvider.getApplicationContext());
             assertNull(oaid);
             SensorsDataAPI.sharedInstance().trackInstallation("AppInstall");
         } catch (Exception ex) {

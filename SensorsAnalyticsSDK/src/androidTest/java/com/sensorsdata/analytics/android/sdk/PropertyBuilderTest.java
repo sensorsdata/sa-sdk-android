@@ -53,8 +53,8 @@ public class PropertyBuilderTest {
                 .append("key1", 2).append("key2", "value2");
         JSONObject jsonObject = builder.toJSONObject();
         assertNotNull(jsonObject);
-        assertEquals(3, jsonObject.length());
-        assertThat(Lists.newArrayList(jsonObject.keys()), allOf(hasItem("foo"), hasItem("key1"), hasItem("key2")));
+        assertEquals(2, jsonObject.length());
+        assertThat(Lists.newArrayList(jsonObject.keys()), allOf(hasItem("key1"), hasItem("key2")));
     }
 
     @Test
@@ -69,8 +69,8 @@ public class PropertyBuilderTest {
         builder.append(userPropertyMap);
         JSONObject jsonObject = builder.toJSONObject();
         assertNotNull(jsonObject);
-        assertEquals(3, jsonObject.length());
-        assertThat(Lists.newArrayList(jsonObject.keys()), allOf(hasItem("foo"), hasItem("key1"), hasItem("key2")));
+        assertEquals(2, jsonObject.length());
+        assertThat(Lists.newArrayList(jsonObject.keys()), allOf(hasItem("key1"), hasItem("key2")));
     }
 
     @Test

@@ -217,6 +217,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                             boolean resetState = bundle.getBoolean(APP_RESET_STATE);
                             // 如果是正常的退到后台，需要重置标记位
                             if (resetState) {
+                                mSensorsDataInstance.setDeferredDeepLinkStateToFalse();
                                 resetState();
                                 // 对于 Unity 多进程跳转的场景，需要在判断一下
                                 if (DbAdapter.getInstance().getActivityCount() <= 0) {
@@ -372,7 +373,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                 }
                 property.remove(APP_START_TIME);
                 mSensorsDataInstance.trackAutoEvent("$AppEnd", property);
-                mDbAdapter.commitAppEndData(""); // 保存的信息只使用一次就置空，防止后面状态错乱再次发送。
+                mDbAdapter.commitAppExitData(""); // 保存的信息只使用一次就置空，防止后面状态错乱再次发送。
                 mSensorsDataInstance.flush();
             }
         } catch (Exception e) {
@@ -410,7 +411,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                 endDataProperty.put(LIB_VERSION, SensorsDataAPI.sharedInstance().getSDKVersion());
                 // 合并 $utm 信息
                 ChannelUtils.mergeUtmToEndData(ChannelUtils.getLatestUtmProperties(), endDataProperty);
-                mDbAdapter.commitAppEndData(endDataProperty.toString());
+                mDbAdapter.commitAppExitData(endDataProperty.toString());
             }
         } catch (Throwable e) {
             SALog.d(TAG, e.getMessage());
@@ -426,7 +427,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
         long currentTime = Math.max(System.currentTimeMillis(), 946656000000L);
         long endTrackTime = 0;
         try {
-            String endData = DbAdapter.getInstance().getAppEndData();
+            String endData = DbAdapter.getInstance().getAppExitData();
             if (!TextUtils.isEmpty(endData)) {
                 JSONObject endDataJsonObject = new JSONObject(endData);
                 endTrackTime = endDataJsonObject.optLong(EVENT_TIME) - TIME_INTERVAL; // 获取 $AppEnd 打点时间戳
@@ -485,7 +486,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
         Message message = Message.obtain(mHandler);
         message.what = MESSAGE_CODE_APP_END;
         Bundle bundle = new Bundle();
-        bundle.putString(APP_END_DATA, DbAdapter.getInstance().getAppEndData());
+        bundle.putString(APP_END_DATA, DbAdapter.getInstance().getAppExitData());
         bundle.putBoolean(APP_RESET_STATE, resetState);
         message.setData(bundle);
         return message;
@@ -549,7 +550,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                 if (intent != null && intent.getData() != null) {
                     //判断 deepLink 信息是否已处理过
                     if (!intent.getBooleanExtra(DeepLinkManager.IS_ANALYTICS_DEEPLINK, false)) {
-                        if (DeepLinkManager.parseDeepLink(activity, mSensorsDataInstance.getConfigOptions().isSaveDeepLinkInfo(), mSensorsDataInstance.getDeepLinkCallback())) {
+                        if (DeepLinkManager.parseDeepLink(activity, mSensorsDataInstance.getConfigOptions().isSaveDeepLinkInfo(), mSensorsDataInstance.getDeepLinkCallback(), mSensorsDataInstance.getDeferredDeepLinkCallback())) {
                             intent.putExtra(DeepLinkManager.IS_ANALYTICS_DEEPLINK, true);
                             return true;
                         }
@@ -569,7 +570,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
          * 1. 未完成 $AppEnd 事件，触发的异常，此时需要记录下 AppEndTime
          * 2. 完成了 $AppEnd 事件，下次启动时触发的异常。还未及时更新 $AppStart 的时间戳，导致计算时长偏大，所以需要重新更新启动时间戳
          */
-        if (TextUtils.isEmpty(DbAdapter.getInstance().getAppEndData())) {
+        if (TextUtils.isEmpty(DbAdapter.getInstance().getAppExitData())) {
             DbAdapter.getInstance().commitAppStartTime(SystemClock.elapsedRealtime());
         }
 

@@ -395,7 +395,6 @@ public class SensorsDataAPITest {
                     .enableTrackAppCrash();
 
             SensorsDataAPI.sharedInstance().startWithConfigOptions(context, saConfigOptions);
-
             assertEquals(FLUSH_BULK_SIZE, SensorsDataAPI.sharedInstance().getFlushBulkSize());
             assertEquals(FLUSH_INTERVAL, SensorsDataAPI.sharedInstance().getFlushInterval());
             assertEquals(MAX_CACHE_SIZE, SensorsDataAPI.sharedInstance().getMaxCacheSize());

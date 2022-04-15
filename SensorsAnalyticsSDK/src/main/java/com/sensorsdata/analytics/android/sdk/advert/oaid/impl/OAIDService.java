@@ -23,8 +23,6 @@ import android.os.IBinder;
 
 import com.sensorsdata.analytics.android.sdk.util.ThreadUtils;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 class OAIDService implements ServiceConnection {

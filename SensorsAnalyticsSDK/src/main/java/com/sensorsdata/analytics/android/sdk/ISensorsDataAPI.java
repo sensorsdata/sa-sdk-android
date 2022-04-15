@@ -20,9 +20,10 @@ import android.app.Activity;
 import android.view.View;
 import android.webkit.WebView;
 
+import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.internal.api.IFragmentAPI;
-import com.sensorsdata.analytics.android.sdk.internal.api.IUserIdentityAPI;
+import com.sensorsdata.analytics.android.sdk.useridentity.IUserIdentityAPI;
 
 import org.json.JSONObject;
 
@@ -473,65 +474,6 @@ public interface ISensorsDataAPI extends IFragmentAPI, IUserIdentityAPI {
     boolean isHeatMapEnabled();
 
     /**
-     * 获取当前用户的 distinctId
-     *
-     * @return 优先返回登录 ID，登录 ID 为空时，返回匿名 ID
-     */
-    String getDistinctId();
-
-    /**
-     * 获取当前用户的匿名 ID
-     * 若调用前未调用 {@link #identify(String)} 设置用户的匿名 ID，SDK 会优先调用 {@link com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils#getAndroidID(Context)}获取 Android ID，
-     * 如获取的 Android ID 非法，则调用 {@link java.util.UUID} 随机生成 UUID，作为用户的匿名 ID
-     *
-     * @return 当前用户的匿名 ID
-     */
-    String getAnonymousId();
-
-    /**
-     * 重置默认匿名id
-     */
-    @Deprecated
-    void resetAnonymousId();
-
-    /**
-     * 获取当前用户的 loginId
-     * 若调用前未调用 {@link #login(String)} 设置用户的 loginId，会返回 null
-     *
-     * @return 当前用户的 loginId
-     */
-    String getLoginId();
-
-    /**
-     * 设置当前用户的 distinctId。一般情况下，如果是一个注册用户，则应该使用注册系统内
-     * 的 user_id，如果是个未注册用户，则可以选择一个不会重复的匿名 ID，如设备 ID 等，如果
-     * 客户没有调用 identify，则使用SDK自动生成的匿名 ID
-     *
-     * @param distinctId 当前用户的 distinctId，仅接受数字、下划线和大小写字母
-     */
-    void identify(String distinctId);
-
-    /**
-     * 登录，设置当前用户的 loginId
-     *
-     * @param loginId 当前用户的 loginId，不能为空，且长度不能大于 255
-     */
-    void login(String loginId);
-
-    /**
-     * 登录，设置当前用户的 loginId
-     *
-     * @param loginId 当前用户的 loginId，不能为空，且长度不能大于 255
-     * @param properties 用户登录属性
-     */
-    void login(final String loginId, final JSONObject properties);
-
-    /**
-     * 注销，清空当前用户的 loginId
-     */
-    void logout();
-
-    /**
      * 用于在 App 首次启动时追踪渠道来源，并设置追踪渠道事件的属性。
      * 这是 Sensors Analytics 进阶功能，请参考文档 https://sensorsdata.cn/manual/track_installation.html
      *
@@ -750,6 +692,13 @@ public interface ISensorsDataAPI extends IFragmentAPI, IUserIdentityAPI {
      * @param deepLinkCallback DeepLink 接口回调
      */
     void setDeepLinkCallback(SensorsDataDeepLinkCallback deepLinkCallback);
+
+    /**
+     * 设置 DeepLink 与 Deferred DeepLink接口回调
+     *
+     * @param deepLinkCallback DeepLink 与 Deferred DeepLink接口回调
+     */
+    void setDeepLinkCompletion(SensorsDataDeferredDeepLinkCallback deepLinkCallback);
 
     /**
      * 获取事件公共属性
@@ -1033,4 +982,11 @@ public interface ISensorsDataAPI extends IFragmentAPI, IUserIdentityAPI {
      * @param oaid oaid
      */
     void trackDeepLinkLaunch(String deepLinkUrl, String oaid);
+
+    /**
+     * 触发 DeferredDeeplink 请求
+     *
+     * @param params DeferredDeepLink 自定义参数
+     */
+    void requestDeferredDeepLink(JSONObject params);
 }

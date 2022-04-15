@@ -21,11 +21,8 @@ import android.content.ContentValues;
 import android.content.Context;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.data.persistent.LoginIdKeyPersistent;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
-import com.sensorsdata.analytics.android.sdk.data.persistent.UserIdentityPersistent;
 import com.sensorsdata.analytics.android.sdk.encrypt.SensorsDataEncrypt;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 
@@ -158,9 +155,9 @@ public class DbAdapter {
      *
      * @param appEndData Activity End 的信息
      */
-    public void commitAppEndData(String appEndData) {
+    public void commitAppExitData(String appEndData) {
         try {
-            mPersistentOperation.insertData(mDbParams.getAppEndDataUri(), new JSONObject().put(DbParams.VALUE, appEndData));
+            mPersistentOperation.insertData(mDbParams.getAppExitDataUri(), new JSONObject().put(DbParams.VALUE, appEndData));
         } catch (JSONException e) {
             SALog.printStackTrace(e);
         }
@@ -171,9 +168,9 @@ public class DbAdapter {
      *
      * @return Activity End 的信息
      */
-    public String getAppEndData() {
+    public String getAppExitData() {
         try {
-            String[] values = mPersistentOperation.queryData(mDbParams.getAppEndDataUri(), 1);
+            String[] values = mPersistentOperation.queryData(mDbParams.getAppExitDataUri(), 1);
             if (values != null && values.length > 0) {
                 return values[0];
             }
@@ -207,21 +204,6 @@ public class DbAdapter {
             if (values != null && values.length > 0) {
                 return values[0];
             }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-        return "";
-    }
-
-    /**
-     * 获取 LoginId，从当前进程读取
-     *
-     * @return LoginId
-     */
-    public String getLoginIdFromLocal() {
-        try {
-            PersistentLoginId persistentLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(DbParams.PersistentName.LOGIN_ID);
-            return (persistentLoginId == null) ? "" : persistentLoginId.get();
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -350,22 +332,7 @@ public class DbAdapter {
         return null;
     }
 
-    /**
-     * 获取 identities，从当前进程读取
-     *
-     * @return ID 标识
-     */
-    public String getIdentitiesFromLocal() {
-        try {
-            UserIdentityPersistent userPersistent = (UserIdentityPersistent) PersistentLoader.loadPersistent(DbParams.PersistentName.PERSISTENT_USER_ID);
-            return decodeIdentities(userPersistent.get());
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-        return null;
-    }
-
-    private String decodeIdentities(String identities) {
+    public static String decodeIdentities(String identities) {
         if (identities == null) {
             return null;
         }
@@ -396,21 +363,6 @@ public class DbAdapter {
             if (values != null && values.length > 0) {
                 return values[0];
             }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-        return "";
-    }
-
-    /**
-     * 获取 LoginIdKey，从当前进程读取
-     *
-     * @return LoginIdKey
-     */
-    public String getLoginIdKeyFromLocal() {
-        try {
-            LoginIdKeyPersistent loginIdKeyPersistent = (LoginIdKeyPersistent) PersistentLoader.loadPersistent(DbParams.PersistentName.PERSISTENT_LOGIN_ID_KEY);
-            return (loginIdKeyPersistent == null) ? "" : loginIdKeyPersistent.get();
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }

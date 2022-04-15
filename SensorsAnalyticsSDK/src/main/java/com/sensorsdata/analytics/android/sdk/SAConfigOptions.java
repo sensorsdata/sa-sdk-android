@@ -446,17 +446,6 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
     }
 
     /**
-     * 自定义 LoginID Key
-     *
-     * @param loginIDKey LoginID Key
-     * @return SAConfigOptions
-     */
-    public SAConfigOptions setLoginIDKey(String loginIDKey) {
-        this.mLoginIDKey = loginIDKey;
-        return this;
-    }
-
-    /**
      * 将 $device_id 修改为 $anonymization_id
      *
      * @return SAConfigOptions
@@ -467,12 +456,14 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
     }
 
     /**
-     * 获取 LoginID Key
+     * 设置 DeepLink 请求 url
      *
-     * @return LoginID Key
+     * @param url 请求 URL 地址
+     * @return SAConfigOptions
      */
-    public String getLoginIDKey() {
-        return this.mLoginIDKey;
+    public SAConfigOptions setCustomAdChannelUrl(String url) {
+        this.mCustomADChannelUrl = url;
+        return this;
     }
 
     @Override

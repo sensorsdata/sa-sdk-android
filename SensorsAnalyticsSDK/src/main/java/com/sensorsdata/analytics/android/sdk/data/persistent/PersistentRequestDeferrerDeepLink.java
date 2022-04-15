@@ -1,6 +1,6 @@
 /*
- * Created by wangzhuozhou on 2015/08/01.
- * Copyright 2015－2022 Sensors Data Inc.
+ * Created by wangzhuozhou on 2017/4/10.
+ * Copyright 2015－2021 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,28 +17,28 @@
 
 package com.sensorsdata.analytics.android.sdk.data.persistent;
 
+import android.content.SharedPreferences;
+
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 
-/**
- * APP_END_DATA 字段弃用，使用 app_exit_data 替换
- * {@link PersistentAppExitData} 替换
- */
-public class PersistentAppEndData extends PersistentIdentity<String> {
-    public PersistentAppEndData() {
-        super(DbParams.PersistentName.APP_END_DATA, new PersistentSerializer<String>() {
+import java.util.concurrent.Future;
+
+public class PersistentRequestDeferrerDeepLink extends PersistentIdentity<Boolean> {
+    public PersistentRequestDeferrerDeepLink() {
+        super(DbParams.PersistentName.REQUEST_DEFERRER_DEEPLINK, new PersistentSerializer<Boolean>() {
             @Override
-            public String load(String value) {
-                return value;
+            public Boolean load(String value) {
+                return "true".equals(value);
             }
 
             @Override
-            public String save(String item) {
-                return item == null ? create() : item;
+            public String save(Boolean item) {
+                return item == null ? String.valueOf(true) : String.valueOf(item);
             }
 
             @Override
-            public String create() {
-                return "";
+            public Boolean create() {
+                return null;
             }
         });
     }

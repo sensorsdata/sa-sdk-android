@@ -35,6 +35,9 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * 其它 SDK 会继承此类实现插件，谨慎修改相关方法
+ */
 public abstract class AbstractStoreManager {
 
     private final List<StorePlugin> mStorePluginList;
@@ -53,6 +56,10 @@ public abstract class AbstractStoreManager {
         mStoreTypes = new HashSet<>();
     }
 
+    /**
+     * 插件注册，AB SDK 会调用此方法，谨慎修改
+     * @param plugin 存储插件
+     */
     public void registerPlugin(StorePlugin plugin) {
         if (plugin == null) {
             return;
@@ -325,13 +332,18 @@ public abstract class AbstractStoreManager {
     public void remove(final String key) {
         mLock.lock();
         try {
-            for (StorePlugin plugin : mStorePluginList) {
-                if (mDefaultState) {
+            if (mDefaultState) {
+                StorePlugin tempPlugin = mMaxPriorityPlugin;
+                for (StorePlugin plugin : mStorePluginList) {
                     if (plugin instanceof DefaultStorePlugin && ((DefaultStorePlugin) plugin).storeKeys() != null
                             && ((DefaultStorePlugin) plugin).storeKeys().contains(key)) {
-                        plugin.remove(key);
+                        tempPlugin = plugin;
+                        break;
                     }
-                } else {
+                }
+                tempPlugin.remove(tempPlugin.type() + key);
+            } else {
+                for (StorePlugin plugin : mStorePluginList) {
                     plugin.remove(plugin.type() + key);
                 }
             }

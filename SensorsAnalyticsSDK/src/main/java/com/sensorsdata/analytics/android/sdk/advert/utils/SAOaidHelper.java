@@ -19,6 +19,7 @@ package com.sensorsdata.analytics.android.sdk.advert.utils;
 
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.os.Looper;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
@@ -35,7 +36,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
-public class OaidHelper {
+public class SAOaidHelper {
     private static final String TAG = "SA.DeviceUtils";
     // OAID
     private static String mOAID = "";
@@ -68,18 +69,22 @@ public class OaidHelper {
     }
 
     /**
-     * 获取 OAID 接口，注意该接口是同步接口，可能会导致线程阻塞，建议在子线程中使用
+     * 获取 OAID 接口，注意该接口是同步接口，必须子线程中使用
      *
      * @param context Context
      * @return OAID
      */
     public static String getOAID(final Context context) {
+        if (Looper.getMainLooper() == Looper.myLooper()) {
+            SALog.i(TAG, "function can not be called on main thread");
+            return "";
+        }
         if (!TextUtils.isEmpty(mOAID)) {
             return mOAID;
         }
         mOAID = getMSAOAID(context);
         SALog.i(TAG, "MSA OAID is " + mOAID);
-        if (TextUtils.isEmpty(mOAID) ) {
+        if (TextUtils.isEmpty(mOAID)) {
             mOAID = getROMOAID(context);
             SALog.i(TAG, "Rom OAID is " + mOAID);
         }

@@ -20,7 +20,6 @@ package com.sensorsdata.analytics.android.sdk.deeplink;
 import android.content.Intent;
 import android.net.Uri;
 import android.text.TextUtils;
-
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.ServerUrl;
@@ -29,12 +28,14 @@ import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
 import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
+import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -44,10 +45,13 @@ class SensorsDataDeepLink extends AbsDeepLink {
     private String pageParams;
     private String errorMsg;
     private boolean success;
+    private String customADChannelUrl;
+    private String adSlinkId;
 
-    public SensorsDataDeepLink(Intent intent, String serverUrl) {
+    public SensorsDataDeepLink(Intent intent, String serverUrl, String customADChannelUrl) {
         super(intent);
         this.serverUrl = serverUrl;
+        this.customADChannelUrl = customADChannelUrl;
         project = new ServerUrl(serverUrl).getProject();
     }
 
@@ -64,7 +68,7 @@ class SensorsDataDeepLink extends AbsDeepLink {
             params.put("key", key);
             params.put("system_type", "ANDROID");
             params.put("project", project);
-            new RequestHelper.Builder(HttpMethod.GET, getRequestUrl())
+            new RequestHelper.Builder(HttpMethod.GET, isSlink(uri, NetworkUtils.getHost(customADChannelUrl)) ? getSlinkRequestUrl() : getRequestUrl())
                     .params(params)
                     .callback(new HttpCallback.JsonCallback() {
                         @Override
@@ -82,6 +86,7 @@ class SensorsDataDeepLink extends AbsDeepLink {
                                 ChannelUtils.parseParams(params);
                                 pageParams = response.optString("page_params");
                                 errorMsg = response.optString("errorMsg");
+                                adSlinkId = response.optString("ad_slink_id");
                                 if (!TextUtils.isEmpty(errorMsg)) {
                                     success = false;
                                 }
@@ -100,6 +105,9 @@ class SensorsDataDeepLink extends AbsDeepLink {
                                 }
                                 if (!TextUtils.isEmpty(errorMsg)) {
                                     properties.put("$deeplink_match_fail_reason", errorMsg);
+                                }
+                                if (!TextUtils.isEmpty(adSlinkId)) {
+                                    properties.put("$ad_slink_id", adSlinkId);
                                 }
                                 properties.put("$deeplink_url", getDeepLinkUrl());
                                 properties.put("$event_duration", String.format(Locale.CHINA, "%.3f", duration / 1000.0f));
@@ -134,4 +142,25 @@ class SensorsDataDeepLink extends AbsDeepLink {
         }
         return "";
     }
+
+    private boolean isSlink(Uri uri, String customADChannelUrl) {
+        if (TextUtils.isEmpty(customADChannelUrl)) {
+            return false;
+        }
+        List<String> paths = uri.getPathSegments();
+        if (null != paths && !paths.isEmpty() && paths.get(0).equals("slink")) {
+            String host = uri.getHost();
+            return !TextUtils.isEmpty(host) && (host.equals(customADChannelUrl) || host.equals("sensorsdata"));
+        }
+        return false;
+    }
+
+    private String getSlinkRequestUrl() {
+        if (!TextUtils.isEmpty(customADChannelUrl)) {
+            return NetworkUtils.getRequestUrl(customADChannelUrl, "slink/config/query");
+        }
+        return "";
+    }
+
+
 }

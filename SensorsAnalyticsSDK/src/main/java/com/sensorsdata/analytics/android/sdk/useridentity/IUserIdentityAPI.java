@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.internal.api;
+package com.sensorsdata.analytics.android.sdk.useridentity;
 
 import android.content.Context;
 
@@ -35,6 +35,7 @@ public interface IUserIdentityAPI {
      * 解绑事件名称
      */
     String UNBIND_ID = "$UnbindID";
+
     /**
      * 获取当前用户的 distinctId
      *
@@ -77,6 +78,13 @@ public interface IUserIdentityAPI {
     void identify(String distinctId);
 
     /**
+     * 获取当前的 identities
+     *
+     * @return identities
+     */
+    JSONObject getIdentities();
+
+    /**
      * 登录，设置当前用户的 loginId
      *
      * @param loginId 当前用户的 loginId，不能为空，且长度不能大于 255
@@ -90,6 +98,23 @@ public interface IUserIdentityAPI {
      * @param properties 用户登录属性
      */
     void login(final String loginId, final JSONObject properties);
+
+    /**
+     * 登录，设置当前用户的登录 IDKey 和 loginId
+     *
+     * @param loginIDKey 登录 IDKey
+     * @param loginID 登录 loginId
+     */
+    void loginWithKey(String loginIDKey, String loginID);
+
+    /**
+     * 登录，设置当前用户的登录 IDKey 和 loginId
+     *
+     * @param loginIDKey loginIDKey 登录 IDKey
+     * @param loginID loginID 登录 loginId
+     * @param properties properties 用户登录属性
+     */
+    void loginWithKey(String loginIDKey, String loginID, JSONObject properties);
 
     /**
      * 注销，清空当前用户的 loginId

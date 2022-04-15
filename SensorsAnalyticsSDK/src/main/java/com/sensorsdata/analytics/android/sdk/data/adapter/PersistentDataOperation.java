@@ -61,8 +61,8 @@ class PersistentDataOperation extends DataOperation {
                     case DbParams.TABLE_ACTIVITY_START_COUNT:
                         contentValues.put(DbParams.TABLE_ACTIVITY_START_COUNT, jsonObject.optInt(DbParams.VALUE));
                         break;
-                    case DbParams.PersistentName.APP_END_DATA:
-                        contentValues.put(DbParams.PersistentName.APP_END_DATA, jsonObject.optString(DbParams.VALUE));
+                    case DbParams.APP_EXIT_DATA:
+                        contentValues.put(DbParams.APP_EXIT_DATA, jsonObject.optString(DbParams.VALUE));
                         break;
                     case DbParams.TABLE_APP_START_TIME:
                         contentValues.put(DbParams.TABLE_APP_START_TIME, jsonObject.optLong(DbParams.VALUE));
@@ -118,7 +118,7 @@ class PersistentDataOperation extends DataOperation {
                     case DbParams.PersistentName.SUB_PROCESS_FLUSH_DATA:
                     case DbParams.TABLE_FIRST_PROCESS_START:
                         return new String[]{String.valueOf(cursor.getInt(0))};
-                    case DbParams.PersistentName.APP_END_DATA:
+                    case DbParams.APP_EXIT_DATA:
                     case DbParams.PersistentName.LOGIN_ID:
                     case DbParams.PersistentName.REMOTE_CONFIG:
                     case DbParams.PersistentName.PERSISTENT_USER_ID:
