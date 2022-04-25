@@ -61,7 +61,7 @@ public class ViewUtil {
     private static boolean sHaveRecyclerView = haveRecyclerView();
     private static Method sRecyclerViewGetChildAdapterPositionMethod;
     private static Class<?> sRecyclerViewClass;
-    private static SparseArray<String> sViewCache;
+    private static SparseArray<String> sViewCache = new SparseArray<>();
 
     private static boolean instanceOfSupportSwipeRefreshLayout(Object view) {
         return ReflectUtil.isInstance(view, "android.support.v4.widget.SwipeRefreshLayout", "androidx.swiperefreshlayout.widget.SwipeRefreshLayout");
@@ -542,12 +542,11 @@ public class ViewUtil {
                 ViewParent parent = parentView.getParent();
                 if (parent instanceof View) {
                     View listParentView = (View) parent;
-                    if (sViewCache == null) {
-                        sViewCache = new SparseArray<String>();
-                    }
-                    String parentPos = (String) sViewCache.get(listParentView.hashCode());
-                    if (!TextUtils.isEmpty(parentPos)) {
-                        listPos = parentPos;
+                    synchronized (sViewCache) {
+                        String parentPos = (String) sViewCache.get(listParentView.hashCode());
+                        if (!TextUtils.isEmpty(parentPos)) {
+                            listPos = parentPos;
+                        }
                     }
                 }
                 if (parentView instanceof ExpandableListView) {
@@ -600,10 +599,9 @@ public class ViewUtil {
                     }
                 }
                 if (!TextUtils.isEmpty(listPos)) {
-                    if (sViewCache == null) {
-                        sViewCache = new SparseArray<String>();
+                    synchronized (sViewCache) {
+                        sViewCache.put(parentView.hashCode(), listPos);
                     }
-                    sViewCache.put(parentView.hashCode(), listPos);
                 }
                 ViewNode viewNode = getViewContentAndType(view, fromVisual);
                 return new ViewNode(view, listPos, opx.toString(), px.toString(), viewNode.getViewContent(), viewNode.getViewType(), isListView);
@@ -613,7 +611,7 @@ public class ViewUtil {
     }
 
     public static void clear() {
-        if (sViewCache != null) {
+        synchronized (sViewCache) {
             sViewCache.clear();
         }
     }

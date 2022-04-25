@@ -25,8 +25,10 @@ import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.autotrack.ActivityLifecycleCallbacks;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
+import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.exceptions.ConnectErrorException;
 import com.sensorsdata.analytics.android.sdk.exceptions.DebugModeException;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
@@ -34,7 +36,6 @@ import com.sensorsdata.analytics.android.sdk.exceptions.ResponseErrorException;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
-import com.sensorsdata.analytics.android.sdk.util.ToastUtil;
 
 import org.json.JSONObject;
 
@@ -271,7 +272,7 @@ class AnalyticsMessages {
                     if (isDebugMode || SALog.isLogEnabled()) {
                         SALog.i(TAG, errorMessage);
                         if (isDebugMode && SensorsDataAPI.SHOW_DEBUG_INFO_VIEW) {
-                            ToastUtil.showShort(mContext, errorMessage);
+                            SensorsDataDialogUtils.showHttpErrorDialog(AppStateManager.getInstance().getForegroundActivity(), errorMessage);
                         }
                     }
                 }

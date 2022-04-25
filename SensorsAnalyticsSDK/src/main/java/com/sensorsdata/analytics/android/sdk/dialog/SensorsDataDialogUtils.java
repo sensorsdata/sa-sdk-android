@@ -67,6 +67,7 @@ import javax.net.ssl.HttpsURLConnection;
 public class SensorsDataDialogUtils {
     private static final String TAG = "SA.SensorsDataDialogUtils";
     private static Dialog sDialog;
+    private static boolean isShowHttpErrorDialog = true;
 
     public static void showDialog(Activity activity, String title, String content,
                                   final String positiveLabel, final DialogInterface.OnClickListener positiveOnClickListener,
@@ -317,6 +318,49 @@ public class SensorsDataDialogUtils {
                 public void onClick(DialogInterface dialog, int which) {
                     HeatMapService.getInstance().start(context, featureCode, postUrl);
                     startLaunchActivity(context);
+                }
+            });
+            AlertDialog dialog = builder.create();
+            dialogShowDismissOld(dialog);
+            try {
+                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.BLACK);
+                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundColor(Color.WHITE);
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.RED);
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundColor(Color.WHITE);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackground(getDrawable());
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackground(getDrawable());
+                } else {
+                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundDrawable(getDrawable());
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundDrawable(getDrawable());
+                }
+            } catch (Exception e) {
+                SALog.printStackTrace(e);
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
+    public static void showHttpErrorDialog(final Activity context, final String msg) {
+        try {
+            if (TextUtils.isEmpty(msg) || !isShowHttpErrorDialog || context == null) {
+                return;
+            }
+            AlertDialog.Builder builder = new AlertDialog.Builder(context);
+            builder.setTitle("提示");
+            builder.setMessage(msg);
+            builder.setCancelable(false);
+            builder.setNegativeButton("确定", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+
+                }
+            });
+            builder.setPositiveButton("不再提示", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    isShowHttpErrorDialog = false;
                 }
             });
             AlertDialog dialog = builder.create();

@@ -52,15 +52,57 @@ public class TimeUtils {
      * Locale 默认使用 Default
      *
      * @param timeMillis 时间戳
+     * @return 日期展示字符串
+     */
+    public static String formatTime(long timeMillis) {
+        return formatTime(timeMillis, Locale.CHINA);
+    }
+
+    /**
+     * format Date 输出文本格式
+     * patten 默认使用 YYYY_MM_DD_HH_MM_SS_SSS
+     * 例：2019-04-12 11:22:00.408
+     * Locale 默认使用 Default
+     *
+     * @param timeMillis 时间戳
      * @param patten 时间展示模板
      * @return 日期展示字符串
      */
     public static String formatTime(long timeMillis, String patten) {
+        return formatTime(timeMillis, patten, Locale.CHINA);
+    }
+
+    /**
+     * format Date 输出文本格式
+     * patten 默认使用 YYYY_MM_DD_HH_MM_SS_SSS
+     * 例：2019-04-12 11:22:00.408
+     * Locale 默认使用 Default
+     *
+     * @param timeMillis 时间戳
+     * @param locale Locale
+     * @return 日期展示字符串
+     */
+    public static String formatTime(long timeMillis, Locale locale) {
+        return formatTime(timeMillis, null, locale);
+    }
+
+    /**
+     * format Date 输出文本格式
+     * patten 默认使用 YYYY_MM_DD_HH_MM_SS_SSS
+     * 例：2019-04-12 11:22:00.408
+     * Locale 默认使用 Default
+     *
+     * @param timeMillis 时间戳
+     * @param patten 时间展示模板
+     * @param locale Locale
+     * @return 日期展示字符串
+     */
+    public static String formatTime(long timeMillis, String patten, Locale locale) {
         String formatString = "";
         if (TextUtils.isEmpty(patten)) {
             patten = YYYY_MM_DD_HH_MM_SS_SSS;
         }
-        SimpleDateFormat simpleDateFormat = getDateFormat(patten, Locale.getDefault());
+        SimpleDateFormat simpleDateFormat = getDateFormat(patten, locale);
         if (null == simpleDateFormat) {
             return formatString;
         }
@@ -94,7 +136,7 @@ public class TimeUtils {
      * @return 日期展示字符串
      */
     public static String formatDate(Date date, String patten) {
-        return formatDate(date, patten, Locale.getDefault());
+        return formatDate(date, patten, Locale.CHINA);
     }
 
     /**
@@ -143,7 +185,7 @@ public class TimeUtils {
      */
     public static boolean isDateValid(Date date) {
         try {
-            SimpleDateFormat simpleDateFormat = getDateFormat(YYYY_MM_DD_HH_MM_SS_SSS, Locale.getDefault());
+            SimpleDateFormat simpleDateFormat = getDateFormat(YYYY_MM_DD_HH_MM_SS_SSS, Locale.CHINA);
             final Date baseDate = simpleDateFormat.parse("2015-05-15 10:24:00.000");
             return date.after(baseDate);
         } catch (ParseException e) {
@@ -161,7 +203,7 @@ public class TimeUtils {
      */
     public static boolean isDateValid(long time) {
         try {
-            SimpleDateFormat simpleDateFormat = getDateFormat(YYYY_MM_DD_HH_MM_SS_SSS, Locale.getDefault());
+            SimpleDateFormat simpleDateFormat = getDateFormat(YYYY_MM_DD_HH_MM_SS_SSS, Locale.CHINA);
             final Date baseDate = simpleDateFormat.parse("2015-05-15 10:24:00.000");
             if (baseDate == null) {
                 return false;
@@ -237,7 +279,7 @@ public class TimeUtils {
     }
 
     private synchronized static SimpleDateFormat getDateFormat(final String patten, final Locale locale) {
-        ThreadLocal<SimpleDateFormat> dateFormatThreadLocal = formatMaps.get(patten);
+        ThreadLocal<SimpleDateFormat> dateFormatThreadLocal = formatMaps.get(patten + "_" + (locale == null ? Locale.CHINA.getCountry() : locale.getCountry()));
         if (null == dateFormatThreadLocal) {
             dateFormatThreadLocal = new ThreadLocal<SimpleDateFormat>() {
                 @Override
@@ -245,7 +287,7 @@ public class TimeUtils {
                     SimpleDateFormat simpleDateFormat = null;
                     try {
                         if (locale == null) {
-                            simpleDateFormat = new SimpleDateFormat(patten, Locale.getDefault());
+                            simpleDateFormat = new SimpleDateFormat(patten, Locale.CHINA);
                         } else {
                             simpleDateFormat = new SimpleDateFormat(patten, locale);
                         }
@@ -256,7 +298,7 @@ public class TimeUtils {
                 }
             };
             if (null != dateFormatThreadLocal.get()) {
-                formatMaps.put(patten, dateFormatThreadLocal);
+                formatMaps.put(patten + "_" + (locale == null ? Locale.CHINA.getCountry() : locale.getCountry()), dateFormatThreadLocal);
             }
         }
         return dateFormatThreadLocal.get();
