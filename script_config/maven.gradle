@@ -1,0 +1,149 @@
+apply plugin: 'signing'
+apply plugin: 'maven-publish'
+
+task sourceJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+
+task javadoc(type: Javadoc) {
+    dependsOn 'assembleRelease'
+    source = android.sourceSets.main.java.srcDirs +
+            'build/generated/not_namespaced_r_class_sources/release/generateReleaseRFile/out/com/sensorsdata/analytics/android/sdk/R.java'
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+}
+
+javadoc {
+    options {
+        encoding "UTF-8"
+        charSet 'UTF-8'
+    }
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+// 控制是否发布到测试 beta 版本
+def isBeta = false
+def betaPrefix = "Beta"
+
+version = rootProject.ext.versions.sdk_version
+def groupId_maven = 'com.sensorsdata.analytics.android'
+def artifactId_maven = project.name
+
+if (project.name == "module_core") {
+    if (isBeta) {
+        artifactId_maven = "core-" + betaPrefix
+    } else {
+        artifactId_maven = "core"
+    }
+    version = rootProject.ext.versions.module_version
+} else if (project.name == "module_advert") {
+    if (isBeta) {
+        artifactId_maven = "advert-" + betaPrefix
+    } else {
+        artifactId_maven = "advert"
+    }
+    version = rootProject.ext.versions.module_version
+} else if (project.name == "SensorsAnalyticsSDK") {
+    if (isBeta) {
+        artifactId_maven = "SensorsAnalyticsSDK-" + betaPrefix
+    } else {
+        artifactId_maven = "SensorsAnalyticsSDK"
+    }
+    version = rootProject.ext.versions.sdk_version
+}
+
+publishing {
+    publications {
+        mavenAndroid(MavenPublication) {
+            groupId = groupId_maven
+            artifactId = artifactId_maven
+            version = version
+            artifact sourceJar
+            artifact javadocJar
+            artifact('build/outputs/aar/' + project.name + '-release.aar')
+            // 配置 pop 文件格式
+            pom {
+                packaging 'aar'
+                name = 'The official Android SDK for Sensors Analytics.'
+                description = 'The official Android SDK for Sensors Analytics.'
+                url = 'The official Android SDK for Sensors Analytics.'
+                licenses {
+                    license {
+                        name = 'The Apache Software License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'dengshiwei'
+                        name = 'dengshiwei'
+                        email = 'dengshiwei@sensorsdata.com'
+                    }
+                }
+                scm {
+                    connection = 'https://github.com/sensorsdata/sa-sdk-android'
+                    developerConnection = 'https://github.com/sensorsdata/sa-sdk-android.git'
+                    url = 'https://github.com/sensorsdata/sa-sdk-android'
+                }
+                pom.withXml {
+                    def dependenciesNode = asNode().appendNode('dependencies')
+                    project.configurations.all { configuration ->
+                        def name = configuration.name
+                        if (name == 'implementation' || name == 'releaseImplementation') {
+                            configuration.allDependencies.each {
+                                if (it.group != null && it.name != "unspecified" && it.version != null) {
+                                    def groupId = it.group
+                                    def artifactId = it.name
+                                    def version = it.version
+                                    if (groupId == "sa-sdk-android" && artifactId.startsWith("module_")) {
+                                        groupId = groupId_maven
+                                        artifactId = getModuleArtifactId(it.name)
+                                        version = rootProject.ext.versions.module_version
+                                    }
+                                    if (isBeta) {
+                                        artifactId = artifactId + "-" + betaPrefix
+                                    }
+                                    println("dependency:" + groupId + ":" + artifactId + ":" + version)
+                                    def dependencyNode = dependenciesNode.appendNode('dependency')
+                                    dependencyNode.appendNode('groupId', groupId)
+                                    dependencyNode.appendNode('artifactId', artifactId)
+                                    dependencyNode.appendNode('version', version)
+                                    dependencyNode.appendNode('scope', 'compile')
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // 配置远程仓库
+    repositories {
+        Properties properties = new Properties()
+        properties.load(project.rootProject.file('local.properties').newDataInputStream())
+        def mavenUser = properties.getProperty("maven.user")
+        def mavenPassword = properties.getProperty("maven.password")
+        maven {
+            // 发布到本地
+//            url = '../repo'
+            url = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
+            credentials {
+                username mavenUser
+                password mavenPassword
+            }
+        }
+    }
+}
+
+// 对 mavenAndroid 发布内容进行签名
+signing {
+    sign publishing.publications.mavenAndroid
+}
+
+def getModuleArtifactId(String moduleName) {
+    return moduleName.replace("module_", "")
+}

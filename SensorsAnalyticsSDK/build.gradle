@@ -1,37 +1,22 @@
 apply plugin: 'com.android.library'
+apply from: "../script_config/maven.gradle"
 
-apply plugin: 'signing'
-apply plugin: 'maven-publish'
-
-version = "6.3.1"
-def min_plugin_version = "3.4.0"
+version = rootProject.ext.versions.sdk_version
 
 android {
-    compileSdkVersion 31
-
-    resourcePrefix "sensors_analytics_"
+    compileSdkVersion rootProject.ext.buildConfig.compileSdkVersion
 
     defaultConfig {
-        minSdkVersion 9
-        targetSdkVersion 31
-        versionCode 1
-        versionName "1.0"
+        minSdkVersion rootProject.ext.buildConfig.minSdkVersion
+        targetSdkVersion rootProject.ext.buildConfig.targetSdkVersion
+        versionCode rootProject.ext.buildConfig.versionCode
+        versionName rootProject.ext.buildConfig.versionName
         consumerProguardFiles 'proguard-rules.pro'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            buildConfigField("String", "SDK_VERSION", "\"${version}\"")
-            buildConfigField("String", "MIN_PLUGIN_VERSION", "\"${min_plugin_version}\"")
-            manifestPlaceholders = ["SENSORSDATA_SDK_VERSION": "${version}"]
-        }
-
-        debug {
-            buildConfigField("String", "SDK_VERSION", "\"${version}\"")
-            buildConfigField("String", "MIN_PLUGIN_VERSION", "\"${min_plugin_version}\"")
-            manifestPlaceholders = ["SENSORSDATA_SDK_VERSION": "${version}"]
         }
     }
 
@@ -49,132 +34,6 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'androidx.test:core:1.1.0'
-    androidTestImplementation 'androidx.test:runner:1.1.1'
-    androidTestImplementation 'androidx.test:rules:1.1.1'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.0'
-    // Espresso dependencies
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-contrib:3.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-intents:3.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-accessibility:3.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-web:3.1.1'
-    androidTestImplementation 'androidx.test.espresso.idling:idling-concurrent:3.1.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-idling-resource:3.1.1'
-    androidTestImplementation 'org.mockito:mockito-core:2.27.0'
-    androidTestImplementation 'org.mockito:mockito-android:2.27.0'
-    //Robolectric & JVM test
-    testImplementation 'androidx.test:core:1.1.0'
-    testImplementation 'androidx.test.ext:junit:1.1.0'
-    testImplementation 'org.robolectric:robolectric:4.2'
-    testImplementation 'androidx.test.espresso:espresso-core:3.1.1'
-    testImplementation 'androidx.test.espresso:espresso-contrib:3.1.1'
-    testImplementation 'androidx.test.espresso:espresso-intents:3.1.1'
-    testImplementation 'androidx.test.espresso:espresso-accessibility:3.1.1'
-    testImplementation 'androidx.test.espresso:espresso-web:3.1.1'
-    testImplementation 'androidx.test.espresso.idling:idling-concurrent:3.1.1'
-    testImplementation 'org.robolectric:robolectric:4.2'
-    //mock
-    testImplementation 'org.mockito:mockito-core:2.27.0'
-    testImplementation 'org.mockito:mockito-android:2.27.0'
-    testImplementation 'org.powermock:powermock-module-junit4:2.0.2'
-    testImplementation 'org.powermock:powermock-api-mockito2:2.0.2'
-    testImplementation 'org.powermock:powermock-module-testng:2.0.2'
-    testImplementation 'org.powermock:powermock-core:2.0.2'
-
-}
-
-afterEvaluate {
-    assembleRelease {
-        doLast {
-            copy {
-                def rootPath = getProjectDir().getAbsolutePath()
-                from(rootPath + '/build/outputs/aar/')
-                into(rootPath + '/build/outputs/aar/')
-                rename('SensorsAnalyticsSDK-release.aar', 'SensorsAnalyticsSDK-' + version + '.aar')
-            }
-        }
-    }
-}
-
-task sourceJar(type: Jar) {
-    from android.sourceSets.main.java.srcDirs
-    classifier = 'sources'
-}
-
-task javadoc(type: Javadoc) {
-    dependsOn 'assembleRelease'
-    source = android.sourceSets.main.java.srcDirs +
-            'build/generated/not_namespaced_r_class_sources/release/generateReleaseRFile/out/com/sensorsdata/analytics/android/sdk/R.java'
-    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-}
-
-javadoc {
-    options {
-        encoding "UTF-8"
-        charSet 'UTF-8'
-    }
-}
-
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.destinationDir
-}
-
-publishing {
-    publications {
-        mavenAndroid(MavenPublication) {
-            groupId = 'com.sensorsdata.analytics.android'
-            artifactId = 'SensorsAnalyticsSDK'
-            version = version
-            artifact sourceJar
-            artifact javadocJar
-            artifact('build/outputs/aar/SensorsAnalyticsSDK-release.aar')
-            // 配置 pop 文件格式
-            pom {
-                packaging 'aar'
-                name = 'The official Android SDK for Sensors Analytics.'
-                description = 'The official Android SDK for Sensors Analytics.'
-                url = 'The official Android SDK for Sensors Analytics.'
-                licenses {
-                    license {
-                        name='The Apache Software License, Version 2.0'
-                        url='http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    }
-                }
-                developers {
-                    developer {
-                        id = 'dengshiwei'
-                        name = 'dengshiwei'
-                        email = 'dengshiwei@sensorsdata.com'
-                    }
-                }
-                scm {
-                    connection = 'https://github.com/sensorsdata/sa-sdk-android'
-                    developerConnection = 'https://github.com/sensorsdata/sa-sdk-android.git'
-                    url = 'https://github.com/sensorsdata/sa-sdk-android'
-                }
-            }
-        }
-    }
-    // 配置远程仓库
-    repositories {
-        Properties properties = new Properties()
-        properties.load(project.rootProject.file('local.properties').newDataInputStream())
-        def mavenUser = properties.getProperty("maven.user")
-        def mavenPassword = properties.getProperty("maven.password")
-        maven {
-            url = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
-            credentials {
-                username mavenUser
-                password mavenPassword
-            }
-        }
-    }
-}
-
-// 对 mavenAndroid 发布内容进行签名
-signing {
-    sign publishing.publications.mavenAndroid
+    api project(':module_core')
+    api project(':module_advert')
 }

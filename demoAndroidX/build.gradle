@@ -5,14 +5,14 @@ apply plugin: 'kotlin-android'
 apply plugin: 'com.sensorsdata.analytics.android'
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion rootProject.ext.buildConfig.compileSdkVersion
 
     defaultConfig {
         applicationId "com.sensorsdata.analytics.android.demo"
         minSdkVersion 15
-        targetSdkVersion 31
-        versionCode 1
-        versionName "1.0"
+        targetSdkVersion rootProject.ext.buildConfig.targetSdkVersion
+        versionCode rootProject.ext.buildConfig.versionCode
+        versionName rootProject.ext.buildConfig.versionName
     }
 
     signingConfigs {
@@ -51,15 +51,16 @@ android {
 
 dependencies {
     implementation fileTree(include: ['.jar', '.so'], dir: 'libs')
-    implementation 'androidx.appcompat:appcompat:1.1.0'
-    implementation 'com.google.android.material:material:1.1.0'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
-    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    implementation 'androidx.legacy:legacy-support-v13:1.0.0'
-    implementation project(':SensorsAnalyticsSDK')
-    implementation 'androidx.core:core-ktx:1.2.0'
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation 'com.google.android:flexbox:1.1.0'
+    implementation rootProject.ext.androidx.appcompat
+    implementation rootProject.ext.androidx.google_material
+    implementation rootProject.ext.androidx.constraintlayout
+    implementation rootProject.ext.androidx.ktx_core
+    implementation rootProject.ext.kotlins.kotlin_stdlib_jdk7
+    implementation rootProject.ext.androidx.flexbox
+    implementation rootProject.ext.androidx.legacy_v4
+    implementation rootProject.ext.androidx.legacy_v13
     implementation 'com.tencent.tbs.tbssdk:sdk:43697'
+    implementation project(':module_core')
+    implementation project(':module_advert')
 //    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.4'
 }

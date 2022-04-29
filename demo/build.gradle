@@ -3,14 +3,14 @@ apply plugin: 'com.android.application'
 apply plugin: 'com.sensorsdata.analytics.android'
 
 android {
-    compileSdkVersion 30
+    compileSdkVersion rootProject.ext.buildConfig.compileSdkVersion
 
     defaultConfig {
         applicationId "com.sensorsdata.analytics.android.demo"
-        minSdkVersion 15
-        targetSdkVersion 30
-        versionCode 1
-        versionName "1.0"
+        minSdkVersion rootProject.ext.buildConfig.minSdkVersion
+        targetSdkVersion rootProject.ext.buildConfig.targetSdkVersion
+        versionCode rootProject.ext.buildConfig.versionCode
+        versionName rootProject.ext.buildConfig.versionName
     }
     buildTypes {
         release {
@@ -35,8 +35,9 @@ android {
 
 dependencies {
     implementation fileTree(include: ['.jar', '.so'], dir: 'libs')
-    implementation 'androidx.appcompat:appcompat:1.1.0'
-    implementation 'com.google.android.material:material:1.1.0'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
-    implementation project(':SensorsAnalyticsSDK')
+    implementation rootProject.ext.androidx.appcompat
+    implementation rootProject.ext.androidx.google_material
+    implementation rootProject.ext.androidx.constraintlayout
+    implementation project(':module_core')
+    implementation project(':module_advert')
 }

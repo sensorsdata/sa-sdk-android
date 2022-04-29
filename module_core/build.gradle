@@ -1,0 +1,81 @@
+/*
+ * Created by chenru on 2022/3/9 上午10:06.
+ * Copyright 2015－2022 Sensors Data Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+apply plugin: 'com.android.library'
+apply from: "../script_config/maven.gradle"
+
+android {
+    compileSdkVersion rootProject.ext.buildConfig.compileSdkVersion
+
+    resourcePrefix "sensors_analytics_"
+
+    defaultConfig {
+        minSdkVersion rootProject.ext.buildConfig.minSdkVersion
+        targetSdkVersion rootProject.ext.buildConfig.targetSdkVersion
+        versionCode rootProject.ext.buildConfig.versionCode
+        versionName rootProject.ext.buildConfig.versionName
+        consumerProguardFiles 'proguard-rules.pro'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField("String", "SDK_VERSION", "\"${rootProject.ext.versions.sdk_version}\"")
+            buildConfigField("String", "MIN_PLUGIN_VERSION", "\"${rootProject.ext.versions.min_plugin_version}\"")
+            manifestPlaceholders = ["SENSORSDATA_SDK_VERSION": "${version}"]
+        }
+
+        debug {
+            buildConfigField("String", "SDK_VERSION", "\"${rootProject.ext.versions.sdk_version}\"")
+            buildConfigField("String", "MIN_PLUGIN_VERSION", "\"${rootProject.ext.versions.min_plugin_version}\"")
+            manifestPlaceholders = ["SENSORSDATA_SDK_VERSION": "${rootProject.ext.versions.sdk_version}"]
+        }
+    }
+
+    testOptions {
+        unitTests.all {
+            testLogging {
+                events 'passed', 'skipped', 'failed', 'standardOut', 'standardError'
+                outputs.upToDateWhen { false }
+                showStandardStreams = true
+            }
+        }
+        unitTests.includeAndroidResources = true
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    testImplementation rootProject.ext.test.junit
+    androidTestImplementation rootProject.ext.test.androidx_core
+    androidTestImplementation rootProject.ext.test.androidx_runner
+    androidTestImplementation rootProject.ext.test.androidx_rules
+    androidTestImplementation rootProject.ext.test.androidx_junit
+    // Espresso dependencies
+    androidTestImplementation rootProject.ext.test.espresso_core
+    androidTestImplementation rootProject.ext.test.espresso_web
+    //Robolectric & JVM test
+    testImplementation rootProject.ext.test.robolectric
+    testImplementation rootProject.ext.test.powermock_core
+    //mock
+    androidTestImplementation rootProject.ext.test.mockito_core
+    androidTestImplementation rootProject.ext.test.mockito_android
+    testImplementation rootProject.ext.test.powermock_module_junit4
+    testImplementation rootProject.ext.test.powermock_api_mockito2
+    testImplementation rootProject.ext.test.powermock_core
+}
