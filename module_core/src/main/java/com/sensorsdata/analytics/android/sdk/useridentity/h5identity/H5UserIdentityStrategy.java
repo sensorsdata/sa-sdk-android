@@ -22,10 +22,12 @@ public class H5UserIdentityStrategy {
         try {
             H5UserIdentityAPI h5UserIdentityAPI;
             // 先判断 H5 事件中是否存在 identities
-            JSONObject identityJson = null;
+            JSONObject identityJson;
             String identities = eventObject.optString(Identities.IDENTITIES_KEY);
             if (!TextUtils.isEmpty(identities)) {
                 identityJson = new JSONObject(identities);
+            } else {
+                identityJson = new JSONObject();
             }
             if (EventType.TRACK_SIGNUP == eventType) {
                 specialIDProcess(identityJson);

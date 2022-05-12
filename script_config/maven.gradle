@@ -129,20 +129,20 @@ publishing {
         def mavenPassword = properties.getProperty("maven.password")
         maven {
             // 发布到本地
-//            url = '../repo'
-            url = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
-            credentials {
-                username mavenUser
-                password mavenPassword
-            }
+            url = '../repo'
+//            url = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
+//            credentials {
+//                username mavenUser
+//                password mavenPassword
+//            }
         }
     }
 }
 
 // 对 mavenAndroid 发布内容进行签名
-signing {
-    sign publishing.publications.mavenAndroid
-}
+//signing {
+//    sign publishing.publications.mavenAndroid
+//}
 
 def getModuleArtifactId(String moduleName) {
     return moduleName.replace("module_", "")
