@@ -381,7 +381,10 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
 
     @Override
     public JSONObject mergeChannelEventProperties(String eventName, JSONObject properties) {
-        return ChannelUtils.checkOrSetChannelCallbackEvent(eventName, properties, mContext);
+        if (mOptions.isAutoAddChannelCallbackEvent()) {
+            return ChannelUtils.checkOrSetChannelCallbackEvent(eventName, properties, mContext);
+        }
+        return properties;
     }
 
     @Override

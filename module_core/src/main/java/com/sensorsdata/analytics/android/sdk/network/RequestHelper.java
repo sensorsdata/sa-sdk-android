@@ -35,18 +35,19 @@ public class RequestHelper {
      * 网络请求
      *
      * @param url url
+     * @param httpConfig 网络配置
      * @param paramsMap 键值对参数
      * @param headerMap 请求头键值对
      * @param retryCount 重试次数
      * @param callBack 请求回调
      */
-    private RequestHelper(HttpMethod method, String url, Map<String, String> paramsMap, Map<String, String> headerMap, int retryCount, HttpCallback callBack) {
+    private RequestHelper(HttpMethod method, String url, HttpConfig httpConfig, Map<String, String> paramsMap, Map<String, String> headerMap, int retryCount, HttpCallback callBack) {
         switch (method) {
             case GET:
-                urlHttpGet(url, paramsMap, headerMap, retryCount, callBack);
+                urlHttpGet(url, httpConfig, paramsMap, headerMap, retryCount, callBack);
                 break;
             case POST:
-                urlHttpPost(url, paramsMap, "", headerMap, retryCount, callBack);
+                urlHttpPost(url, httpConfig, paramsMap, "", headerMap, retryCount, callBack);
                 break;
         }
     }
@@ -55,40 +56,42 @@ public class RequestHelper {
      * POST 请求
      *
      * @param url url
+     * @param httpConfig 网络配置
      * @param jsonData json 格式参数
      * @param headerMap 请求头键值对
      * @param retryCount 重试次数
      * @param callBack 请求回调
      */
-    private RequestHelper(String url, String jsonData, Map<String, String> headerMap, int retryCount, HttpCallback callBack) {
-        urlHttpPost(url, null, jsonData, headerMap, retryCount, callBack);
+    private RequestHelper(String url, HttpConfig httpConfig, String jsonData, Map<String, String> headerMap, int retryCount, HttpCallback callBack) {
+        urlHttpPost(url, httpConfig, null, jsonData, headerMap, retryCount, callBack);
     }
 
     /**
      * GET 请求
      *
      * @param url url
+     * @param httpConfig 网络配置
      * @param paramsMap 键值对参数
      * @param headerMap 请求头键值对
      * @param retryCount 重试次数
      * @param callBack 请求回调
      */
-    private void urlHttpGet(final String url, final Map<String, String> paramsMap, final Map<String, String> headerMap, final int retryCount, final HttpCallback callBack) {
+    private void urlHttpGet(final String url, final HttpConfig httpConfig, final Map<String, String> paramsMap, final Map<String, String> headerMap, final int retryCount, final HttpCallback callBack) {
         final int requestCount = retryCount - 1;
         HttpTaskManager.execute(new Runnable() {
             @Override
             public void run() {
-                RealResponse response = new RealRequest().getData(getUrl(url, paramsMap), headerMap);
+                RealResponse response = new RealRequest().setHttpConfig(httpConfig).getData(getUrl(url, paramsMap), headerMap);
                 if (response.code == HTTP_OK || response.code == HTTP_NO_CONTENT) {
                     if (callBack != null) {
                         callBack.onSuccess(response);
                     }
                 } else if (!isRedirected && HttpUtils.needRedirects(response.code)) {
                     isRedirected = true;
-                    urlHttpGet(response.location, paramsMap, headerMap, retryCount, callBack);
+                    urlHttpGet(response.location, httpConfig, paramsMap, headerMap, retryCount, callBack);
                 } else {
                     if (requestCount != 0) {
-                        urlHttpGet(url, paramsMap, headerMap, requestCount, callBack);
+                        urlHttpGet(url, httpConfig, paramsMap, headerMap, requestCount, callBack);
                     } else {
                         if (callBack != null) {
                             callBack.onError(response);
@@ -103,30 +106,31 @@ public class RequestHelper {
      * POST 请求
      *
      * @param url url
+     * @param httpConfig 网络配置
      * @param paramsMap 键值对参数
      * @param jsonData json 格式参数
      * @param headerMap 请求头键值对
      * @param retryCount 重试次数
      * @param callBack 请求回调
      */
-    private void urlHttpPost(final String url, final Map<String, String> paramsMap,
+    private void urlHttpPost(final String url, final HttpConfig httpConfig, final Map<String, String> paramsMap,
                              final String jsonData, final Map<String, String> headerMap,
                              final int retryCount, final HttpCallback callBack) {
         final int requestCount = retryCount - 1;
         HttpTaskManager.execute(new Runnable() {
             @Override
             public void run() {
-                RealResponse response = new RealRequest().postData(url, getPostBody(paramsMap, jsonData), getPostBodyType(paramsMap, jsonData), headerMap);
+                RealResponse response = new RealRequest().setHttpConfig(httpConfig).postData(url, getPostBody(paramsMap, jsonData), getPostBodyType(paramsMap, jsonData), headerMap);
                 if (response.code == HTTP_OK || response.code == HTTP_NO_CONTENT) {
                     if (callBack != null) {
                         callBack.onSuccess(response);
                     }
                 } else if (!isRedirected && HttpUtils.needRedirects(response.code)) {
                     isRedirected = true;
-                    urlHttpPost(response.location, paramsMap, jsonData, headerMap, retryCount, callBack);
+                    urlHttpPost(response.location, httpConfig, paramsMap, jsonData, headerMap, retryCount, callBack);
                 } else {
                     if (requestCount != 0) {
-                        urlHttpPost(url, paramsMap, jsonData, headerMap, requestCount, callBack);
+                        urlHttpPost(url, httpConfig, paramsMap, jsonData, headerMap, requestCount, callBack);
                     } else {
                         if (callBack != null) {
                             callBack.onError(response);
@@ -229,6 +233,7 @@ public class RequestHelper {
         private Map<String, String> headerMap;
         private HttpCallback callBack;
         private int retryCount = 1;
+        private HttpConfig httpConfig;
 
         public Builder(HttpMethod method, String url) {
             this.httpMethod = method;
@@ -260,11 +265,39 @@ public class RequestHelper {
             return this;
         }
 
+        /**
+         * 设置网络连接超时
+         *
+         * @param connectionTimeout 单位是毫秒
+         * @return Builder
+         */
+        public Builder connectionTimeout(int connectionTimeout) {
+            if (httpConfig == null) {
+                httpConfig = new HttpConfig();
+            }
+            httpConfig.setConnectionTimeout(connectionTimeout);
+            return this;
+        }
+
+        /**
+         * 设置网络读取超时
+         *
+         * @param readTimeout 单位是毫秒
+         * @return Builder
+         */
+        public Builder readTimeout(int readTimeout) {
+            if (httpConfig == null) {
+                httpConfig = new HttpConfig();
+            }
+            httpConfig.setReadTimeout(readTimeout);
+            return this;
+        }
+
         public void execute() {
             if (httpMethod == HttpMethod.POST && paramsMap == null) {
-                new RequestHelper(httpUrl, jsonData, headerMap, retryCount, callBack);
+                new RequestHelper(httpUrl, httpConfig, jsonData, headerMap, retryCount, callBack);
             } else {
-                new RequestHelper(httpMethod, httpUrl, paramsMap, headerMap, retryCount, callBack);
+                new RequestHelper(httpMethod, httpUrl, httpConfig, paramsMap, headerMap, retryCount, callBack);
             }
         }
     }

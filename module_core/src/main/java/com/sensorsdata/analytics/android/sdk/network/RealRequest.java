@@ -37,9 +37,8 @@ import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF
 class RealRequest {
 
     private static final String TAG = "SA.HttpRequest";
-    private static final int CONNECT_TIMEOUT = 30000;
-    private static final int READ_TIMEOUT = 30000;
     private static String sRequestURL;
+    private HttpConfig httpConfig = new HttpConfig();
 
     /**
      * GET 请求
@@ -124,9 +123,9 @@ class RealRequest {
         //不使用缓存
         conn.setUseCaches(false);
         //设置超时时间
-        conn.setConnectTimeout(CONNECT_TIMEOUT);
+        conn.setConnectTimeout(httpConfig.getConnectionTimeout());
         //设置读取超时时间
-        conn.setReadTimeout(READ_TIMEOUT);
+        conn.setReadTimeout(httpConfig.getReadTimeout());
         if (requestMethod.equals("POST")) {
             //设置为 true 后才能写入参数
             conn.setDoOutput(true);
@@ -195,5 +194,18 @@ class RealRequest {
         response.errorMsg = e.getMessage();
         SALog.i(TAG, response.toString());
         return response;
+    }
+
+    /**
+     * 设置网络配置如超时时间
+     * @param httpConfig httpConfig
+     * @return  RealRequest
+     */
+    public RealRequest setHttpConfig(HttpConfig httpConfig) {
+        if(httpConfig == null) {
+            return this;
+        }
+        this.httpConfig = httpConfig;
+        return this;
     }
 }

@@ -1,13 +1,13 @@
 ext {
     versions = [
-            sdk_version       : '6.3.3',    // 全量 SDK 版本号
+            sdk_version       : '6.3.4',    // 全量 SDK 版本号
             min_plugin_version: "3.4.0",    // 最小插件版本号依赖
-            module_version    : "0.0.2"     // 子模块版本号
+            module_version    : "0.0.3"     // 子模块版本号
     ]
 
     buildConfig = [
             compileSdkVersion: 31,
-            minSdkVersion    : 9,
+            minSdkVersion    : 14,
             targetSdkVersion : 31,
             sourceJavaVersion: JavaVersion.VERSION_1_7,
             targetJavaVersion: JavaVersion.VERSION_1_7,
