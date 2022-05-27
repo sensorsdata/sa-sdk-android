@@ -185,20 +185,9 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 return;
             }
             final boolean isFromObserver = !SensorsDataContentObserver.isDisableFromObserver;
-            sensorsDataAPI.transformTaskQueue(new Runnable() {
-                @Override
-                public void run() {
-                    if (isFromObserver) {
-                        sensorsDataAPI.trackInternal("$AppDataTrackingClose", null);
-                    }
-                }
-            });
-            //禁止网络
-            if (sensorsDataAPI.isNetworkRequestEnable()) {
-                sensorsDataAPI.enableNetworkRequest(false);
-                isChangeEnableNetworkFlag = true;
-            } else {
-                isChangeEnableNetworkFlag = false;
+            if (isFromObserver) {
+                sensorsDataAPI.track("$AppDataTrackingClose");
+                sensorsDataAPI.flush();
             }
             //关闭网络监听
             sensorsDataAPI.unregisterNetworkListener();
@@ -240,11 +229,6 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                     sensorsDataAPI.mFirstDay.commit(TimeUtils.formatTime(System.currentTimeMillis(), TimeUtils.YYYY_MM_DD));
                 }
                 sensorsDataAPI.delayInitTask();
-                //开启网络请求
-                if (isChangeEnableNetworkFlag) {
-                    sensorsDataAPI.enableNetworkRequest(true);
-                    isChangeEnableNetworkFlag = false;
-                }
                 //重新请求可视化全埋点
                 if (SensorsDataAPI.getConfigOptions().isVisualizedPropertiesEnabled()) {
                     VisualPropertiesManager.getInstance().requestVisualConfig();

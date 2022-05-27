@@ -130,11 +130,6 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
 
     @Override
     public void requestRemoteConfig(RandomTimeType randomTimeType, final boolean enableConfigV) {
-        if (mSensorsDataAPI != null && !mSensorsDataAPI.isNetworkRequestEnable()) {
-            SALog.i(TAG, "Close network request");
-            return;
-        }
-
         if (mDisableDefaultRemoteConfig) {
             SALog.i(TAG, "disableDefaultRemoteConfig is true");
             return;
@@ -159,6 +154,11 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
         mPullSDKConfigCountDownTimer = new CountDownTimer(90 * 1000, 30 * 1000) {
             @Override
             public void onTick(long l) {
+                if (mSensorsDataAPI != null && !mSensorsDataAPI.isNetworkRequestEnable() || SensorsDataAPI.isSDKDisabled()) {
+                    SALog.i(TAG, "Close network request or sdk is disable");
+                    return;
+                }
+
                 requestRemoteConfig(enableConfigV, new HttpCallback.StringCallback() {
                     @Override
                     public void onFailure(int code, String errorMessage) {

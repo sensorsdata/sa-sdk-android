@@ -33,6 +33,7 @@ import com.sensorsdata.analytics.android.sdk.ThreadNameConstants;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 
 public class AppInfoUtils {
     private static String mAppVersionName;
@@ -50,8 +51,8 @@ public class AppInfoUtils {
             ApplicationInfo appInfo = packageManager.getApplicationInfo(context.getPackageName(),
                     PackageManager.GET_META_DATA);
             return appInfo.loadLabel(packageManager);
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
+        } catch (Throwable e) {
+            SALog.i("SA.AppInfoUtils", e.getMessage());
         }
         return "";
     }
@@ -219,7 +220,7 @@ public class AppInfoUtils {
                 buffer[len++] = (byte) b;
             }
             if (len > 0) {
-                return new String(buffer, 0, len, "UTF-8");
+                return new String(buffer, 0, len, StandardCharsets.UTF_8);
             }
         } catch (Throwable e) {
             // ignore

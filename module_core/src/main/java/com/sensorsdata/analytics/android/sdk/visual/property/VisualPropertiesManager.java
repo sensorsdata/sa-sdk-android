@@ -54,10 +54,10 @@ public class VisualPropertiesManager {
     private static final String TAG = "SA.VP.VisualPropertiesManager";
     private static final String PROPERTY_TYPE_NUMBER = "NUMBER";
     private VisualConfig mVisualConfig;
-    private VisualPropertiesCache mConfigCache;
-    private VisualConfigRequestHelper mRequestHelper;
+    private final VisualPropertiesCache mConfigCache;
+    private final VisualConfigRequestHelper mRequestHelper;
     private CollectLogListener mCollectLogListener;
-    private VisualPropertiesH5Helper mVisualPropertiesH5Helper;
+    private final VisualPropertiesH5Helper mVisualPropertiesH5Helper;
 
     private VisualPropertiesManager() {
         mConfigCache = new VisualPropertiesCache();
@@ -71,12 +71,12 @@ public class VisualPropertiesManager {
     }
 
     private static class SingletonHolder {
-        private static VisualPropertiesManager INSTANCE = new VisualPropertiesManager();
+        private static final VisualPropertiesManager INSTANCE = new VisualPropertiesManager();
     }
 
     public void requestVisualConfig(Context context, SensorsDataAPI sensorsDataAPI) {
         try {
-            if (sensorsDataAPI == null || !sensorsDataAPI.isNetworkRequestEnable()) {
+            if (sensorsDataAPI == null || !sensorsDataAPI.isNetworkRequestEnable() || SensorsDataAPI.isSDKDisabled()) {
                 SALog.i(TAG, "Close network request");
                 return;
             }
@@ -153,8 +153,8 @@ public class VisualPropertiesManager {
     public enum VisualEventType {
         APP_CLICK("appclick", "$AppClick"),
         WEB_CLICK("appclick", "$WebClick");
-        private String visualEventType;
-        private String trackEventType;
+        private final String visualEventType;
+        private final String trackEventType;
 
         VisualEventType(String visualEventType, String trackEventType) {
             this.visualEventType = visualEventType;

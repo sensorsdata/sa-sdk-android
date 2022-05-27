@@ -24,9 +24,6 @@ import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
-import android.view.ViewTreeObserver.OnGlobalFocusChangeListener;
-import android.view.ViewTreeObserver.OnGlobalLayoutListener;
-import android.view.ViewTreeObserver.OnScrollChangedListener;
 
 import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.AppStateManager;
@@ -34,7 +31,6 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
-import com.sensorsdata.analytics.android.sdk.visual.util.Dispatcher;
 import com.sensorsdata.analytics.android.sdk.visual.util.VisualUtil;
 
 import org.json.JSONObject;
@@ -45,10 +41,9 @@ import java.util.HashMap;
 import java.util.List;
 
 
-public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrollChangedListener, OnGlobalFocusChangeListener {
+public class ViewTreeStatusObservable {
     private static final String TAG = "SA.ViewTreeStatusObservable";
     public static volatile ViewTreeStatusObservable viewTreeStatusObservable;
-    private final Runnable mTraverseRunnable = new TraverseRunnable();
     private SparseArray<ViewNode> mViewNodesWithHashCode = new SparseArray<>();
     private HashMap<String, ViewNode> mViewNodesHashMap = new HashMap<>();
     private HashMap<String, ViewNode> mWebViewHashMap = new HashMap<>();
@@ -62,41 +57,6 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
             }
         }
         return viewTreeStatusObservable;
-    }
-
-    class TraverseRunnable implements Runnable {
-        TraverseRunnable() {
-        }
-
-        public void run() {
-            long startTime = System.currentTimeMillis();
-            SALog.i(TAG, "start traverse...");
-            traverseNode();
-            SALog.i(TAG, "stop traverse...:" + (System.currentTimeMillis() - startTime));
-        }
-    }
-
-    public void onGlobalFocusChanged(View oldFocus, View newFocus) {
-        SALog.i(TAG, "onGlobalFocusChanged");
-        traverse();
-    }
-
-    public void onGlobalLayout() {
-        SALog.i(TAG, "onGlobalLayout");
-        traverse();
-    }
-
-    public void onScrollChanged() {
-        SALog.i(TAG, "onScrollChanged");
-        traverse();
-    }
-
-    public void traverse() {
-        try {
-            Dispatcher.getInstance().postDelayed(mTraverseRunnable, 100);
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
     }
 
     public ViewNode getViewNode(View view) {
@@ -184,14 +144,14 @@ public class ViewTreeStatusObservable implements OnGlobalLayoutListener, OnScrol
     }
 
     private void traverseNode() {
-        mViewNodesHashMap.clear();
-        mViewNodesWithHashCode.clear();
-        mWebViewHashMap.clear();
         traverseNode(null);
     }
 
     private void traverseNode(View rootView) {
         try {
+            mViewNodesHashMap.clear();
+            mViewNodesWithHashCode.clear();
+            mWebViewHashMap.clear();
             SparseArray<ViewNode> tempSparseArray = new SparseArray<>();
             HashMap<String, ViewNode> tempHashMap = new HashMap<>();
             HashMap<String, ViewNode> tempWebViewHashMap = new HashMap<>();

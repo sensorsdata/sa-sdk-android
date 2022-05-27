@@ -423,4 +423,18 @@ public class NetworkUtils {
         }
         return "";
     }
+
+    /**
+     * 比较用户设置的 customADChannelUrl 中的 host 的主域和 slink 短链中 host 的主域
+     *
+     * @param adChannelhost 用户设置的 customADChannelUrl 中的 host
+     * @param slinkHost slink 短链中 host
+     * @return 是否相同
+     */
+    public static boolean compareMainDomain(String adChannelhost, String slinkHost) {
+        if (!TextUtils.isEmpty(adChannelhost) && !TextUtils.isEmpty(slinkHost) && slinkHost.contains(".")) {
+            return adChannelhost.substring(adChannelhost.indexOf(".") + 1).equals(slinkHost.substring(slinkHost.indexOf(".") + 1));
+        }
+        return false;
+    }
 }

@@ -20,7 +20,6 @@ package com.sensorsdata.analytics.android.sdk;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
@@ -120,11 +119,6 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
             if (window != null) {
                 decorView = window.getDecorView();
             }
-            if (SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled()) {
-                if (decorView != null) {
-                    monitorViewTreeChange(decorView);
-                }
-            }
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -137,12 +131,6 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
 
     @Override
     public void onActivityPaused(Activity activity) {
-        if (SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled()) {
-            Window window = activity.getWindow();
-            if (window != null && window.isActive()) {
-                unRegisterViewTreeChange(window.getDecorView());
-            }
-        }
         if (!activity.isChild()) {
             mCurrentRootWindowsHashCode = -1;
         }
@@ -162,36 +150,5 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
     public void onActivityDestroyed(Activity activity) {
         ViewTreeStatusObservable.getInstance().clearWebViewCache();
         ViewUtil.clear();
-    }
-
-    private void unRegisterViewTreeChange(View root) {
-        try {
-            if (root.getTag(R.id.sensors_analytics_tag_view_tree_observer_listeners) != null) {
-                ViewTreeStatusObservable observable = ViewTreeStatusObservable.getInstance();
-                if (Build.VERSION.SDK_INT < 16) {
-                    root.getViewTreeObserver().removeGlobalOnLayoutListener(observable);
-                } else {
-                    root.getViewTreeObserver().removeOnGlobalLayoutListener(observable);
-                }
-                root.getViewTreeObserver().removeOnGlobalFocusChangeListener(observable);
-                root.getViewTreeObserver().removeOnScrollChangedListener(observable);
-                root.setTag(R.id.sensors_analytics_tag_view_tree_observer_listeners, null);
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-    }
-
-    private void monitorViewTreeChange(View root) {
-        try {
-            if (root.getTag(R.id.sensors_analytics_tag_view_tree_observer_listeners) == null) {
-                root.getViewTreeObserver().addOnGlobalLayoutListener(ViewTreeStatusObservable.getInstance());
-                root.getViewTreeObserver().addOnScrollChangedListener(ViewTreeStatusObservable.getInstance());
-                root.getViewTreeObserver().addOnGlobalFocusChangeListener(ViewTreeStatusObservable.getInstance());
-                root.setTag(R.id.sensors_analytics_tag_view_tree_observer_listeners, true);
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
     }
 }

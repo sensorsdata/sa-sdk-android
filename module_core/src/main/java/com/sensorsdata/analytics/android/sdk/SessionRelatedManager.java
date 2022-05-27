@@ -25,7 +25,7 @@ public class SessionRelatedManager {
     private final String KEY_SESSION_ID = "sessionID";
     private final String KEY_START_TIME = "startTime";
     private final String KEY_LAST_EVENT_TIME = "lastEventTime";
-    private final long SESSION_LAST_INTERVAL_TIME = 30 * 60 * 1000;
+    private long SESSION_LAST_INTERVAL_TIME = 5 * 60 * 1000;
     private final long SESSION_START_INTERVAL_TIME = 12 * 60 * 60 * 1000;
 
     /**
@@ -54,6 +54,7 @@ public class SessionRelatedManager {
 
     private SessionRelatedManager() {
         try {
+            setSessionLastIntervalTime(SensorsDataAPI.getConfigOptions().getEventSessionTimeout());
             if (!SensorsDataAPI.getConfigOptions().isEnableSession()) {
                 deleteSessionData();
             } else {
@@ -78,10 +79,13 @@ public class SessionRelatedManager {
     public void handleEventOfSession(String eventName, JSONObject property, long time) {
         if (!SensorsDataAPI.getConfigOptions().isEnableSession()) return;
         try {
-            handleSessionState(time);
-            if ("$AppEnd".equals(eventName) && !property.has(EVENT_SESSION_ID)) {// App 由关切换到开，补发的 $AppEnd 不能带有
+            if ("$AppEnd".equals(eventName)) {
+                if (time > mLastEventTime) {//$AppEnd 需要更新上一个时间戳
+                    mLastEventTime = time;
+                }
                 return;
             }
+            handleSessionState(time);
             property.put(EVENT_SESSION_ID, mSessionID);
         } catch (JSONException e) {
             SALog.printStackTrace(e);
@@ -109,9 +113,9 @@ public class SessionRelatedManager {
     /**
      * 创建 Session 数据
      */
-    private void createSessionData(long eventTime, boolean isSessionTypeByEvent) {
+    private synchronized void createSessionData(long eventTime, boolean isUpdateSessionStartTime) {
         mSessionID = UUID.randomUUID().toString();
-        if (isSessionTypeByEvent) {
+        if (isUpdateSessionStartTime) {
             mStartTime = eventTime;
         }
         mLastEventTime = Math.max(eventTime, mLastEventTime);  // 避免补发 $AppEnd 事件时间戳被覆盖
@@ -145,7 +149,7 @@ public class SessionRelatedManager {
      *
      * @param eventTime 事件触发时间
      */
-    private void handleSessionState(long eventTime) {
+    private synchronized void handleSessionState(long eventTime) {
         if (eventTime <= 0) return;
         if (TextUtils.isEmpty(mSessionID) || eventTime - mLastEventTime > SESSION_LAST_INTERVAL_TIME || eventTime - mStartTime > SESSION_START_INTERVAL_TIME) {
             //生成 session
@@ -163,7 +167,7 @@ public class SessionRelatedManager {
      */
     public void refreshSessionByTimer(long refreshTime) {
         if (refreshTime - mLastEventTime > SESSION_LAST_INTERVAL_TIME) {
-            createSessionData(refreshTime, false);
+            createSessionData(refreshTime, TextUtils.isEmpty(mSessionID));  // 首个打点的需要更新 Session 启动时间戳
         }
     }
 
@@ -182,5 +186,11 @@ public class SessionRelatedManager {
 
     public String getSessionID() {
         return mSessionID;
+    }
+
+    private void setSessionLastIntervalTime(int intervalTime) {
+        if (intervalTime > 0) {
+            SESSION_LAST_INTERVAL_TIME = intervalTime * 1000L;
+        }
     }
 }

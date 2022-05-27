@@ -109,7 +109,7 @@ public class DeepLinkManager {
         if (paths != null && !paths.isEmpty()) {
             String host = uri.getHost();
             if (paths.get(0).equals("slink")) {
-                return !TextUtils.isEmpty(host) && !TextUtils.isEmpty(customADChannelUrl) && (host.equals(customADChannelUrl) || host.equals("sensorsdata"));
+                return !TextUtils.isEmpty(host) && !TextUtils.isEmpty(customADChannelUrl) && (NetworkUtils.compareMainDomain(customADChannelUrl, host) || host.equals("sensorsdata"));
             } else if (paths.get(0).equals("sd") && !TextUtils.isEmpty(serverHost)) {
                 return !TextUtils.isEmpty(host) && (host.equals(serverHost) || host.equals("sensorsdata"));
             }

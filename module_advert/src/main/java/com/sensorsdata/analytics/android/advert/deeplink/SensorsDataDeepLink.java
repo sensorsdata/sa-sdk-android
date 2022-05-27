@@ -87,6 +87,9 @@ class SensorsDataDeepLink extends AbsDeepLink {
                                 ChannelUtils.parseParams(params);
                                 pageParams = response.optString("page_params");
                                 errorMsg = response.optString("errorMsg");
+                                if (TextUtils.isEmpty(errorMsg)) { //兼容 slink 接口
+                                    errorMsg = response.optString("error_msg");
+                                }
                                 adSlinkId = response.optString("ad_slink_id");
                                 if (!TextUtils.isEmpty(errorMsg)) {
                                     success = false;
@@ -151,7 +154,7 @@ class SensorsDataDeepLink extends AbsDeepLink {
         List<String> paths = uri.getPathSegments();
         if (null != paths && !paths.isEmpty() && paths.get(0).equals("slink")) {
             String host = uri.getHost();
-            return !TextUtils.isEmpty(host) && (host.equals(customADChannelUrl) || host.equals("sensorsdata"));
+            return !TextUtils.isEmpty(host) && (NetworkUtils.compareMainDomain(customADChannelUrl, host) || host.equals("sensorsdata"));
         }
         return false;
     }

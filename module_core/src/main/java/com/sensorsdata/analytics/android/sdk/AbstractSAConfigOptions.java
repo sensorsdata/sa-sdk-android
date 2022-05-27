@@ -176,6 +176,11 @@ abstract class AbstractSAConfigOptions {
     boolean mEnableSession = false;
 
     /**
+     * 自定义 event session 切割的超时时间
+     */
+    int mEventSessionTimeout;
+
+    /**
      * 自定义加密实现接口
      */
     List<SAEncryptListener> mEncryptors = new ArrayList<>();
@@ -334,5 +339,9 @@ abstract class AbstractSAConfigOptions {
 
     public String getCustomADChannelUrl(){
         return mCustomADChannelUrl;
+    }
+
+    public int getEventSessionTimeout() {
+        return mEventSessionTimeout;
     }
 }

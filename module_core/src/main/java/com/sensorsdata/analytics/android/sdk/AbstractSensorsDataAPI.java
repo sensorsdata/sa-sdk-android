@@ -131,7 +131,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     protected boolean mClearReferrerWhenAppEnd = false;
     protected boolean mDisableDefaultRemoteConfig = false;
     protected boolean mDisableTrackDeviceId = false;
-    protected static boolean isChangeEnableNetworkFlag = false;
     // Session 时长
     protected int mSessionTime = 30 * 1000;
     protected List<Integer> mAutoTrackIgnoredActivities;
@@ -1033,11 +1032,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         }
 
         enableTrackScreenOrientation(mSAConfigOptions.mTrackScreenOrientationEnabled);
-
-        if (mSAConfigOptions.isDisableSDK) {
-            mEnableNetworkRequest = false;
-            isChangeEnableNetworkFlag = true;
-        }
 
         SHOW_DEBUG_INFO_VIEW = configBundle.getBoolean("com.sensorsdata.analytics.android.ShowDebugInfoView",
                 true);

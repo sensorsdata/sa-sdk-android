@@ -406,7 +406,6 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
      * 指定 Activity/Fragment 的格式为：****.class
      *
      * @param ignoreList activity/Fragment 列表
-     *
      * @return SAConfigOptions
      */
     public SAConfigOptions ignorePageLeave(List<Class<?>> ignoreList) {
@@ -486,6 +485,17 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
      */
     public SAConfigOptions enableSession(boolean enableSession) {
         this.mEnableSession = enableSession;
+        return this;
+    }
+
+    /**
+     * 是 event_session 切割的超时时间
+     *
+     * @param time 超时时间，单位秒
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions setEventSessionTimeout(int time) {
+        this.mEventSessionTimeout = time;
         return this;
     }
 }
