@@ -20,8 +20,10 @@ package com.sensorsdata.analytics.android.sdk.encrypt;
 import android.content.Context;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
+import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -171,31 +173,29 @@ public class SensorsDataEncrypt {
     /**
      * 检查公钥密钥信息是否和本地一致
      *
+     * @param activity Context
      * @param version 版本号
      * @param key 密钥信息
      * @param symmetricEncryptType 对称加密类型
      * @param asymmetricEncryptType 非对称加密类型
      * @return -1 是本地密钥信息为空，-2 是相同，其它是不相同
      */
-    public String checkPublicSecretKey(String version, String key, String symmetricEncryptType, String asymmetricEncryptType) {
+    public String checkPublicSecretKey(Context activity, String version, String key, String symmetricEncryptType, String asymmetricEncryptType) {
         try {
             SecreteKey secreteKey = loadSecretKey();
             if (secreteKey == null || TextUtils.isEmpty(secreteKey.key)) {
-                return "密钥验证不通过，App 端密钥为空";
+                return SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_encrypt_key_null);
             } else if (version.equals(secreteKey.version + "")
                     && disposeECPublicKey(key).equals(disposeECPublicKey(secreteKey.key))) {
                 if ((symmetricEncryptType == null || asymmetricEncryptType == null)
                         || (symmetricEncryptType.equals(secreteKey.symmetricEncryptType) && asymmetricEncryptType.equals(secreteKey.asymmetricEncryptType))) {
-                    return "密钥验证通过，所选密钥与 App 端密钥相同";
+                    return SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_encrypt_pass);
                 } else {
-                    return "密钥验证不通过，所选密钥类型与 App 端密钥类型不相同。所选密钥对称算法类型:" + symmetricEncryptType +
-                            "，非对称算法类型:" + asymmetricEncryptType +
-                            "，App 端密钥对称算法类型:" + secreteKey.symmetricEncryptType
-                            + "，非对称算法类型:" + secreteKey.asymmetricEncryptType;
+                    return String.format(SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_encrypt_verify_fail_type),
+                            symmetricEncryptType, asymmetricEncryptType, secreteKey.symmetricEncryptType, secreteKey.asymmetricEncryptType);
                 }
             } else {
-                return "密钥验证不通过，所选密钥与 App 端密钥不相同。所选密钥版本:" + version +
-                        "，App 端密钥版本:" + secreteKey.version;
+                return String.format(SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_encrypt_verify_fail_version), version, secreteKey.version);
             }
         } catch (Exception ex) {
             SALog.printStackTrace(ex);

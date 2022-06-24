@@ -62,19 +62,30 @@ public class ViewTreeStatusObservable {
     public ViewNode getViewNode(View view) {
         ViewNode viewNode = null;
         try {
-            viewNode = mViewNodesWithHashCode.get(view.hashCode());
-            if (viewNode == null) {
-                viewNode = getViewPathAndPosition(view);
-                if (viewNode != null) {
-                    mViewNodesWithHashCode.put(view.hashCode(), viewNode);
-                }
-            }
+            viewNode = getViewPathAndPosition(view);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
         return viewNode;
     }
 
+    /**
+     * 自定义属性之前清空缓存信息
+     */
+    public void clearViewNodeCache() {
+        mViewNodesWithHashCode.clear();
+        mViewNodesHashMap.clear();
+    }
+
+    /**
+     * 自定义属性获取属性对应数据
+     *
+     * @param reference 当前 view
+     * @param elementPath 自定义属性 element_path
+     * @param elementPosition 自定义属性位置
+     * @param screenName 自定义属性页面
+     * @return 自定义属性 ViewNode
+     */
     public ViewNode getViewNode(WeakReference<View> reference, String elementPath, String elementPosition, String screenName) {
         ViewNode viewNode = null;
         try {
@@ -253,7 +264,7 @@ public class ViewTreeStatusObservable {
      * @return 返回 View 对象的 ViewNode 信息
      */
     public ViewNode getViewPathAndPosition(View clickView) {
-        return getCacheViewPathAndPosition(clickView, false);
+        return getSingleViewPathAndPosition(clickView, false);
     }
 
     /**
@@ -284,23 +295,75 @@ public class ViewTreeStatusObservable {
                 parentNode = ViewUtil.getViewPathAndPosition(parent_view, fromVisual);
                 mViewNodesWithHashCode.put(parent_view.hashCode(), parentNode);
             }
-            opx.append(parentNode.getViewOriginalPath());
-            px.append(parentNode.getViewPath());
+            String listPosition = "";
+            if (parentNode != null) {
+                opx.append(parentNode.getViewOriginalPath());
+                px.append(parentNode.getViewPath());
+                listPosition = parentNode.getViewPosition();
+            }
+
             final int viewPosition = ((ViewGroup) parent_view).indexOfChild(clickView);
             currentNode = ViewUtil.getViewNode(clickView, viewPosition, fromVisual);
-            String listPosition = parentNode.getViewPosition();
             // 这个地方由于 viewPosition 当前控件是列表的子控件的时候，表示当前控件位于父控件的位置；当前控件是非列表的子控件的时候，表示上一个列表的位置。因此通过上一个 View 的 listPosition 进行替换[-]没有什么大的问题
-            if (!TextUtils.isEmpty(currentNode.getViewPath()) && currentNode.getViewPath().contains("-") && !TextUtils.isEmpty(listPosition)) {
+            if (currentNode != null && !TextUtils.isEmpty(currentNode.getViewPath()) && currentNode.getViewPath().contains("-") && !TextUtils.isEmpty(listPosition)) {
                 int replacePosition = px.lastIndexOf("-");
                 if (replacePosition != -1) {
                     px.replace(replacePosition, replacePosition + 1, String.valueOf(listPosition));
                 }
             }
-            opx.append(currentNode.getViewOriginalPath());
-            px.append(currentNode.getViewPath());
-            currentNode = new ViewNode(clickView, currentNode.getViewPosition(), opx.toString(), px.toString(), currentNode.getViewContent());
+            if (currentNode != null) {
+                opx.append(currentNode.getViewOriginalPath());
+                px.append(currentNode.getViewPath());
+                currentNode = new ViewNode(clickView, currentNode.getViewPosition(), opx.toString(), px.toString(), currentNode.getViewContent());
+            }
         }
         mViewNodesWithHashCode.put(clickView.hashCode(), currentNode);
         return currentNode;
     }
+
+    /**
+     * 不走缓存获取单个 view 的具体信息
+     *
+     * @param clickView 当前 view
+     * @param fromVisual 是否来着可视化
+     * @return view 的 ViewNode 结构
+     */
+    private ViewNode getSingleViewPathAndPosition(View clickView, boolean fromVisual) {
+        ViewNode currentNode;
+        ViewParent viewParent;
+        View parent_view = null;
+        viewParent = clickView.getParent();
+        if (viewParent instanceof ViewGroup) {
+            parent_view = (View) viewParent;
+        }
+        if (parent_view == null) {
+            currentNode = ViewUtil.getViewPathAndPosition(clickView, fromVisual);
+        } else {
+            StringBuilder opx = new StringBuilder();
+            StringBuilder px = new StringBuilder();
+            ViewNode parentNode = ViewUtil.getViewPathAndPosition(parent_view, fromVisual);
+            String listPosition = "";
+            if (parentNode != null) {
+                opx.append(parentNode.getViewOriginalPath());
+                px.append(parentNode.getViewPath());
+                listPosition = parentNode.getViewPosition();
+            }
+            final int viewPosition = ((ViewGroup) parent_view).indexOfChild(clickView);
+            currentNode = ViewUtil.getViewNode(clickView, viewPosition, fromVisual);
+            if (currentNode != null) {
+                // 这个地方由于 viewPosition 当前控件是列表的子控件的时候，表示当前控件位于父控件的位置；当前控件是非列表的子控件的时候，表示上一个列表的位置。因此通过上一个 View 的 listPosition 进行替换[-]没有什么大的问题
+                if (!TextUtils.isEmpty(currentNode.getViewPath()) && currentNode.getViewPath().contains("-") && !TextUtils.isEmpty(listPosition)) {
+                    int replacePosition = px.lastIndexOf("-");
+                    if (replacePosition != -1) {
+                        px.replace(replacePosition, replacePosition + 1, String.valueOf(listPosition));
+                    }
+                }
+                opx.append(currentNode.getViewOriginalPath());
+                px.append(currentNode.getViewPath());
+                currentNode = new ViewNode(clickView, currentNode.getViewPosition(), opx.toString(), px.toString(), currentNode.getViewContent());
+            }
+        }
+        return currentNode;
+    }
+
 }

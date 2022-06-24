@@ -19,6 +19,7 @@ package com.sensorsdata.analytics.android.advert.deeplink;
 
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.advert.R;
 import com.sensorsdata.analytics.android.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
@@ -29,21 +30,23 @@ import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
 import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
+import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
 import org.json.JSONObject;
 
-import java.util.Locale;
 import java.util.Map;
 
 public class DeferredDeepLinkHelper {
     public static void request(final JSONObject jsonData, final SensorsDataDeferredDeepLinkCallback callBack, String url, final boolean isSaveDeepLinkInfo) {
         final long requestDeepLinkStartTime = System.currentTimeMillis();
         boolean isLegalHostUrl = !TextUtils.isEmpty(url) && (url.startsWith("http://") || url.startsWith("https://"));
-        if (!isLegalHostUrl && (TextUtils.isEmpty(SensorsDataAPI.sharedInstance().getServerUrl()) || !SensorsDataAPI.sharedInstance().getServerUrl().startsWith("http"))) {
+        final SensorsDataAPI sensorsDataAPI = SensorsDataAPI.sharedInstance();
+        if (!isLegalHostUrl && (TextUtils.isEmpty(sensorsDataAPI.getServerUrl()) || !sensorsDataAPI.getServerUrl().startsWith("http"))) {
             return;
         }
-        new RequestHelper.Builder(HttpMethod.POST, NetworkUtils.getRequestUrl(isLegalHostUrl ? url : SensorsDataAPI.sharedInstance().getServerUrl(), "slink/ddeeplink"))
+        new RequestHelper.Builder(HttpMethod.POST, NetworkUtils.getRequestUrl(isLegalHostUrl ? url : sensorsDataAPI.getServerUrl(), "slink/ddeeplink"))
                 .jsonData(jsonData.toString())
                 .callback(new HttpCallback.JsonCallback() {
                     private String parameter;
@@ -98,7 +101,7 @@ public class DeferredDeepLinkHelper {
                                 properties.put("$ad_slink_id", adSlinkId);
                             }
                             properties.put("$ad_app_match_type", "deferred deeplink");
-                            properties.put("$event_duration", String.format(Locale.CHINA, "%.3f", duration / 1000.0f));
+                            properties.put("$event_duration", TimeUtils.duration(duration));
                             properties.put("$ad_device_info", jsonData.get("ids"));
                             if (callBack != null) {
                                 try {
@@ -109,16 +112,16 @@ public class DeferredDeepLinkHelper {
                                             jsonObject.put("$ad_slink_id", adSlinkId);
                                         }
                                         SensorsDataUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), jsonObject);
-                                        SensorsDataAPI.sharedInstance().trackInternal("$AdAppDeferredDeepLinkJump", jsonObject);
+                                        sensorsDataAPI.trackInternal("$AdAppDeferredDeepLinkJump", jsonObject);
                                     }
                                 } catch (Exception e) {
                                     SALog.printStackTrace(e);
                                 }
                             } else if (isSuccess) {
-                                properties.put("$deeplink_match_fail_reason", "未调用 setDeepLinkCompletion 方法设置回调函数");
+                                properties.put("$deeplink_match_fail_reason", SADisplayUtil.getStringResource(sensorsDataAPI.getContext(), R.string.sensors_analytics_ad_listener));
                             }
                             SensorsDataUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
-                            SensorsDataAPI.sharedInstance().trackInternal("$AppDeeplinkMatchedResult", properties);
+                            sensorsDataAPI.trackInternal("$AppDeeplinkMatchedResult", properties);
                         } catch (Exception e) {
                             SALog.printStackTrace(e);
                         }

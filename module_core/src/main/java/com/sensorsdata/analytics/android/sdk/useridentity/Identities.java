@@ -3,7 +3,6 @@ package com.sensorsdata.analytics.android.sdk.useridentity;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.LoginIdKeyPersistent;
@@ -100,13 +99,10 @@ public class Identities {
             if (mayEmpty_anonymousId != null) {
                 tmp_identities.put(ANONYMOUS_ID, mayEmpty_anonymousId);
             }
-            // 同意合规时
-            if (SensorsDataAPI.getConfigOptions().isDataCollect()) {
-                if (SensorsDataUtils.isValidAndroidId(androidId)) {
-                    tmp_identities.put(ANDROID_ID, androidId);
-                } else {
-                    tmp_identities.put(ANDROID_UUID, anonymousId);
-                }
+            if (SensorsDataUtils.isValidAndroidId(androidId)) {
+                tmp_identities.put(ANDROID_ID, androidId);
+            } else {
+                tmp_identities.put(ANDROID_UUID, anonymousId);
             }
         } else {
             if (tmp_identities.has(ANONYMOUS_ID)) {

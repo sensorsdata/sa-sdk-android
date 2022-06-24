@@ -39,9 +39,10 @@ import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackAppViewScreenUrl;
-import com.sensorsdata.analytics.android.sdk.visual.snap.SnapCache;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
+import com.sensorsdata.analytics.android.sdk.visual.snap.SnapCache;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -77,32 +78,7 @@ public final class SensorsDataUtils {
     private static boolean isUniApp = false;
     private static String androidID = "";
 
-    private static final Map<String, String> sCarrierMap = new HashMap<String, String>() {
-        {
-            //中国移动
-            put("46000", "中国移动");
-            put("46002", "中国移动");
-            put("46007", "中国移动");
-            put("46008", "中国移动");
-
-            //中国联通
-            put("46001", "中国联通");
-            put("46006", "中国联通");
-            put("46009", "中国联通");
-
-            //中国电信
-            put("46003", "中国电信");
-            put("46005", "中国电信");
-            put("46011", "中国电信");
-
-            //中国卫通
-            put("46004", "中国卫通");
-
-            //中国铁通
-            put("46020", "中国铁通");
-
-        }
-    };
+    private static final Map<String, String> sCarrierMap = new HashMap<>();
 
     private static final List<String> mInvalidAndroidId = new ArrayList<String>() {
         {
@@ -168,7 +144,7 @@ public final class SensorsDataUtils {
                             if (telephonyManager.getSimState() == TelephonyManager.SIM_STATE_READY) {
                                 alternativeName = telephonyManager.getSimOperatorName();
                             } else {
-                                alternativeName = "未知";
+                                alternativeName = context.getString(R.string.sensors_analytics_carrier_unknown);
                             }
                         }
                         if (!TextUtils.isEmpty(operator)) {
@@ -249,29 +225,72 @@ public final class SensorsDataUtils {
             if (sCarrierMap.containsKey(operator)) {
                 return sCarrierMap.get(operator);
             }
-            String carrierJson = getJsonFromAssets("sa_mcc_mnc_mini.json", context);
-            if (TextUtils.isEmpty(carrierJson)) {
+
+            // init default carrier
+            initDefaultCarrier(context);
+            if (sCarrierMap.containsKey(operator)) {
+                return sCarrierMap.get(operator);
+            }
+
+            String carrier = getCarrierFromJsonObject(context.getString(R.string.sensors_analytics_carrier), operator);
+            if (TextUtils.isEmpty(carrier)) {
+                carrier = getCarrierFromJsonObject(context.getString(R.string.sensors_analytics_carrier1), operator);
+                if (TextUtils.isEmpty(carrier)) {
+                    carrier = getCarrierFromJsonObject(context.getString(R.string.sensors_analytics_carrier2), operator);
+                }
+            }
+            if (TextUtils.isEmpty(carrier)) {
                 sCarrierMap.put(operator, alternativeName);
                 return alternativeName;
             }
-            JSONObject jsonObject = new JSONObject(carrierJson);
-            String carrier = getCarrierFromJsonObject(jsonObject, operator);
-            if (!TextUtils.isEmpty(carrier)) {
-                sCarrierMap.put(operator, carrier);
-                return carrier;
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
+        } catch (Throwable e) {
+            SALog.i(TAG, e.getMessage());
         }
         return alternativeName;
     }
 
-    private static String getCarrierFromJsonObject(JSONObject jsonObject, String mccMnc) {
-        if (jsonObject == null || TextUtils.isEmpty(mccMnc)) {
-            return null;
-        }
-        return jsonObject.optString(mccMnc);
+    private static void initDefaultCarrier(Context context) {
+        if (sCarrierMap.size() == 0) {
+            String mobile = context.getString(R.string.sensors_analytics_carrier_mobile);
+            sCarrierMap.put("46000", mobile);
+            sCarrierMap.put("46002", mobile);
+            sCarrierMap.put("46007", mobile);
+            sCarrierMap.put("46008", mobile);
 
+            String unicom = context.getString(R.string.sensors_analytics_carrier_unicom);
+            sCarrierMap.put("46001", unicom);
+            sCarrierMap.put("46006", unicom);
+            sCarrierMap.put("46009", unicom);
+            sCarrierMap.put("46010", unicom);
+
+            String telecom = context.getString(R.string.sensors_analytics_carrier_telecom);
+            sCarrierMap.put("46003", telecom);
+            sCarrierMap.put("46005", telecom);
+            sCarrierMap.put("46011", telecom);
+
+            String satellite = context.getString(R.string.sensors_analytics_carrier_satellite);
+            sCarrierMap.put("46004", satellite);
+
+            String tietong = context.getString(R.string.sensors_analytics_carrier_tietong);
+            sCarrierMap.put("46020", tietong);
+        }
+    }
+
+    private static String getCarrierFromJsonObject(String carrierJson, String mccMnc) {
+        if (carrierJson == null || TextUtils.isEmpty(mccMnc)) {
+            return "";
+        }
+        try {
+            JSONObject jsonObject = new JSONObject(carrierJson);
+            String carrier = jsonObject.optString(mccMnc);
+            if (!TextUtils.isEmpty(carrier)) {
+                sCarrierMap.put(mccMnc, carrier);
+                return carrier;
+            }
+        } catch (JSONException e) {
+            SALog.printStackTrace(e);
+        }
+        return "";
     }
 
     static String getToolbarTitle(Activity activity) {
@@ -383,7 +402,7 @@ public final class SensorsDataUtils {
                 String key = superPropertiesIterator.next();
                 Object value = source.get(key);
                 if (value instanceof Date && !"$time".equals(key)) {
-                    dest.put(key, TimeUtils.formatDate((Date) value, Locale.CHINA));
+                    dest.put(key, TimeUtils.formatDate((Date) value, TimeUtils.SDK_LOCALE));
                 } else {
                     dest.put(key, value);
                 }

@@ -21,7 +21,6 @@ import android.content.Context;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPresetPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SensorsDataPropertyPluginManager;
@@ -108,7 +107,7 @@ public class SAContextManager {
      * @return AndroidID
      */
     public String getAndroidId() {
-        if (TextUtils.isEmpty(mAndroidId) && SensorsDataAPI.getConfigOptions().isDataCollectEnable()) {
+        if (TextUtils.isEmpty(mAndroidId)) {
             mAndroidId = SensorsDataUtils.getAndroidID(mContext);
         }
         return mAndroidId;
@@ -159,13 +158,5 @@ public class SAContextManager {
         if (mDeviceInfo == null || mDeviceInfo.isEmpty()) {
             mDeviceInfo = Collections.unmodifiableMap(SensorsDataPropertyPluginManager.getInstance().getPropertiesByPlugin(SAPresetPropertyPlugin.class));
         }
-    }
-
-    public boolean isAppStartSuccess() {
-        return isAppStartSuccess;
-    }
-
-    public void setAppStartSuccess(boolean appStartSuccess) {
-        isAppStartSuccess = appStartSuccess;
     }
 }

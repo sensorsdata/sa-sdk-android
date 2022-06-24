@@ -1,0 +1,23 @@
+<resources>
+    <!-- ad -->
+    <string name="sensors_analytics_ad_listener">未调用 setDeepLinkCompletion 方法设置回调函数</string>
+    <string name="sensors_analytics_ad_channel">当前为渠道包，无法使用联调诊断工具</string>
+    <string name="sensors_analytics_ad_error_url">数据接收地址错误，无法使用联调诊断工具</string>
+    <string name="sensors_analytics_ad_error_retry">无法重连，请检查是否更换了联调手机</string>
+    <string name="sensors_analytics_ad_error_project">App 集成的项目与电脑浏览器打开的项目不同，无法使用联调诊断工具</string>
+    <string name="sensors_analytics_ad_dialog_title">成功开启调试模式</string>
+    <string name="sensors_analytics_ad_dialog_content">此模式下不需要卸载 App，点击“激活”按钮可反复触发激活</string>
+    <string name="sensors_analytics_ad_dialog_activate">激活</string>
+    <string name="sensors_analytics_ad_dialog_cancel">取消</string>
+    <string name="sensors_analytics_ad_dialog_ok">确定</string>
+    <string name="sensors_analytics_ad_dialog_starting">即将开启联调模式</string>
+    <string name="sensors_analytics_ad_error_network">当前网络不可用，请检查网络！</string>
+    <string name="sensors_analytics_ad_error_request">网络异常,请求失败!</string>
+    <string name="sensors_analytics_ad_error_whitelist">添加白名单请求失败，请联系神策技术支持人员排查问题!</string>
+    <string name="sensors_analytics_ad_error_debug_fail_title">"检测到 “设备码为空”，可能原因如下，请排查："</string>
+    <string name="sensors_analytics_ad_error_debug_fail_content">
+                "1. 开启 App 时拒绝“电话”授权；\n" +
+                        "2. 手机系统权限设置中是否关闭“电话”授权；\n" +
+                        "3. 请联系研发人员确认是否“调用 trackInstallation 接口在获取“电话”授权之后。\n\n " +
+                        "排查修复后，请先卸载应用并重新安装，再扫码进行联调。"</string>
+</resources>

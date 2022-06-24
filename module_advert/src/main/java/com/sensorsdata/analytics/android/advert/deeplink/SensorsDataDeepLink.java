@@ -31,13 +31,13 @@ import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 class SensorsDataDeepLink extends AbsDeepLink {
@@ -114,7 +114,7 @@ class SensorsDataDeepLink extends AbsDeepLink {
                                     properties.put("$ad_slink_id", adSlinkId);
                                 }
                                 properties.put("$deeplink_url", getDeepLinkUrl());
-                                properties.put("$event_duration", String.format(Locale.CHINA, "%.3f", duration / 1000.0f));
+                                properties.put("$event_duration", TimeUtils.duration(duration));
                             } catch (JSONException e) {
                                 SALog.printStackTrace(e);
                             }

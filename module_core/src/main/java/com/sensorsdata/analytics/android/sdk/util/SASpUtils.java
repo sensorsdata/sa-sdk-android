@@ -45,7 +45,7 @@ public class SASpUtils {
         if (mSharedPreferencesProvider != null) {
             SharedPreferences userDefault = mSharedPreferencesProvider.createSharedPreferences(context, name, mode);
             if (userDefault != null) {
-                SALog.d(TAG, "create SharedPreferences by user default, file name is: " + name);
+                SALog.i(TAG, "create SharedPreferences by user default, file name is: " + name);
                 return userDefault;
             }
         }

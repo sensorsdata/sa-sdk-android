@@ -42,6 +42,7 @@ import java.util.Map;
  */
 public class TimeUtils {
     public static final String YYYY_MM_DD = "yyyy-MM-dd";
+    public static Locale SDK_LOCALE = Locale.CHINA;
     private static final String YYYY_MM_DD_HH_MM_SS_SSS = "yyyy-MM-dd HH:mm:ss.SSS";
     private static Map<String, ThreadLocal<SimpleDateFormat>> formatMaps = new HashMap<>();
 
@@ -55,7 +56,7 @@ public class TimeUtils {
      * @return 日期展示字符串
      */
     public static String formatTime(long timeMillis) {
-        return formatTime(timeMillis, Locale.CHINA);
+        return formatTime(timeMillis, SDK_LOCALE);
     }
 
     /**
@@ -69,7 +70,7 @@ public class TimeUtils {
      * @return 日期展示字符串
      */
     public static String formatTime(long timeMillis, String patten) {
-        return formatTime(timeMillis, patten, Locale.CHINA);
+        return formatTime(timeMillis, patten, SDK_LOCALE);
     }
 
     /**
@@ -136,7 +137,7 @@ public class TimeUtils {
      * @return 日期展示字符串
      */
     public static String formatDate(Date date, String patten) {
-        return formatDate(date, patten, Locale.CHINA);
+        return formatDate(date, patten, SDK_LOCALE);
     }
 
     /**
@@ -185,7 +186,7 @@ public class TimeUtils {
      */
     public static boolean isDateValid(Date date) {
         try {
-            SimpleDateFormat simpleDateFormat = getDateFormat(YYYY_MM_DD_HH_MM_SS_SSS, Locale.CHINA);
+            SimpleDateFormat simpleDateFormat = getDateFormat(YYYY_MM_DD_HH_MM_SS_SSS, SDK_LOCALE);
             final Date baseDate = simpleDateFormat.parse("2015-05-15 10:24:00.000");
             return date.after(baseDate);
         } catch (ParseException e) {
@@ -203,7 +204,7 @@ public class TimeUtils {
      */
     public static boolean isDateValid(long time) {
         try {
-            SimpleDateFormat simpleDateFormat = getDateFormat(YYYY_MM_DD_HH_MM_SS_SSS, Locale.CHINA);
+            SimpleDateFormat simpleDateFormat = getDateFormat(YYYY_MM_DD_HH_MM_SS_SSS, SDK_LOCALE);
             final Date baseDate = simpleDateFormat.parse("2015-05-15 10:24:00.000");
             if (baseDate == null) {
                 return false;
@@ -232,7 +233,7 @@ public class TimeUtils {
                 String key = iterator.next();
                 Object value = jsonObject.get(key);
                 if (value instanceof Date) {
-                    jsonObject.put(key, formatDate((Date) value, Locale.CHINA));
+                    jsonObject.put(key, formatDate((Date) value, SDK_LOCALE));
                 }
             }
         } catch (JSONException e) {
@@ -264,22 +265,31 @@ public class TimeUtils {
      * @param endTime 退出时间
      * @return 时长
      */
-    public static double duration(long startTime, long endTime) {
+    public static Float duration(long startTime, long endTime) {
         long duration = endTime - startTime;
         try {
             if (duration < 0 || duration > 24 * 60 * 60 * 1000) {
-                return 0;
+                return Float.valueOf(0);
             }
-            float durationFloat = duration / 1000.0f;
-            return Double.parseDouble(String.format(Locale.CHINA, "%.3f", durationFloat));
+            return Float.valueOf(Math.round(duration) / 1000.0F);
         } catch (Exception e) {
             SALog.printStackTrace(e);
-            return 0;
+            return Float.valueOf(0);
         }
     }
 
+    /**
+     * 获取保留 3 位的时长
+     *
+     * @param duration Duration，单位毫秒
+     * @return 时长
+     */
+    public static Float duration(float duration) {
+        return Float.valueOf(Math.round(duration) / 1000.0F);
+    }
+
     private synchronized static SimpleDateFormat getDateFormat(final String patten, final Locale locale) {
-        ThreadLocal<SimpleDateFormat> dateFormatThreadLocal = formatMaps.get(patten + "_" + (locale == null ? Locale.CHINA.getCountry() : locale.getCountry()));
+        ThreadLocal<SimpleDateFormat> dateFormatThreadLocal = formatMaps.get(patten + "_" + (locale == null ? SDK_LOCALE.getCountry() : locale.getCountry()));
         if (null == dateFormatThreadLocal) {
             dateFormatThreadLocal = new ThreadLocal<SimpleDateFormat>() {
                 @Override
@@ -287,7 +297,7 @@ public class TimeUtils {
                     SimpleDateFormat simpleDateFormat = null;
                     try {
                         if (locale == null) {
-                            simpleDateFormat = new SimpleDateFormat(patten, Locale.CHINA);
+                            simpleDateFormat = new SimpleDateFormat(patten, TimeUtils.SDK_LOCALE);
                         } else {
                             simpleDateFormat = new SimpleDateFormat(patten, locale);
                         }
@@ -298,7 +308,7 @@ public class TimeUtils {
                 }
             };
             if (null != dateFormatThreadLocal.get()) {
-                formatMaps.put(patten + "_" + (locale == null ? Locale.CHINA.getCountry() : locale.getCountry()), dateFormatThreadLocal);
+                formatMaps.put(patten + "_" + (locale == null ? SDK_LOCALE.getCountry() : locale.getCountry()), dateFormatThreadLocal);
             }
         }
         return dateFormatThreadLocal.get();

@@ -22,6 +22,7 @@ import android.content.DialogInterface;
 import android.net.Uri;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.ServerUrl;
@@ -30,6 +31,7 @@ import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataLoadingDialog;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
+import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 
 import org.json.JSONObject;
 
@@ -90,8 +92,8 @@ public class SensorsDataRemoteManagerDebug extends BaseSensorsDataSDKRemoteManag
      */
     public void checkRemoteConfig(final Uri uri, final Activity activity) {
         if (verifyRemoteRequestParameter(uri, activity)) {
-            SensorsDataDialogUtils.showDialog(activity, "提示",
-                    "开始获取采集控制信息", "继续", new DialogInterface.OnClickListener() {
+            SensorsDataDialogUtils.showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_common_title),
+                    SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_remote_config), SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_common_continue), new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             final SensorsDataLoadingDialog loadingDialog = new SensorsDataLoadingDialog(activity);
@@ -101,7 +103,7 @@ public class SensorsDataRemoteManagerDebug extends BaseSensorsDataSDKRemoteManag
                                 @Override
                                 public void onFailure(int code, String errorMessage) {
                                     loadingDialog.dismiss();
-                                    SensorsDataDialogUtils.showDialog(activity, "远程配置获取失败，请稍后重新扫描二维码");
+                                    SensorsDataDialogUtils.showDialog(activity,  SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_remote_fail));
                                     SALog.i(TAG, "remote config: Remote request was failed,code is " + code +
                                             ",errorMessage is" + errorMessage);
                                 }
@@ -113,9 +115,10 @@ public class SensorsDataRemoteManagerDebug extends BaseSensorsDataSDKRemoteManag
                                         SensorsDataSDKRemoteConfig sdkRemoteConfig = toSDKRemoteConfig(response);
                                         String nv = uri.getQueryParameter("nv");
                                         if (!sdkRemoteConfig.getNewVersion().equals(nv)) {
-                                            SensorsDataDialogUtils.showDialog(activity, "信息版本不一致", "获取到采集控制信息的版本：" +
-                                                            sdkRemoteConfig.getNewVersion() +
-                                                            "，二维码信息的版本：" + nv + "，请稍后重新扫描二维码", "确认",
+
+                                            SensorsDataDialogUtils.showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_remote_version_error),
+                                                    String.format(SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_remote_version_tip), sdkRemoteConfig.getNewVersion(), nv),
+                                                    SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_common_ok),
                                                     new DialogInterface.OnClickListener() {
                                                         @Override
                                                         public void onClick(DialogInterface dialog, int which) {
@@ -123,11 +126,11 @@ public class SensorsDataRemoteManagerDebug extends BaseSensorsDataSDKRemoteManag
                                                         }
                                                     }, null, null);
                                         } else {
-                                            SensorsDataDialogUtils.showDialog(activity, "采集控制加载完成，可以通过 Android Studio 控制台日志来调试");
+                                            SensorsDataDialogUtils.showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_remote_succeed));
                                             setSDKRemoteConfig(sdkRemoteConfig);
                                         }
                                     } else {
-                                        SensorsDataDialogUtils.showDialog(activity, "远程配置获取失败，请稍后再试");
+                                        SensorsDataDialogUtils.showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_remote_other_error));
                                     }
                                     SALog.i(TAG, "remote config: Remote request was successful,response data is " + response);
                                 }
@@ -138,14 +141,13 @@ public class SensorsDataRemoteManagerDebug extends BaseSensorsDataSDKRemoteManag
                                 }
                             });
                         }
-                    }, "取消", new DialogInterface.OnClickListener() {
+                    }, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_common_cancel), new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             SensorsDataDialogUtils.startLaunchActivity(activity);
                         }
                     });
         } else {
-            // 没有校验通过
             SensorsDataDialogUtils.showDialog(activity, errorMsg);
         }
     }
@@ -170,21 +172,21 @@ public class SensorsDataRemoteManagerDebug extends BaseSensorsDataSDKRemoteManag
         }
         SALog.i(TAG, "remote config: ServerUrl is " + serverUrl);
         if (!NetworkUtils.isNetworkAvailable(mContext)) {
-            errorMsg = "网络连接失败，请检查设备网络，确认网络畅通后，请重新扫描二维码进行调试";
+            errorMsg = SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_remote_tip_error_network);
         } else if (mSensorsDataAPI != null && !mSensorsDataAPI.isNetworkRequestEnable()) {
-            errorMsg = "SDK 网络权限已关闭，请允许 SDK 访问网络";
+            errorMsg = SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_remote_tip_error_disable_network);
             SALog.i(TAG, "enableNetworkRequest is false");
         } else if (mDisableDefaultRemoteConfig) {
-            errorMsg = "采集控制网络权限已关闭，请允许采集控制访问网络";
+            errorMsg = SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_remote_tip_error_disable_remote);
             SALog.i(TAG, "disableDefaultRemoteConfig is true");
         } else if (!localProject.equals(project)) {
-            errorMsg = "App 集成的项目与二维码对应的项目不同，无法进行调试";
+            errorMsg = SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_remote_tip_error_project);
         } else if (!"Android".equals(os)) {
-            errorMsg = "App 与二维码对应的操作系统不同，无法进行调试";
+            errorMsg = SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_remote_tip_error_os);
         } else if (!AppInfoUtils.getProcessName(activity).equals(appId)) {
-            errorMsg = "当前 App 与二维码对应的 App 不同，无法进行调试";
+            errorMsg = SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_remote_tip_error_appid);
         } else if (TextUtils.isEmpty(nv)) {
-            errorMsg = "二维码信息校验失败，请检查采集控制是否配置正确";
+            errorMsg = SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_remote_tip_error_qrcode);
         } else {
             isVerify = true;
         }

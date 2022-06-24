@@ -53,7 +53,7 @@ class EncryptDataOperation extends DataOperation {
             cv.put(DbParams.KEY_CREATED_AT, System.currentTimeMillis());
             contentResolver.insert(uri, cv);
         } catch (Throwable e) {
-            SALog.d(TAG, e.getMessage());
+            SALog.i(TAG, e.getMessage());
         }
         return 0;
     }

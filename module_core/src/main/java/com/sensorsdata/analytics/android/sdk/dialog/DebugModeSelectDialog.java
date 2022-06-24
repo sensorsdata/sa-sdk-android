@@ -34,12 +34,13 @@ import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 
 class DebugModeSelectDialog extends Dialog implements View.OnClickListener {
-
+    private Context mContext;
     private OnDebugModeViewClickListener onDebugModeDialogClickListener;
     private SensorsDataAPI.DebugMode currentDebugMode;
 
     DebugModeSelectDialog(Context context, SensorsDataAPI.DebugMode debugMode) {
         super(context);
+        this.mContext = context;
         currentDebugMode = debugMode;
     }
 
@@ -71,28 +72,28 @@ class DebugModeSelectDialog extends Dialog implements View.OnClickListener {
     private void initView() {
         //标题:SDK 调试模式选择
         TextView debugModeTitle = findViewById(R.id.sensors_analytics_debug_mode_title);
-        debugModeTitle.setText("SDK 调试模式选择");
+        debugModeTitle.setText(SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_debug_view_title));
         //取消
         TextView debugModeCancel = findViewById(R.id.sensors_analytics_debug_mode_cancel);
-        debugModeCancel.setText("取消");
+        debugModeCancel.setText(SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_common_cancel));
         debugModeCancel.setOnClickListener(this);
         debugModeCancel.setFocusable(true);
         //开启调试模式(不导入数据)
         TextView debugModeOnly = findViewById(R.id.sensors_analytics_debug_mode_only);
-        debugModeOnly.setText("开启调试模式（不导入数据）");
+        debugModeOnly.setText(SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_debug_only));
         debugModeOnly.setOnClickListener(this);
         debugModeOnly.setFocusable(true);
         //"开启调试模式(导入数据)"
         TextView debugModeTrack = findViewById(R.id.sensors_analytics_debug_mode_track);
-        debugModeTrack.setText("开启调试模式（导入数据）");
+        debugModeTrack.setText(SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_debug_and_track));
         debugModeTrack.setOnClickListener(this);
         debugModeTrack.setFocusable(true);
 
-        String msg = "调试模式已关闭";
+        String msg = SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_debug_name_default);
         if (currentDebugMode == SensorsDataAPI.DebugMode.DEBUG_ONLY) {
-            msg = "当前为 调试模式（不导入数据）";
+            msg = SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_debug_name_only);
         } else if (currentDebugMode == SensorsDataAPI.DebugMode.DEBUG_AND_TRACK) {
-            msg = "当前为 测试模式（导入数据）";
+            msg = SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_debug_name_track);
         }
         TextView debugModeMessage = findViewById(R.id.sensors_analytics_debug_mode_message);
         debugModeMessage.setText(msg);

@@ -123,18 +123,20 @@ publishing {
     }
     // 配置远程仓库
     repositories {
-        Properties properties = new Properties()
-        properties.load(project.rootProject.file('local.properties').newDataInputStream())
-        def mavenUser = properties.getProperty("maven.user")
-        def mavenPassword = properties.getProperty("maven.password")
-        maven {
-            // 发布到本地
-            url = '../repo'
+//        Properties properties = new Properties()
+//        properties.load(project.rootProject.file('local.properties').newDataInputStream())
+//        def mavenUser = properties.getProperty("maven.user")
+//        def mavenPassword = properties.getProperty("maven.password")
+//        maven {
 //            url = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
 //            credentials {
 //                username mavenUser
 //                password mavenPassword
 //            }
+//        }
+        maven {
+            // 发布到本地
+            url = '../repo'
         }
     }
 }

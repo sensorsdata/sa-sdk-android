@@ -124,7 +124,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
      */
     public static void startWithConfigOptions(Context context, SAConfigOptions saConfigOptions) {
         if (context == null || saConfigOptions == null) {
-            throw new NullPointerException("Context、SAConfigOptions 不可以为 null");
+            throw new NullPointerException("Context、SAConfigOptions can not be null");
         }
         SensorsDataAPI sensorsDataAPI = getInstance(context, DebugMode.DEBUG_OFF, saConfigOptions);
         if (!sensorsDataAPI.mSDKConfigInit) {
@@ -567,7 +567,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Deprecated
     public void showUpWebView(WebView webView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify) {
         if (Build.VERSION.SDK_INT < 17 && !isSupportJellyBean) {
-            SALog.d(TAG, "For applications targeted to API level JELLY_BEAN or below, this feature NOT SUPPORTED");
+            SALog.i(TAG, "For applications targeted to API level JELLY_BEAN or below, this feature NOT SUPPORTED");
             return;
         }
 
@@ -1578,7 +1578,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                             if (TextUtils.isEmpty(title)) {
                                 title = SensorsDataUtils.getActivityTitle(activity);
                             }
-                            screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), screenName);
+                            screenName = String.format(TimeUtils.SDK_LOCALE, "%s|%s", activity.getClass().getCanonicalName(), screenName);
                         }
                     }
 
@@ -1703,38 +1703,6 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             mTrackTaskManagerThread = new TrackTaskManagerThread();
             new Thread(mTrackTaskManagerThread).start();
             SALog.i(TAG, "Data collection thread has been started");
-        }
-    }
-
-    @Override
-    @Deprecated
-    public void enableDataCollect() {
-        try {
-            mTrackTaskManager.addTrackEventTask(new Runnable() {
-                @Override
-                public void run() {
-                    if (!mSAConfigOptions.isDataCollectEnable) {
-                        mContext.getContentResolver().notifyChange(DbParams.getInstance().getDataCollectUri(), null);
-                    }
-                    mSAConfigOptions.isDataCollectEnable = true;
-                    // 同意合规时重新判断当前进程是否主进程
-                    mIsMainProcess = AppInfoUtils.isMainProcess(mContext, null);
-                    mUserIdentityAPI.enableDataCollect(mSAContextManager.getAndroidId());
-                    mTrackTaskManager.setDataCollectEnable(true);
-                    // 同意合规时更新首日首次
-                    if (mFirstDay.get() == null) {
-                        mFirstDay.commit(TimeUtils.formatTime(System.currentTimeMillis(), TimeUtils.YYYY_MM_DD));
-                    }
-                    try {
-                        TrackMonitor.getInstance().callEnableDataCollect();
-                    } catch (Exception e) {
-                        SALog.printStackTrace(e);
-                    }
-                }
-            });
-            flush();
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
         }
     }
 
@@ -2091,7 +2059,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public void profilePushId(final String pushTypeKey, final String pushId) {
-        transformTaskQueue(new Runnable() {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -2114,7 +2082,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public void profileUnsetPushId(final String pushTypeKey) {
-        transformTaskQueue(new Runnable() {
+        mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
                 try {

@@ -33,12 +33,11 @@ import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
 import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.util.Locale;
 
 public abstract class BaseSensorsDataSDKRemoteManager {
 
@@ -249,7 +248,7 @@ public abstract class BaseSensorsDataSDKRemoteManager {
             }
             SALog.i(TAG, "SensorsDataAPI remote url is " + remoteUrl);
         } else {
-            SALog.i(TAG, String.format(Locale.CHINA, "ServerUlr: %s, SAConfigOptions remote url: %s",
+            SALog.i(TAG, String.format(TimeUtils.SDK_LOCALE, "ServerUlr: %s, SAConfigOptions remote url: %s",
                     serverUlr, configOptionsRemoteUrl));
             SALog.i(TAG, "Remote config url verification failed");
             return null;

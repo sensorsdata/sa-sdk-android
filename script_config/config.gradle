@@ -1,8 +1,8 @@
 ext {
     versions = [
-            sdk_version       : '6.3.5',    // 全量 SDK 版本号
+            sdk_version       : '6.4.0',    // 全量 SDK 版本号
             min_plugin_version: "3.4.0",    // 最小插件版本号依赖
-            module_version    : "0.0.4"     // 子模块版本号
+            module_version    : "0.0.5"     // 子模块版本号
     ]
 
     buildConfig = [
@@ -26,7 +26,7 @@ ext {
             'espresso_web'           : 'androidx.test.espresso:espresso-web:3.1.1',
             'mockito_core'           : 'org.mockito:mockito-core:2.27.0',
             'mockito_android'        : 'org.mockito:mockito-android:2.27.0',
-            'robolectric'            : "org.robolectric:robolectric:4.5.1",
+            'robolectric'            : "org.robolectric:robolectric:4.8.1",
             'powermock_core'         : 'org.powermock:powermock-core:2.0.9',
             'powermock_module_junit4': 'org.powermock:powermock-module-junit4:2.0.9',
             'powermock_api_mockito2' : 'org.powermock:powermock-api-mockito2:2.0.9',

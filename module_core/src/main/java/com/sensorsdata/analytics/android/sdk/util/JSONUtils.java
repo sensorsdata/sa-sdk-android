@@ -26,7 +26,6 @@ import org.json.JSONObject;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Locale;
 import java.util.Map;
 
 public class JSONUtils {
@@ -135,7 +134,7 @@ public class JSONUtils {
                 }
                 Object value = source.get(key);
                 if (value instanceof Date && !"$time".equals(key)) {
-                    dest.put(key, TimeUtils.formatDate((Date) value, Locale.CHINA));
+                    dest.put(key, TimeUtils.formatDate((Date) value, TimeUtils.SDK_LOCALE));
                 } else {
                     dest.put(key, value);
                 }

@@ -122,12 +122,12 @@ public class FragmentViewScreenCallbacks implements SAFragmentLifecycleCallbacks
     public void onHiddenChanged(Object object, boolean hidden) {
         try {
             if (object == null) {
-                SALog.d(TAG, "fragment is null,return");
+                SALog.i(TAG, "fragment is null,return");
                 return;
             }
             if (hidden) {
                 mPageFragments.remove(object);
-                SALog.d(TAG, "fragment hidden is true,return");
+                SALog.i(TAG, "fragment hidden is true,return");
                 return;
             }
             if (isFragmentValid(object)) {
@@ -143,12 +143,12 @@ public class FragmentViewScreenCallbacks implements SAFragmentLifecycleCallbacks
     public void setUserVisibleHint(Object object, boolean isVisibleToUser) {
         try {
             if (object == null) {
-                SALog.d(TAG, "object is null");
+                SALog.i(TAG, "object is null");
                 return;
             }
             if (!isVisibleToUser) {
                 mPageFragments.remove(object);
-                SALog.d(TAG, "fragment isVisibleToUser is false,return");
+                SALog.i(TAG, "fragment isVisibleToUser is false,return");
                 return;
             }
             if (isFragmentValid(object)) {
@@ -181,37 +181,37 @@ public class FragmentViewScreenCallbacks implements SAFragmentLifecycleCallbacks
 
     private boolean isFragmentValid(Object fragment) {
         if (fragment == null) {
-            SALog.d(TAG, "fragment is null,return");
+            SALog.i(TAG, "fragment is null,return");
             return false;
         }
 
         if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
-            SALog.d(TAG, "AutoTrackEventTypeIgnored,return");
+            SALog.i(TAG, "AutoTrackEventTypeIgnored,return");
             return false;
         }
 
         if (!SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
-            SALog.d(TAG, "TrackFragmentAppViewScreenEnabled is false,return");
+            SALog.i(TAG, "TrackFragmentAppViewScreenEnabled is false,return");
             return false;
         }
 
         if ("com.bumptech.glide.manager.SupportRequestManagerFragment".equals(fragment.getClass().getCanonicalName())) {
-            SALog.d(TAG, "fragment is SupportRequestManagerFragment,return");
+            SALog.i(TAG, "fragment is SupportRequestManagerFragment,return");
             return false;
         }
 
         boolean isAutoTrackFragment = SensorsDataAPI.sharedInstance().isFragmentAutoTrackAppViewScreen(fragment.getClass());
         if (!isAutoTrackFragment) {
-            SALog.d(TAG, "fragment class ignored,return");
+            SALog.i(TAG, "fragment class ignored,return");
             return false;
         }
         //针对主动调用 fragment 生命周期，重复触发浏览
         if (mPageFragments.contains(fragment)) {
-            SALog.d(TAG, "pageFragment contains,return");
+            SALog.i(TAG, "pageFragment contains,return");
             return false;
         }
         if (!SAFragmentUtils.isFragmentVisible(fragment)) {
-            SALog.d(TAG, "fragment is not visible,return");
+            SALog.i(TAG, "fragment is not visible,return");
             return false;
         }
         return true;

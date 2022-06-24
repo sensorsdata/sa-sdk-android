@@ -34,7 +34,6 @@ public class DbParams {
     public static final String TABLE_APP_START_TIME = "app_start_time";
     public static final String TABLE_FIRST_PROCESS_START = "first_process_start";
     public static final String TABLE_SESSION_INTERVAL_TIME = "session_interval_time";
-    public static final String TABLE_DATA_COLLECT = "data_collect";
     public static final String TABLE_DATA_ENABLE_SDK = "enable_SDK";
     public static final String TABLE_DATA_DISABLE_SDK = "disable_SDK";
     public static final String PUSH_ID_KEY = "push_key";
@@ -51,7 +50,7 @@ public class DbParams {
     /* 删除所有数据 */
     static final String DB_DELETE_ALL = "DB_DELETE_ALL";
     private static DbParams instance;
-    private final Uri mUri, mActivityStartCountUri, mAppStartTimeUri, mDataCollectUri,
+    private final Uri mUri, mActivityStartCountUri, mAppStartTimeUri,
             mAppExitDataUri, mSessionTimeUri, mLoginIdUri, mChannelPersistentUri, mSubProcessUri,
             mEnableSDKUri, mDisableSDKUri, mRemoteConfigUri, mUserIdentities, mLoginIdKeyUri, mPushIdUri;
     /* 替换 APP_END_DATA 数据，使用新的 SP 文件保存 */
@@ -84,7 +83,6 @@ public class DbParams {
         mLoginIdKeyUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PersistentName.PERSISTENT_LOGIN_ID_KEY);
         mChannelPersistentUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_CHANNEL_PERSISTENT);
         mSubProcessUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PersistentName.SUB_PROCESS_FLUSH_DATA);
-        mDataCollectUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_DATA_COLLECT);
         mEnableSDKUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_DATA_ENABLE_SDK);
         mDisableSDKUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + TABLE_DATA_DISABLE_SDK);
         mRemoteConfigUri = Uri.parse("content://" + packageName + ".SensorsDataContentProvider/" + PersistentName.REMOTE_CONFIG);
@@ -176,15 +174,6 @@ public class DbParams {
      */
     Uri getSubProcessUri() {
         return mSubProcessUri;
-    }
-
-    /**
-     * 开启数据采集 Uri
-     *
-     * @return Uri
-     */
-    public Uri getDataCollectUri() {
-        return mDataCollectUri;
     }
 
     public Uri getDisableSDKUri() {

@@ -17,7 +17,12 @@
 
 package com.sensorsdata.analytics.android.sdk.visual.property;
 
+import android.content.Context;
+
+import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 import com.sensorsdata.analytics.android.sdk.visual.model.VisualConfig;
 
@@ -29,9 +34,10 @@ public class VisualPropertiesLog implements VisualPropertiesManager.CollectLogLi
     private JSONArray mJSONArray;
     private VisualPropertiesLog.Builder mBuilder;
     private final Object object = new Object();
-
+    private Context mContext;
     public synchronized String getVisualPropertiesLog() {
         synchronized (object) {
+            mContext = SensorsDataAPI.sharedInstance().getContext();
             if (mJSONArray != null) {
                 return mJSONArray.toString();
             }
@@ -58,7 +64,7 @@ public class VisualPropertiesLog implements VisualPropertiesManager.CollectLogLi
             elementPosition = viewNode.getViewPosition();
             elementContent = viewNode.getViewContent();
         }
-        mBuilder = new VisualPropertiesLog.Builder(eventType, screenName, elementPath, elementPosition, elementContent);
+        mBuilder = new VisualPropertiesLog.Builder(mContext, eventType, screenName, elementPath, elementPosition, elementContent);
     }
 
     @Override
@@ -81,13 +87,13 @@ public class VisualPropertiesLog implements VisualPropertiesManager.CollectLogLi
 
     @Override
     public void onFindPropertyElementFailure(String propertyName, String propertyElementPath, String propertyElementPosition) {
-        mBuilder.buildPropertyElement(String.format("%s 属性未找到属性元素，属性元素路径为 %s，属性元素位置为 %s ", propertyName, propertyElementPath, propertyElementPosition));
+        mBuilder.buildPropertyElement(String.format(SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_visual_property_error), propertyName, propertyElementPath, propertyElementPosition));
         add2JsonArray(mBuilder.build());
     }
 
     @Override
     public void onParsePropertyContentFailure(String propertyName, String propertyType, String elementContent, String regular) {
-        mBuilder.buildPropertyContentParse(String.format("%s 属性正则解析失败，元素内容 %s, 正则表达式为 %s,属性类型为 %s", propertyName, elementContent, regular, propertyType));
+        mBuilder.buildPropertyContentParse(String.format(SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_visual_regex_error), propertyName, elementContent, regular, propertyType));
         add2JsonArray(mBuilder.build());
     }
 
@@ -111,8 +117,10 @@ public class VisualPropertiesLog implements VisualPropertiesManager.CollectLogLi
         private String elementPosition;
         private String elementContent;
         private String localConfig;
+        private Context mContext;
 
-        Builder(String eventType, String screenName, String elementPath, String elementPosition, String elementContent) {
+        Builder(Context context, String eventType, String screenName, String elementPath, String elementPosition, String elementContent) {
+            this.mContext = context;
             this.eventType = eventType;
             this.screenName = screenName;
             this.elementPath = elementPath;
@@ -127,7 +135,8 @@ public class VisualPropertiesLog implements VisualPropertiesManager.CollectLogLi
 
         private void buildSwitchControl() {
             try {
-                this.switchControl = new JSONObject().put("title", "开关控制").put("message", "自定义属性运维配置开关关闭");
+                this.switchControl = new JSONObject().put("title", SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_visual_switch_error))
+                        .put("message", SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_visual_property_switch_error));
             } catch (JSONException e) {
                 SALog.printStackTrace(e);
             }
@@ -135,7 +144,7 @@ public class VisualPropertiesLog implements VisualPropertiesManager.CollectLogLi
 
         private void buildVisualConfig(String message) {
             try {
-                this.visualConfig = new JSONObject().put("title", "获取配置").put("message", message);
+                this.visualConfig = new JSONObject().put("title", SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_visual_config_error)).put("message", message);
             } catch (JSONException e) {
                 SALog.printStackTrace(e);
             }
@@ -143,7 +152,8 @@ public class VisualPropertiesLog implements VisualPropertiesManager.CollectLogLi
 
         private void buildEventConfig() {
             try {
-                this.eventConfig = new JSONObject().put("title", "事件配置").put("message", "本地缓存不包含该事件配置");
+                this.eventConfig = new JSONObject().put("title", SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_visual_event_error))
+                        .put("message", SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_visual_cache_error));
             } catch (JSONException e) {
                 SALog.printStackTrace(e);
             }
@@ -151,7 +161,7 @@ public class VisualPropertiesLog implements VisualPropertiesManager.CollectLogLi
 
         private void buildPropertyElement(String message) {
             try {
-                this.propertyElement = new JSONObject().put("title", "获取属性元素").put("message", message);
+                this.propertyElement = new JSONObject().put("title", SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_visual_getProperty_error)).put("message", message);
             } catch (JSONException e) {
                 SALog.printStackTrace(e);
             }
@@ -159,7 +169,7 @@ public class VisualPropertiesLog implements VisualPropertiesManager.CollectLogLi
 
         private void buildPropertyContentParse(String message) {
             try {
-                this.propertyContentParse = new JSONObject().put("title", "解析属性").put("message", message);
+                this.propertyContentParse = new JSONObject().put("title", SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_visual_parseProperty_error)).put("message", message);
             } catch (JSONException e) {
                 SALog.printStackTrace(e);
             }
@@ -167,7 +177,7 @@ public class VisualPropertiesLog implements VisualPropertiesManager.CollectLogLi
 
         private void buildOtherError(String message) {
             try {
-                this.otherError = new JSONObject().put("title", "其他错误").put("message", message);
+                this.otherError = new JSONObject().put("title", SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_visual_other_error)).put("message", message);
             } catch (JSONException e) {
                 SALog.printStackTrace(e);
             }

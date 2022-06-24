@@ -92,9 +92,8 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
      * 打点时间间隔：2000 毫秒
      */
     private static final int TIME_INTERVAL = 2000;
-    private boolean mDataCollectState;
 
-    private Set<Integer> hashSet = new HashSet<>();
+    private final Set<Integer> hashSet = new HashSet<>();
 
     public ActivityLifecycleCallbacks(SensorsDataAPI instance, PersistentFirstStart firstStart,
                                       PersistentFirstDay firstDay, Context context) {
@@ -103,7 +102,6 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
         this.mFirstDay = firstDay;
         this.mDbAdapter = DbAdapter.getInstance();
         this.mContext = context;
-        mDataCollectState = SensorsDataAPI.getConfigOptions().isDataCollectEnable();
         initHandler();
         registerAdvertObserver();
     }
@@ -223,7 +221,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                             break;
                         case MESSAGE_CODE_APP_END:
                             if (messageReceiveTime != 0 && SystemClock.elapsedRealtime() - messageReceiveTime < mSensorsDataInstance.getSessionIntervalTime()) {
-                                SALog.i(TAG, "$AppEnd 事件已触发。");
+                                SALog.i(TAG, "$AppEnd in time");
                                 return;
                             }
                             messageReceiveTime = SystemClock.elapsedRealtime();
@@ -405,33 +403,25 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
      */
     private void generateAppEndData(long eventTime, long endElapsedTime) {
         try {
-            // 如果初始未非合规状态，则需要判断同意合规后才打点
-            if (!mDataCollectState && !mSensorsDataInstance.getSAContextManager().isAppStartSuccess()) {
-                return;
+            if (mStartTime == 0) {//多进程切换要重新读取
+                mStartTime = DbAdapter.getInstance().getAppStartTime();
             }
-            mDataCollectState = true;
-            // 同意合规时进行打点记录
-            if (SensorsDataAPI.getConfigOptions().isDataCollectEnable()) {
-                if (mStartTime == 0) {//多进程切换要重新读取
-                    mStartTime = DbAdapter.getInstance().getAppStartTime();
-                }
-                if (mStartTime != 0) {
-                    endDataProperty.put(EVENT_DURATION, TimeUtils.duration(mStartTime, endElapsedTime));
-                } else {
-                    endDataProperty.remove(EVENT_DURATION);
-                }
-                endDataProperty.put(APP_START_TIME, mStartTime);
-                endDataProperty.put(EVENT_TIME, eventTime + TIME_INTERVAL);
-                if (SensorsDataAPI.getConfigOptions().isEnableSession()) {
-                    SessionRelatedManager.getInstance().refreshSessionByTimer(eventTime + TIME_INTERVAL);
-                    endDataProperty.put(SessionRelatedManager.getInstance().EVENT_SESSION_ID, SessionRelatedManager.getInstance().getSessionID());
-                }
-                endDataProperty.put(APP_VERSION, AppInfoUtils.getAppVersionName(mContext));
-                endDataProperty.put(LIB_VERSION, SensorsDataAPI.sharedInstance().getSDKVersion());
-                mDbAdapter.commitAppExitData(endDataProperty.toString());
+            if (mStartTime != 0) {
+                endDataProperty.put(EVENT_DURATION, TimeUtils.duration(mStartTime, endElapsedTime));
+            } else {
+                endDataProperty.remove(EVENT_DURATION);
             }
+            endDataProperty.put(APP_START_TIME, mStartTime);
+            endDataProperty.put(EVENT_TIME, eventTime + TIME_INTERVAL);
+            if (SensorsDataAPI.getConfigOptions().isEnableSession()) {
+                SessionRelatedManager.getInstance().refreshSessionByTimer(eventTime + TIME_INTERVAL);
+                endDataProperty.put(SessionRelatedManager.getInstance().EVENT_SESSION_ID, SessionRelatedManager.getInstance().getSessionID());
+            }
+            endDataProperty.put(APP_VERSION, AppInfoUtils.getAppVersionName(mContext));
+            endDataProperty.put(LIB_VERSION, SensorsDataAPI.sharedInstance().getSDKVersion());
+            mDbAdapter.commitAppExitData(endDataProperty.toString());
         } catch (Throwable e) {
-            SALog.d(TAG, e.getMessage());
+            SALog.i(TAG, e.getMessage());
         }
     }
 
@@ -531,7 +521,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
      * 检查更新首日逻辑
      */
     private void checkFirstDay() {
-        if (mFirstDay.get() == null && SensorsDataAPI.getConfigOptions().isDataCollectEnable()) {
+        if (mFirstDay.get() == null) {
             mFirstDay.commit(TimeUtils.formatTime(System.currentTimeMillis(), TimeUtils.YYYY_MM_DD));
         }
     }

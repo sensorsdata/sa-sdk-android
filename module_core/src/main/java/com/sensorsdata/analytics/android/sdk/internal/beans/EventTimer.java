@@ -20,8 +20,8 @@ package com.sensorsdata.analytics.android.sdk.internal.beans;
 import android.os.SystemClock;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
-import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 public class EventTimer {
@@ -38,7 +38,7 @@ public class EventTimer {
         this.endTime = -1;
     }
 
-    public String duration() {
+    public float duration() {
         if (isPaused) {
             endTime = startTime;
         } else {
@@ -47,7 +47,7 @@ public class EventTimer {
         long duration = endTime - startTime + eventAccumulatedDuration;
         try {
             if (duration < 0 || duration > 24 * 60 * 60 * 1000) {
-                return String.valueOf(0);
+                return 0;
             }
             float durationFloat;
             if (timeUnit == TimeUnit.MILLISECONDS) {
@@ -61,10 +61,10 @@ public class EventTimer {
             } else {
                 durationFloat = duration;
             }
-            return durationFloat < 0 ? String.valueOf(0) : String.format(Locale.CHINA, "%.3f", durationFloat);
+            return durationFloat < 0 ? 0 : Math.round(durationFloat * 1000) / 1000.0F;
         } catch (Exception e) {
             SALog.printStackTrace(e);
-            return String.valueOf(0);
+            return 0;
         }
     }
 

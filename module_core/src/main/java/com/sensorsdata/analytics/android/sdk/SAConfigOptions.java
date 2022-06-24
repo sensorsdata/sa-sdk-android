@@ -330,21 +330,6 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
     }
 
     /**
-     * 禁用数据采集
-     *
-     * @return SAConfigOptions
-     */
-    @Deprecated
-    public SAConfigOptions disableDataCollect() {
-        this.isDataCollectEnable = false;
-        return this;
-    }
-
-    public boolean isDataCollect() {
-        return this.isDataCollectEnable;
-    }
-
-    /**
      * 设置 SSLSocketFactory，HTTPS 请求连接时需要使用
      *
      * @param SSLSocketFactory 证书

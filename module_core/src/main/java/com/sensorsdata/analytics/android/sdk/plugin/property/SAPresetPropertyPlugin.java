@@ -47,9 +47,6 @@ public final class SAPresetPropertyPlugin extends SAPropertyPlugin {
 
     @Override
     public void appendProperties(Map<String, Object> properties) {
-        if (!SensorsDataAPI.getConfigOptions().isDataCollectEnable()) {
-            return;
-        }
         String osVersion = DeviceUtils.getHarmonyOSVersion();
         if (!TextUtils.isEmpty(osVersion)) {
             properties.put("$os", "HarmonyOS");

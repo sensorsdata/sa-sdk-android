@@ -102,7 +102,7 @@ public class SAOaidHelper {
             mCountDownLatch = new CountDownLatch(1);
             initInvokeListener();
             if (mMidSDKHelper == null || mIdentifyListener == null || mIdSupplier == null) {
-                SALog.d(TAG, "OAID 读取类创建失败");
+                SALog.i(TAG, "OAID class create failed");
                 return "";
             }
             if (TextUtils.isEmpty(mOAID)) {
@@ -115,10 +115,10 @@ public class SAOaidHelper {
             } catch (InterruptedException e) {
                 SALog.printStackTrace(e);
             }
-            SALog.d(TAG, "CountDownLatch await");
+            SALog.i(TAG, "CountDownLatch await");
             return mOAID;
         } catch (Throwable ex) {
-            SALog.d(TAG, ex.getMessage());
+            SALog.i(TAG, ex.getMessage());
         }
         return "";
     }
@@ -151,7 +151,7 @@ public class SAOaidHelper {
             IdentifyListenerHandler handler = new IdentifyListenerHandler();
             Method initSDK = mMidSDKHelper.getDeclaredMethod("InitSdk", Context.class, boolean.class, mIdentifyListener);
             int errCode = (int) initSDK.invoke(null, context, true, Proxy.newProxyInstance(context.getClassLoader(), new Class[]{mIdentifyListener}, handler));
-            SALog.d(TAG, "MdidSdkHelper ErrorCode : " + errCode);
+            SALog.i(TAG, "MdidSdkHelper ErrorCode : " + errCode);
             if (errCode != INIT_ERROR_RESULT_DELAY && errCode != INIT_ERROR_RESULT_OK) {
                 getOAIDReflect(context, --retryCount);
                 if (retryCount == 0) {
@@ -175,7 +175,7 @@ public class SAOaidHelper {
                 }
             }).start();
         } catch (Throwable ex) {
-            SALog.d(TAG, ex.getMessage());
+            SALog.i(TAG, ex.getMessage());
             getOAIDReflect(context, --retryCount);
             if (retryCount == 0) {
                 mCountDownLatch.countDown();
@@ -196,7 +196,7 @@ public class SAOaidHelper {
                         mOAID = (String) getOAID.invoke(args[1]);
                     }
 
-                    SALog.d(TAG, "oaid:" + mOAID);
+                    SALog.i(TAG, "oaid:" + mOAID);
                     mCountDownLatch.countDown();
                 }
             } catch (Throwable ex) {
@@ -210,7 +210,7 @@ public class SAOaidHelper {
         try {
             mMidSDKHelper = Class.forName("com.bun.miitmdid.core.MdidSdkHelper");
         } catch (ClassNotFoundException e) {
-            SALog.d(TAG, e.getMessage());
+            SALog.i(TAG, e.getMessage());
             return;
         }
         // 尝试 1.0.22 版本
@@ -266,7 +266,7 @@ public class SAOaidHelper {
                 initCert.invoke(null, context, oaidCert);
             }
         } catch (Throwable e) {
-            SALog.d(TAG, e.getMessage());
+            SALog.i(TAG, e.getMessage());
         }
     }
 
@@ -299,7 +299,7 @@ public class SAOaidHelper {
             }
             return builder.toString();
         } catch (IOException e) {
-            SALog.d(TAG, "loadPemFromAssetFile failed");
+            SALog.i(TAG, "loadPemFromAssetFile failed");
             return "";
         }
     }

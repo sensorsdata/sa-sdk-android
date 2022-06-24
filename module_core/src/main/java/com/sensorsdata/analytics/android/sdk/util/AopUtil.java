@@ -57,7 +57,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 
 public class AopUtil {
     private static final String TAG = "SA.AopUtil";
@@ -110,7 +109,7 @@ public class AopUtil {
             }
             return stringBuilder.toString();
         } catch (Throwable e) {
-            SALog.d(TAG, e.getMessage());
+            SALog.i(TAG, e.getMessage());
             return stringBuilder != null ? stringBuilder.toString() : "";
         }
     }
@@ -277,7 +276,7 @@ public class AopUtil {
 
                     if (isScreenNameNull) {
                         screenName = fragment.getClass().getCanonicalName();
-                        screenName = String.format(Locale.CHINA, "%s|%s", activity.getClass().getCanonicalName(), screenName);
+                        screenName = String.format(TimeUtils.SDK_LOCALE, "%s|%s", activity.getClass().getCanonicalName(), screenName);
                     }
                 }
             }

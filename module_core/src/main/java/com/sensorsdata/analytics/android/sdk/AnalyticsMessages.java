@@ -36,6 +36,7 @@ import com.sensorsdata.analytics.android.sdk.exceptions.ResponseErrorException;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
+import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
 import org.json.JSONObject;
 
@@ -188,7 +189,7 @@ class AnalyticsMessages {
     private void sendData() {
         try {
             if (!mSensorsDataAPI.isNetworkRequestEnable()) {
-                SALog.i(TAG, "NetworkRequest 已关闭，不发送数据！");
+                SALog.i(TAG, "NetworkRequest is disabled");
                 return;
             }
 
@@ -205,7 +206,7 @@ class AnalyticsMessages {
             //不符合同步数据的网络策略
             String networkType = NetworkUtils.networkType(mContext);
             if (!NetworkUtils.isShouldFlush(networkType, mSensorsDataAPI.getFlushNetworkPolicy())) {
-                SALog.i(TAG, String.format("您当前网络为 %s，无法发送数据，请确认您的网络发送策略！", networkType));
+                SALog.i(TAG, String.format("Invalid NetworkType = %s", networkType));
                 return;
             }
 
@@ -278,7 +279,7 @@ class AnalyticsMessages {
                 }
                 if (deleteEvents || isDebugMode) {
                     count = mDbAdapter.cleanupEvents(lastId);
-                    SALog.i(TAG, String.format(Locale.CHINA, "Events flushed. [left = %d]", count));
+                    SALog.i(TAG, String.format(TimeUtils.SDK_LOCALE, "Events flushed. [left = %d]", count));
                 } else {
                     count = 0;
                 }
@@ -371,8 +372,8 @@ class AnalyticsMessages {
                     SALog.i(TAG, "valid message: \n" + jsonMessage);
                 } else {
                     SALog.i(TAG, "invalid message: \n" + jsonMessage);
-                    SALog.i(TAG, String.format(Locale.CHINA, "ret_code: %d", responseCode));
-                    SALog.i(TAG, String.format(Locale.CHINA, "ret_content: %s", response));
+                    SALog.i(TAG, String.format(TimeUtils.SDK_LOCALE, "ret_code: %d", responseCode));
+                    SALog.i(TAG, String.format(TimeUtils.SDK_LOCALE, "ret_content: %s", response));
                 }
             }
             if (responseCode < HttpURLConnection.HTTP_OK || responseCode >= HttpURLConnection.HTTP_MULT_CHOICE) {

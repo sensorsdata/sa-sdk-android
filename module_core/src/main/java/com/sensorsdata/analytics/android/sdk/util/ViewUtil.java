@@ -52,7 +52,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 
 
 public class ViewUtil {
@@ -557,11 +556,11 @@ public class ViewUtil {
                         int groupIdx = ExpandableListView.getPackedPositionGroup(elp);
                         int childIdx = ExpandableListView.getPackedPositionChild(elp);
                         if (childIdx != -1) {
-                            listPos = String.format(Locale.CHINA, "%d:%d", groupIdx, childIdx);
+                            listPos = String.format(TimeUtils.SDK_LOCALE, "%d:%d", groupIdx, childIdx);
                             px.append(opx).append("/ELVG[").append(groupIdx).append("]/ELVC[-]/").append(viewName).append("[0]");
                             opx.append("/ELVG[").append(groupIdx).append("]/ELVC[").append(childIdx).append("]/").append(viewName).append("[0]");
                         } else {
-                            listPos = String.format(Locale.CHINA, "%d", groupIdx);
+                            listPos = String.format(TimeUtils.SDK_LOCALE, "%d", groupIdx);
                             px.append(opx).append("/ELVG[-]/").append(viewName).append("[0]");
                             opx.append("/ELVG[").append(groupIdx).append("]/").append(viewName).append("[0]");
                         }
@@ -575,7 +574,7 @@ public class ViewUtil {
                     }
                 } else if (ViewUtil.isListView(parentView)) {
                     isListView = true;
-                    listPos = String.format(Locale.CHINA, "%d", viewPosition);
+                    listPos = String.format(TimeUtils.SDK_LOCALE, "%d", viewPosition);
                     px.append(opx).append("/").append(viewName).append("[-]");
                     opx.append("/").append(viewName).append("[").append(listPos).append("]");
                 } else if (ViewUtil.instanceOfSupportSwipeRefreshLayout(parentView)) {

@@ -27,6 +27,7 @@ import android.content.DialogInterface;
 import android.net.Uri;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.advert.R;
 import com.sensorsdata.analytics.android.advert.oaid.SAOaidHelper;
 import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
@@ -39,6 +40,7 @@ import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
 import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
+import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONObject;
@@ -48,7 +50,7 @@ public class SAAdvertScanHelper {
         String host = uri.getHost();
         if ("channeldebug".equals(host)) {
             if (ChannelUtils.hasUtmByMetaData(activity)) {
-                showDialog(activity, "当前为渠道包，无法使用联调诊断工具");
+                showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_listener));
                 return true;
             }
             String monitorId = uri.getQueryParameter("monitor_id");
@@ -58,7 +60,7 @@ public class SAAdvertScanHelper {
             }
             String url = SensorsDataAPI.sharedInstance().getServerUrl();
             if (TextUtils.isEmpty(url)) {
-                showDialog(activity, "数据接收地址错误，无法使用联调诊断工具");
+                showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_url));
                 return true;
             }
             ServerUrl serverUrl = new ServerUrl(url);
@@ -72,13 +74,13 @@ public class SAAdvertScanHelper {
                     if (ChannelUtils.checkDeviceInfo(activity, deviceCode)) {//比较设备信息是否匹配
                         showChannelDebugActiveDialog(activity);
                     } else {
-                        showDialog(activity, "无法重连，请检查是否更换了联调手机");
+                        showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_retry));
                     }
                 } else {
                     showChannelDebugDialog(activity, serverUrl.getBaseUrl(), monitorId, projectId, accountId);
                 }
             } else {
-                showDialog(activity, "App 集成的项目与电脑浏览器打开的项目不同，无法使用联调诊断工具");
+                showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_project));
             }
             return true;
         }
@@ -86,14 +88,14 @@ public class SAAdvertScanHelper {
     }
 
     public static void showChannelDebugActiveDialog(final Activity activity) {
-        showDialog(activity, "成功开启调试模式",
-                "此模式下不需要卸载 App，点击“激活”按钮可反复触发激活", "激活", new DialogInterface.OnClickListener() {
+        showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_dialog_title),
+                SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_dialog_content), SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_dialog_activate), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         trackChannelDebugInstallation(activity);
                         showChannelDebugActiveDialog(activity);
                     }
-                }, "取消", new DialogInterface.OnClickListener() {
+                }, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_dialog_cancel), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         SensorsDataDialogUtils.startLaunchActivity(activity);
@@ -130,7 +132,8 @@ public class SAAdvertScanHelper {
                                               final String monitorId,
                                               final String projectId,
                                               final String accountId) {
-        showDialog(activity, "即将开启联调模式", "", "确定", new DialogInterface.OnClickListener() {
+        showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_dialog_starting), "",
+                SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_dialog_ok), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 if (dialog != null) {
@@ -146,7 +149,7 @@ public class SAAdvertScanHelper {
                         return;
                     }
                     if (!NetworkUtils.isNetworkAvailable(context)) {
-                        showDialog(activity, "当前网络不可用，请检查网络！");
+                        showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_network));
                         return;
                     }
                     String deviceCode = ChannelUtils.getDeviceInfo(activity, androidId, oaid);
@@ -160,7 +163,7 @@ public class SAAdvertScanHelper {
                                 public void onFailure(int code, String errorMessage) {
                                     loadingDialog.dismiss();
                                     SALog.i(TAG, "ChannelDebug request error:" + errorMessage);
-                                    showDialog(activity, "网络异常,请求失败!");
+                                    showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_request));
                                 }
 
                                 @Override
@@ -168,7 +171,7 @@ public class SAAdvertScanHelper {
                                     loadingDialog.dismiss();
                                     if (response == null) {
                                         SALog.i(TAG, "ChannelDebug response error msg: response is null");
-                                        showDialog(activity, "添加白名单请求失败，请联系神策技术支持人员排查问题!");
+                                        showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_whitelist));
                                         return;
                                     }
                                     int code = response.optInt("code", 0);
@@ -176,7 +179,7 @@ public class SAAdvertScanHelper {
                                         showChannelDebugActiveDialog(activity);
                                     } else {//请求失败
                                         SALog.i(TAG, "ChannelDebug response error msg:" + response.optString("message"));
-                                        showDialog(activity, "添加白名单请求失败，请联系神策技术支持人员排查问题!");
+                                        showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_whitelist));
                                     }
                                 }
                             });
@@ -184,7 +187,7 @@ public class SAAdvertScanHelper {
                     showChannelDebugErrorDialog(activity);
                 }
             }
-        }, "取消", new DialogInterface.OnClickListener() {
+        }, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_dialog_cancel), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 SensorsDataDialogUtils.startLaunchActivity(activity);
@@ -194,11 +197,9 @@ public class SAAdvertScanHelper {
 
 
     private static void showChannelDebugErrorDialog(final Activity activity) {
-        SensorsDataDialogUtils.showDialog(activity, "检测到 “设备码为空”，可能原因如下，请排查：",
-                "1. 开启 App 时拒绝“电话”授权；\n" +
-                        "2. 手机系统权限设置中是否关闭“电话”授权；\n" +
-                        "3. 请联系研发人员确认是否“调用 trackInstallation 接口在获取“电话”授权之后。\n\n " +
-                        "排查修复后，请先卸载应用并重新安装，再扫码进行联调。", "确定", new DialogInterface.OnClickListener() {
+        SensorsDataDialogUtils.showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_debug_fail_title),
+                SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_debug_fail_content),
+                SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_dialog_ok), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         SensorsDataDialogUtils.startLaunchActivity(activity);

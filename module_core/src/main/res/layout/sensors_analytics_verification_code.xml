@@ -8,8 +8,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
+        android:textAllCaps="false"
         android:gravity="center_horizontal"
-        android:text="请输入神策分析页面上的配对码"
+        android:text="@string/sensors_analytics_visual_code_title"
         android:textColor="#000000"
         android:textSize="18sp" />
 
@@ -17,6 +18,7 @@
         android:layout_width="match_parent"
         android:layout_height="0.5dp"
         android:layout_marginBottom="10dp"
+        android:textAllCaps="false"
         android:background="#000000"
         android:gravity="center_horizontal" />
 

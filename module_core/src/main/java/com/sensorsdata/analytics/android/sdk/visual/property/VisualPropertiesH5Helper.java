@@ -161,6 +161,7 @@ public class VisualPropertiesH5Helper implements WebViewJavascriptBridge {
                         }
                         try {
                             JSONArray array = new JSONArray(appVisualProperties);
+                            ViewTreeStatusObservable.getInstance().clearViewNodeCache();
                             if (array.length() > 0) {
                                 for (int i = 0; i < array.length(); i++) {
                                     JSONObject obj = array.getJSONObject(i);

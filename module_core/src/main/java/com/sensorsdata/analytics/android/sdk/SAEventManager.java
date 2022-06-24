@@ -17,8 +17,6 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
-import android.app.Activity;
-
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 
 import org.json.JSONObject;
@@ -53,9 +51,5 @@ public class SAEventManager {
 
     public void trackQueueEvent(Runnable runnable) {
         TrackTaskManager.getInstance().addTrackEventTask(runnable);
-    }
-
-    public void trackTransformQueueEvent(Runnable runnable) {
-        SensorsDataAPI.sharedInstance().transformTaskQueue(runnable);
     }
 }

@@ -161,11 +161,6 @@ abstract class AbstractSAConfigOptions {
     IPersistentSecretKey mPersistentSecretKey;
 
     /**
-     * 关闭数据采集，默认开启数据采集
-     */
-    boolean isDataCollectEnable = true;
-
-    /**
      * 是否关闭 SDK
      */
     boolean isDisableSDK = false;
@@ -214,15 +209,6 @@ abstract class AbstractSAConfigOptions {
      * 是否不采集 $device_id 属性
      */
     boolean mDisableDeviceId = false;
-
-    /**
-     * 是否开启数据采集
-     *
-     * @return true 开启，false 未开启
-     */
-    public boolean isDataCollectEnable() {
-        return isDataCollectEnable;
-    }
 
     /**
      * 是否开启 DeepLink
@@ -320,9 +306,10 @@ abstract class AbstractSAConfigOptions {
 
     /**
      * 是否在手动埋点事件中自动添加渠道匹配信息
+     *
      * @return 是否是自动渠道事件
      */
-    public boolean isAutoAddChannelCallbackEvent(){
+    public boolean isAutoAddChannelCallbackEvent() {
         return isAutoAddChannelCallbackEvent;
     }
 
@@ -337,11 +324,21 @@ abstract class AbstractSAConfigOptions {
      */
     String mCustomADChannelUrl;
 
-    public String getCustomADChannelUrl(){
+    public String getCustomADChannelUrl() {
         return mCustomADChannelUrl;
     }
 
     public int getEventSessionTimeout() {
         return mEventSessionTimeout;
+    }
+
+    /**
+     * 弹窗中默认还使用该接口，暂时先保留，后续删除
+     *
+     * @return true
+     */
+    @Deprecated
+    public boolean isDataCollectEnable() {
+        return true;
     }
 }

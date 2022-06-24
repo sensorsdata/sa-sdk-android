@@ -18,10 +18,7 @@ public class SnapCache {
      */
     public static class ViewTempInfo {
         public String selectPath;   //element_select 信息
-        public String viewId;       //view 的 getViewId
-        public String viewText;     //view 的自身文本信息
         public String viewType;     //view 的类型
-        public Boolean localVisibleRect;    //view 的可见性
     }
 
     private volatile static SnapCache mSnapCache;
@@ -121,82 +118,28 @@ public class SnapCache {
 
     @SuppressLint("NewApi")
     public String getViewId(View view) {
-        if (view == null) {
-            return null;
-        }
-        String viewId = null;
-        ViewTempInfo viewTempInfo = mLruViewInfo.get(view.hashCode() + "");
-        if (viewTempInfo != null) {
-            viewId = viewTempInfo.viewId;
-        }
-        return viewId;
+        return null;
     }
 
     @SuppressLint("NewApi")
     public void setViewId(View view, String viewId) {
-        if (view == null || viewId == null) {
-            return;
-        }
-        String hashCode = view.hashCode() + "";
-        ViewTempInfo viewTempInfo = mLruViewInfo.get(hashCode);
-        if (viewTempInfo == null) {
-            viewTempInfo = new ViewTempInfo();
-        }
-        viewTempInfo.viewId = viewId;
-        mLruViewInfo.put(hashCode, viewTempInfo);
     }
 
     @SuppressLint("NewApi")
     public Boolean getLocalVisibleRect(View view) {
-        if (view == null) {
-            return null;
-        }
-        Boolean localVisibleRect = null;
-        ViewTempInfo viewTempInfo = mLruViewInfo.get(view.hashCode() + "");
-        if (viewTempInfo != null) {
-            localVisibleRect = viewTempInfo.localVisibleRect;
-        }
-        return localVisibleRect;
+        return null;
     }
 
     @SuppressLint("NewApi")
     public void setLocalVisibleRect(View view, Boolean localVisibleRect) {
-        if (view == null || localVisibleRect == null) {
-            return;
-        }
-        String hashCode = view.hashCode() + "";
-        ViewTempInfo viewTempInfo = mLruViewInfo.get(hashCode);
-        if (viewTempInfo == null) {
-            viewTempInfo = new ViewTempInfo();
-        }
-        viewTempInfo.localVisibleRect = localVisibleRect;
-        mLruViewInfo.put(hashCode, viewTempInfo);
     }
 
     @SuppressLint("NewApi")
     public String getViewText(View view) {
-        if (view == null) {
-            return null;
-        }
-        String viewText = null;
-        ViewTempInfo viewTempInfo = mLruViewInfo.get(view.hashCode() + "");
-        if (viewTempInfo != null) {
-            viewText = viewTempInfo.viewText;
-        }
-        return viewText;
+        return null;
     }
 
     @SuppressLint("NewApi")
     public void setViewText(View view, String viewText) {
-        if (view == null || viewText == null) {
-            return;
-        }
-        String hashCode = view.hashCode() + "";
-        ViewTempInfo viewTempInfo = mLruViewInfo.get(hashCode);
-        if (viewTempInfo == null) {
-            viewTempInfo = new ViewTempInfo();
-        }
-        viewTempInfo.viewText = viewText;
-        mLruViewInfo.put(hashCode, viewTempInfo);
     }
 }

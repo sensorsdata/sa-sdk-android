@@ -927,11 +927,6 @@ public interface ISensorsDataAPI extends IFragmentAPI, IUserIdentityAPI, SAAdver
     void startTrackThread();
 
     /**
-     * 开启数据采集
-     */
-    void enableDataCollect();
-
-    /**
      * DeepLink 是否采集设备信息
      *
      * @param enable 是否开启采集设备信息

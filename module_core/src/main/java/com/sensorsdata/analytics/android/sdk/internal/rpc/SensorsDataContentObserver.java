@@ -47,9 +47,7 @@ public class SensorsDataContentObserver extends ContentObserver {
     @Override
     public void onChange(boolean selfChange, Uri uri) {
         try {
-            if (DbParams.getInstance().getDataCollectUri().equals(uri)) {
-                SensorsDataAPI.sharedInstance().enableDataCollect();
-            } else if (DbParams.getInstance().getSessionTimeUri().equals(uri)) {
+            if (DbParams.getInstance().getSessionTimeUri().equals(uri)) {
                 SensorsDataAPI.sharedInstance().setSessionIntervalTime(DbAdapter.getInstance().getSessionIntervalTime());
             } else if (DbParams.getInstance().getLoginIdUri().equals(uri)) {
                 //临时方案兼容跨进程 getLognID 立即获取接口

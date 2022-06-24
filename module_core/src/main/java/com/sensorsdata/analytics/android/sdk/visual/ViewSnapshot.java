@@ -18,6 +18,7 @@ package com.sensorsdata.analytics.android.sdk.visual;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -47,6 +48,7 @@ import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.DeviceUtils;
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
+import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
 import com.sensorsdata.analytics.android.sdk.visual.model.SnapInfo;
@@ -212,8 +214,12 @@ public class ViewSnapshot {
         public void run() {
             WebNodeInfo webNodeInfo = WebNodesManager.getInstance().getWebNodes(url);
             if (webNodeInfo == null) {
-                SALog.i(TAG, "H5 页面未集成 Web JS SDK");
-                String msg = "{\"callType\":\"app_alert\",\"data\":[{\"title\":\"当前页面无法进行可视化全埋点\",\"message\":\"此页面未集成 Web JS SDK 或者 Web JS SDK 版本过低，请集成最新版 Web JS SDK\",\"link_text\":\"配置文档\",\"link_url\":\"https://manual.sensorsdata.cn/sa/latest/tech_sdk_client_web_use-7545346.html\"}]}";
+                SALog.i(TAG, "H5 page is not integrated Web JS SDK");
+                Context context = SensorsDataAPI.sharedInstance().getContext();
+                String title = SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_sa_h5);
+                String message = SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_sa_h5_error);
+                String link_text = SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_sa_h5_error_link);
+                String msg = "{\"callType\":\"app_alert\",\"data\":[{\"title\":\"" + title + "\",\"message\":\"" + message + "\",\"link_text\":\"" + link_text +"\",\"link_url\":\"https://manual.sensorsdata.cn/sa/latest/tech_sdk_client_web_use-7545346.html\"}]}";
                 WebNodesManager.getInstance().handlerFailure(url, msg);
             }
         }
@@ -507,8 +513,8 @@ public class ViewSnapshot {
     /**
      * 页面 ImageHash / H5 页面元素内容 发生变化 / H5 出现错误提示时需要更新页面信息
      *
-     * @param newImageHash
-     * @param lastImageHash
+     * @param newImageHash hash
+     * @param lastImageHash hash
      * @return 是否上报页面信息
      */
     private boolean isSnapShotUpdated(String newImageHash, StringBuilder lastImageHash) {

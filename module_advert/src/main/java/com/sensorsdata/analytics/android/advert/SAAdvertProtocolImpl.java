@@ -74,11 +74,7 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
             setModuleState(true);
         }
         if (AppInfoUtils.isMainProcess(mContext, null)) {
-            if (!ChannelUtils.isExistRequestDeferredDeeplink()) {
-                ChannelUtils.commitRequestDeferredDeeplink(true);
-            } else {
-                ChannelUtils.commitRequestDeferredDeeplink(false);
-            }
+            ChannelUtils.commitRequestDeferredDeeplink(!ChannelUtils.isExistRequestDeferredDeeplink());
         }
     }
 
@@ -159,7 +155,7 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
-        SensorsDataAPI.sharedInstance().transformTaskQueue(new Runnable() {
+        SAEventManager.getInstance().trackQueueEvent(new Runnable() {
             @Override
             public void run() {
                 if (mEnableDeepLinkInstallSource) {
@@ -191,7 +187,7 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
             }
             SADataHelper.addTimeProperty(eventProperties);
             final String loginId = SensorsDataAPI.sharedInstance().getLoginId();
-            SensorsDataAPI.sharedInstance().transformTaskQueue(new Runnable() {
+            SAEventManager.getInstance().trackQueueEvent(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -290,7 +286,7 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
             SensorsDataUtils.mergeJSONObject(properties, eventProperties);
         }
         SADataHelper.addTimeProperty(eventProperties);
-        SensorsDataAPI.sharedInstance().transformTaskQueue(new Runnable() {
+        SAEventManager.getInstance().trackQueueEvent(new Runnable() {
             @Override
             public void run() {
                 try {

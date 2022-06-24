@@ -19,9 +19,27 @@ package com.sensorsdata.analytics.android.sdk.util;
 
 import android.content.Context;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
+
 public class SADisplayUtil {
     public static int dip2px(Context context, float dpValue) {
         float scale = context.getResources().getDisplayMetrics().density;
         return (int) (dpValue * scale + 0.5f);
+    }
+
+    /**
+     * get string by id
+     *
+     * @param context Context
+     * @param id id
+     * @return string
+     */
+    public static String getStringResource(Context context, int id) {
+        try {
+            return context.getString(id);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return "";
     }
 }

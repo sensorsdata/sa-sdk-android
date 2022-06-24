@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
@@ -60,7 +61,7 @@ public class SASchemeHelper {
                     if (checkProjectIsValid(postUrl)) {
                         SensorsDataDialogUtils.showOpenHeatMapDialog(activity, featureCode, postUrl);
                     } else {
-                        SensorsDataDialogUtils.showDialog(activity, "App 集成的项目与电脑浏览器打开的项目不同，无法进行点击分析");
+                        SensorsDataDialogUtils.showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_visual_dialog_error));
                     }
                     intent.setData(null);
                 } else if ("debugmode".equals(host)) {
@@ -75,7 +76,7 @@ public class SASchemeHelper {
                     if (checkProjectIsValid(postUrl)) {
                         SensorsDataDialogUtils.showOpenVisualizedAutoTrackDialog(activity, featureCode, postUrl);
                     } else {
-                        SensorsDataDialogUtils.showDialog(activity, "App 集成的项目与电脑浏览器打开的项目不同，无法进行可视化全埋点。");
+                        SensorsDataDialogUtils.showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_visual_dialog_error));
                     }
                     intent.setData(null);
                 } else if ("popupwindow".equals(host)) {
@@ -86,17 +87,17 @@ public class SASchemeHelper {
                     String key = Uri.decode(uri.getQueryParameter("key"));
                     String symmetricEncryptType = Uri.decode(uri.getQueryParameter("symmetricEncryptType"));
                     String asymmetricEncryptType = Uri.decode(uri.getQueryParameter("asymmetricEncryptType"));
-                    SALog.d(TAG, "Encrypt, version = " + version
+                    SALog.i(TAG, "Encrypt, version = " + version
                             + ", key = " + key
                             + ", symmetricEncryptType = " + symmetricEncryptType
                             + ", asymmetricEncryptType = " + asymmetricEncryptType);
                     String tip;
                     if (TextUtils.isEmpty(version) || TextUtils.isEmpty(key)) {
-                        tip = "密钥验证不通过，所选密钥无效";
+                        tip = SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_encrypt_fail);
                     } else if (sensorsDataAPI.getSensorsDataEncrypt() != null) {
-                        tip = sensorsDataAPI.getSensorsDataEncrypt().checkPublicSecretKey(version, key, symmetricEncryptType, asymmetricEncryptType);
+                        tip = sensorsDataAPI.getSensorsDataEncrypt().checkPublicSecretKey(activity, version, key, symmetricEncryptType, asymmetricEncryptType);
                     } else {
-                        tip = "当前 App 未开启加密，请开启加密后再试";
+                        tip = SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_encrypt_disable);
                     }
                     ToastUtil.showLong(activity, tip);
                     SensorsDataDialogUtils.startLaunchActivity(activity);
@@ -110,18 +111,17 @@ public class SASchemeHelper {
                     SensorsDataDialogUtils.startLaunchActivity(activity);
                     intent.setData(null);
                 } else if ("sensorsdataremoteconfig".equals(host)) {
-                    // 开启日志
+                    // enable_log
                     SensorsDataAPI.sharedInstance().enableLog(true);
                     BaseSensorsDataSDKRemoteManager sensorsDataSDKRemoteManager = sensorsDataAPI.getRemoteManager();
-                    // 取消重试
+                    // cancel retry
                     if (sensorsDataSDKRemoteManager != null) {
                         sensorsDataSDKRemoteManager.resetPullSDKConfigTimer();
                     }
                     final SensorsDataRemoteManagerDebug sensorsDataRemoteManagerDebug =
                             new SensorsDataRemoteManagerDebug(sensorsDataAPI);
-                    // 替换为 SensorsDataRemoteManagerDebug 对象
+                    // replace SensorsDataRemoteManagerDebug object
                     sensorsDataAPI.setRemoteManager(sensorsDataRemoteManagerDebug);
-                    // 验证远程配置
                     SALog.i(TAG, "Start debugging remote config");
                     sensorsDataRemoteManagerDebug.checkRemoteConfig(uri, activity);
                     intent.setData(null);

@@ -182,7 +182,7 @@ public class FragmentPageLeaveCallbacks implements SAFragmentLifecycleCallbacks,
         try {
             long resumeTime = properties.optLong(START_TIME);
             properties.remove(START_TIME);
-            double duration = TimeUtils.duration(resumeTime, SystemClock.elapsedRealtime());
+            Float duration = TimeUtils.duration(resumeTime, SystemClock.elapsedRealtime());
             if (duration < 0.05) {
                 return;
             }

@@ -56,9 +56,6 @@ public class SAAdvertUtils {
      * @return AndroidID
      */
     public static String getAndroidId(Context context) {
-        if (SensorsDataAPI.getConfigOptions().isDataCollectEnable()) {
-            return SensorsDataUtils.getAndroidID(context);
-        }
-        return "";
+        return SensorsDataUtils.getAndroidID(context);
     }
 }

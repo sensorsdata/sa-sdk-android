@@ -27,6 +27,7 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.advert.oaid.SAOaidHelper;
 import com.sensorsdata.analytics.android.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.advert.SAAdvertConstants;
+import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.ServerUrl;
@@ -82,7 +83,7 @@ public class DeepLinkManager {
         }
         Uri uri = intent.getData();
         if (uri.isOpaque()) {
-            SALog.d("ChannelDeepLink", uri.toString() + " isOpaque");
+            SALog.d("ChannelDeepLink", uri + " isOpaque");
             return false;
         }
         Set<String> parameterNames = uri.getQueryParameterNames();
@@ -142,7 +143,7 @@ public class DeepLinkManager {
         }
         SensorsDataUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), properties);
         SensorsDataUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
-        SensorsDataAPI.sharedInstance().transformTaskQueue(new Runnable() {
+        SAEventManager.getInstance().trackQueueEvent(new Runnable() {
             @Override
             public void run() {
                 if (isDeepLinkInstallSource) {

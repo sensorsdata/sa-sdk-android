@@ -757,11 +757,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
-    public void enableDataCollect() {
-
-    }
-
-    @Override
     public void addSAJSListener(SAJSListener listener) {
 
     }

@@ -36,11 +36,13 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.AppStateManager;
+import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
+import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 import com.sensorsdata.analytics.android.sdk.visual.model.SnapInfo;
 import com.sensorsdata.analytics.android.sdk.visual.model.WebNodeInfo;
 import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
@@ -381,7 +383,8 @@ public abstract class AbstractViewCrawler implements VTrack {
                             WebNodeInfo.AlertInfo alertInfo = list.get(i);
                             if (alertInfo != null) {
                                 if (TextUtils.equals(TYPE_HEAT_MAP, mType)) {
-                                    alertInfo.title = alertInfo.title.replace("可视化全埋点", "点击分析");
+                                    alertInfo.title = alertInfo.title.replace(SADisplayUtil.getStringResource(mActivity, R.string.sensors_analytics_visual),
+                                            SADisplayUtil.getStringResource(mActivity, R.string.sensors_analytics_heatmap));
                                 }
                                 writer.write("{".getBytes());
                                 writer.write(("\"title\":").getBytes());

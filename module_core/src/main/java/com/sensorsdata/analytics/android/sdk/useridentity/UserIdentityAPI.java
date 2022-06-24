@@ -41,8 +41,6 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
     private final SAContextManager mSAContextManager;
     private final PersistentDistinctId mAnonymousId;
 
-    // 是否重置过匿名 ID
-    private boolean isResetAnonymousId = false;
     //临时方案避免主线程获取登录 ID 同子线程不同步
     private String mLoginIdValue = null;
     private final Identities mIdentitiesInstance;
@@ -82,9 +80,6 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
     public String getAnonymousId() {
         try {
             synchronized (mAnonymousId) {
-                if (!SensorsDataAPI.getConfigOptions().isDataCollect()) {
-                    return "";
-                }
                 return mAnonymousId.get();
             }
         } catch (Exception ex) {
@@ -101,10 +96,6 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
                 String androidId = mSAContextManager.getAndroidId();
                 if (androidId.equals(mAnonymousId.get())) {
                     SALog.i(TAG, "DistinctId not change");
-                    return;
-                }
-                isResetAnonymousId = true;
-                if (!SensorsDataAPI.getConfigOptions().isDataCollect()) {
                     return;
                 }
                 String newDistinctId;
@@ -307,58 +298,6 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
 
     public Identities getIdentitiesInstance() {
         return mIdentitiesInstance;
-    }
-
-    /**
-     * 同意隐私权限
-     *
-     * @param androidId AndroidId
-     */
-    public void enableDataCollect(String androidId) {
-        try {
-            Identities.SpecialID key;
-            String value;
-            if (SensorsDataUtils.isValidAndroidId(androidId)) {
-                if (TextUtils.isEmpty(mAnonymousId.get()) || isResetAnonymousId) {// 未调用过 identify 或调用过 resetAnonymousId
-                    mAnonymousId.commit(androidId);
-                }
-                key = Identities.SpecialID.ANDROID_ID;
-                value = androidId;
-            } else {
-                String uuid = UUID.randomUUID().toString();
-                if (TextUtils.isEmpty(mAnonymousId.get()) || isResetAnonymousId) {// 未调用过 identify 或调用过 resetAnonymousId
-                    mAnonymousId.commit(uuid);
-                }
-                key = Identities.SpecialID.ANDROID_UUID;
-                value = uuid;
-            }
-            mIdentitiesInstance.updateSpecialIDKeyAndValue(key, value);
-            if (mIdentitiesInstance.getIdentities(Identities.State.DEFAULT).has(Identities.ANONYMOUS_ID) && isResetAnonymousId) {
-                mIdentitiesInstance.updateSpecialIDKeyAndValue(Identities.SpecialID.ANONYMOUS_ID, mAnonymousId.get());
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-    }
-
-    /**
-     * 同意隐私权限时更新默认 ID
-     *
-     * @param identitiesJson JSONObject
-     */
-    public void updateIdentities(JSONObject identitiesJson) {
-        try {
-            if (SensorsDataUtils.isValidAndroidId(mSAContextManager.getAndroidId())) {
-                identitiesJson.put(Identities.ANDROID_ID, mSAContextManager.getAndroidId());
-            } else {
-                identitiesJson.put(Identities.ANDROID_UUID, mAnonymousId.get());
-            }
-            if (mIdentitiesInstance.getIdentities(Identities.State.DEFAULT).has(Identities.ANONYMOUS_ID) && isResetAnonymousId) {
-                identitiesJson.put(Identities.ANONYMOUS_ID, mAnonymousId.get());
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
     }
 
     /**

@@ -26,10 +26,12 @@ import android.view.View;
 
 import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.AppStateManager;
+import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
+import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
 import com.sensorsdata.analytics.android.sdk.visual.ViewTreeStatusObservable;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
@@ -219,14 +221,14 @@ public class VisualPropertiesManager {
             if (mVisualConfig == null) {
                 SALog.i(TAG, "visual properties is empty and return");
                 if (mCollectLogListener != null) {
-                    mCollectLogListener.onCheckVisualConfigFailure("本地缓存无自定义属性配置");
+                    mCollectLogListener.onCheckVisualConfigFailure(SADisplayUtil.getStringResource(SensorsDataAPI.sharedInstance().getContext(), R.string.sensors_analytics_visual_cache_no_property_error));
                 }
                 return;
             }
 
             if (!checkAppIdAndProject()) {
                 if (mCollectLogListener != null) {
-                    mCollectLogListener.onCheckVisualConfigFailure("本地缓存的 AppId 或 Project 与当前项目不一致");
+                    mCollectLogListener.onCheckVisualConfigFailure(SADisplayUtil.getStringResource(SensorsDataAPI.sharedInstance().getContext(), R.string.sensors_analytics_visual_appid_error));
                 }
                 return;
             }
@@ -358,6 +360,7 @@ public class VisualPropertiesManager {
         try {
             // 用来对 webView_element_path 进行分组
             HashSet<String> h5HashSet = new HashSet<>();
+            ViewTreeStatusObservable.getInstance().clearViewNodeCache();
             for (VisualConfig.VisualProperty visualProperty : properties) {
                 if (visualProperty.isH5 && !TextUtils.isEmpty(visualProperty.webViewElementPath)) {
                     h5HashSet.add(visualProperty.webViewElementPath + visualProperty.screenName);
