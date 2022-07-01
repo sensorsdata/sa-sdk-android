@@ -15,13 +15,12 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.utils;
+package com.sensorsdata.analytics.android.unit_utils;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 public class ProfileTestUtils {

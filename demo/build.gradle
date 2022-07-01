@@ -6,7 +6,7 @@ android {
     compileSdkVersion rootProject.ext.buildConfig.compileSdkVersion
 
     defaultConfig {
-        applicationId "com.sensorsdata.analytics.android.demo"
+        applicationId "com.sensorsdata.sdk.demo"
         minSdkVersion rootProject.ext.buildConfig.minSdkVersion
         targetSdkVersion rootProject.ext.buildConfig.targetSdkVersion
         versionCode rootProject.ext.buildConfig.versionCode

@@ -1,6 +1,6 @@
 /*
- * Created by wangzhuozhou on 2016/11/12.
- * Copyright 2015－2022 Sensors Data Inc.
+ * Created by dengshiwei on 2022/06/29.
+ * Copyright 2015－2021 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,39 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sensorsdata.analytics.android.demo;
 
-import android.app.Application;
+package com.sensorsdata.analytics.android.unit_utils;
+
+import android.content.Context;
 
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SensorsAnalyticsAutoTrackEventType;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
-public class MyApplication extends Application {
-    /**
-     * Sensors Analytics 采集数据的地址
-     */
+public class SAHelper {
+
     private final static String SA_SERVER_URL = "https://sdkdebugtest.datasink.sensorsdata.cn/sa?project=default&token=cfb8b60e42e0ae9b";
 
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        initSensorsDataAPI();
-    }
-
-    /**
-     * 初始化 Sensors Analytics SDK
-     */
-    private void initSensorsDataAPI() {
+    public static  SensorsDataAPI initSensors(Context context) {
         SAConfigOptions configOptions = new SAConfigOptions(SA_SERVER_URL);
         // 打开自动采集, 并指定追踪哪些 AutoTrack 事件
         configOptions.setAutoTrackEventType(SensorsAnalyticsAutoTrackEventType.APP_START |
                 SensorsAnalyticsAutoTrackEventType.APP_END |
                 SensorsAnalyticsAutoTrackEventType.APP_VIEW_SCREEN |
-                SensorsAnalyticsAutoTrackEventType.APP_CLICK);
-        // 打开 crash 信息采集
-        configOptions.enableTrackAppCrash();
-        //传入 SAConfigOptions 对象，初始化神策 SDK
-        SensorsDataAPI.startWithConfigOptions(this, configOptions);
+                SensorsAnalyticsAutoTrackEventType.APP_CLICK)
+                .enableTrackAppCrash()
+                .enableJavaScriptBridge(true)
+                .enableHeatMap(true)
+                .enableVisualizedAutoTrack(true);
+        SensorsDataAPI.startWithConfigOptions(context, configOptions);
+        SensorsDataAPI.sharedInstance(context).trackFragmentAppViewScreen();
+        return SensorsDataAPI.sharedInstance();
+    }
+
+    public static String getSaServerUrl() {
+        return SA_SERVER_URL;
     }
 }

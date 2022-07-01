@@ -37,14 +37,16 @@ import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.DeviceUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
-import com.sensorsdata.analytics.android.utils.DatabaseUtilsTest;
-import com.sensorsdata.analytics.android.utils.ProfileTestUtils;
+import com.sensorsdata.analytics.android.unit_utils.DatabaseUtilsTest;
+import com.sensorsdata.analytics.android.unit_utils.ProfileTestUtils;
+import com.sensorsdata.analytics.android.unit_utils.SAHelper;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
@@ -53,12 +55,11 @@ import java.util.Iterator;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {Config.OLDEST_SDK})
 public class RegressionTesting {
-    private final static String SA_SERVER_URL = "https://sdkdebugtest.datasink.sensorsdata.cn/sa?project=default&token=cfb8b60e42e0ae9b";
     Application mApplication = ApplicationProvider.getApplicationContext();
 
     @Test
     public void initSensorsSDKTest() {
-        SensorsDataAPI sensorsDataAPI = initSensors();
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         // 校验全埋点开启状态;
         Assert.assertTrue(sensorsDataAPI.isAutoTrackEnabled());
         // 校验 Debug 模式
@@ -68,14 +69,14 @@ public class RegressionTesting {
         // 校验可视化是否开启
         Assert.assertTrue(sensorsDataAPI.isVisualizedAutoTrackEnabled());
         // 校验数据接收地址
-        assertEquals(sensorsDataAPI.getServerUrl(), SA_SERVER_URL);
+        assertEquals(sensorsDataAPI.getServerUrl(), SAHelper.getSaServerUrl());
         assertTrue(sensorsDataAPI.isNetworkRequestEnable());
         assertTrue(sensorsDataAPI.isTrackFragmentAppViewScreenEnabled());
     }
 
     @Test
     public void getPresetPropertiesTest() {
-        SensorsDataAPI sensorsDataAPI = initSensors();
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         JSONObject jsonObject = sensorsDataAPI.getPresetProperties();
         String version = DeviceUtils.getHarmonyOSVersion();
         if (TextUtils.isEmpty(version)) {
@@ -104,7 +105,7 @@ public class RegressionTesting {
 
     @Test
     public void trackTest() {
-        SensorsDataAPI sensorsDataAPI = initSensors();
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         final String eventUnitName = "UnitTest";
         final String unitKey = "unitTestKey";
         sensorsDataAPI.setTrackEventCallBack(new SensorsDataTrackEventCallBack() {
@@ -126,7 +127,7 @@ public class RegressionTesting {
 
     @Test
     public void registerSuperPropertyTest() {
-        SensorsDataAPI sensorsDataAPI = initSensors();
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         final String eventUnitName = "SuperUnitTest";
         final String superKey = "superTestKey";
         sensorsDataAPI.setTrackEventCallBack(new SensorsDataTrackEventCallBack() {
@@ -158,7 +159,7 @@ public class RegressionTesting {
 
     @Test
     public void registerDynamicPropertyTest() {
-        SensorsDataAPI sensorsDataAPI = initSensors();
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         final String eventUnitName = "DynamicUnitTest";
         final String superKey = "dynamicTestKey";
         sensorsDataAPI.setTrackEventCallBack(new SensorsDataTrackEventCallBack() {
@@ -187,7 +188,7 @@ public class RegressionTesting {
 
     @Test
     public void trackTimerTest() {
-        SensorsDataAPI sensorsDataAPI = initSensors();
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         final String eventUnitName = "TimerUnitTest";
         final String superKey = "timerTestKey";
         sensorsDataAPI.setTrackEventCallBack(new SensorsDataTrackEventCallBack() {
@@ -215,6 +216,7 @@ public class RegressionTesting {
         sensorsDataAPI.trackTimerStart(eventUnitName);
         try {
             Thread.sleep(1000);
+            Robolectric.getForegroundThreadScheduler().advanceTo(1200);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -223,7 +225,7 @@ public class RegressionTesting {
 
     @Test
     public void getAnonymousIdTest() throws InterruptedException {
-        SensorsDataAPI sensorsDataAPI = initSensors();
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         assertNotNull(sensorsDataAPI.getAnonymousId());
 
         String identify = "SensorsDataAndroid";
@@ -234,7 +236,7 @@ public class RegressionTesting {
 
     @Test
     public void getDistinctIdTest() throws InterruptedException {
-        SensorsDataAPI sensorsDataAPI = initSensors();
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         assertEquals(sensorsDataAPI.getDistinctId(), sensorsDataAPI.getAnonymousId());
 
         String identify = "SensorsDataAndroid";
@@ -245,7 +247,7 @@ public class RegressionTesting {
 
     @Test
     public void loginTest() throws Exception {
-        SensorsDataAPI sensorsDataAPI = initSensors();
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         String login_id = "SensorsDataAndroid";
         sensorsDataAPI.login(login_id);
         Thread.sleep(1500);
@@ -271,7 +273,7 @@ public class RegressionTesting {
     public void profileSetTest() throws Exception {
         final String key = "profile_SetTest";
         final String value = "profile_SettTest";
-        SensorsDataAPI sensorsDataAPI = initSensors();
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         sensorsDataAPI.deleteAll();
         // 检查事件类型和属性
         Thread.sleep(1500);
@@ -291,7 +293,7 @@ public class RegressionTesting {
     public void profileIncrementTest() throws Exception {
         final String key = "profile_IncrementTest";
         final int value = 2;
-        SensorsDataAPI sensorsDataAPI = initSensors();
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         sensorsDataAPI.deleteAll();
         // 检查事件类型和属性
         Thread.sleep(1500);
@@ -311,7 +313,7 @@ public class RegressionTesting {
     public void profileSetOnceTest()throws Exception  {
         final String key = "profile_SetOnceTest";
         final String value = "profile_SetOnceTest";
-        SensorsDataAPI sensorsDataAPI = initSensors();
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         sensorsDataAPI.deleteAll();
         // 检查事件类型和属性
         Thread.sleep(1500);
@@ -331,7 +333,7 @@ public class RegressionTesting {
     public void profileAppendTest() throws Exception {
         final String key = "profile_AppendTest";
         final String value = "profile_AppendTest";
-        SensorsDataAPI sensorsDataAPI = initSensors();
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         sensorsDataAPI.deleteAll();
         // 检查事件类型和属性
         Thread.sleep(1500);
@@ -351,7 +353,7 @@ public class RegressionTesting {
     public void profilePushIdTest() throws Exception{
         final String key = "profile_PushIdKeyTest";
         final String value = "profile_PushIdValueTest";
-        SensorsDataAPI sensorsDataAPI = initSensors();
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         sensorsDataAPI.deleteAll();
         sensorsDataAPI.profilePushId(key, value);
         // 检查事件类型和属性
@@ -381,7 +383,7 @@ public class RegressionTesting {
     @Test
     public void profileUnsetPushIdTest()throws Exception {
         final String key = "profile_PushIdKeyTest";
-        SensorsDataAPI sensorsDataAPI = initSensors();
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         sensorsDataAPI.profilePushId(key, "value");
         Thread.sleep(1500);
         // delete profile_set from push_id
@@ -414,7 +416,7 @@ public class RegressionTesting {
     public void itemSetTest() throws Exception {
         final String itemType = "itemType_unitTest";
         final String itemId = "itemId_unitTest";
-        SensorsDataAPI sensorsDataAPI = initSensors();
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         JSONObject jsonObjectProperty = new JSONObject();
         jsonObjectProperty.put(itemType, itemId);
         sensorsDataAPI.itemSet(itemType, itemId, jsonObjectProperty);
@@ -433,7 +435,7 @@ public class RegressionTesting {
     public void itemDeleteTest()throws Exception  {
         final String itemType = "itemType_unitTest";
         final String itemId = "itemId_unitTest";
-        SensorsDataAPI sensorsDataAPI = initSensors();
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         sensorsDataAPI.itemDelete(itemType, itemId);
         // 检查事件类型和属性
         Thread.sleep(1500);
@@ -441,22 +443,6 @@ public class RegressionTesting {
         assertNotNull(eventData);
         JSONObject jsonObject = new JSONObject(eventData);
         ProfileTestUtils.checkItemEvent(jsonObject, "item_delete", itemType, itemId);
-    }
-
-    private SensorsDataAPI initSensors() {
-        SAConfigOptions configOptions = new SAConfigOptions(SA_SERVER_URL);
-        // 打开自动采集, 并指定追踪哪些 AutoTrack 事件
-        configOptions.setAutoTrackEventType(SensorsAnalyticsAutoTrackEventType.APP_START |
-                SensorsAnalyticsAutoTrackEventType.APP_END |
-                SensorsAnalyticsAutoTrackEventType.APP_VIEW_SCREEN |
-                SensorsAnalyticsAutoTrackEventType.APP_CLICK)
-                .enableTrackAppCrash()
-                .enableJavaScriptBridge(true)
-                .enableHeatMap(true)
-                .enableVisualizedAutoTrack(true);
-        SensorsDataAPI.startWithConfigOptions(mApplication, configOptions);
-        SensorsDataAPI.sharedInstance(mApplication).trackFragmentAppViewScreen();
-        return SensorsDataAPI.sharedInstance();
     }
 
     /**

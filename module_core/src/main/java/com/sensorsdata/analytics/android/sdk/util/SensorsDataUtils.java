@@ -77,7 +77,7 @@ public final class SensorsDataUtils {
 
     private static boolean isUniApp = false;
     private static String androidID = "";
-
+    private static String mCurrentCarrier = null;
     private static final Map<String, String> sCarrierMap = new HashMap<>();
 
     private static final List<String> mInvalidAndroidId = new ArrayList<String>() {
@@ -89,34 +89,6 @@ public final class SensorsDataUtils {
     };
     private static final String TAG = "SA.SensorsDataUtils";
 
-    private static String getJsonFromAssets(String fileName, Context context) {
-        //将json数据变成字符串
-        StringBuilder stringBuilder = new StringBuilder();
-        BufferedReader bf = null;
-        try {
-            //获取assets资源管理器
-            AssetManager assetManager = context.getAssets();
-            //通过管理器打开文件并读取
-            bf = new BufferedReader(new InputStreamReader(
-                    assetManager.open(fileName)));
-            String line;
-            while ((line = bf.readLine()) != null) {
-                stringBuilder.append(line);
-            }
-        } catch (IOException e) {
-            SALog.printStackTrace(e);
-        } finally {
-            if (bf != null) {
-                try {
-                    bf.close();
-                } catch (IOException e) {
-                    SALog.printStackTrace(e);
-                }
-            }
-        }
-        return stringBuilder.toString();
-    }
-
     /**
      * 此方法谨慎修改
      * 插件配置 disableCarrier 会修改此方法
@@ -127,28 +99,16 @@ public final class SensorsDataUtils {
      */
     public static String getCarrier(Context context) {
         try {
-            if (SensorsDataUtils.checkHasPermission(context, Manifest.permission.READ_PHONE_STATE)) {
+            if (TextUtils.isEmpty(mCurrentCarrier) && SensorsDataUtils.checkHasPermission(context, Manifest.permission.READ_PHONE_STATE)) {
                 try {
                     TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context
                             .TELEPHONY_SERVICE);
                     if (telephonyManager != null) {
+                        SALog.i(TAG, "SensorsData getCarrier");
                         String operator = telephonyManager.getSimOperator();
-                        String alternativeName = null;
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                            CharSequence tmpCarrierName = telephonyManager.getSimCarrierIdName();
-                            if (!TextUtils.isEmpty(tmpCarrierName)) {
-                                alternativeName = tmpCarrierName.toString();
-                            }
-                        }
-                        if (TextUtils.isEmpty(alternativeName)) {
-                            if (telephonyManager.getSimState() == TelephonyManager.SIM_STATE_READY) {
-                                alternativeName = telephonyManager.getSimOperatorName();
-                            } else {
-                                alternativeName = context.getString(R.string.sensors_analytics_carrier_unknown);
-                            }
-                        }
                         if (!TextUtils.isEmpty(operator)) {
-                            return operatorToCarrier(context, operator, alternativeName);
+                            mCurrentCarrier = operatorToCarrier(context, operator, telephonyManager);
+                            return mCurrentCarrier;
                         }
                     }
                 } catch (Exception e) {
@@ -161,7 +121,7 @@ public final class SensorsDataUtils {
             //针对酷派 B770 机型抛出的 IncompatibleClassChangeError 错误进行捕获
             SALog.i(TAG, error.toString());
         }
-        return null;
+        return mCurrentCarrier;
     }
 
     /**
@@ -214,16 +174,17 @@ public final class SensorsDataUtils {
      *
      * @param context context
      * @param operator sim operator
-     * @param alternativeName 备选名称
+     * @param telephonyManager TelephonyManager
      * @return local carrier name
      */
-    private static String operatorToCarrier(Context context, String operator, String alternativeName) {
+    private static String operatorToCarrier(Context context, String operator, TelephonyManager telephonyManager) {
         try {
-            if (TextUtils.isEmpty(operator)) {
-                return alternativeName;
-            }
             if (sCarrierMap.containsKey(operator)) {
                 return sCarrierMap.get(operator);
+            }
+
+            if (TextUtils.isEmpty(operator)) {
+                return getCarrierName(context, telephonyManager);
             }
 
             // init default carrier
@@ -240,11 +201,33 @@ public final class SensorsDataUtils {
                 }
             }
             if (TextUtils.isEmpty(carrier)) {
-                sCarrierMap.put(operator, alternativeName);
-                return alternativeName;
+                String carrierName = getCarrierName(context, telephonyManager);
+                sCarrierMap.put(operator, carrierName);
+                return carrierName;
+            } else {
+                sCarrierMap.put(operator, carrier);
+                return carrier;
             }
         } catch (Throwable e) {
             SALog.i(TAG, e.getMessage());
+        }
+        return getCarrierName(context, telephonyManager);
+    }
+
+    private static String getCarrierName(Context context, TelephonyManager telephonyManager) {
+        String alternativeName = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            CharSequence tmpCarrierName = telephonyManager.getSimCarrierIdName();
+            if (!TextUtils.isEmpty(tmpCarrierName)) {
+                alternativeName = tmpCarrierName.toString();
+            }
+        }
+        if (TextUtils.isEmpty(alternativeName)) {
+            if (telephonyManager.getSimState() == TelephonyManager.SIM_STATE_READY) {
+                alternativeName = telephonyManager.getSimOperatorName();
+            } else {
+                alternativeName = context.getString(R.string.sensors_analytics_carrier_unknown);
+            }
         }
         return alternativeName;
     }
@@ -351,47 +334,6 @@ public final class SensorsDataUtils {
             }
         }
         return appCompatActivityClass;
-    }
-
-    /**
-     * 尝试读取页面 title
-     *
-     * @param properties JSONObject
-     * @param activity Activity
-     */
-    public static void getScreenNameAndTitleFromActivity(JSONObject properties, Activity activity) {
-        if (activity == null || properties == null) {
-            return;
-        }
-
-        try {
-            properties.put("$screen_name", activity.getClass().getCanonicalName());
-
-            String activityTitle = null;
-            if (!TextUtils.isEmpty(activity.getTitle())) {
-                activityTitle = activity.getTitle().toString();
-            }
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-                String toolbarTitle = getToolbarTitle(activity);
-                if (!TextUtils.isEmpty(toolbarTitle)) {
-                    activityTitle = toolbarTitle;
-                }
-            }
-
-            if (TextUtils.isEmpty(activityTitle)) {
-                PackageManager packageManager = activity.getPackageManager();
-                if (packageManager != null) {
-                    ActivityInfo activityInfo = packageManager.getActivityInfo(activity.getComponentName(), 0);
-                    activityTitle = activityInfo.loadLabel(packageManager).toString();
-                }
-            }
-            if (!TextUtils.isEmpty(activityTitle)) {
-                properties.put("$title", activityTitle);
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
     }
 
     public static void mergeJSONObject(final JSONObject source, JSONObject dest) {
@@ -677,16 +619,19 @@ public final class SensorsDataUtils {
             if (TextUtils.isEmpty(macAddress) && checkHasPermission(context, Manifest.permission.ACCESS_WIFI_STATE)) {
                 WifiManager wifiMan = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
                 if (wifiMan != null) {
+                    SALog.i(TAG, "SensorsData getMacAddress");
                     WifiInfo wifiInfo = wifiMan.getConnectionInfo();
-                    if (wifiInfo != null && wifiInfo.getMacAddress() != null) {
+                    if (wifiInfo != null) {
                         macAddress = wifiInfo.getMacAddress();
-                        if (marshmallowMacAddress.equals(macAddress)) {
-                            macAddress = getMacAddressByInterface();
-                            if (macAddress == null) {
-                                macAddress = marshmallowMacAddress;
+                        if (!TextUtils.isEmpty(macAddress)) {
+                            if (marshmallowMacAddress.equals(macAddress)) {
+                                macAddress = getMacAddressByInterface();
+                                if (macAddress == null) {
+                                    macAddress = marshmallowMacAddress;
+                                }
                             }
+                            deviceUniqueIdentifiersMap.put("macAddress", macAddress);
                         }
-                        deviceUniqueIdentifiersMap.put("macAddress", macAddress);
                     }
                 }
             }

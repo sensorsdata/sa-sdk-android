@@ -1,6 +1,6 @@
 /*
- * Created by wangzhuohou on 2019/04/17.
- * Copyright 2015－2022 Sensors Data Inc.
+ * Created by dengshiwei on 2022/06/28.
+ * Copyright 2015－2021 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,25 +15,19 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.demo;
+package com.sensorsdata.sdk.demo;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 
-import androidx.databinding.DataBindingUtil;
-
-import com.sensorsdata.analytics.android.demo.databinding.ActivityMainBinding;
-
 public class MainActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        ActivityMainBinding binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
-        binding.setHandlers(this);
-
+        setContentView(R.layout.activity_main);
         initLambdaButton();
         initButton();
     }

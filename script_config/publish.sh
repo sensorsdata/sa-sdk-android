@@ -19,7 +19,7 @@
 echo "start ====== publish to maven"
 
 pwd
-rm -rf /repo
+rm -rf repo
 
 ./gradlew clean
 ./gradlew publish
