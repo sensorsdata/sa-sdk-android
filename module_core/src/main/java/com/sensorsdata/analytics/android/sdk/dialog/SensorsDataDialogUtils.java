@@ -40,12 +40,10 @@ import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.ThreadNameConstants;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
+import com.sensorsdata.analytics.android.sdk.util.ToastUtil;
 import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 import com.sensorsdata.analytics.android.sdk.util.ToastUtil;
-import com.sensorsdata.analytics.android.sdk.visual.HeatMapService;
-import com.sensorsdata.analytics.android.sdk.visual.VisualizedAutoTrackService;
-import com.sensorsdata.analytics.android.sdk.visual.view.PairingCodeEditDialog;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -107,7 +105,7 @@ public class SensorsDataDialogUtils {
                                 activity.runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        showDialog(activity,  SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_popwindow_fail));
+                                        showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_popwindow_fail));
                                     }
                                 });
                             }
@@ -190,74 +188,6 @@ public class SensorsDataDialogUtils {
         }
     }
 
-    public static void showOpenHeatMapDialog(final Activity context, final String featureCode,
-                                             final String postUrl) {
-        try {
-            if (!SensorsDataAPI.sharedInstance().isNetworkRequestEnable()) {
-                showDialog(context, SADisplayUtil.getStringResource(context, R.string.sensors_analytics_heatmap_network_fail));
-                return;
-            }
-
-            if (!SensorsDataAPI.sharedInstance().isHeatMapEnabled()) {
-                showDialog(context, SADisplayUtil.getStringResource(context, R.string.sensors_analytics_heatmap_sdk_fail));
-                return;
-            }
-
-            boolean isWifi = false;
-            try {
-                String networkType = NetworkUtils.networkType(context);
-                if ("WIFI".equals(networkType)) {
-                    isWifi = true;
-                }
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
-            }
-
-            AlertDialog.Builder builder = new AlertDialog.Builder(context);
-            builder.setTitle(SADisplayUtil.getStringResource(context, R.string.sensors_analytics_common_title));
-            if (isWifi) {
-                builder.setMessage(SADisplayUtil.getStringResource(context, R.string.sensors_analytics_heatmap_wifi_name));
-            } else {
-                builder.setMessage(SADisplayUtil.getStringResource(context, R.string.sensors_analytics_heatmap_mobile_name));
-            }
-            builder.setCancelable(false);
-            builder.setNegativeButton(SADisplayUtil.getStringResource(context, R.string.sensors_analytics_common_cancel), new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    startLaunchActivity(context);
-                }
-            });
-            builder.setPositiveButton(SADisplayUtil.getStringResource(context, R.string.sensors_analytics_common_continue), new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    HeatMapService.getInstance().start(context, featureCode, postUrl);
-                    startLaunchActivity(context);
-                }
-            });
-            AlertDialog dialog = builder.create();
-            dialogShowDismissOld(dialog);
-            try {
-                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.BLACK);
-                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundColor(Color.WHITE);
-                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setAllCaps(false);
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.RED);
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundColor(Color.WHITE);
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setAllCaps(false);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackground(getDrawable());
-                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackground(getDrawable());
-                } else {
-                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundDrawable(getDrawable());
-                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundDrawable(getDrawable());
-                }
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-    }
-
     public static void showHttpErrorDialog(final Activity context, final String msg) {
         try {
             if (TextUtils.isEmpty(msg) || !isShowHttpErrorDialog || context == null) {
@@ -303,7 +233,7 @@ public class SensorsDataDialogUtils {
         }
     }
 
-    static StateListDrawable getDrawable() {
+    public static StateListDrawable getDrawable() {
         GradientDrawable pressDrawable = new GradientDrawable();
         pressDrawable.setShape(GradientDrawable.RECTANGLE);
         pressDrawable.setColor(Color.parseColor("#dddddd"));
@@ -316,72 +246,6 @@ public class SensorsDataDialogUtils {
         stateListDrawable.addState(new int[]{android.R.attr.state_focused}, pressDrawable);
         stateListDrawable.addState(new int[]{}, normalDrawable);
         return stateListDrawable;
-    }
-
-    public static void showOpenVisualizedAutoTrackDialog(final Activity context, final String featureCode, final String postUrl) {
-        try {
-            if (!SensorsDataAPI.sharedInstance().isNetworkRequestEnable()) {
-                showDialog(context, SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_network_fail));
-                return;
-            }
-            if (!SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled()) {
-                showDialog(context, SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_sdk_fail));
-                return;
-            }
-
-            boolean isWifi = false;
-            try {
-                String networkType = NetworkUtils.networkType(context);
-                if ("WIFI".equals(networkType)) {
-                    isWifi = true;
-                }
-            } catch (Exception e) {
-                // ignore
-            }
-
-            AlertDialog.Builder builder = new AlertDialog.Builder(context);
-            builder.setTitle(SADisplayUtil.getStringResource(context, R.string.sensors_analytics_common_title));
-            if (isWifi) {
-                builder.setMessage(SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_wifi_name));
-            } else {
-                builder.setMessage(SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_mobile_name));
-            }
-            builder.setCancelable(false);
-            builder.setNegativeButton(SADisplayUtil.getStringResource(context, R.string.sensors_analytics_common_cancel), new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    startLaunchActivity(context);
-                }
-            });
-            builder.setPositiveButton(SADisplayUtil.getStringResource(context, R.string.sensors_analytics_common_continue), new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    VisualizedAutoTrackService.getInstance().start(context, featureCode, postUrl);
-                    startLaunchActivity(context);
-                }
-            });
-            AlertDialog dialog = builder.create();
-            dialogShowDismissOld(dialog);
-            try {
-                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.BLACK);
-                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundColor(Color.WHITE);
-                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setAllCaps(false);
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.RED);
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundColor(Color.WHITE);
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setAllCaps(false);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackground(getDrawable());
-                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackground(getDrawable());
-                } else {
-                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundDrawable(getDrawable());
-                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundDrawable(getDrawable());
-                }
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
     }
 
     public static void showDialog(final Context context, String message) {
@@ -404,25 +268,6 @@ public class SensorsDataDialogUtils {
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
-    }
-
-    public static void showPairingCodeInputDialog(final Context context) {
-        if (context == null) {
-            SALog.i(TAG, "The argument context can't be null");
-            return;
-        }
-        if (!(context instanceof Activity)) {
-            SALog.i(TAG, "The static method showPairingCodeEditDialog(Context context) only accepts Activity as a parameter");
-            return;
-        }
-        Activity activity = (Activity) context;
-        activity.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                final PairingCodeEditDialog dialog = new PairingCodeEditDialog(context);
-                dialog.show();
-            }
-        });
     }
 
     public static void startLaunchActivity(Context context) {

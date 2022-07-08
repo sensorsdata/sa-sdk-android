@@ -19,12 +19,11 @@ package com.sensorsdata.analytics.android.sdk;
 
 import android.content.Context;
 import android.text.TextUtils;
-import android.util.Base64;
 import android.view.View;
 import android.webkit.JavascriptInterface;
 
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
-import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
+import com.sensorsdata.analytics.android.sdk.visual.SAVisual;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -172,19 +171,6 @@ import java.lang.ref.WeakReference;
      */
     @JavascriptInterface
     public String sensorsdata_get_app_visual_config() {
-        try {
-            // 可视化的开关未打开，此时 App 内嵌 H5 场景无需支持采集自定义属性；
-            if (!SensorsDataAPI.getConfigOptions().isVisualizedPropertiesEnabled()) {
-                return null;
-            }
-            VisualPropertiesManager.getInstance().getVisualPropertiesH5Helper().registerListeners();
-            String visualCache = VisualPropertiesManager.getInstance().getVisualPropertiesCache().getVisualCache();
-            if (!TextUtils.isEmpty(visualCache)) {
-                return Base64.encodeToString(visualCache.getBytes(), Base64.DEFAULT);
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-        return null;
+        return SAVisual.getAppVisualConfig();
     }
 }

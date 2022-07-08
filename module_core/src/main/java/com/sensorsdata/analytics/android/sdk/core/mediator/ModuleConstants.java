@@ -20,5 +20,6 @@ package com.sensorsdata.analytics.android.sdk.core.mediator;
 public class ModuleConstants {
     public interface ModuleName {
         String ADVERT_NAME = "sensors_analytics_module_advertisement";
+        String VISUAL_NAME = "sensors_analytics_module_visual";
     }
 }

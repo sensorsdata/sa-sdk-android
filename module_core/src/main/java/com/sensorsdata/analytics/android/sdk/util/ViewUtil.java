@@ -679,7 +679,10 @@ public class ViewUtil {
             } else if (view instanceof TextView) { // TextView
                 viewType = AopUtil.getViewType(viewType, "TextView");
                 TextView textView = (TextView) view;
-                viewText = textView.getText();
+                Object object = ReflectUtil.findField(new String[]{"androidx.appcompat.widget.AppCompatTextView"}, textView, "mPrecomputedTextFuture");
+                if (object == null) {
+                    viewText = textView.getText();
+                }
             } else if (view instanceof ImageView) { // ImageView
                 viewType = AopUtil.getViewType(viewType, "ImageView");
                 ImageView imageView = (ImageView) view;

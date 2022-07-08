@@ -20,7 +20,7 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
--dontwarn com.sensorsdata.analytics.advert.**
--keep class com.sensorsdata.analytics.advert.** {
+-dontwarn com.sensorsdata.analytics.android.sdk.advert.**
+-keep class com.sensorsdata.analytics.android.sdk.advert.** {
 *;
 }

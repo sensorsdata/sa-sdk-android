@@ -36,4 +36,5 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     api project(':module_core')
     api project(':module_advert')
+    api project(':module_visual')
 }

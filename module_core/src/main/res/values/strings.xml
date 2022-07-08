@@ -8,7 +8,6 @@
     <item name="sensors_analytics_tag_view_fragment_name2" type="id" />
     <item name="sensors_analytics_tag_view_activity" type="id" />
     <item name="sensors_analytics_tag_view_webview" type="id" />
-    <item name="sensors_analytics_tag_view_webview_visual" type="id" />
     <item name="sensors_analytics_tag_view_rn_key" type="id"/>
     <item name="sensors_analytics_tag_view_keyboard" type="id"/>
     

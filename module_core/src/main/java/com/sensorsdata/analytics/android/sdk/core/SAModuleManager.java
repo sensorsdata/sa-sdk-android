@@ -27,6 +27,7 @@ import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
 import com.sensorsdata.analytics.android.sdk.core.mediator.advert.SAAdvertModuleProtocol;
 import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAModuleProtocol;
 import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAScanListener;
+import com.sensorsdata.analytics.android.sdk.core.mediator.visual.SAVisualProtocol;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -93,7 +94,7 @@ public class SAModuleManager {
         if (TextUtils.isEmpty(moduleName)) {
             return false;
         }
-        if(mServiceMap.containsKey(moduleName)){
+        if (mServiceMap.containsKey(moduleName)) {
             return mServiceMap.get(moduleName).isEnable();
         }
         return false;
@@ -137,6 +138,15 @@ public class SAModuleManager {
      */
     public SAAdvertModuleProtocol getAdvertModuleService() {
         return getService(ModuleConstants.ModuleName.ADVERT_NAME, SAAdvertModuleProtocol.class);
+    }
+
+    /**
+     * 获取可视化模块间交互服务
+     *
+     * @return 模块实现接口
+     */
+    public SAVisualProtocol getVisualModuleService() {
+        return getService(ModuleConstants.ModuleName.VISUAL_NAME, SAVisualProtocol.class);
     }
 
     /**

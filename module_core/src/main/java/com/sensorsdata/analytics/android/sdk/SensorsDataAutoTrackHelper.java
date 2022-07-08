@@ -42,8 +42,8 @@ import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TabHost;
 
-import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
+import com.sensorsdata.analytics.android.sdk.util.H5Util;
 import com.sensorsdata.analytics.android.sdk.util.KeyboardViewUtil;
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
@@ -51,7 +51,7 @@ import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.ThreadUtils;
 import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
-import com.sensorsdata.analytics.android.sdk.visual.WebViewVisualInterface;
+import com.sensorsdata.analytics.android.sdk.visual.SAVisual;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 import com.sensorsdata.analytics.android.sdk.visual.util.VisualUtil;
 
@@ -1146,7 +1146,7 @@ public class SensorsDataAutoTrackHelper {
                     return;
                 }
             }
-            if(KeyboardViewUtil.isKeyboardView(view)){
+            if (KeyboardViewUtil.isKeyboardView(view)) {
                 return;
             }
 
@@ -1410,7 +1410,7 @@ public class SensorsDataAutoTrackHelper {
             setupWebView(webView);
         }
         if (isSupportJellyBean()) {
-            addWebViewVisualInterface(webView);
+            SAVisual.addVisualJavascriptInterface(webView);
         }
     }
 
@@ -1428,13 +1428,6 @@ public class SensorsDataAutoTrackHelper {
         }
     }
 
-    static void addWebViewVisualInterface(View webView) {
-        if (webView != null && webView.getTag(R.id.sensors_analytics_tag_view_webview_visual) == null) {
-            webView.setTag(R.id.sensors_analytics_tag_view_webview_visual, new Object());
-            addJavascriptInterface(webView, new WebViewVisualInterface(webView), "SensorsData_App_Visual_Bridge");
-        }
-    }
-
     private static boolean isSupportJellyBean() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1 && !SensorsDataAPI.getConfigOptions().isWebViewSupportJellyBean) {
             SALog.d(TAG, "For applications targeted to API level JELLY_BEAN or below, this feature NOT SUPPORTED");
@@ -1446,27 +1439,7 @@ public class SensorsDataAutoTrackHelper {
     private static void setupWebView(View webView) {
         if (webView != null && webView.getTag(R.id.sensors_analytics_tag_view_webview) == null) {
             webView.setTag(R.id.sensors_analytics_tag_view_webview, new Object());
-            addJavascriptInterface(webView, new AppWebViewInterface(SensorsDataAPI.sharedInstance().getContext(), null, false, webView), "SensorsData_APP_New_H5_Bridge");
-        }
-    }
-
-    private static void addJavascriptInterface(View webView, Object obj, String interfaceName) {
-        try {
-            Class<?> clazz = webView.getClass();
-            try {
-                Method getSettingsMethod = clazz.getMethod("getSettings");
-                Object settings = getSettingsMethod.invoke(webView);
-                if (settings != null) {
-                    Method setJavaScriptEnabledMethod = settings.getClass().getMethod("setJavaScriptEnabled", boolean.class);
-                    setJavaScriptEnabledMethod.invoke(settings, true);
-                }
-            } catch (Exception e) {
-                //ignore
-            }
-            Method addJSMethod = clazz.getMethod("addJavascriptInterface", Object.class, String.class);
-            addJSMethod.invoke(webView, obj, interfaceName);
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
+            H5Util.addJavascriptInterface(webView, new AppWebViewInterface(SensorsDataAPI.sharedInstance().getContext(), null, false, webView), "SensorsData_APP_New_H5_Bridge");
         }
     }
 }

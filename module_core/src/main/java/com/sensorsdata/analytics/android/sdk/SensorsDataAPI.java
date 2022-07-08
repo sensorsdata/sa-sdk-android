@@ -47,7 +47,7 @@ import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
-import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
+import com.sensorsdata.analytics.android.sdk.visual.SAVisual;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -229,10 +229,6 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                     sensorsDataAPI.mFirstDay.commit(TimeUtils.formatTime(System.currentTimeMillis(), TimeUtils.YYYY_MM_DD));
                 }
                 sensorsDataAPI.delayInitTask();
-                //重新请求可视化全埋点
-                if (SensorsDataAPI.getConfigOptions().isVisualizedPropertiesEnabled()) {
-                    VisualPropertiesManager.getInstance().requestVisualConfig();
-                }
                 //重新请求采集控制
                 sensorsDataAPI.getRemoteManager().pullSDKConfigFromServer();
             } catch (Exception e) {
@@ -574,7 +570,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         if (webView != null) {
             webView.getSettings().setJavaScriptEnabled(true);
             webView.addJavascriptInterface(new AppWebViewInterface(mContext, properties, enableVerify, webView), "SensorsData_APP_JS_Bridge");
-            SensorsDataAutoTrackHelper.addWebViewVisualInterface(webView);
+            SAVisual.addVisualJavascriptInterface(webView);
         }
     }
 
@@ -603,7 +599,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 return;
             }
             addJavascriptInterface.invoke(x5WebView, new AppWebViewInterface(mContext, properties, enableVerify), "SensorsData_APP_JS_Bridge");
-            SensorsDataAutoTrackHelper.addWebViewVisualInterface((View) x5WebView);
+            SAVisual.addVisualJavascriptInterface((View) x5WebView);
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
@@ -622,7 +618,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 return;
             }
             addJavascriptInterface.invoke(x5WebView, new AppWebViewInterface(mContext, null, enableVerify, (View) x5WebView), "SensorsData_APP_JS_Bridge");
-            SensorsDataAutoTrackHelper.addWebViewVisualInterface((View) x5WebView);
+            SAVisual.addVisualJavascriptInterface((View) x5WebView);
         } catch (Exception e) {
             com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
         }
@@ -1975,9 +1971,9 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 }
             }
             //请求可视化全埋点自定义属性配置
-            if (!TextUtils.equals(serverUrl, mOriginServerUrl) && SensorsDataAPI.getConfigOptions().isVisualizedPropertiesEnabled()) {
+            if (!TextUtils.equals(serverUrl, mOriginServerUrl)) {
                 try {
-                    VisualPropertiesManager.getInstance().requestVisualConfig();
+                    SAVisual.requestVisualConfig();
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }

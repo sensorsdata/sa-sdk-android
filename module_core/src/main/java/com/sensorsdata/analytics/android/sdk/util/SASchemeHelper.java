@@ -31,6 +31,7 @@ import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
 import com.sensorsdata.analytics.android.sdk.remote.SensorsDataRemoteManagerDebug;
+import com.sensorsdata.analytics.android.sdk.visual.SAVisual;
 
 public class SASchemeHelper {
 
@@ -59,7 +60,7 @@ public class SASchemeHelper {
                     String featureCode = uri.getQueryParameter("feature_code");
                     String postUrl = uri.getQueryParameter("url");
                     if (checkProjectIsValid(postUrl)) {
-                        SensorsDataDialogUtils.showOpenHeatMapDialog(activity, featureCode, postUrl);
+                        SAVisual.showOpenHeatMapDialog(activity, featureCode, postUrl);
                     } else {
                         SensorsDataDialogUtils.showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_visual_dialog_error));
                     }
@@ -74,7 +75,7 @@ public class SASchemeHelper {
                     String featureCode = uri.getQueryParameter("feature_code");
                     String postUrl = uri.getQueryParameter("url");
                     if (checkProjectIsValid(postUrl)) {
-                        SensorsDataDialogUtils.showOpenVisualizedAutoTrackDialog(activity, featureCode, postUrl);
+                        SAVisual.showOpenVisualizedAutoTrackDialog(activity, featureCode, postUrl);
                     } else {
                         SensorsDataDialogUtils.showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_visual_dialog_error));
                     }
@@ -132,7 +133,7 @@ public class SASchemeHelper {
                     }
                     String service = uri.getQueryParameter("service");
                     if ("pairingCode".equals(service)) {
-                        SensorsDataDialogUtils.showPairingCodeInputDialog(activity);
+                        SAVisual.showPairingCodeInputDialog(activity);
                     }
                 } else {
                     SensorsDataDialogUtils.startLaunchActivity(activity);

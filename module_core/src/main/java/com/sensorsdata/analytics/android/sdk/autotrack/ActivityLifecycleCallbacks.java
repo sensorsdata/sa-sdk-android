@@ -47,8 +47,7 @@ import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
-import com.sensorsdata.analytics.android.sdk.visual.HeatMapService;
-import com.sensorsdata.analytics.android.sdk.visual.VisualizedAutoTrackService;
+import com.sensorsdata.analytics.android.sdk.visual.SAVisual;
 
 import org.json.JSONObject;
 
@@ -314,8 +313,8 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
 
                     if (resumeFromBackground) {
                         try {
-                            HeatMapService.getInstance().resume();
-                            VisualizedAutoTrackService.getInstance().resume();
+                            SAVisual.resumeHeatMapService();
+                            SAVisual.resumeVisualService();
                         } catch (Exception e) {
                             SALog.printStackTrace(e);
                         }
@@ -506,8 +505,8 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
         try {
             mSensorsDataInstance.stopTrackScreenOrientation();
             mSensorsDataInstance.getRemoteManager().resetPullSDKConfigTimer();
-            HeatMapService.getInstance().stop();
-            VisualizedAutoTrackService.getInstance().stop();
+            SAVisual.stopHeatMapService();
+            SAVisual.stopVisualService();
             mSensorsDataInstance.appEnterBackground();
             resumeFromBackground = true;
             mSensorsDataInstance.clearLastScreenUrl();

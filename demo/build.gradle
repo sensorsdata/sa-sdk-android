@@ -38,6 +38,5 @@ dependencies {
     implementation rootProject.ext.androidx.appcompat
     implementation rootProject.ext.androidx.google_material
     implementation rootProject.ext.androidx.constraintlayout
-    implementation project(':module_core')
-    implementation project(':module_advert')
+    implementation project(':SensorsAnalyticsSDK')
 }

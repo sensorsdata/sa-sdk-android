@@ -69,8 +69,8 @@ import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 import com.sensorsdata.analytics.android.sdk.util.ToastUtil;
+import com.sensorsdata.analytics.android.sdk.visual.SAVisual;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
-import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -181,11 +181,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             mRemoteManager = new SensorsDataRemoteManager((SensorsDataAPI) this);
             //先从缓存中读取 SDKConfig
             mRemoteManager.applySDKConfigFromCache();
-            // 可视化自定义属性拉取配置
-            if (mSAConfigOptions.isVisualizedPropertiesEnabled()) {
-                VisualPropertiesManager.getInstance().requestVisualConfig(mContext, (SensorsDataAPI) this);
-            }
-
             mUserIdentityAPI = new UserIdentityAPI(mSAContextManager);
             registerLifecycleCallbacks();
             registerObserver();
@@ -421,9 +416,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             @Override
             public void run() {
                 try {
-                    if (viewNode != null && SensorsDataAPI.getConfigOptions().isVisualizedPropertiesEnabled()) {
-                        VisualPropertiesManager.getInstance().mergeVisualProperties(VisualPropertiesManager.VisualEventType.APP_CLICK, properties, viewNode);
-                    }
+                    SAVisual.mergeVisualProperties(properties, viewNode);
                     trackEvent(EventType.TRACK, eventName, properties, null);
                 } catch (Exception e) {
                     SALog.printStackTrace(e);

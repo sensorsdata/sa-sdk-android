@@ -54,6 +54,13 @@ if (project.name == "module_core") {
         artifactId_maven = "SensorsAnalyticsSDK"
     }
     version = rootProject.ext.versions.sdk_version
+} else if (project.name == "module_visual") {
+    if (isBeta) {
+        artifactId_maven = "visual-" + betaPrefix
+    } else {
+        artifactId_maven = "visual"
+    }
+    version = rootProject.ext.versions.module_version
 }
 
 publishing {
