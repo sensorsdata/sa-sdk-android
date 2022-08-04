@@ -18,34 +18,36 @@
 package com.sensorsdata.analytics.android.sdk.advert.plugin;
 
 import com.sensorsdata.analytics.android.sdk.advert.deeplink.DeepLinkManager;
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
+import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertiesFetcher;
+import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertyFilter;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
 
 public class SAAdvertAppViewScreenPlugin extends SAPropertyPlugin {
-    @Override
-    public void appendProperties(Map<String, Object> properties) {
 
+    @Override
+    public boolean isMatchedWithFilter(SAPropertyFilter filter) {
+        return "$AppViewScreen".equals(filter.getEvent());
     }
 
     @Override
-    public void eventNameFilter(Set<String> eventNameFilter) {
-        eventNameFilter.add("$AppViewScreen");
-    }
-
-    @Override
-    public void appendDynamicProperties(Map<String, Object> dynamicProperties) {
+    public void properties(SAPropertiesFetcher fetcher) {
         JSONObject object = new JSONObject();
         DeepLinkManager.mergeDeepLinkProperty(object);
         if (object.length() > 0) {
             Iterator<String> it = object.keys();
             while (it.hasNext()) {
                 String key = it.next();
-                dynamicProperties.put(key, object.opt(key));
+                try {
+                    fetcher.getProperties().put(key, object.opt(key));
+                } catch (JSONException e) {
+                    SALog.printStackTrace(e);
+                }
             }
             DeepLinkManager.resetDeepLinkProcessor();
         }

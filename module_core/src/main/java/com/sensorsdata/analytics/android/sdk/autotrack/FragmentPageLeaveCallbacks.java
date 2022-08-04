@@ -22,10 +22,13 @@ import android.os.SystemClock;
 import android.text.TextUtils;
 import android.view.View;
 
+import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataExceptionHandler;
 import com.sensorsdata.analytics.android.sdk.autotrack.utils.AutoTrackUtils;
+import com.sensorsdata.analytics.android.sdk.core.event.InputData;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
@@ -178,7 +181,7 @@ public class FragmentPageLeaveCallbacks implements SAFragmentLifecycleCallbacks,
         }
     }
 
-    private void trackPageLeaveEvent(JSONObject properties) {
+    private void trackPageLeaveEvent(final JSONObject properties) {
         try {
             long resumeTime = properties.optLong(START_TIME);
             properties.remove(START_TIME);
@@ -187,7 +190,13 @@ public class FragmentPageLeaveCallbacks implements SAFragmentLifecycleCallbacks,
                 return;
             }
             properties.put("event_duration", duration);
-            SensorsDataAPI.sharedInstance().trackInternal("$AppPageLeave", properties);
+            SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+                @Override
+                public void run() {
+                    SensorsDataAPI.sharedInstance().getSAContextManager().
+                            trackEvent(new InputData().setEventName("$AppPageLeave").setProperties(properties).setEventType(EventType.TRACK));
+                }
+            });
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }

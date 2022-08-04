@@ -64,40 +64,6 @@ public class SensorsDataUtilsTest {
     }
 
     @Test
-    public void mergeJSONObject() {
-        JSONObject source = new JSONObject();
-        JSONObject dest = new JSONObject();
-        try {
-            source.put("s1", "s1");
-            source.put("s2", "s2");
-            source.put("s3", "s3");
-            SensorsDataUtils.mergeJSONObject(source, dest);
-            Assert.assertEquals(3, dest.length());
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Test
-    public void mergeSuperJSONObject() {
-        JSONObject source = new JSONObject();
-        JSONObject dest = new JSONObject();
-        try {
-            source.put("s1", "s1");
-            source.put("s2", "s2");
-            source.put("s3", "s3");
-            dest.put("s1", "d1");
-            source.put("d3", "d3");
-            JSONObject result = SensorsDataUtils.mergeSuperJSONObject(dest, source);
-            Assert.assertEquals(4, result.length());
-            Assert.assertEquals("d1", result.opt("s1"));
-            Assert.assertEquals("s2", result.opt("s2"));
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Test
     public void checkHasPermission() {
         Assert.assertTrue(SensorsDataUtils.checkHasPermission(mApplication, Manifest.permission.READ_PHONE_STATE));
         Assert.assertTrue(SensorsDataUtils.checkHasPermission(mApplication, Manifest.permission.ACCESS_WIFI_STATE));

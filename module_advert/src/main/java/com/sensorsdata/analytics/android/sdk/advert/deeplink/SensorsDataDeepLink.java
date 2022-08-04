@@ -21,16 +21,17 @@ import android.content.Intent;
 import android.net.Uri;
 import android.text.TextUtils;
 
-import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
+import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.ServerUrl;
+import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
+import com.sensorsdata.analytics.android.sdk.core.event.InputData;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
 import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
 import org.json.JSONException;
@@ -41,12 +42,12 @@ import java.util.List;
 import java.util.Map;
 
 class SensorsDataDeepLink extends AbsDeepLink {
-    private String serverUrl;
-    private String project;
+    private final String serverUrl;
+    private final String project;
     private String pageParams;
     private String errorMsg;
     private boolean success;
-    private String customADChannelUrl;
+    private final String customADChannelUrl;
     private String adSlinkId;
 
     public SensorsDataDeepLink(Intent intent, String serverUrl, String customADChannelUrl) {
@@ -102,7 +103,7 @@ class SensorsDataDeepLink extends AbsDeepLink {
                         @Override
                         public void onAfter() {
                             long duration = System.currentTimeMillis() - requestDeepLinkStartTime;
-                            JSONObject properties = new JSONObject();
+                            final JSONObject properties = new JSONObject();
                             try {
                                 if (!TextUtils.isEmpty(pageParams)) {
                                     properties.put("$deeplink_options", pageParams);
@@ -118,11 +119,18 @@ class SensorsDataDeepLink extends AbsDeepLink {
                             } catch (JSONException e) {
                                 SALog.printStackTrace(e);
                             }
-                            SensorsDataUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
+                            JSONUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
                             if (mCallBack != null) {
                                 mCallBack.onFinish(DeepLinkManager.DeepLinkType.SENSORSDATA, pageParams, success, duration);
                             }
-                            SensorsDataAPI.sharedInstance().trackInternal("$AppDeeplinkMatchedResult", properties);
+
+                            SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+                                @Override
+                                public void run() {
+                                    SAEventManager.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK)
+                                            .setEventName("$AppDeeplinkMatchedResult").setProperties(properties));
+                                }
+                            });
                         }
                     }).execute();
         }

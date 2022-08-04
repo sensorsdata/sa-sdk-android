@@ -28,6 +28,7 @@ import com.sensorsdata.analytics.android.sdk.AppStateManager;
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
@@ -95,9 +96,10 @@ public class VisualPropertiesManager {
 
     public void requestVisualConfig() {
         try {
-            Context context = SensorsDataAPI.sharedInstance().getContext();
-            if (context != null) {
-                requestVisualConfig(context, SensorsDataAPI.sharedInstance().isNetworkRequestEnable());
+            SensorsDataAPI sensorsDataAPI = SensorsDataAPI.sharedInstance();
+            InternalConfigOptions internalConfigOptions = sensorsDataAPI.getInternalConfigs();
+            if (internalConfigOptions != null && internalConfigOptions.context != null) {
+                requestVisualConfig(internalConfigOptions.context, sensorsDataAPI.isNetworkRequestEnable());
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -221,14 +223,14 @@ public class VisualPropertiesManager {
             if (mVisualConfig == null) {
                 SALog.i(TAG, "visual properties is empty and return");
                 if (mCollectLogListener != null) {
-                    mCollectLogListener.onCheckVisualConfigFailure(SADisplayUtil.getStringResource(SensorsDataAPI.sharedInstance().getContext(), R.string.sensors_analytics_visual_cache_no_property_error));
+                    mCollectLogListener.onCheckVisualConfigFailure(SADisplayUtil.getStringResource(SensorsDataAPI.sharedInstance().getInternalConfigs().context, R.string.sensors_analytics_visual_cache_no_property_error));
                 }
                 return;
             }
 
             if (!checkAppIdAndProject()) {
                 if (mCollectLogListener != null) {
-                    mCollectLogListener.onCheckVisualConfigFailure(SADisplayUtil.getStringResource(SensorsDataAPI.sharedInstance().getContext(), R.string.sensors_analytics_visual_appid_error));
+                    mCollectLogListener.onCheckVisualConfigFailure(SADisplayUtil.getStringResource(SensorsDataAPI.sharedInstance().getInternalConfigs().context, R.string.sensors_analytics_visual_appid_error));
                 }
                 return;
             }
@@ -331,7 +333,7 @@ public class VisualPropertiesManager {
         // 校验当前 project 和 appId
         Uri uri = Uri.parse(serverUrl);
         String project = uri.getQueryParameter("project");
-        Context context = SensorsDataAPI.sharedInstance().getContext();
+        Context context = SensorsDataAPI.sharedInstance().getInternalConfigs().context;
         String appId = AppInfoUtils.getProcessName(context);
         if (TextUtils.isEmpty(project) || TextUtils.isEmpty(appId)) {
             SALog.i(TAG, "project or app_id is empty and return");

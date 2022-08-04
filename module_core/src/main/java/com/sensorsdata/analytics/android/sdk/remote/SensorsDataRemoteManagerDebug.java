@@ -23,11 +23,14 @@ import android.net.Uri;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.R;
+import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.ServerUrl;
+import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataLoadingDialog;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
@@ -71,12 +74,18 @@ public class SensorsDataRemoteManagerDebug extends BaseSensorsDataSDKRemoteManag
     @Override
     public void setSDKRemoteConfig(SensorsDataSDKRemoteConfig sdkRemoteConfig) {
         try {
-            JSONObject eventProperties = new JSONObject();
+            final JSONObject eventProperties = new JSONObject();
             JSONObject remoteConfigJson = sdkRemoteConfig.toJson().put("debug", true);
             String remoteConfigString = remoteConfigJson.toString();
             eventProperties.put("$app_remote_config", remoteConfigString);
-            SensorsDataAPI.sharedInstance().trackInternal("$AppRemoteConfigChanged", eventProperties);
-            SensorsDataAPI.sharedInstance().flush();
+            SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+                @Override
+                public void run() {
+                    SensorsDataAPI.sharedInstance().getSAContextManager().
+                            trackEvent(new InputData().setEventName("$AppRemoteConfigChanged").setProperties(eventProperties).setEventType(EventType.TRACK));
+                }
+            });
+            mSensorsDataAPI.flush();
             mSDKRemoteConfig = sdkRemoteConfig;
             SALog.i(TAG, "remote config: The remote configuration takes effect immediately");
         } catch (Exception e) {

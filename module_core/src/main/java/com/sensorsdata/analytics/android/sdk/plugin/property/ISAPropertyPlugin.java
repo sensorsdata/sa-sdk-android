@@ -17,48 +17,25 @@
 
 package com.sensorsdata.analytics.android.sdk.plugin.property;
 
-import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
+import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertiesFetcher;
+import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertyFilter;
 
-import java.util.Map;
-import java.util.Set;
-
-interface ISAPropertyPlugin {
+/**
+ * 属性插件
+ */
+public interface ISAPropertyPlugin {
     /**
-     * 向插件中添加静态属性
-     *
-     * @param properties 添加静态属性的 map 对象
+     * 是否匹配属性插件
+     * @param filter 过滤条件
+     * @return 是否符合过滤条件
      */
-    void appendProperties(Map<String, Object> properties);
-
-    /**
-     * 向插件中添加动态属性
-     *
-     * @param dynamicProperties 添加动态属性的 map 对象
-     */
-    void appendDynamicProperties(Map<String, Object> dynamicProperties);
+    boolean isMatchedWithFilter(SAPropertyFilter filter);
 
     /**
-     * 指定插件允许添加属性的事件名
-     *
-     * @param eventNameFilter 添加事件名的 Set
+     * 处理属性，可对属性进行增加、删除、修改操作
+     * @param fetcher 接收属性
      */
-    void eventNameFilter(Set<String> eventNameFilter);
-
-    /**
-     * 指定插件允许添加属性的事件类型
-     *
-     * @param eventTypeFilter 添加属性类型的对象
-     */
-    void eventTypeFilter(Set<EventType> eventTypeFilter);
-
-    /**
-     * 指定插件允许添加属性，当事件已有的属性包含 Set 中任意一条属性名的时候，添加该插件的属性
-     * 例如：调用 SensorsDataAPI.track(String eventName, JSONObject properties) 接口
-     * 如果 properties 属性含有 propertyKeyFilter 中的任意一条属性 Key，就视为插件成功匹配
-     *
-     * @param propertyKeyFilter 已有属性名的 Set
-     */
-    void propertyKeyFilter(Set<String> propertyKeyFilter);
+    void properties(SAPropertiesFetcher fetcher);
 
     /**
      * 给插件指定属性的优先级
@@ -66,4 +43,10 @@ interface ISAPropertyPlugin {
      * @return 属性的优先级枚举对象
      */
     SAPropertyPluginPriority priority();
+
+    /**
+     * 属性插件名称，根据返回值去重
+     * @return 名称
+     */
+    String getName();
 }

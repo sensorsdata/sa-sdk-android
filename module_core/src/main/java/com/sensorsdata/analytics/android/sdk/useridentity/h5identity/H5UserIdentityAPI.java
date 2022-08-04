@@ -2,7 +2,7 @@ package com.sensorsdata.analytics.android.sdk.useridentity.h5identity;
 
 
 import com.sensorsdata.analytics.android.sdk.useridentity.Identities;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -34,7 +34,7 @@ public abstract class H5UserIdentityAPI {
 
     protected void mergeIdentities(JSONObject identities) throws JSONException {
         if (identities != null && mIdentityJson != null) {
-            SensorsDataUtils.mergeJSONObject(identities, mIdentityJson);
+            JSONUtils.mergeJSONObject(identities, mIdentityJson);
         }
         if (mIdentityJson == null && identities != null) {
             mIdentityJson = new JSONObject(identities.toString());

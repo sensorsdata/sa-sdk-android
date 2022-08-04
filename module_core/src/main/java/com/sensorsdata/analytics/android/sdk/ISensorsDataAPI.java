@@ -22,6 +22,7 @@ import android.webkit.WebView;
 
 import com.sensorsdata.analytics.android.sdk.core.mediator.advert.SAAdvertAPIProtocol;
 import com.sensorsdata.analytics.android.sdk.internal.api.IFragmentAPI;
+import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.useridentity.IUserIdentityAPI;
 
 import org.json.JSONObject;
@@ -690,6 +691,19 @@ public interface ISensorsDataAPI extends IFragmentAPI, IUserIdentityAPI, SAAdver
      * @param superPropertyName 事件属性名称
      */
     void unregisterSuperProperty(String superPropertyName);
+
+    /**
+     * 注册自定义插件
+     * @param plugin 自定义插件
+     */
+    public void registerPropertyPlugin(SAPropertyPlugin plugin);
+
+    /**
+     * 注销自定义插件
+     *
+     * @param plugin 自定义插件
+     */
+    public void unregisterPropertyPlugin(SAPropertyPlugin plugin);
 
     /**
      * 删除所有事件公共属性

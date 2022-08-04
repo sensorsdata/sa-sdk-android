@@ -17,9 +17,7 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
-import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
-
-import org.json.JSONObject;
+import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 
 public class SAEventManager {
     private static final String TAG = "SA.EventManager";
@@ -39,14 +37,13 @@ public class SAEventManager {
         return mSingleton;
     }
 
-    public void trackEvent(EventType eventType, String eventName, JSONObject properties, String
-            originalDistinctId) {
-        SensorsDataAPI.sharedInstance().trackEvent(eventType, eventName, properties, originalDistinctId);
-    }
-
-    public void trackEvent(EventType eventType, String eventName, JSONObject properties, JSONObject dynamicProperty, String
-            distinctId, String loginId, String originalDistinctId) {
-        SensorsDataAPI.sharedInstance().trackEvent(eventType, eventName, properties, dynamicProperty, distinctId, loginId, originalDistinctId);
+    public void trackEvent(InputData inputData) {
+        SensorsDataAPI sensorsDataAPI = SensorsDataAPI.sharedInstance();
+        if (sensorsDataAPI instanceof SensorsDataAPIEmptyImplementation) {
+            SALog.i(TAG, "SensorsDataAPI instance is Empty in trackEvent method");
+            return;
+        }
+        sensorsDataAPI.getSAContextManager().trackEvent(inputData);
     }
 
     public void trackQueueEvent(Runnable runnable) {

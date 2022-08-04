@@ -1,6 +1,6 @@
 /*
- * Created by dengshiwei on 2021/03/26.
- * Copyright 2015－2022 Sensors Data Inc.
+ * Created by dengshiwei on 2022/06/16.
+ * Copyright 2015－2021 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,11 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.internal.beans;
+package com.sensorsdata.analytics.android.sdk.core.business.timer;
 
 import android.os.SystemClock;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
 import java.util.concurrent.TimeUnit;
 

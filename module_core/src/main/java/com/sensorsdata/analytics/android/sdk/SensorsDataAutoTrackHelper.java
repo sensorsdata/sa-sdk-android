@@ -42,10 +42,14 @@ import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TabHost;
 
+import com.sensorsdata.analytics.android.sdk.core.event.InputData;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.H5Util;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.KeyboardViewUtil;
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
+import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.ThreadUtils;
@@ -66,7 +70,7 @@ import java.util.Map;
 @SuppressWarnings("unused")
 public class SensorsDataAutoTrackHelper {
     private static final String TAG = "SensorsDataAutoTrackHelper";
-    private static HashMap<Integer, Long> eventTimestamp = new HashMap<>();
+    private static final HashMap<Integer, Long> eventTimestamp = new HashMap<>();
 
     private static boolean isDeBounceTrack(Object object) {
         long currentOnClickTimestamp = SystemClock.elapsedRealtime();
@@ -147,7 +151,7 @@ public class SensorsDataAutoTrackHelper {
 
             // $screen_name & $title
             if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
+                JSONUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
             // ViewId
@@ -203,7 +207,7 @@ public class SensorsDataAutoTrackHelper {
                 }
             }
 
-            SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties, viewNode);
+           trackAutoEvent(properties, viewNode);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -290,7 +294,7 @@ public class SensorsDataAutoTrackHelper {
 
             //$screen_name & $title
             if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
+                JSONUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
             //ViewId
@@ -330,7 +334,7 @@ public class SensorsDataAutoTrackHelper {
                 AopUtil.mergeJSONObject(p, properties);
             }
 
-            SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties, viewNode);
+            trackAutoEvent(properties, viewNode);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -389,7 +393,7 @@ public class SensorsDataAutoTrackHelper {
                                 if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppClickIgnored(activity.getClass())) {
                                     return;
                                 }
-                                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
+                                JSONUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
 
                                 Object fragment = AopUtil.getFragmentFromView(view, activity);
                                 if (fragment != null) {
@@ -409,7 +413,7 @@ public class SensorsDataAutoTrackHelper {
                         properties.put(AopConstants.ELEMENT_CONTENT, elementContent);
                         properties.put(AopConstants.ELEMENT_TYPE, "TabHost");
 
-                        SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties, viewNode);
+                        trackAutoEvent(properties, viewNode);
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
                     }
@@ -551,7 +555,7 @@ public class SensorsDataAutoTrackHelper {
                 }
                 AopUtil.getScreenNameAndTitleFromFragment(properties, object, activity);
             } else if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
+                JSONUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
             Class<?> supportTabClass = null;
@@ -691,7 +695,7 @@ public class SensorsDataAutoTrackHelper {
                 }
             }
 
-            SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties, viewNode);
+            trackAutoEvent(properties, viewNode);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -768,7 +772,7 @@ public class SensorsDataAutoTrackHelper {
 
                         //$screen_name & $title
                         if (activity != null) {
-                            SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
+                            JSONUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
                         }
 
                         //ViewID
@@ -793,7 +797,7 @@ public class SensorsDataAutoTrackHelper {
                         //Type
                         properties.put(AopConstants.ELEMENT_TYPE, "MenuItem");
 
-                        SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties, viewNode);
+                        trackAutoEvent(properties, viewNode);
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
                     }
@@ -866,7 +870,7 @@ public class SensorsDataAutoTrackHelper {
 
             //$screen_name & $title
             if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
+                JSONUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
             String viewType = "RadioButton";
@@ -906,7 +910,7 @@ public class SensorsDataAutoTrackHelper {
                 AopUtil.mergeJSONObject(p, properties);
             }
 
-            SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties, viewNode);
+            trackAutoEvent(properties, viewNode);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -975,7 +979,7 @@ public class SensorsDataAutoTrackHelper {
 
             //$screen_name & $title
             if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
+                JSONUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
             //由于 RN 中 dialog 未屏蔽，直接走到原生，导致 dialog screen_name 取的是原生的。
@@ -1075,7 +1079,7 @@ public class SensorsDataAutoTrackHelper {
                 }
             }
 
-            SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties, viewNode);
+            trackAutoEvent(properties, viewNode);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -1178,7 +1182,7 @@ public class SensorsDataAutoTrackHelper {
 
             //Activity 名称和页面标题
             if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
+                JSONUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), properties);
             }
 
             String viewText = null;
@@ -1211,7 +1215,7 @@ public class SensorsDataAutoTrackHelper {
                 AopUtil.mergeJSONObject(p, properties);
             }
 
-            SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties, viewNode);
+            trackAutoEvent(properties, viewNode);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -1309,14 +1313,14 @@ public class SensorsDataAutoTrackHelper {
             JSONObject properties = new JSONObject();
 
             if (AopUtil.injectClickInfo(view, properties, isFromUser)) {
-                SensorsDataAPI.sharedInstance().trackAutoEvent(AopConstants.APP_CLICK_EVENT_NAME, properties, AopUtil.addViewPathProperties(activity, view, properties));
+                trackAutoEvent(properties, AopUtil.addViewPathProperties(activity, view, properties));
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
     }
 
-    public static void track(String eventName, String properties) {
+    public static void track(final String eventName, String properties) {
         try {
             if (TextUtils.isEmpty(eventName)) {
                 return;
@@ -1329,7 +1333,14 @@ public class SensorsDataAutoTrackHelper {
                     SALog.printStackTrace(e);
                 }
             }
-            SensorsDataAPI.sharedInstance().trackInternal(eventName, pro);
+            final JSONObject finalPro = pro;
+            SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+                @Override
+                public void run() {
+                    SensorsDataAPI.sharedInstance().getSAContextManager().
+                            trackEvent(new InputData().setEventName(eventName).setProperties(finalPro).setEventType(EventType.TRACK));
+                }
+            });
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -1439,7 +1450,22 @@ public class SensorsDataAutoTrackHelper {
     private static void setupWebView(View webView) {
         if (webView != null && webView.getTag(R.id.sensors_analytics_tag_view_webview) == null) {
             webView.setTag(R.id.sensors_analytics_tag_view_webview, new Object());
-            H5Util.addJavascriptInterface(webView, new AppWebViewInterface(SensorsDataAPI.sharedInstance().getContext(), null, false, webView), "SensorsData_APP_New_H5_Bridge");
+            H5Util.addJavascriptInterface(webView, new AppWebViewInterface(SensorsDataAPI.sharedInstance().getInternalConfigs().context, null, false, webView), "SensorsData_APP_New_H5_Bridge");
         }
+    }
+
+    private static void trackAutoEvent(final JSONObject properties, final ViewNode viewNode) {
+        // add $lib_method = autoTrack
+        final JSONObject eventProperties = SADataHelper.appendLibMethodAutoTrack(properties);
+        SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+            @Override
+            public void run() {
+                if (viewNode != null && SensorsDataAPI.getConfigOptions().isVisualizedPropertiesEnabled()) {
+                    SAVisual.mergeVisualProperties(properties, viewNode);
+                }
+                SensorsDataAPI.sharedInstance().mSAContextManager.
+                        trackEvent(new InputData().setEventName(AopConstants.APP_CLICK_EVENT_NAME).setEventType(EventType.TRACK).setProperties(eventProperties));
+            }
+        });
     }
 }

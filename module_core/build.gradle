@@ -56,6 +56,7 @@ android {
                 outputs.upToDateWhen { false }
                 showStandardStreams = true
             }
+            maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 2
         }
         unitTests.includeAndroidResources = true
     }

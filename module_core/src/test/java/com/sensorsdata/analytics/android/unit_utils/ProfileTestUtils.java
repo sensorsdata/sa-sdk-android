@@ -18,6 +18,7 @@
 package com.sensorsdata.analytics.android.unit_utils;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -38,6 +39,24 @@ public class ProfileTestUtils {
         } else {
             assertEquals(identityJson.opt("$identity_android_uuid"), jsonObject.opt("distinct_id"));
         }
+        jsonObject = jsonObject.optJSONObject("properties");
+        assertFalse(jsonObject.has("$referrer_title"));
+        assertFalse(jsonObject.has("$wifi"));
+        assertFalse(jsonObject.has("$network_type"));
+        assertFalse(jsonObject.has("$os"));
+        assertFalse(jsonObject.has("$os_version"));
+        assertFalse(jsonObject.has("$lib"));
+        assertFalse(jsonObject.has("$lib_version"));
+        assertFalse(jsonObject.has("$manufacturer"));
+        assertFalse(jsonObject.has("$model"));
+        assertFalse(jsonObject.has("$brand"));
+        assertFalse(jsonObject.has("$app_version"));
+        assertFalse(jsonObject.has("$screen_width"));
+        assertFalse(jsonObject.has("$screen_height"));
+        assertFalse(jsonObject.has("$carrier"));
+        assertFalse(jsonObject.has("$timezone_offset"));
+        assertFalse(jsonObject.has("$app_id"));
+        assertFalse(jsonObject.optBoolean("$is_first_day"));
     }
 
     /* check item common property */

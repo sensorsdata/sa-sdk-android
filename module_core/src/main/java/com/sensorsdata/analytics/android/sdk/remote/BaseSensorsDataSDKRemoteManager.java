@@ -52,8 +52,8 @@ public abstract class BaseSensorsDataSDKRemoteManager {
 
     protected BaseSensorsDataSDKRemoteManager(SensorsDataAPI sensorsDataAPI) {
         this.mSensorsDataAPI = sensorsDataAPI;
-        this.mContext = sensorsDataAPI.getContext();
-        this.mSAConfigOptions = sensorsDataAPI.getConfigOptions();
+        this.mContext = sensorsDataAPI.getInternalConfigs().context;
+        this.mSAConfigOptions = sensorsDataAPI.getInternalConfigs().saConfigOptions;
         this.mSensorsDataEncrypt = sensorsDataAPI.getSensorsDataEncrypt();
         this.mDisableDefaultRemoteConfig = sensorsDataAPI.isDisableDefaultRemoteConfig();
     }
@@ -268,7 +268,7 @@ public abstract class BaseSensorsDataSDKRemoteManager {
             if (SDKRemoteConfig != null) {
                 oldVersion = SDKRemoteConfig.getOldVersion();
                 newVersion = SDKRemoteConfig.getNewVersion();
-                SALog.i(TAG, "The current config: " + SDKRemoteConfig.toString());
+                SALog.i(TAG, "The current config: " + SDKRemoteConfig);
             }
             // remoteUrl 中如果存在 v，则不追加参数。nv、app_id、project 都是如此
             if (!TextUtils.isEmpty(oldVersion) && TextUtils.isEmpty(configUri.getQueryParameter("v"))) {

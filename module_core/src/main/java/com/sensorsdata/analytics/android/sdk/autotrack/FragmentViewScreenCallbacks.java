@@ -19,7 +19,6 @@ package com.sensorsdata.analytics.android.sdk.autotrack;
 
 import android.app.Activity;
 import android.content.Context;
-import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -38,6 +37,7 @@ import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.FragmentCacheUtil;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
@@ -45,7 +45,6 @@ import com.sensorsdata.analytics.android.sdk.util.WeakSet;
 
 import org.json.JSONObject;
 
-import java.lang.ref.WeakReference;
 import java.util.Set;
 
 /**
@@ -169,7 +168,7 @@ public class FragmentViewScreenCallbacks implements SAFragmentLifecycleCallbacks
                 ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
                 JSONObject otherProperties = screenAutoTracker.getTrackProperties();
                 if (otherProperties != null) {
-                    SensorsDataUtils.mergeJSONObject(otherProperties, properties);
+                    JSONUtils.mergeJSONObject(otherProperties, properties);
                 }
             }
             JSONObject eventProperties = SADataHelper.appendLibMethodAutoTrack(properties);

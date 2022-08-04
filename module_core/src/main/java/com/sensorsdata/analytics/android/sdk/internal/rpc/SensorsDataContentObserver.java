@@ -37,11 +37,9 @@ public class SensorsDataContentObserver extends ContentObserver {
     public static boolean isEnableFromObserver = false;
     public static boolean isDisableFromObserver = false;
     public static boolean isLoginFromObserver = false;
-    private final UserIdentityAPI mUserIdentity;
 
-    public SensorsDataContentObserver(UserIdentityAPI userIdentity) {
+    public SensorsDataContentObserver() {
         super(new Handler(Looper.getMainLooper()));
-        this.mUserIdentity = userIdentity;
     }
 
     @Override
@@ -72,7 +70,8 @@ public class SensorsDataContentObserver extends ContentObserver {
                     SensorsDataAPI.enableSDK();
                 }
             } else if (DbParams.getInstance().getUserIdentities().equals(uri)) {
-                mUserIdentity.getIdentitiesInstance().updateIdentities();
+                SensorsDataAPI.sharedInstance().getSAContextManager()
+                        .getUserIdentityAPI().getIdentitiesInstance().updateIdentities();
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);

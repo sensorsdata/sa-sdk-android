@@ -25,7 +25,7 @@ import android.view.View;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.listener.SAJSListener;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 
 import org.json.JSONObject;
 
@@ -90,7 +90,7 @@ public class JSBridgeHelper implements WebViewJavascriptBridge {
                 object = new JSONObject();
                 object.put("message_id", request.messageId);
                 object.put("platform", "Android");
-                SensorsDataUtils.mergeJSONObject((JSONObject) data, object);
+                JSONUtils.mergeJSONObject((JSONObject) data, object);
             }
             final JSONObject obj = object;
             if (obj == null) {

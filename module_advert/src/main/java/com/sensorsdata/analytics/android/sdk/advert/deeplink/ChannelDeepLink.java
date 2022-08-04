@@ -23,7 +23,7 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -73,6 +73,6 @@ class ChannelDeepLink extends AbsDeepLink {
         } catch (JSONException e) {
             SALog.printStackTrace(e);
         }
-        SensorsDataUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
+        JSONUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
     }
 }

@@ -253,7 +253,7 @@ public class AopUtil {
                     if (trackProperties.has(AopConstants.TITLE)) {
                         title = trackProperties.optString(AopConstants.TITLE);
                     }
-                    SensorsDataUtils.mergeJSONObject(trackProperties, properties);
+                    JSONUtils.mergeJSONObject(trackProperties, properties);
                 }
             }
             boolean isTitleNull = TextUtils.isEmpty(title);
@@ -334,7 +334,7 @@ public class AopUtil {
                 ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
                 JSONObject trackProperties = screenAutoTracker.getTrackProperties();
                 if (trackProperties != null) {
-                    SensorsDataUtils.mergeJSONObject(trackProperties, propertyJSON);
+                    JSONUtils.mergeJSONObject(trackProperties, propertyJSON);
                 }
             }
         } catch (Exception ex) {
@@ -683,7 +683,7 @@ public class AopUtil {
      * @return isTrackEvent 是否发送事件
      */
     public static boolean injectClickInfo(View view, JSONObject properties, boolean isFromUser) {
-        if (view == null || properties == null) {
+        if (view == null) {
             return false;
         }
         try {
@@ -711,7 +711,7 @@ public class AopUtil {
 
             //2.获取 Activity 页面信息及 ScreenAutoTracker 定义的属性
             if (activity != null) {
-                SensorsDataUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), eventJson);
+                JSONUtils.mergeJSONObject(AopUtil.buildTitleAndScreenName(activity), eventJson);
             }
 
             //fragmentName

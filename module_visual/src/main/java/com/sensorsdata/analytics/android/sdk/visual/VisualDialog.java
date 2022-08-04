@@ -9,6 +9,7 @@ import android.os.Build;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
+import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 
 public class VisualDialog {
 
@@ -24,20 +25,20 @@ public class VisualDialog {
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle("提示");
+        builder.setTitle(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_common_title));
         if (isWifi) {
-            builder.setMessage("正在连接 App 点击分析...");
+            builder.setMessage(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_heatmap_wifi_name));
         } else {
-            builder.setMessage("正在连接 App 点击分析，建议在 WiFi 环境下使用。");
+            builder.setMessage(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_heatmap_mobile_name));
         }
         builder.setCancelable(false);
-        builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+        builder.setNegativeButton(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_common_cancel), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 SensorsDataDialogUtils.startLaunchActivity(context);
             }
         });
-        builder.setPositiveButton("继续", new DialogInterface.OnClickListener() {
+        builder.setPositiveButton(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_common_continue), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 HeatMapService.getInstance().start(context, featureCode, postUrl);
@@ -75,20 +76,20 @@ public class VisualDialog {
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle("提示");
+        builder.setTitle(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_common_title));
         if (isWifi) {
-            builder.setMessage("正在连接 App 可视化全埋点...");
+            builder.setMessage(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_visual_wifi_name));
         } else {
-            builder.setMessage("正在连接 App 可视化全埋点，建议在 WiFi 环境下使用。");
+            builder.setMessage(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_visual_mobile_name));
         }
         builder.setCancelable(false);
-        builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+        builder.setNegativeButton(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_common_cancel), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 SensorsDataDialogUtils.startLaunchActivity(context);
             }
         });
-        builder.setPositiveButton("继续", new DialogInterface.OnClickListener() {
+        builder.setPositiveButton(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_common_continue), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 VisualizedAutoTrackService.getInstance().start(context, featureCode, postUrl);

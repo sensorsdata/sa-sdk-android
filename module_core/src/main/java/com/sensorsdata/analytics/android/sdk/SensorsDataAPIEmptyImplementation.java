@@ -21,10 +21,10 @@ import android.app.Activity;
 import android.view.View;
 import android.webkit.WebView;
 
-import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
-import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
+import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.listener.SAJSListener;
+import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 
 import org.json.JSONObject;
 
@@ -424,10 +424,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     }
 
-    public void trackInternal(final String eventName, final JSONObject properties) {
-
-    }
-
     @Deprecated
     @Override
     public void trackTimer(final String eventName, final TimeUnit timeUnit) {
@@ -529,6 +525,16 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
+    public void registerPropertyPlugin(SAPropertyPlugin plugin) {
+
+    }
+
+    @Override
+    public void unregisterPropertyPlugin(SAPropertyPlugin plugin) {
+
+    }
+
+    @Override
     public void setDeepLinkCallback(SensorsDataDeepLinkCallback deepLinkCallback) {
 
     }
@@ -624,11 +630,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
-    protected void trackEvent(EventType eventType, String eventName, JSONObject properties, String originalDistinctId) {
-
-    }
-
-    @Override
     public void trackTimerPause(String eventName) {
 
     }
@@ -650,16 +651,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     void enableAutoTrack(int autoTrackEventType) {
-
-    }
-
-    @Override
-    public void appEnterBackground() {
-
-    }
-
-    @Override
-    public void appBecomeActive() {
 
     }
 

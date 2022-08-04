@@ -204,7 +204,7 @@ public class ViewSnapshot {
 
     public static class AlertRunnable implements Runnable {
 
-        private String url;
+        private final String url;
 
         AlertRunnable(String url) {
             this.url = url;
@@ -215,7 +215,7 @@ public class ViewSnapshot {
             WebNodeInfo webNodeInfo = WebNodesManager.getInstance().getWebNodes(url);
             if (webNodeInfo == null) {
                 SALog.i(TAG, "H5 page is not integrated Web JS SDK");
-                Context context = SensorsDataAPI.sharedInstance().getContext();
+                Context context = SensorsDataAPI.sharedInstance().getInternalConfigs().context;
                 String title = SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_sa_h5);
                 String message = SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_sa_h5_error);
                 String link_text = SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_sa_h5_error_link);
@@ -382,8 +382,8 @@ public class ViewSnapshot {
             // x5WebView 无法直接获取到 scrollX、scrollY
             if (ViewUtil.instanceOfX5WebView(view)) {
                 try {
-                    jsonSnapObject.put("scrollX", (Integer) ReflectUtil.callMethod(view, "getWebScrollX"));
-                    jsonSnapObject.put("scrollY", (Integer) ReflectUtil.callMethod(view, "getWebScrollY"));
+                    jsonSnapObject.put("scrollX", ReflectUtil.callMethod(view, "getWebScrollX"));
+                    jsonSnapObject.put("scrollY", ReflectUtil.callMethod(view, "getWebScrollY"));
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }
@@ -465,7 +465,7 @@ public class ViewSnapshot {
                 if (null == value) {
                     // Don't produce anything in this case
                 } else if (value instanceof Number) {
-                    j.put(desc.name, (Number) value);
+                    j.put(desc.name, value);
                 } else if (value instanceof Boolean) {
                     boolean clickable = (boolean) value;
                     if ("clickable".equals(desc.name)) {
@@ -616,7 +616,7 @@ public class ViewSnapshot {
             int width = info.rootView.getWidth();
             int height = info.rootView.getHeight();
             if (width == 0 || height == 0) {
-                int[] screenSize = DeviceUtils.getDeviceSize(SensorsDataAPI.sharedInstance().getContext());
+                int[] screenSize = DeviceUtils.getDeviceSize(SensorsDataAPI.sharedInstance().getInternalConfigs().context);
                 width = screenSize[0];
                 height = screenSize[1];
                 if (width == 0 || height == 0) return null;
@@ -625,11 +625,7 @@ public class ViewSnapshot {
             SoftWareCanvas canvas = new SoftWareCanvas(fullScreenBitmap);
             int[] windowOffset = new int[2];
             boolean skipOther, isDrawBackground = false;
-            if (ViewUtil.getMainWindowCount(views) > 1) {
-                skipOther = true;
-            } else {
-                skipOther = false;
-            }
+            skipOther = ViewUtil.getMainWindowCount(views) > 1;
             WindowHelper.init();
             ViewUtil.invalidateLayerTypeView(views);
             for (View view : views) {

@@ -27,23 +27,27 @@ import android.os.Message;
 import android.os.SystemClock;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataActivityLifecycleCallbacks;
 import com.sensorsdata.analytics.android.sdk.SensorsDataExceptionHandler;
-import com.sensorsdata.analytics.android.sdk.SessionRelatedManager;
 import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
+import com.sensorsdata.analytics.android.sdk.core.business.session.SessionRelatedManager;
+import com.sensorsdata.analytics.android.sdk.core.business.timer.EventTimerManager;
+import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.core.eventbus.SAEventBus;
 import com.sensorsdata.analytics.android.sdk.core.eventbus.SAEventBusConstants;
 import com.sensorsdata.analytics.android.sdk.core.eventbus.Subscription;
 import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
@@ -63,7 +67,6 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
     private final SensorsDataAPI mSensorsDataInstance;
     private final Context mContext;
     private final PersistentFirstStart mFirstStart;
-    private final PersistentFirstDay mFirstDay;
     private boolean resumeFromBackground = false;
     private final DbAdapter mDbAdapter;
     private JSONObject activityProperty = new JSONObject();
@@ -94,11 +97,9 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
 
     private final Set<Integer> hashSet = new HashSet<>();
 
-    public ActivityLifecycleCallbacks(SensorsDataAPI instance, PersistentFirstStart firstStart,
-                                      PersistentFirstDay firstDay, Context context) {
+    public ActivityLifecycleCallbacks(SensorsDataAPI instance, PersistentFirstStart firstStart, Context context) {
         this.mSensorsDataInstance = instance;
         this.mFirstStart = firstStart;
-        this.mFirstDay = firstDay;
         this.mDbAdapter = DbAdapter.getInstance();
         this.mContext = context;
         initHandler();
@@ -113,7 +114,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                     // step 1 清除 AppEnd 中的 utm 属性，防止 deeplink 属性名不一样造成的属性错误
                     SAModuleManager.getInstance().getAdvertModuleService().removeDeepLinkInfo(endDataProperty);
                     // step 2 获取最新的 latest utm 属性存入 AppEnd 属性中
-                    SensorsDataUtils.mergeJSONObject(result, endDataProperty);
+                    JSONUtils.mergeJSONObject(result, endDataProperty);
                 }
             });
         }
@@ -145,12 +146,12 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
             if (mSensorsDataInstance.isAutoTrackEnabled() && !mSensorsDataInstance.isActivityAutoTrackAppViewScreenIgnored(activity.getClass())
                     && !mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
                 JSONObject properties = new JSONObject();
-                SensorsDataUtils.mergeJSONObject(activityProperty, properties);
+                JSONUtils.mergeJSONObject(activityProperty, properties);
                 if (activity instanceof ScreenAutoTracker) {
                     ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
                     JSONObject otherProperties = screenAutoTracker.getTrackProperties();
                     if (otherProperties != null) {
-                        SensorsDataUtils.mergeJSONObject(otherProperties, properties);
+                        JSONUtils.mergeJSONObject(otherProperties, properties);
                     }
                 }
                 JSONObject eventProperties = SADataHelper.appendLibMethodAutoTrack(properties);
@@ -258,7 +259,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
             if (mStartActivityCount == 1) {
                 if (SAModuleManager.getInstance().hasModuleByName(ModuleConstants.ModuleName.ADVERT_NAME)) {
                     if (mSensorsDataInstance.getConfigOptions().isSaveDeepLinkInfo()) {// 保存 utm 信息时,在 endData 中合并保存的 latestUtm 信息。
-                        SensorsDataUtils.mergeJSONObject(SAModuleManager.getInstance().getAdvertModuleService().getLatestUtmProperties(), endDataProperty);
+                        JSONUtils.mergeJSONObject(SAModuleManager.getInstance().getAdvertModuleService().getLatestUtmProperties(), endDataProperty);
                     }
                 }
                 mHandler.removeMessages(MESSAGE_CODE_APP_END);
@@ -270,17 +271,17 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                     // XXX: 注意内部执行顺序
                     boolean firstStart = mFirstStart.get();
                     try {
-                        mSensorsDataInstance.appBecomeActive();
+                        EventTimerManager.getInstance().appBecomeActive();
 
                         //从后台恢复，从缓存中读取 SDK 控制配置信息
                         if (resumeFromBackground) {
                             //先从缓存中读取 SDKConfig
-                            mSensorsDataInstance.getRemoteManager().applySDKConfigFromCache();
+                            mSensorsDataInstance.getSAContextManager().getRemoteManager().applySDKConfigFromCache();
                             mSensorsDataInstance.resumeTrackScreenOrientation();
 //                    mSensorsDataInstance.resumeTrackTaskThread();
                         }
                         //每次启动 App，重新拉取最新的配置信息
-                        mSensorsDataInstance.getRemoteManager().pullSDKConfigFromServer();
+                        mSensorsDataInstance.getSAContextManager().getRemoteManager().pullSDKConfigFromServer();
                     } catch (Exception ex) {
                         SALog.printStackTrace(ex);
                     }
@@ -290,19 +291,26 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                             if (firstStart) {
                                 mFirstStart.commit(false);
                             }
-                            JSONObject properties = new JSONObject();
+                            final JSONObject properties = new JSONObject();
                             properties.put("$resume_from_background", resumeFromBackground);
                             properties.put("$is_first_time", firstStart);
-                            SensorsDataUtils.mergeJSONObject(activityProperty, properties);
+                            JSONUtils.mergeJSONObject(activityProperty, properties);
                             // 合并渠道信息到 $AppStart 事件中
                             if (mDeepLinkProperty != null) {
-                                SensorsDataUtils.mergeJSONObject(mDeepLinkProperty, properties);
+                                JSONUtils.mergeJSONObject(mDeepLinkProperty, properties);
                                 mDeepLinkProperty = null;
                             }
                             // 读取 Message 中的时间戳
                             long eventTime = bundle.getLong(TIME);
                             properties.put("event_time", eventTime > 0 ? eventTime : System.currentTimeMillis());
-                            mSensorsDataInstance.trackAutoEvent("$AppStart", properties);
+                            SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mSensorsDataInstance.getSAContextManager().
+                                            trackEvent(new InputData().setEventName("$AppStart").setProperties(SADataHelper.appendLibMethodAutoTrack(properties)).setEventType(EventType.TRACK));
+                                }
+                            });
+
                             SensorsDataAPI.sharedInstance().flush();
                         }
                     } catch (Exception e) {
@@ -381,14 +389,21 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
     private void trackAppEnd(String jsonEndData) {
         try {
             if (mSensorsDataInstance.isAutoTrackEnabled() && isAutoTrackAppEnd() && !TextUtils.isEmpty(jsonEndData)) {
-                JSONObject property = new JSONObject(jsonEndData);
+                final JSONObject property = new JSONObject(jsonEndData);
                 if (property.has("track_timer")) {
                     property.put(EVENT_TIME, property.optLong("track_timer") + TIME_INTERVAL);
                     property.remove("event_timer");     // 删除老版本冗余属性
                     property.remove("track_timer");     // 删除老版本冗余属性
                 }
                 property.remove(APP_START_TIME);
-                mSensorsDataInstance.trackAutoEvent("$AppEnd", property);
+                SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+                    @Override
+                    public void run() {
+                        mSensorsDataInstance.getSAContextManager().
+                                trackEvent(new InputData().setEventName("$AppEnd").
+                                        setProperties(SADataHelper.appendLibMethodAutoTrack(property)).setEventType(EventType.TRACK));
+                    }
+                });
                 mDbAdapter.commitAppExitData(""); // 保存的信息只使用一次就置空，防止后面状态错乱再次发送。
                 mSensorsDataInstance.flush();
             }
@@ -504,10 +519,10 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
     private void resetState() {
         try {
             mSensorsDataInstance.stopTrackScreenOrientation();
-            mSensorsDataInstance.getRemoteManager().resetPullSDKConfigTimer();
+            mSensorsDataInstance.getSAContextManager().getRemoteManager().resetPullSDKConfigTimer();
             SAVisual.stopHeatMapService();
             SAVisual.stopVisualService();
-            mSensorsDataInstance.appEnterBackground();
+            EventTimerManager.getInstance().appEnterBackground();
             resumeFromBackground = true;
             mSensorsDataInstance.clearLastScreenUrl();
 //            mSensorsDataInstance.stopTrackTaskThread();
@@ -520,8 +535,8 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
      * 检查更新首日逻辑
      */
     private void checkFirstDay() {
-        if (mFirstDay.get() == null) {
-            mFirstDay.commit(TimeUtils.formatTime(System.currentTimeMillis(), TimeUtils.YYYY_MM_DD));
+        if (mSensorsDataInstance.getSAContextManager().getFirstDay().get() == null) {
+            mSensorsDataInstance.getSAContextManager().getFirstDay().commit(TimeUtils.formatTime(System.currentTimeMillis(), TimeUtils.YYYY_MM_DD));
         }
     }
 
@@ -531,7 +546,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
 
     private void buildScreenProperties(Activity activity) {
         activityProperty = AopUtil.buildTitleNoAutoTrackerProperties(activity);
-        SensorsDataUtils.mergeJSONObject(activityProperty, endDataProperty);
+        JSONUtils.mergeJSONObject(activityProperty, endDataProperty);
     }
 
     @Override

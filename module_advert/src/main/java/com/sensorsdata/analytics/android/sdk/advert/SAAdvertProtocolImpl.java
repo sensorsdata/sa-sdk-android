@@ -23,17 +23,20 @@ import android.app.Activity;
 import android.content.Context;
 import android.net.Uri;
 
-import com.sensorsdata.analytics.android.sdk.advert.deeplink.DeepLinkManager;
-import com.sensorsdata.analytics.android.sdk.advert.monitor.SensorsDataAdvertActivityLifeCallback;
-import com.sensorsdata.analytics.android.sdk.advert.oaid.SAOaidHelper;
-import com.sensorsdata.analytics.android.sdk.advert.plugin.SAAdvertPluginManager;
-import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
-import com.sensorsdata.analytics.android.sdk.advert.utils.SAAdvertScanHelper;
-import com.sensorsdata.analytics.android.sdk.advert.utils.SAAdvertUtils;
+import com.sensorsdata.analytics.android.advert.plugin.LatestUtmPlugin;
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.advert.deeplink.DeepLinkManager;
+import com.sensorsdata.analytics.android.sdk.advert.monitor.SensorsDataAdvertActivityLifeCallback;
+import com.sensorsdata.analytics.android.sdk.advert.oaid.SAOaidHelper;
+import com.sensorsdata.analytics.android.sdk.advert.plugin.SAAdvertAppStartPlugin;
+import com.sensorsdata.analytics.android.sdk.advert.plugin.SAAdvertAppViewScreenPlugin;
+import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
+import com.sensorsdata.analytics.android.sdk.advert.utils.SAAdvertScanHelper;
+import com.sensorsdata.analytics.android.sdk.advert.utils.SAAdvertUtils;
+import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
 import com.sensorsdata.analytics.android.sdk.core.mediator.advert.SAAdvertModuleProtocol;
 import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAScanListener;
@@ -42,8 +45,9 @@ import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLin
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataLifecycleMonitorManager;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
+import com.sensorsdata.analytics.android.sdk.util.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -55,20 +59,27 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
     private boolean mEnable = false;
     private Context mContext;
     private SAConfigOptions mOptions;
-    private SAAdvertPluginManager mPluginManager;
 
     // $AppDeeplinkLaunch 是否携带设备信息
     private boolean mEnableDeepLinkInstallSource;
+    private SAAdvertAppStartPlugin mStartPlugin;
+    private SAAdvertAppViewScreenPlugin mViewScreenPlugin;
+    private LatestUtmPlugin mLatestUtmPlugin;
 
     @Override
-    public void install(Context context, SAConfigOptions options) {
-        mContext = context;
-        mOptions = options;
-        init();
+    public void install(SAContextManager contextManager) {
+        mContext = contextManager.getContext();
+        mOptions = contextManager.getInternalConfigs().saConfigOptions;
+        init(contextManager);
     }
 
-    private void init() {
-        mPluginManager = new SAAdvertPluginManager();
+    private void init(SAContextManager contextManager) {
+        mStartPlugin = new SAAdvertAppStartPlugin();
+        mViewScreenPlugin = new SAAdvertAppViewScreenPlugin();
+        mLatestUtmPlugin = new LatestUtmPlugin();
+        contextManager.getPluginManager().registerPropertyPlugin(mStartPlugin);
+        contextManager.getPluginManager().registerPropertyPlugin(mViewScreenPlugin);
+        contextManager.getPluginManager().registerPropertyPlugin(mLatestUtmPlugin);
         ChannelUtils.setSourceChannelKeys(mOptions.channelSourceKeys);
         if (!mOptions.isDisableSDK()) {
             setModuleState(true);
@@ -84,10 +95,8 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
             if (enable) {
                 delayInitTask();
                 registerLifeCallback();
-                mPluginManager.registerPlugin();
             } else {
                 unregisterLifecycleCallback();
-                mPluginManager.unregisterPlugin();
             }
             mEnable = enable;
         }
@@ -166,7 +175,7 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
                         SALog.printStackTrace(e);
                     }
                 }
-                SensorsDataAPI.sharedInstance().trackInternal("$AppDeeplinkLaunch", properties);
+                SAEventManager.getInstance().trackEvent(new InputData().setEventName("$AppDeeplinkLaunch").setProperties(properties));
             }
         });
     }
@@ -180,13 +189,12 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
             if (!AppInfoUtils.isMainProcess(mContext, null)) {
                 return;
             }
-            //只在主进程触发 trackInstallation
+            // trackInstallation only on main process
             final JSONObject eventProperties = new JSONObject();
             if (properties != null) {
-                SensorsDataUtils.mergeJSONObject(properties, eventProperties);
+                JSONUtils.mergeJSONObject(properties, eventProperties);
             }
             SADataHelper.addTimeProperty(eventProperties);
-            final String loginId = SensorsDataAPI.sharedInstance().getLoginId();
             SAEventManager.getInstance().trackQueueEvent(new Runnable() {
                 @Override
                 public void run() {
@@ -232,16 +240,15 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
                             } catch (Exception e) {
                                 SALog.printStackTrace(e);
                             }
-                            final String distinctId = SensorsDataAPI.sharedInstance().getDistinctId();
-                            // 先发送 track
-                            SAEventManager.getInstance().trackEvent(EventType.TRACK, eventName, eventProperties, null, distinctId, loginId, null);
-                            // 再发送 profile_set_once 或者 profile_set
+                            // first step: track
+                            SAEventManager.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK).setEventName(eventName).setProperties(eventProperties));
+                            // second step: profile_set_once or profile_set
                             JSONObject profileProperties = new JSONObject();
-                            // 用户属性需要去掉 $ios_install_disable_callback 字段
+                            // profile need remove $ios_install_disable_callback 字段
                             eventProperties.remove("$ios_install_disable_callback");
-                            SensorsDataUtils.mergeJSONObject(eventProperties, profileProperties);
+                            JSONUtils.mergeJSONObject(eventProperties, profileProperties);
                             profileProperties.put("$first_visit_time", new java.util.Date());
-                            SAEventManager.getInstance().trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null, distinctId, loginId, null);
+                            SAEventManager.getInstance().trackEvent(new InputData().setEventType(EventType.PROFILE_SET_ONCE).setProperties(profileProperties));
 
                             SAAdvertUtils.setTrackInstallation(disableCallback);
                             ChannelUtils.saveCorrectTrackInstallation(isCorrectTrackInstallation);
@@ -283,7 +290,7 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
         }
         final JSONObject eventProperties = new JSONObject();
         if (properties != null) {
-            SensorsDataUtils.mergeJSONObject(properties, eventProperties);
+            JSONUtils.mergeJSONObject(properties, eventProperties);
         }
         SADataHelper.addTimeProperty(eventProperties);
         SAEventManager.getInstance().trackQueueEvent(new Runnable() {
@@ -313,8 +320,7 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
                         SALog.printStackTrace(e);
                     }
 
-                    // 先发送 track
-                    SAEventManager.getInstance().trackEvent(EventType.TRACK, eventName, eventProperties, null);
+                    SAEventManager.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK).setEventName(eventName).setProperties(eventProperties));
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }

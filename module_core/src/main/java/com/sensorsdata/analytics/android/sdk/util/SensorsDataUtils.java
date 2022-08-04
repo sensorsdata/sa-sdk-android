@@ -52,10 +52,8 @@ import java.lang.reflect.Method;
 import java.net.NetworkInterface;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -64,12 +62,7 @@ import java.util.Set;
 public final class SensorsDataUtils {
 
     private static final String marshmallowMacAddress = "02:00:00:00:00:00";
-
-    private static final String SHARED_PREF_EDITS_FILE = "sensorsdata";
-    private static final String SHARED_PREF_USER_AGENT_KEY = "sensorsdata.user.agent";
     private static final String SHARED_PREF_APP_VERSION = "sensorsdata.app.version";
-    private static final String SHARED_PREF_DEVICE_ID_KEY = "sensorsdata.device.id";
-
     public static final String COMMAND_HARMONYOS_VERSION = "getprop hw_sc.build.platform.version";
 
     private static final Set<String> mPermissionGrantedSet = new HashSet<>();
@@ -334,59 +327,6 @@ public final class SensorsDataUtils {
             }
         }
         return appCompatActivityClass;
-    }
-
-    public static void mergeJSONObject(final JSONObject source, JSONObject dest) {
-        try {
-            Iterator<String> superPropertiesIterator = source.keys();
-
-            while (superPropertiesIterator.hasNext()) {
-                String key = superPropertiesIterator.next();
-                Object value = source.get(key);
-                if (value instanceof Date && !"$time".equals(key)) {
-                    dest.put(key, TimeUtils.formatDate((Date) value, TimeUtils.SDK_LOCALE));
-                } else {
-                    dest.put(key, value);
-                }
-            }
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
-        }
-    }
-
-    /**
-     * 合并、去重公共属性
-     *
-     * @param source 新加入或者优先级高的属性
-     * @param dest 本地缓存或者优先级低的属性，如果有重复会删除该属性
-     * @return 合并后的属性
-     */
-    public static JSONObject mergeSuperJSONObject(JSONObject source, JSONObject dest) {
-        if (source == null) {
-            source = new JSONObject();
-        }
-        if (dest == null) {
-            return source;
-        }
-
-        try {
-            Iterator<String> sourceIterator = source.keys();
-            while (sourceIterator.hasNext()) {
-                String key = sourceIterator.next();
-                Iterator<String> destIterator = dest.keys();
-                while (destIterator.hasNext()) {
-                    String destKey = destIterator.next();
-                    if (!TextUtils.isEmpty(key) && key.equalsIgnoreCase(destKey)) {
-                        destIterator.remove();
-                    }
-                }
-            }
-            //重新遍历赋值，如果在同一次遍历中赋值会导致同一个 json 中大小写不一样的 key 被删除
-            mergeJSONObject(source, dest);
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
-        }
-        return dest;
     }
 
     /**
@@ -736,6 +676,18 @@ public final class SensorsDataUtils {
      */
     public static void handleSchemeUrl(Activity activity, Intent intent) {
         SASchemeHelper.handleSchemeUrl(activity, intent);
+    }
+
+    /**
+     * only for RN SDK, it will be removed
+     */
+    @Deprecated
+    public static void mergeJSONObject(final JSONObject source, JSONObject dest) {
+        try {
+            JSONUtils.mergeJSONObject(source, dest);
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
     }
 
     public static void initUniAppStatus() {

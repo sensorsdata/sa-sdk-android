@@ -18,7 +18,9 @@
 package com.sensorsdata.analytics.android.sdk;
 
 
+import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
+import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 
 import org.json.JSONObject;
 
@@ -82,7 +84,13 @@ public class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHand
                     } catch (Exception ex) {
                         SALog.printStackTrace(ex);
                     }
-                    SensorsDataAPI.sharedInstance().trackEvent(EventType.TRACK, "AppCrashed", messageProp, null);
+                    SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+                        @Override
+                        public void run() {
+                            SensorsDataAPI.sharedInstance().getSAContextManager().
+                                    trackEvent(new InputData().setEventName("AppCrashed").setProperties(messageProp).setEventType(EventType.TRACK));
+                        }
+                    });
                 } catch (Exception ex) {
                     SALog.printStackTrace(ex);
                 }

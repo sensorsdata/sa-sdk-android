@@ -57,6 +57,12 @@ public class SALog {
         }
     }
 
+    public static void i(String tag, String msg, Object... object) {
+        if (enableLog && !disableSDK) {
+            info(tag, String.format(msg, object), null);
+        }
+    }
+
     /**
      * 此方法谨慎修改
      * 插件配置 disableLog 会修改此方法
@@ -152,5 +158,9 @@ public class SALog {
 
     public static boolean isLogEnabled() {
         return enableLog;
+    }
+
+    public static boolean isDebug() {
+        return debug;
     }
 }

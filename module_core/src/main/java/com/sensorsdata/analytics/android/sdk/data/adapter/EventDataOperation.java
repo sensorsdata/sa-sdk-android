@@ -42,7 +42,8 @@ class EventDataOperation extends DataOperation {
                 return DbParams.DB_OUT_OF_MEMORY_ERROR;
             }
             ContentValues cv = new ContentValues();
-            cv.put(DbParams.KEY_DATA, jsonObject.toString() + "\t" + jsonObject.toString().hashCode());
+            String eventJson = jsonObject.toString();
+            cv.put(DbParams.KEY_DATA, eventJson + "\t" + eventJson.hashCode());
             cv.put(DbParams.KEY_CREATED_AT, System.currentTimeMillis());
             contentResolver.insert(uri, cv);
         } catch (Throwable e) {

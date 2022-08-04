@@ -196,7 +196,7 @@ public class AppInfoUtils {
         try {
             @SuppressLint("PrivateApi")
             Class<?> activityThread = Class.forName("android.app.ActivityThread", false, Application.class.getClassLoader());
-            Method declaredMethod = activityThread.getDeclaredMethod("currentProcessName", (Class<?>[]) new Class[0]);
+            Method declaredMethod = activityThread.getDeclaredMethod("currentProcessName", new Class[0]);
             declaredMethod.setAccessible(true);
             Object processInvoke = declaredMethod.invoke(null);
             if (processInvoke instanceof String) {

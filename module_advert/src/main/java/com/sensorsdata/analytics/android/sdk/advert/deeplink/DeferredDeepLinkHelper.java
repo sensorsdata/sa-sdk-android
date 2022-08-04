@@ -19,19 +19,21 @@ package com.sensorsdata.analytics.android.sdk.advert.deeplink;
 
 import android.text.TextUtils;
 
-import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.advert.R;
+import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
+import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.deeplink.SADeepLinkObject;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
 import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
 import org.json.JSONObject;
@@ -86,7 +88,7 @@ public class DeferredDeepLinkHelper {
                             ChannelUtils.saveDeepLinkInfo();
                         }
                         long duration = System.currentTimeMillis() - requestDeepLinkStartTime;
-                        JSONObject properties = new JSONObject();
+                        final JSONObject properties = new JSONObject();
                         try {
                             if (!TextUtils.isEmpty(parameter)) {
                                 properties.put("$deeplink_options", parameter);
@@ -106,22 +108,34 @@ public class DeferredDeepLinkHelper {
                             if (callBack != null) {
                                 try {
                                     if (callBack.onReceive(new SADeepLinkObject(parameter, adChannel, isSuccess, duration)) && isSuccess) {
-                                        JSONObject jsonObject = new JSONObject();
+                                        final JSONObject jsonObject = new JSONObject();
                                         jsonObject.put("$deeplink_options", parameter);
                                         if (!TextUtils.isEmpty(adSlinkId)) {
                                             jsonObject.put("$ad_slink_id", adSlinkId);
                                         }
-                                        SensorsDataUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), jsonObject);
-                                        sensorsDataAPI.trackInternal("$AdAppDeferredDeepLinkJump", jsonObject);
+                                        JSONUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), jsonObject);
+                                        SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                SAEventManager.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK)
+                                                        .setEventName("$AdAppDeferredDeepLinkJump").setProperties(jsonObject));
+                                            }
+                                        });
                                     }
                                 } catch (Exception e) {
                                     SALog.printStackTrace(e);
                                 }
                             } else if (isSuccess) {
-                                properties.put("$deeplink_match_fail_reason", SADisplayUtil.getStringResource(sensorsDataAPI.getContext(), R.string.sensors_analytics_ad_listener));
+                                properties.put("$deeplink_match_fail_reason", SADisplayUtil.getStringResource(sensorsDataAPI.getInternalConfigs().context, R.string.sensors_analytics_ad_listener));
                             }
-                            SensorsDataUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
-                            sensorsDataAPI.trackInternal("$AppDeeplinkMatchedResult", properties);
+                            JSONUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
+                            SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+                                @Override
+                                public void run() {
+                                    SAEventManager.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK)
+                                            .setEventName("$AppDeeplinkMatchedResult").setProperties(properties));
+                                }
+                            });
                         } catch (Exception e) {
                             SALog.printStackTrace(e);
                         }

@@ -39,7 +39,7 @@ public class AppStateManager implements Application.ActivityLifecycleCallbacks {
     private AppStateManager() {
     }
 
-    private WeakReference<Activity> mForeGroundActivity = new WeakReference((Object) null);
+    private WeakReference<Activity> mForeGroundActivity = new WeakReference(null);
     private int mCurrentRootWindowsHashCode = -1;
     private String mCurrentFragmentName = null;
 

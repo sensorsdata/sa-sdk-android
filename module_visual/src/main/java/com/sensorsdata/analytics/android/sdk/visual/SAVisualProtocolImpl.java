@@ -11,6 +11,7 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
 import com.sensorsdata.analytics.android.sdk.core.mediator.visual.SAVisualProtocol;
 import com.sensorsdata.analytics.android.sdk.util.H5Util;
+import com.sensorsdata.analytics.android.sdk.util.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
 import com.sensorsdata.analytics.android.sdk.visual.view.PairingCodeEditDialog;
@@ -23,13 +24,13 @@ public class SAVisualProtocolImpl implements SAVisualProtocol {
     private SAConfigOptions options;
 
     @Override
-    public void install(Context context, SAConfigOptions options) {
-        this.options = options;
+    public void install(SAContextManager contextManager) {
+        this.options = contextManager.getInternalConfigs().saConfigOptions;
         if (!options.isDisableSDK()) {
             setModuleState(true);
             //在刚初次初始化的时候状态值不能满足；初始化之后状态值才能满足。
             if (options.isVisualizedPropertiesEnabled()) {
-                VisualPropertiesManager.getInstance().requestVisualConfig(context, true);
+                VisualPropertiesManager.getInstance().requestVisualConfig(contextManager.getContext(), true);
             }
         }
     }

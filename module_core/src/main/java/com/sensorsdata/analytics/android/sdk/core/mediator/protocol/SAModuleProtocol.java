@@ -17,12 +17,10 @@
 
 package com.sensorsdata.analytics.android.sdk.core.mediator.protocol;
 
-import android.content.Context;
-
-import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
+import com.sensorsdata.analytics.android.sdk.util.SAContextManager;
 
 public interface SAModuleProtocol {
-    void install(Context context, SAConfigOptions instance);
+    void install(SAContextManager contextManager);
 
     void setModuleState(boolean enable);
 

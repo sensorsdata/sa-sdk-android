@@ -23,7 +23,7 @@ import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.ThreadUtils;
 import com.sensorsdata.analytics.android.sdk.visual.model.VisualConfig;
 import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
@@ -126,7 +126,7 @@ public class VisualDebugHelper {
                         for (VisualConfig.VisualPropertiesConfig config : eventConfigList) {
                             try {
                                 JSONObject object = new JSONObject();
-                                SensorsDataUtils.mergeJSONObject(jsonObject, object);
+                                JSONUtils.mergeJSONObject(jsonObject, object);
                                 object.put("event_name", config.eventName);
                                 if (mJsonArray == null) {
                                     mJsonArray = new JSONArray();
@@ -151,7 +151,7 @@ public class VisualDebugHelper {
                             for (int i = 0; i < array.length(); i++) {
                                 try {
                                     JSONObject object = new JSONObject();
-                                    SensorsDataUtils.mergeJSONObject(jsonObject, object);
+                                    JSONUtils.mergeJSONObject(jsonObject, object);
                                     object.put("event_name", array.optString(i));
                                     if (mJsonArray == null) {
                                         mJsonArray = new JSONArray();

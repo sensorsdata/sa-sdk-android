@@ -99,7 +99,7 @@ public class RegressionTesting {
         assertEquals(jsonObject.opt("$carrier"), SensorsDataUtils.getCarrier(mApplication));
         assertEquals(jsonObject.opt("$timezone_offset"), TimeUtils.getZoneOffset());
         assertEquals(jsonObject.opt("$app_id"), AppInfoUtils.getProcessName(mApplication));
-        assertEquals(jsonObject.opt("$app_name"), AppInfoUtils.getAppName(mApplication));
+        //assertEquals(jsonObject.opt("$app_name"), AppInfoUtils.getAppName(mApplication));
         Assert.assertTrue(jsonObject.optBoolean("$is_first_day"));
     }
 
@@ -153,6 +153,7 @@ public class RegressionTesting {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
         JSONObject superProperty = sensorsDataAPI.getSuperProperties();
         checkJsonEquals(superProperty, jsonObject);
     }
@@ -198,7 +199,7 @@ public class RegressionTesting {
                 assertEquals(eventProperties.opt(superKey), eventUnitName);
                 Assert.assertTrue(eventProperties.has("event_duration"));
                 try {
-                    double duration = eventProperties.getDouble("event_duration");
+                    Float duration = (Float) eventProperties.get("event_duration");
                     Assert.assertTrue(duration >= 1 && duration <= 1.5);
                 } catch (JSONException e) {
                     e.printStackTrace();

@@ -61,7 +61,7 @@ public class PushProcess {
     private File mPushFile;
 
     private PushProcess() {
-        Context context = SensorsDataAPI.sharedInstance().getContext();
+        Context context = SensorsDataAPI.sharedInstance().getInternalConfigs().context;
         if (context != null) {
             this.mPushFile = new File(context.getFilesDir(), DIR_NAME);
         }
@@ -243,7 +243,7 @@ public class PushProcess {
                 long currentTime = System.currentTimeMillis();
                 for (File file : files) {
                     if (currentTime - file.lastModified() > 86400000) {
-                        SALog.i(TAG, "clean file: " + file.toString());
+                        SALog.i(TAG, "clean file: " + file);
                         file.delete();
                     }
                 }

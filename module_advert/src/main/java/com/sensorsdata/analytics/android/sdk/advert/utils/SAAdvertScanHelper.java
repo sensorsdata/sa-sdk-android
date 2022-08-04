@@ -33,12 +33,14 @@ import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.ServerUrl;
+import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataLoadingDialog;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
 import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
@@ -111,13 +113,13 @@ public class SAAdvertScanHelper {
                     JSONObject _properties = new JSONObject();
                     _properties.put("$ios_install_source", ChannelUtils.getDeviceInfo(activity,
                             SAAdvertUtils.getAndroidId(activity), SAOaidHelper.getOAID(activity)));
-                    // 先发送 track
-                    SAEventManager.getInstance().trackEvent(EventType.TRACK, "$ChannelDebugInstall", _properties, null);
-                    // 再发送 profile_set_once 或者 profile_set
+                    // first step: track
+                    SAEventManager.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK).setEventName("$ChannelDebugInstall").setProperties(_properties));
+                    // second step: profile_set_once or profile_set
                     JSONObject profileProperties = new JSONObject();
-                    SensorsDataUtils.mergeJSONObject(_properties, profileProperties);
+                    JSONUtils.mergeJSONObject(_properties, profileProperties);
                     profileProperties.put("$first_visit_time", new java.util.Date());
-                    SAEventManager.getInstance().trackEvent(EventType.PROFILE_SET_ONCE, null, profileProperties, null);
+                    SAEventManager.getInstance().trackEvent(new InputData().setEventType(EventType.PROFILE_SET_ONCE).setProperties(profileProperties));
                     SensorsDataAPI.sharedInstance().flush();
                 } catch (Exception e) {
                     SALog.printStackTrace(e);

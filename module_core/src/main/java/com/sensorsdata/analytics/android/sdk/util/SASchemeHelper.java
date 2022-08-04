@@ -114,7 +114,7 @@ public class SASchemeHelper {
                 } else if ("sensorsdataremoteconfig".equals(host)) {
                     // enable_log
                     SensorsDataAPI.sharedInstance().enableLog(true);
-                    BaseSensorsDataSDKRemoteManager sensorsDataSDKRemoteManager = sensorsDataAPI.getRemoteManager();
+                    BaseSensorsDataSDKRemoteManager sensorsDataSDKRemoteManager = sensorsDataAPI.getSAContextManager().getRemoteManager();
                     // cancel retry
                     if (sensorsDataSDKRemoteManager != null) {
                         sensorsDataSDKRemoteManager.resetPullSDKConfigTimer();
@@ -122,7 +122,7 @@ public class SASchemeHelper {
                     final SensorsDataRemoteManagerDebug sensorsDataRemoteManagerDebug =
                             new SensorsDataRemoteManagerDebug(sensorsDataAPI);
                     // replace SensorsDataRemoteManagerDebug object
-                    sensorsDataAPI.setRemoteManager(sensorsDataRemoteManagerDebug);
+                    sensorsDataAPI.getSAContextManager().setRemoteManager(sensorsDataRemoteManagerDebug);
                     SALog.i(TAG, "Start debugging remote config");
                     sensorsDataRemoteManagerDebug.checkRemoteConfig(uri, activity);
                     intent.setData(null);

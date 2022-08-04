@@ -39,4 +39,5 @@ dependencies {
     implementation rootProject.ext.androidx.google_material
     implementation rootProject.ext.androidx.constraintlayout
     implementation project(':SensorsAnalyticsSDK')
+//    implementation 'com.sensorsdata.analytics.android:SensorsAnalyticsSDK:6.4.0'
 }

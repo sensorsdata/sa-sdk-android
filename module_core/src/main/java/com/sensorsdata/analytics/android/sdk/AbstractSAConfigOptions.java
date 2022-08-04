@@ -20,6 +20,7 @@ package com.sensorsdata.analytics.android.sdk;
 import com.sensorsdata.analytics.android.sdk.encrypt.IPersistentSecretKey;
 import com.sensorsdata.analytics.android.sdk.encrypt.SAEncryptListener;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.StorePlugin;
+import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -211,6 +212,11 @@ abstract class AbstractSAConfigOptions {
     boolean mDisableDeviceId = false;
 
     /**
+     * 注册属性插件
+     */
+    List<SAPropertyPlugin> mPropertyPlugins;
+
+    /**
      * 是否开启 DeepLink
      *
      * @return true 开启，false 未开启
@@ -340,5 +346,13 @@ abstract class AbstractSAConfigOptions {
     @Deprecated
     public boolean isDataCollectEnable() {
         return true;
+    }
+
+    public List<SAPropertyPlugin> getPropertyPlugins() {
+        return mPropertyPlugins;
+    }
+
+    public int getFlushBulkSize() {
+        return mFlushBulkSize;
     }
 }

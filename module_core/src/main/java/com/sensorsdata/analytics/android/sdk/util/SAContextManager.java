@@ -21,27 +21,52 @@ import android.content.Context;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.core.event.EventProcessor;
+import com.sensorsdata.analytics.android.sdk.core.event.InputData;
+import com.sensorsdata.analytics.android.sdk.core.event.TrackEventProcessor;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProperties;
+import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
-import com.sensorsdata.analytics.android.sdk.plugin.property.SAPresetPropertyPlugin;
-import com.sensorsdata.analytics.android.sdk.plugin.property.SensorsDataPropertyPluginManager;
-
-import org.json.JSONObject;
+import com.sensorsdata.analytics.android.sdk.plugin.property.PropertyPluginManager;
+import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
+import com.sensorsdata.analytics.android.sdk.remote.SensorsDataRemoteManager;
+import com.sensorsdata.analytics.android.sdk.useridentity.UserIdentityAPI;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 public class SAContextManager {
     private final Context mContext;
-    private Map<String, Object> mDeviceInfo;
     private List<SAEventListener> mEventListenerList;
     /* AndroidID */
     private String mAndroidId;
-    private boolean isAppStartSuccess;
+    private final PersistentFirstDay mFirstDay;
+    private final PersistentSuperProperties mSuperProperties;
+    /* 远程配置管理 */
+    BaseSensorsDataSDKRemoteManager mRemoteManager;
+    UserIdentityAPI mUserIdentityAPI;
+    private final PropertyPluginManager mPluginManager;
+    private EventProcessor mTrackEventProcessor;
+    private InternalConfigOptions mInternalConfigs;
 
-    public SAContextManager(Context context) {
-        this.mContext = context;
+    public SAContextManager(SensorsDataAPI sensorsDataAPI, InternalConfigOptions internalConfigs) {
+        mInternalConfigs = internalConfigs;
+        this.mContext = internalConfigs.context;
+        this.mFirstDay = (PersistentFirstDay) PersistentLoader.loadPersistent(DbParams.PersistentName.FIRST_DAY);
+        this.mSuperProperties = (PersistentSuperProperties) PersistentLoader.loadPersistent(DbParams.PersistentName.SUPER_PROPERTIES);
+        // init RemoteManager
+        mRemoteManager = new SensorsDataRemoteManager(sensorsDataAPI);
+        mRemoteManager.applySDKConfigFromCache();
+        // init UserIdentityAPI
+        mUserIdentityAPI = new UserIdentityAPI(this);
+        // init plugin manager
+        // 注册属性插件
+        mPluginManager = new PropertyPluginManager(sensorsDataAPI, internalConfigs);
+        mTrackEventProcessor = new TrackEventProcessor(internalConfigs);
     }
 
     /**
@@ -84,21 +109,20 @@ public class SAContextManager {
         }
     }
 
-    /**
-     * 从 DeviceInfo 中添加指定 Key
-     *
-     * @param jsonObject JSONObject
-     * @param key 指定 Key
-     */
-    public void addKeyIfExist(JSONObject jsonObject, String key) {
-        try {
-            setupDeviceInfo();
-            if (mDeviceInfo != null && mDeviceInfo.containsKey(key)) {
-                jsonObject.put(key, mDeviceInfo.get(key));
-            }
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
-        }
+    public BaseSensorsDataSDKRemoteManager getRemoteManager() {
+        return mRemoteManager;
+    }
+
+    public void setRemoteManager(BaseSensorsDataSDKRemoteManager mRemoteManager) {
+        this.mRemoteManager = mRemoteManager;
+    }
+
+    public UserIdentityAPI getUserIdentityAPI() {
+        return mUserIdentityAPI;
+    }
+
+    public void setUserIdentityAPI(UserIdentityAPI mUserIdentityAPI) {
+        this.mUserIdentityAPI = mUserIdentityAPI;
     }
 
     /**
@@ -113,50 +137,41 @@ public class SAContextManager {
         return mAndroidId;
     }
 
-    /**
-     * 获取预置属性信息
-     *
-     * @return 预置属性信息
-     */
-    public JSONObject getPresetProperties() {
-        JSONObject properties = new JSONObject();
+    public boolean isFirstDay(long eventTime) {
+        String firstDay = mFirstDay.get();
+        if (firstDay == null) {
+            return true;
+        }
         try {
-            setupDeviceInfo();
-            properties.put("$app_version", mDeviceInfo.get("$app_version"));
-            properties.put("$lib", "Android");
-            properties.put("$lib_version", mDeviceInfo.get("$lib_version"));
-            properties.put("$manufacturer", mDeviceInfo.get("$manufacturer"));
-            properties.put("$model", mDeviceInfo.get("$model"));
-            properties.put("$brand", mDeviceInfo.get("$brand"));
-            properties.put("$os", mDeviceInfo.get("$os"));
-            properties.put("$os_version", mDeviceInfo.get("$os_version"));
-            properties.put("$screen_height", mDeviceInfo.get("$screen_height"));
-            properties.put("$screen_width", mDeviceInfo.get("$screen_width"));
-            String networkType = NetworkUtils.networkType(mContext);
-            properties.put("$wifi", "WIFI".equals(networkType));
-            properties.put("$network_type", networkType);
-            properties.put("$carrier", mDeviceInfo.get("$carrier"));
-            properties.put("$app_id", mDeviceInfo.get("$app_id"));
-            properties.put("$timezone_offset", mDeviceInfo.get("$timezone_offset"));
-            if (mDeviceInfo.containsKey("$anonymization_id")) {
-                properties.put("$anonymization_id", mDeviceInfo.get("$anonymization_id"));
-            }
-            if (mDeviceInfo.containsKey("$device_id")) {
-                properties.put("$device_id", mDeviceInfo.get("$device_id"));
-            }
-            properties.put("$app_name", mDeviceInfo.get("$app_name"));
+            String current = TimeUtils.formatTime(eventTime, TimeUtils.YYYY_MM_DD);
+            return firstDay.equals(current);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
-        return properties;
+        return true;
     }
 
-    /**
-     * 获取并配置 App 的一些基本属性
-     */
-    private void setupDeviceInfo() {
-        if (mDeviceInfo == null || mDeviceInfo.isEmpty()) {
-            mDeviceInfo = Collections.unmodifiableMap(SensorsDataPropertyPluginManager.getInstance().getPropertiesByPlugin(SAPresetPropertyPlugin.class));
-        }
+    public PersistentFirstDay getFirstDay() {
+        return mFirstDay;
+    }
+
+    public PersistentSuperProperties getSuperProperties() {
+        return mSuperProperties;
+    }
+
+    public PropertyPluginManager getPluginManager() {
+        return mPluginManager;
+    }
+
+    public Context getContext() {
+        return mContext;
+    }
+
+    public InternalConfigOptions getInternalConfigs() {
+        return mInternalConfigs;
+    }
+
+    public void trackEvent(InputData inputData) {
+        mTrackEventProcessor.trackEvent(inputData);
     }
 }

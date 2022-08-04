@@ -31,12 +31,15 @@ import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.ServerUrl;
+import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.core.eventbus.SAEventBus;
 import com.sensorsdata.analytics.android.sdk.core.eventbus.SAEventBusConstants;
 import com.sensorsdata.analytics.android.sdk.deeplink.SADeepLinkObject;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
@@ -141,8 +144,8 @@ public class DeepLinkManager {
         } catch (JSONException e) {
             SALog.printStackTrace(e);
         }
-        SensorsDataUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), properties);
-        SensorsDataUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
+        JSONUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), properties);
+        JSONUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
         SAEventManager.getInstance().trackQueueEvent(new Runnable() {
             @Override
             public void run() {
@@ -154,7 +157,8 @@ public class DeepLinkManager {
                         SALog.printStackTrace(e);
                     }
                 }
-                SensorsDataAPI.sharedInstance().trackInternal("$AppDeeplinkLaunch", properties);
+                SAEventManager.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK)
+                        .setEventName("$AppDeeplinkLaunch").setProperties(properties));
             }
         });
     }
@@ -296,7 +300,7 @@ public class DeepLinkManager {
         if (properties == null || mCacheProperties == null || mCacheProperties.length() == 0) {
             return;
         }
-        SensorsDataUtils.mergeJSONObject(mCacheProperties, properties);
+        JSONUtils.mergeJSONObject(mCacheProperties, properties);
         mCacheProperties = null;
     }
 

@@ -25,7 +25,6 @@ import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
 
-import com.sensorsdata.analytics.android.sdk.autotrack.ActivityLifecycleCallbacks;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
@@ -33,6 +32,7 @@ import com.sensorsdata.analytics.android.sdk.exceptions.ConnectErrorException;
 import com.sensorsdata.analytics.android.sdk.exceptions.DebugModeException;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.exceptions.ResponseErrorException;
+import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
@@ -63,7 +63,7 @@ import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF
  * This class straddles the thread boundary between user threads and
  * a logical SensorsData thread.
  */
-class AnalyticsMessages {
+public class AnalyticsMessages {
     private static final String TAG = "SA.AnalyticsMessages";
     private static final int FLUSH_QUEUE = 3;
     private static final int DELETE_ALL = 4;
@@ -72,16 +72,18 @@ class AnalyticsMessages {
     private final Worker mWorker;
     private final Context mContext;
     private final DbAdapter mDbAdapter;
-    private SensorsDataAPI mSensorsDataAPI;
+    private final SensorsDataAPI mSensorsDataAPI;
+    private final InternalConfigOptions mConfigOption;
 
     /**
      * 不要直接调用，通过 getInstance 方法获取实例
      */
-    private AnalyticsMessages(final Context context, SensorsDataAPI sensorsDataAPI) {
+    private AnalyticsMessages(final Context context, SensorsDataAPI sensorsDataAPI, InternalConfigOptions internalConfigOptions) {
         mContext = context;
         mDbAdapter = DbAdapter.getInstance();
         mWorker = new Worker();
         mSensorsDataAPI = sensorsDataAPI;
+        mConfigOption = internalConfigOptions;
     }
 
     /**
@@ -89,12 +91,12 @@ class AnalyticsMessages {
      *
      * @param messageContext Context
      */
-    public static AnalyticsMessages getInstance(final Context messageContext, final SensorsDataAPI sensorsDataAPI) {
+    public static AnalyticsMessages getInstance(final Context messageContext, final SensorsDataAPI sensorsDataAPI, InternalConfigOptions internalConfigOptions) {
         synchronized (S_INSTANCES) {
             final Context appContext = messageContext.getApplicationContext();
             final AnalyticsMessages ret;
             if (!S_INSTANCES.containsKey(appContext)) {
-                ret = new AnalyticsMessages(appContext, sensorsDataAPI);
+                ret = new AnalyticsMessages(appContext, sensorsDataAPI, internalConfigOptions);
                 S_INSTANCES.put(appContext, ret);
             } else {
                 ret = S_INSTANCES.get(appContext);
@@ -103,13 +105,15 @@ class AnalyticsMessages {
         }
     }
 
+    public static AnalyticsMessages getInstance(Context context) {
+        return S_INSTANCES.get(context);
+    }
+
     private static byte[] slurp(final InputStream inputStream)
             throws IOException {
         final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-
         int nRead;
         byte[] data = new byte[8192];
-
         while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
             buffer.write(data, 0, nRead);
         }
@@ -118,34 +122,15 @@ class AnalyticsMessages {
         return buffer.toByteArray();
     }
 
-    void enqueueEventMessage(final String type, final JSONObject eventJson) {
+    public void flushEventMessage(boolean isSendImmediately) {
         try {
             synchronized (mDbAdapter) {
-                int ret = mDbAdapter.addJSON(eventJson);
-                if (ret < 0) {
-                    String error = "Failed to enqueue the event: " + eventJson;
-                    if (mSensorsDataAPI.isDebugMode()) {
-                        throw new DebugModeException(error);
-                    } else {
-                        SALog.i(TAG, error);
-                    }
-                }
-
                 final Message m = Message.obtain();
                 m.what = FLUSH_QUEUE;
-
-                if (mSensorsDataAPI.isDebugMode() || ret ==
-                        DbParams.DB_OUT_OF_MEMORY_ERROR) {
+                if (isSendImmediately) {
                     mWorker.runMessage(m);
                 } else {
-                    // track_signup 立即发送
-                    if (type.equals("track_signup") || ret > mSensorsDataAPI
-                            .getFlushBulkSize()) {
-                        mWorker.runMessage(m);
-                    } else {
-                        final int interval = mSensorsDataAPI.getFlushInterval();
-                        mWorker.runMessageOnce(m, interval);
-                    }
+                    mWorker.runMessageOnce(m, mSensorsDataAPI.getFlushInterval());
                 }
             }
         } catch (Exception e) {
@@ -211,13 +196,13 @@ class AnalyticsMessages {
             }
 
             // 如果开启多进程上报
-            if (mSensorsDataAPI.getConfigOptions().isMultiProcessFlush()) {
+            if (AbstractSensorsDataAPI.getConfigOptions().isMultiProcessFlush()) {
                 // 已经有进程在上报
                 if (DbAdapter.getInstance().isSubProcessFlushing()) {
                     return;
                 }
                 DbAdapter.getInstance().commitSubProcessFlushState(true);
-            } else if (!SensorsDataAPI.mIsMainProcess) {//不是主进程
+            } else if (!mConfigOption.isMainProcess) {//不是主进程
                 return;
             }
         } catch (Exception e) {
@@ -272,7 +257,7 @@ class AnalyticsMessages {
                 if (!TextUtils.isEmpty(errorMessage)) {
                     if (isDebugMode || SALog.isLogEnabled()) {
                         SALog.i(TAG, errorMessage);
-                        if (isDebugMode && SensorsDataAPI.SHOW_DEBUG_INFO_VIEW) {
+                        if (isDebugMode && mConfigOption.isShowDebugView) {
                             SensorsDataDialogUtils.showHttpErrorDialog(AppStateManager.getInstance().getForegroundActivity(), errorMessage);
                         }
                     }
@@ -286,7 +271,7 @@ class AnalyticsMessages {
 
             }
         }
-        if (mSensorsDataAPI.getConfigOptions().isMultiProcessFlush()) {
+        if (AbstractSensorsDataAPI.getConfigOptions().isMultiProcessFlush()) {
             DbAdapter.getInstance().commitSubProcessFlushState(false);
         }
     }
@@ -300,13 +285,14 @@ class AnalyticsMessages {
             final URL url = new URL(path);
             connection = (HttpURLConnection) url.openConnection();
             if (connection == null) {
-                SALog.i(TAG, String.format("can not connect %s, it shouldn't happen", url.toString()), null);
+                SALog.i(TAG, String.format("can not connect %s, it shouldn't happen", url));
                 return;
             }
             SAConfigOptions configOptions = SensorsDataAPI.getConfigOptions();
             if (configOptions != null && configOptions.mSSLSocketFactory != null
                     && connection instanceof HttpsURLConnection) {
                 ((HttpsURLConnection) connection).setSSLSocketFactory(configOptions.mSSLSocketFactory);
+
             }
             connection.setInstanceFollowRedirects(false);
             if (mSensorsDataAPI.getDebugMode() == SensorsDataAPI.DebugMode.DEBUG_ONLY) {
@@ -395,12 +381,9 @@ class AnalyticsMessages {
      * @return true: 删除数据，false: 不删数据
      */
     private boolean isDeleteEventsByCode(int httpCode) {
-        boolean shouldDelete = true;
-        if (httpCode == HttpURLConnection.HTTP_NOT_FOUND ||
-                httpCode == HttpURLConnection.HTTP_FORBIDDEN ||
-                (httpCode >= HttpURLConnection.HTTP_INTERNAL_ERROR && httpCode < 600)) {
-            shouldDelete = false;
-        }
+        boolean shouldDelete = httpCode != HttpURLConnection.HTTP_NOT_FOUND &&
+                httpCode != HttpURLConnection.HTTP_FORBIDDEN &&
+                (httpCode < HttpURLConnection.HTTP_INTERNAL_ERROR || httpCode >= 600);
         return shouldDelete;
     }
 
@@ -468,7 +451,7 @@ class AnalyticsMessages {
     private class Worker {
 
         private final Object mHandlerLock = new Object();
-        private Handler mHandler;
+        private final Handler mHandler;
 
         Worker() {
             final HandlerThread thread =

@@ -18,16 +18,16 @@
 package com.sensorsdata.analytics.android.sdk.core;
 
 import android.app.Activity;
-import android.content.Context;
 import android.net.Uri;
 import android.text.TextUtils;
 
-import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
 import com.sensorsdata.analytics.android.sdk.core.mediator.advert.SAAdvertModuleProtocol;
 import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAModuleProtocol;
 import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAScanListener;
 import com.sensorsdata.analytics.android.sdk.core.mediator.visual.SAVisualProtocol;
+import com.sensorsdata.analytics.android.sdk.util.SAContextManager;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -56,15 +56,18 @@ public class SAModuleManager {
     /**
      * 加载模块
      *
-     * @param context Context
-     * @param options SAConfigOptions
+     * @param contextManager SAContextManager
      */
-    public void installService(Context context, SAConfigOptions options) {
+    public void installService(SAContextManager contextManager) {
         ServiceLoader<SAModuleProtocol> serviceLoader = ServiceLoader.load(SAModuleProtocol.class);
         for (SAModuleProtocol saModuleProtocol : serviceLoader) {
             if (saModuleProtocol != null) {
-                saModuleProtocol.install(context, options);
-                mServiceMap.put(saModuleProtocol.getModuleName(), saModuleProtocol);
+                try {
+                    saModuleProtocol.install(contextManager);
+                    mServiceMap.put(saModuleProtocol.getModuleName(), saModuleProtocol);
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
             }
         }
     }

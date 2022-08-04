@@ -21,9 +21,12 @@ import android.os.CountDownTimer;
 import android.os.SystemClock;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 
@@ -225,11 +228,17 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
     protected void setSDKRemoteConfig(SensorsDataSDKRemoteConfig sdkRemoteConfig) {
         try {
             //版本号不一致时，才会返回数据，此时上报事件
-            JSONObject eventProperties = new JSONObject();
+            final JSONObject eventProperties = new JSONObject();
             String remoteConfigString = sdkRemoteConfig.toJson().toString();
             eventProperties.put("$app_remote_config", remoteConfigString);
-            SensorsDataAPI.sharedInstance().trackInternal("$AppRemoteConfigChanged", eventProperties);
-            SensorsDataAPI.sharedInstance().flush();
+            SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+                @Override
+                public void run() {
+                    SensorsDataAPI.sharedInstance().getSAContextManager().
+                            trackEvent(new InputData().setEventName("$AppRemoteConfigChanged").setProperties(eventProperties).setEventType(EventType.TRACK));
+                }
+            });
+            mSensorsDataAPI.flush();
             DbAdapter.getInstance().commitRemoteConfig(remoteConfigString);
             SALog.i(TAG, "Save remote data");
             //值为 1 时，表示在线控制立即生效

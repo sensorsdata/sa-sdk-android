@@ -22,6 +22,7 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.StorePlugin;
 import com.sensorsdata.analytics.android.sdk.encrypt.IPersistentSecretKey;
 import com.sensorsdata.analytics.android.sdk.encrypt.SAEncryptListener;
+import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -391,6 +392,7 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
      * 指定 Activity/Fragment 的格式为：****.class
      *
      * @param ignoreList activity/Fragment 列表
+     *
      * @return SAConfigOptions
      */
     public SAConfigOptions ignorePageLeave(List<Class<?>> ignoreList) {
@@ -481,6 +483,14 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
      */
     public SAConfigOptions setEventSessionTimeout(int time) {
         this.mEventSessionTimeout = time;
+        return this;
+    }
+
+    public SAConfigOptions registerPropertyPlugin(SAPropertyPlugin property) {
+        if (this.mPropertyPlugins == null) {
+            this.mPropertyPlugins = new ArrayList<>();
+        }
+        this.mPropertyPlugins.add(property);
         return this;
     }
 }

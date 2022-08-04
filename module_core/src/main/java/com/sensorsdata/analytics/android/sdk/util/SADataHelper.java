@@ -17,6 +17,7 @@
 
 package com.sensorsdata.analytics.android.sdk.util;
 
+import android.content.Context;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
@@ -204,6 +205,18 @@ public class SADataHelper {
             } catch (JSONException e) {
                 SALog.printStackTrace(e);
             }
+        }
+    }
+    public static void addCarrier(Context context, JSONObject property) {
+        try {
+            if (TextUtils.isEmpty(property.optString("$carrier"))) {
+                String carrier = SensorsDataUtils.getCarrier(context);
+                if (!TextUtils.isEmpty(carrier)) {
+                    property.put("$carrier", carrier);
+                }
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
     }
 }

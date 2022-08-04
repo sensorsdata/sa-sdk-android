@@ -35,7 +35,7 @@ abstract class DataOperation {
     String TAG = "EventDataOperation";
     ContentResolver contentResolver;
     private final File mDatabaseFile;
-    private Context mContext;
+    private final Context mContext;
 
     DataOperation(Context context) {
         this.mContext = context;
@@ -44,32 +44,36 @@ abstract class DataOperation {
     }
 
     /**
-     * 保存数据
+     * @param uri Uri
+     * @param jsonObject JSONObject
+     * @return ErrorCode
      */
     abstract int insertData(Uri uri, JSONObject jsonObject);
 
     /**
-     * 保存数据
+     * @param uri Uri
+     * @param contentValues ContentValues
+     * @return ErrorCode
      */
     abstract int insertData(Uri uri, ContentValues contentValues);
 
     /**
-     * 查询数据
+     * query data
      */
     abstract String[] queryData(Uri uri, int limit);
 
     /**
-     * 查询数据条数
+     * query data count
      *
      * @param uri Uri
-     * @return 条数
+     * @return data count
      */
     int queryDataCount(Uri uri) {
         return queryDataCount(uri, null, null, null, null);
     }
 
     /**
-     * 查询数据条数
+     * query data count
      */
     int queryDataCount(Uri uri, String[] projection, String selection,
                        String[] selectionArgs, String sortOrder) {
@@ -90,7 +94,7 @@ abstract class DataOperation {
     }
 
     /**
-     * 删除数据
+     * delete data
      */
     void deleteData(Uri uri, String id) {
         try {
@@ -124,10 +128,10 @@ abstract class DataOperation {
 
 
     /**
-     * 数据库存满时删除数据
+     * delete data when db is full
      *
      * @param uri URI
-     * @return 正常返回 0
+     * @return ErrorCode
      */
     int deleteDataLowMemory(Uri uri) {
         if (belowMemThreshold()) {

@@ -19,7 +19,6 @@ package com.sensorsdata.analytics.android.sdk.advert.utils;
 
 import android.content.Context;
 
-import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
@@ -33,9 +32,9 @@ public class SAAdvertUtils {
      */
     public static boolean isFirstTrackInstallation(boolean disableCallback) {
         if (disableCallback) {
-            return SAStoreManager.getInstance().getString(DbParams.PersistentName.FIRST_INSTALL_CALLBACK, "true").equals("true");
+            return !SAStoreManager.getInstance().isExists(DbParams.PersistentName.FIRST_INSTALL_CALLBACK);
         }
-        return SAStoreManager.getInstance().getString(DbParams.PersistentName.FIRST_INSTALL, "true").equals("true");
+        return !SAStoreManager.getInstance().isExists(DbParams.PersistentName.FIRST_INSTALL);
     }
 
     /**
