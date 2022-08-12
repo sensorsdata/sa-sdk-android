@@ -57,4 +57,18 @@ public class SAAdvertUtils {
     public static String getAndroidId(Context context) {
         return SensorsDataUtils.getAndroidID(context);
     }
+
+    /**
+     * 获取 IMEI
+     *
+     * @return IMEI 拼接数据
+     */
+    public static String getIMEI(Context context) {
+        return String.format("imei=%s##imei_old=%s##imei_slot1=%s##imei_slot2=%s##imei_meid=%s",
+                SensorsDataUtils.getIMEI(context),
+                SensorsDataUtils.getIMEIOld(context),
+                SensorsDataUtils.getSlot(context, 0),
+                SensorsDataUtils.getSlot(context, 1),
+                SensorsDataUtils.getMEID(context));
+    }
 }

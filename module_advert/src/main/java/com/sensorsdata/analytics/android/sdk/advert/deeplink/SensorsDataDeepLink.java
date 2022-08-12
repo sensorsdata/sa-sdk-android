@@ -49,6 +49,8 @@ class SensorsDataDeepLink extends AbsDeepLink {
     private boolean success;
     private final String customADChannelUrl;
     private String adSlinkId;
+    private String adSlinkTemplateId;
+    private String adSlinkType;
 
     public SensorsDataDeepLink(Intent intent, String serverUrl, String customADChannelUrl) {
         super(intent);
@@ -92,6 +94,8 @@ class SensorsDataDeepLink extends AbsDeepLink {
                                     errorMsg = response.optString("error_msg");
                                 }
                                 adSlinkId = response.optString("ad_slink_id");
+                                adSlinkTemplateId = response.optString("slink_template_id");
+                                adSlinkType = response.optString("slink_type");
                                 if (!TextUtils.isEmpty(errorMsg)) {
                                     success = false;
                                 }
@@ -116,6 +120,12 @@ class SensorsDataDeepLink extends AbsDeepLink {
                                 }
                                 properties.put("$deeplink_url", getDeepLinkUrl());
                                 properties.put("$event_duration", TimeUtils.duration(duration));
+                                if (!TextUtils.isEmpty(adSlinkTemplateId)) {
+                                    properties.put("$ad_slink_template_id", adSlinkTemplateId);
+                                }
+                                if (!TextUtils.isEmpty(adSlinkType)) {
+                                    properties.put("$ad_slink_type", adSlinkType);
+                                }
                             } catch (JSONException e) {
                                 SALog.printStackTrace(e);
                             }

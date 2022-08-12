@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.view.View;
 
-import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAModuleProtocol;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 

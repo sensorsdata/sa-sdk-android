@@ -1,5 +1,5 @@
 /*
- * Created by chenru on 2022/4/25 下午5:05(format year/.
+ * Created by chenru on 2022/7/5 下午6:05.
  * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.advert.utils;
+package com.sensorsdata.analytics.android.sdk.advert.scan;
 
 import static com.sensorsdata.analytics.android.sdk.advert.SAAdvertConstants.TAG;
 import static com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils.dialogShowDismissOld;
@@ -27,12 +27,14 @@ import android.content.DialogInterface;
 import android.net.Uri;
 import android.text.TextUtils;
 
-import com.sensorsdata.analytics.android.sdk.advert.oaid.SAOaidHelper;
 import com.sensorsdata.analytics.advert.R;
 import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.ServerUrl;
+import com.sensorsdata.analytics.android.sdk.advert.oaid.SAOaidHelper;
+import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
+import com.sensorsdata.analytics.android.sdk.advert.utils.SAAdvertUtils;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataLoadingDialog;
@@ -47,46 +49,42 @@ import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONObject;
 
-public class SAAdvertScanHelper {
-    public static boolean scanHandler(Activity activity, Uri uri) {
-        String host = uri.getHost();
-        if ("channeldebug".equals(host)) {
-            if (ChannelUtils.hasUtmByMetaData(activity)) {
-                showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_listener));
-                return true;
-            }
-            String monitorId = uri.getQueryParameter("monitor_id");
-            if (TextUtils.isEmpty(monitorId)) {
-                SensorsDataDialogUtils.startLaunchActivity(activity);
-                return true;
-            }
-            String url = SensorsDataAPI.sharedInstance().getServerUrl();
-            if (TextUtils.isEmpty(url)) {
-                showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_url));
-                return true;
-            }
-            ServerUrl serverUrl = new ServerUrl(url);
-            String projectName = uri.getQueryParameter("project_name");
-            if (serverUrl.getProject().equals(projectName)) {
-                String projectId = uri.getQueryParameter("project_id");
-                String accountId = uri.getQueryParameter("account_id");
-                String isReLink = uri.getQueryParameter("is_relink");
-                if ("1".equals(isReLink)) {//续连标识 1 :续连
-                    String deviceCode = uri.getQueryParameter("device_code");
-                    if (ChannelUtils.checkDeviceInfo(activity, deviceCode)) {//比较设备信息是否匹配
-                        showChannelDebugActiveDialog(activity);
-                    } else {
-                        showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_retry));
-                    }
+public class ChannelDebugScanHelper implements IAdvertScanListener {
+    @Override
+    public void handlerScanUri(Activity activity, Uri uri) {
+        if (ChannelUtils.hasUtmByMetaData(activity)) {
+            showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_listener));
+            return;
+        }
+        String monitorId = uri.getQueryParameter("monitor_id");
+        if (TextUtils.isEmpty(monitorId)) {
+            SensorsDataDialogUtils.startLaunchActivity(activity);
+            return;
+        }
+        String url = SensorsDataAPI.sharedInstance().getServerUrl();
+        if (TextUtils.isEmpty(url)) {
+            showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_url));
+            return;
+        }
+        ServerUrl serverUrl = new ServerUrl(url);
+        String projectName = uri.getQueryParameter("project_name");
+        if (serverUrl.getProject().equals(projectName)) {
+            String projectId = uri.getQueryParameter("project_id");
+            String accountId = uri.getQueryParameter("account_id");
+            String isReLink = uri.getQueryParameter("is_relink");
+            if ("1".equals(isReLink)) {//续连标识 1 :续连
+                String deviceCode = uri.getQueryParameter("device_code");
+                if (ChannelUtils.checkDeviceInfo(activity, deviceCode)) {//比较设备信息是否匹配
+                    showChannelDebugActiveDialog(activity);
                 } else {
-                    showChannelDebugDialog(activity, serverUrl.getBaseUrl(), monitorId, projectId, accountId);
+                    showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_retry));
                 }
             } else {
-                showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_project));
+                showChannelDebugDialog(activity, serverUrl.getBaseUrl(), monitorId, projectId, accountId);
             }
-            return true;
+        } else {
+            showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_project));
         }
-        return false;
     }
 
     public static void showChannelDebugActiveDialog(final Activity activity) {
@@ -136,65 +134,65 @@ public class SAAdvertScanHelper {
                                               final String accountId) {
         showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_dialog_starting), "",
                 SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_dialog_ok), new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                if (dialog != null) {
-                    dialog.dismiss();
-                }
-                Context context = activity.getApplicationContext();
-                boolean isTrackInstallation = ChannelUtils.isTrackInstallation();
-                if (!isTrackInstallation || ChannelUtils.isCorrectTrackInstallation()) {
-                    String androidId = SensorsDataUtils.getAndroidID(context);
-                    String oaid = SAOaidHelper.getOAID(context);
-                    if (isTrackInstallation && !ChannelUtils.isGetDeviceInfo(context, androidId, oaid)) {
-                        showChannelDebugErrorDialog(activity);
-                        return;
-                    }
-                    if (!NetworkUtils.isNetworkAvailable(context)) {
-                        showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_network));
-                        return;
-                    }
-                    String deviceCode = ChannelUtils.getDeviceInfo(activity, androidId, oaid);
-                    final SensorsDataLoadingDialog loadingDialog = new SensorsDataLoadingDialog(activity);
-                    dialogShowDismissOld(loadingDialog);
-                    requestActiveChannel(baseUrl,
-                            monitorId, projectId, accountId,
-                            deviceCode, isTrackInstallation,
-                            new HttpCallback.JsonCallback() {
-                                @Override
-                                public void onFailure(int code, String errorMessage) {
-                                    loadingDialog.dismiss();
-                                    SALog.i(TAG, "ChannelDebug request error:" + errorMessage);
-                                    showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_request));
-                                }
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        if (dialog != null) {
+                            dialog.dismiss();
+                        }
+                        Context context = activity.getApplicationContext();
+                        boolean isTrackInstallation = ChannelUtils.isTrackInstallation();
+                        if (!isTrackInstallation || ChannelUtils.isCorrectTrackInstallation()) {
+                            String androidId = SensorsDataUtils.getAndroidID(context);
+                            String oaid = SAOaidHelper.getOAID(context);
+                            if (isTrackInstallation && !ChannelUtils.isGetDeviceInfo(context, androidId, oaid)) {
+                                showChannelDebugErrorDialog(activity);
+                                return;
+                            }
+                            if (!NetworkUtils.isNetworkAvailable(context)) {
+                                showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_network));
+                                return;
+                            }
+                            String deviceCode = ChannelUtils.getDeviceInfo(activity, androidId, oaid);
+                            final SensorsDataLoadingDialog loadingDialog = new SensorsDataLoadingDialog(activity);
+                            dialogShowDismissOld(loadingDialog);
+                            requestActiveChannel(baseUrl,
+                                    monitorId, projectId, accountId,
+                                    deviceCode, isTrackInstallation,
+                                    new HttpCallback.JsonCallback() {
+                                        @Override
+                                        public void onFailure(int code, String errorMessage) {
+                                            loadingDialog.dismiss();
+                                            SALog.i(TAG, "ChannelDebug request error:" + errorMessage);
+                                            showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_request));
+                                        }
 
-                                @Override
-                                public void onResponse(JSONObject response) {
-                                    loadingDialog.dismiss();
-                                    if (response == null) {
-                                        SALog.i(TAG, "ChannelDebug response error msg: response is null");
-                                        showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_whitelist));
-                                        return;
-                                    }
-                                    int code = response.optInt("code", 0);
-                                    if (code == 1) {// 请求成功
-                                        showChannelDebugActiveDialog(activity);
-                                    } else {//请求失败
-                                        SALog.i(TAG, "ChannelDebug response error msg:" + response.optString("message"));
-                                        showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_whitelist));
-                                    }
-                                }
-                            });
-                } else {
-                    showChannelDebugErrorDialog(activity);
-                }
-            }
-        }, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_dialog_cancel), new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                SensorsDataDialogUtils.startLaunchActivity(activity);
-            }
-        });
+                                        @Override
+                                        public void onResponse(JSONObject response) {
+                                            loadingDialog.dismiss();
+                                            if (response == null) {
+                                                SALog.i(TAG, "ChannelDebug response error msg: response is null");
+                                                showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_whitelist));
+                                                return;
+                                            }
+                                            int code = response.optInt("code", 0);
+                                            if (code == 1) {// 请求成功
+                                                showChannelDebugActiveDialog(activity);
+                                            } else {//请求失败
+                                                SALog.i(TAG, "ChannelDebug response error msg:" + response.optString("message"));
+                                                showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_error_whitelist));
+                                            }
+                                        }
+                                    });
+                        } else {
+                            showChannelDebugErrorDialog(activity);
+                        }
+                    }
+                }, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_ad_dialog_cancel), new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        SensorsDataDialogUtils.startLaunchActivity(activity);
+                    }
+                });
     }
 
 

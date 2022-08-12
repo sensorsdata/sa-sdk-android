@@ -20,4 +20,17 @@
                         "2. 手机系统权限设置中是否关闭“电话”授权；\n" +
                         "3. 请联系研发人员确认是否“调用 trackInstallation 接口在获取“电话”授权之后。\n\n " +
                         "排查修复后，请先卸载应用并重新安装，再扫码进行联调。"</string>
+    <string name="sensors_analytics_ad_whitelist_platform_error">请使用 iOS 设备类型扫码</string>
+    <string name="sensors_analytics_ad_whitelist_project_error">设备白名单配置项目与事件上报项目不一致</string>
+    <string name="sensors_analytics_ad_whitelist_request_falied">请求失败，请重新扫码</string>
+    <string name="sensors_analytics_ad_whitelist_request_success">请求成功</string>
+    <string name="sensors_analytics_ad_create_link_no_network">"没有检测到网络连接"</string>
+    <string name="sensors_analytics_ad_create_link_common_redirect_url_missing">"通用跳转链接缺少"</string>
+    <string name="sensors_analytics_ad_create_link_template_id_missing">"Slink 模板 ID 缺少"</string>
+    <string name="sensors_analytics_ad_create_link_channel_name_missing">"渠道名缺少"</string>
+    <string name="sensors_analytics_ad_create_link_token_missing">"token 缺少"</string>
+    <string name="sensors_analytics_ad_create_link_custom_url_error">"自定义域名未填写或者格式不对"</string>
+    <string name="sensors_analytics_ad_create_link_callback_missing">"未设置回调对象"</string>
+    <string name="sensors_analytics_ad_create_link_success">"Slink 创建成功"</string>
+    <string name="sensors_analytics_ad_create_link_response_data_error">"后端返回数据异常"</string>
 </resources>

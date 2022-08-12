@@ -1,5 +1,5 @@
 /*
- * Created by chenru on 2022/4/25 下午5:05(format year/.
+ * Created by chenru on 2022/4/25 下午5:05.
  * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,8 +33,8 @@ import com.sensorsdata.analytics.android.sdk.advert.monitor.SensorsDataAdvertAct
 import com.sensorsdata.analytics.android.sdk.advert.oaid.SAOaidHelper;
 import com.sensorsdata.analytics.android.sdk.advert.plugin.SAAdvertAppStartPlugin;
 import com.sensorsdata.analytics.android.sdk.advert.plugin.SAAdvertAppViewScreenPlugin;
+import com.sensorsdata.analytics.android.sdk.advert.scan.SAAdvertScanHelper;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
-import com.sensorsdata.analytics.android.sdk.advert.utils.SAAdvertScanHelper;
 import com.sensorsdata.analytics.android.sdk.advert.utils.SAAdvertUtils;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;

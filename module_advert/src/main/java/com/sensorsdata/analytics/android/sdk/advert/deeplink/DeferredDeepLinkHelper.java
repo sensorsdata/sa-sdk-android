@@ -56,6 +56,8 @@ public class DeferredDeepLinkHelper {
                     private boolean isSuccess = false;
                     private String errorMsg;
                     private String adSlinkId;
+                    private String adSlinkTemplateId;
+                    private String adSlinkType;
 
                     @Override
                     public void onFailure(int code, String errorMessage) {
@@ -74,6 +76,8 @@ public class DeferredDeepLinkHelper {
                                 parameter = response.optString("parameter");
                                 adChannel = response.optString("ad_channel");
                                 adSlinkId = response.optString("ad_slink_id");
+                                adSlinkTemplateId = response.optString("slink_template_id");
+                                adSlinkType = response.optString("slink_type");
                             } else {
                                 errorMsg = response.optString("msg");
                             }
@@ -105,6 +109,12 @@ public class DeferredDeepLinkHelper {
                             properties.put("$ad_app_match_type", "deferred deeplink");
                             properties.put("$event_duration", TimeUtils.duration(duration));
                             properties.put("$ad_device_info", jsonData.get("ids"));
+                            if (!TextUtils.isEmpty(adSlinkTemplateId)) {
+                                properties.put("$ad_slink_template_id", adSlinkTemplateId);
+                            }
+                            if (!TextUtils.isEmpty(adSlinkType)) {
+                                properties.put("$ad_slink_type", adSlinkType);
+                            }
                             if (callBack != null) {
                                 try {
                                     if (callBack.onReceive(new SADeepLinkObject(parameter, adChannel, isSuccess, duration)) && isSuccess) {
@@ -112,6 +122,12 @@ public class DeferredDeepLinkHelper {
                                         jsonObject.put("$deeplink_options", parameter);
                                         if (!TextUtils.isEmpty(adSlinkId)) {
                                             jsonObject.put("$ad_slink_id", adSlinkId);
+                                        }
+                                        if (!TextUtils.isEmpty(adSlinkTemplateId)) {
+                                            properties.put("$ad_slink_template_id", adSlinkTemplateId);
+                                        }
+                                        if (!TextUtils.isEmpty(adSlinkType)) {
+                                            properties.put("$ad_slink_type", adSlinkType);
                                         }
                                         JSONUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), jsonObject);
                                         SAEventManager.getInstance().trackQueueEvent(new Runnable() {
