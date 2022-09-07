@@ -73,7 +73,7 @@ public class SAOaidHelper {
      * @param context Context
      * @return OAID
      */
-    public static String getOAID(final Context context) {
+    public static synchronized String getOpenAdIdentifier(final Context context) {
         if (Looper.getMainLooper() == Looper.myLooper()) {
             SALog.i(TAG, "function can not be called on main thread");
             return "";

@@ -19,6 +19,8 @@ package com.sensorsdata.analytics.android.sdk.visual.snap;
 
 import android.view.View;
 
+import com.sensorsdata.analytics.android.sdk.util.Pathfinder;
+
 import java.util.List;
 
 public abstract class ViewVisitor implements Pathfinder.Accumulator {

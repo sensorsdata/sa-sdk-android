@@ -76,7 +76,7 @@ public class TrackEventProcessorTest {
                 int[] size = DeviceUtils.getDeviceSize(mApplication);
                 assertEquals(eventProperties.opt("$screen_width"), size[0]);
                 assertEquals(eventProperties.opt("$screen_height"), size[1]);
-                assertEquals(eventProperties.opt("$carrier"), SensorsDataUtils.getCarrier(mApplication));
+                assertEquals(eventProperties.opt("$carrier"), SensorsDataUtils.getOperator(mApplication));
                 assertEquals(eventProperties.opt("$timezone_offset"), TimeUtils.getZoneOffset());
                 assertEquals(eventProperties.opt("$app_id"), AppInfoUtils.getProcessName(mApplication));
                 Assert.assertTrue(eventProperties.optBoolean("$is_first_day"));
@@ -88,7 +88,7 @@ public class TrackEventProcessorTest {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("track", "track");
         inputData.setProperties(jsonObject);
-        TrackEventProcessor eventProcessor = new TrackEventProcessor(SensorsDataAPI.sharedInstance().getInternalConfigs());
+        TrackEventProcessor eventProcessor = new TrackEventProcessor(SensorsDataAPI.sharedInstance().getSAContextManager());
         eventProcessor.trackEvent(inputData);
     }
 
@@ -103,7 +103,7 @@ public class TrackEventProcessorTest {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("item", "item");
         inputData.setProperties(jsonObject);
-        TrackEventProcessor eventProcessor = new TrackEventProcessor(SensorsDataAPI.sharedInstance().getInternalConfigs());
+        TrackEventProcessor eventProcessor = new TrackEventProcessor(SensorsDataAPI.sharedInstance().getSAContextManager());
         eventProcessor.trackEvent(inputData);
         // 检查事件类型和属性
         try {
@@ -145,7 +145,7 @@ public class TrackEventProcessorTest {
                 int[] size = DeviceUtils.getDeviceSize(mApplication);
                 assertEquals(eventProperties.opt("$screen_width"), size[0]);
                 assertEquals(eventProperties.opt("$screen_height"), size[1]);
-                assertEquals(eventProperties.opt("$carrier"), SensorsDataUtils.getCarrier(mApplication));
+                assertEquals(eventProperties.opt("$carrier"), SensorsDataUtils.getOperator(mApplication));
                 assertEquals(eventProperties.opt("$timezone_offset"), TimeUtils.getZoneOffset());
                 assertEquals(eventProperties.opt("$app_id"), AppInfoUtils.getProcessName(mApplication));
                 Assert.assertTrue(eventProperties.optBoolean("$is_first_day"));
@@ -157,7 +157,7 @@ public class TrackEventProcessorTest {
                 "\"distinct_id\":\"181b8fcc33747-0e98015efae734-5f2b2f1c-277920-181b8fcc33bec\",\"lib\":{\"$lib\":\"js\",\"$lib_method\":\"code\",\"$lib_version\":\"1.14.23\"}," +
                 "\"properties\":{\"$screen_height\":772,\"$screen_width\":360,\"$lib\":\"js\",\"$lib_version\":\"1.14.23\",\"$latest_traffic_source_type\":\"url的domain解析失败\",\"$latest_search_keyword\":\"url的domain解析失败\",\"$latest_referrer\":\"url的domain解析失败\",\"$device_id\":\"181b8fcc33747-0e98015efae734-5f2b2f1c-277920-181b8fcc33bec\",\"$element_type\":\"button\",\"$element_class_name\":\"\",\"$element_content\":\"test\",\"$url\":\"file:///android_asset/new_h5_test/index.html\",\"$url_path\":\"/android_asset/new_h5_test/index.html\",\"$title\":\"sdk demo ls\",\"$viewport_width\":360,\"$element_selector\":\"body > div:nth-of-type(1) > button:nth-of-type(1)\",\"timepppp\":\"2022-07-01 17:00:50.771\",\"$is_first_day\":false},\"anonymous_id\":\"181b8fcc33747-0e98015efae734-5f2b2f1c-277920-181b8fcc33bec\"," +
                 "\"type\":\"track\",\"event\":\"$WebClick\",\"time\":1656666050772,\"_track_id\":887940781,\"_flush_time\":1656666050781}");
-        TrackEventProcessor eventProcessor = new TrackEventProcessor(SensorsDataAPI.sharedInstance().getInternalConfigs());
+        TrackEventProcessor eventProcessor = new TrackEventProcessor(SensorsDataAPI.sharedInstance().getSAContextManager());
         eventProcessor.trackEvent(inputData);
     }
 

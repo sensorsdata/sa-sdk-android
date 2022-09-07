@@ -1,6 +1,6 @@
 /*
- * Created by dengshiwei on 2022/05/17.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Created by dengshiwei on 2022/09/05.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,12 +32,8 @@ public class InternalConfigOptions {
     public boolean isMainProcess = false;
     // 是否展示 Debug 弹窗
     public boolean isShowDebugView = true;
-    // 标记是否已经采集了带有插件版本号的事件
-    public boolean isTrackEventWithPluginVersion = false;
     // 是否请求网络
     public boolean isNetworkRequestEnable = true;
-    // 当退出时候清除 Referrer
-    public boolean isClearReferrerWhenAppEnd = false;
     // 是否禁用远程配置
     public boolean isDefaultRemoteConfigEnable = false;
     // 是否禁用采集 DeviceId

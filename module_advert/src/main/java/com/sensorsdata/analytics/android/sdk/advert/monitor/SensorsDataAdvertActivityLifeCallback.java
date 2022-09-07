@@ -23,7 +23,7 @@ import android.os.Bundle;
 
 import com.sensorsdata.analytics.android.sdk.advert.deeplink.DeepLinkManager;
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
-import com.sensorsdata.analytics.android.sdk.SensorsDataActivityLifecycleCallbacks;
+import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataActivityLifecycleCallbacks;
 
 public class SensorsDataAdvertActivityLifeCallback implements SensorsDataActivityLifecycleCallbacks.SAActivityLifecycleCallbacks {
     private SAConfigOptions mOptions;

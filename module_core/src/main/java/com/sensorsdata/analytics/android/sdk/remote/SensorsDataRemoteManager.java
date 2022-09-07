@@ -21,9 +21,12 @@ import android.os.CountDownTimer;
 import android.os.SystemClock;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
+import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
@@ -47,9 +50,8 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
     private final SAStoreManager mStorageManager;
     private volatile boolean mIsInit = true;
 
-    public SensorsDataRemoteManager(
-            SensorsDataAPI sensorsDataAPI) {
-        super(sensorsDataAPI);
+    public SensorsDataRemoteManager(SensorsDataAPI sensorsDataAPI, SAContextManager contextManager) {
+        super(sensorsDataAPI, contextManager);
         mStorageManager = SAStoreManager.getInstance();
         SALog.i(TAG, "Construct a SensorsDataRemoteManager");
     }
@@ -81,15 +83,16 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
      * 缓存远程控制随机时间
      */
     private void writeRemoteRequestRandomTime() {
-        if (mSAConfigOptions == null) {
+        SAConfigOptions configOptions = mContextManager.getInternalConfigs().saConfigOptions;
+        if (configOptions == null) {
             return;
         }
         //默认情况下，随机请求时间为最小时间间隔
-        int randomTime = mSAConfigOptions.mMinRequestInterval;
+        int randomTime = configOptions.mMinRequestInterval;
         long currentTime = SystemClock.elapsedRealtime();
         //最大时间间隔大于最小时间间隔时，生成随机时间
-        if (mSAConfigOptions.mMaxRequestInterval > mSAConfigOptions.mMinRequestInterval) {
-            randomTime += new SecureRandom().nextInt(mSAConfigOptions.mMaxRequestInterval - mSAConfigOptions.mMinRequestInterval + 1);
+        if (configOptions.mMaxRequestInterval > configOptions.mMinRequestInterval) {
+            randomTime += new SecureRandom().nextInt(configOptions.mMaxRequestInterval - configOptions.mMinRequestInterval + 1);
         }
         mStorageManager.setLong(SHARED_PREF_REQUEST_TIME, currentTime);
         mStorageManager.setInteger(SHARED_PREF_REQUEST_TIME_RANDOM, randomTime);
@@ -105,20 +108,21 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
 
     @Override
     public void pullSDKConfigFromServer() {
-        if (mSAConfigOptions == null) {
+        SAConfigOptions configOptions = mContextManager.getInternalConfigs().saConfigOptions;
+        if (configOptions == null || configOptions.isDisableSDK()) {
             return;
         }
 
         // 关闭随机请求或者分散的最小时间大于最大时间时，清除本地时间，请求后端
-        if (mSAConfigOptions.mDisableRandomTimeRequestRemoteConfig ||
-                mSAConfigOptions.mMinRequestInterval > mSAConfigOptions.mMaxRequestInterval) {
+        if (configOptions.mDisableRandomTimeRequestRemoteConfig ||
+                configOptions.mMinRequestInterval > configOptions.mMaxRequestInterval) {
             requestRemoteConfig(RandomTimeType.RandomTimeTypeClean, true);
             SALog.i(TAG, "remote config: Request remote config because disableRandomTimeRequestRemoteConfig or minHourInterval greater than maxHourInterval");
             return;
         }
 
         //开启加密并且传入秘钥为空的，强制请求后端，此时请求中不带 v
-        if (mSensorsDataEncrypt != null && mSensorsDataEncrypt.isPublicSecretKeyNull()) {
+        if (!isSecretKeyValid()) {
             requestRemoteConfig(RandomTimeType.RandomTimeTypeWrite, false);
             SALog.i(TAG, "remote config: Request remote config because encrypt key is null");
             return;
@@ -157,7 +161,7 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
         mPullSDKConfigCountDownTimer = new CountDownTimer(90 * 1000, 30 * 1000) {
             @Override
             public void onTick(long l) {
-                if (mSensorsDataAPI != null && !mSensorsDataAPI.isNetworkRequestEnable() || SensorsDataAPI.isSDKDisabled()) {
+                if (mSensorsDataAPI != null && !mSensorsDataAPI.isNetworkRequestEnable() || mContextManager.getInternalConfigs().saConfigOptions.isDisableSDK()) {
                     SALog.i(TAG, "Close network request or sdk is disable");
                     return;
                 }
@@ -179,14 +183,7 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
                         resetPullSDKConfigTimer();
                         if (!TextUtils.isEmpty(response)) {
                             SensorsDataSDKRemoteConfig sdkRemoteConfig = toSDKRemoteConfig(response);
-                            try {
-                                if (mSensorsDataEncrypt != null) {
-                                    mSensorsDataEncrypt.saveSecretKey(sdkRemoteConfig.getSecretKey());
-                                }
-                            } catch (Exception e) {
-                                SALog.printStackTrace(e);
-                            }
-
+                            SAModuleManager.getInstance().invokeEncryptModuleFunction("storeSecretKey", response);
                             setSDKRemoteConfig(sdkRemoteConfig);
                         }
                         SALog.i(TAG, "Remote request was successful,response data is " + response);
@@ -234,16 +231,15 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
             SAEventManager.getInstance().trackQueueEvent(new Runnable() {
                 @Override
                 public void run() {
-                    SensorsDataAPI.sharedInstance().getSAContextManager().
-                            trackEvent(new InputData().setEventName("$AppRemoteConfigChanged").setProperties(eventProperties).setEventType(EventType.TRACK));
+                    mContextManager.trackEvent(new InputData().setEventName("$AppRemoteConfigChanged").setProperties(eventProperties).setEventType(EventType.TRACK));
                 }
             });
-            mSensorsDataAPI.flush();
+            mContextManager.getAnalyticsMessages().flush();
             DbAdapter.getInstance().commitRemoteConfig(remoteConfigString);
             SALog.i(TAG, "Save remote data");
             //值为 1 时，表示在线控制立即生效
             if (1 == sdkRemoteConfig.getEffectMode()) {
-                applySDKConfigFromCache();
+                mSDKRemoteConfig = sdkRemoteConfig;
                 SALog.i(TAG, "The remote configuration takes effect immediately");
             }
         } catch (Exception e) {
@@ -277,7 +273,8 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
 
                 if (sdkRemoteConfig.isDisableSDK()) {
                     try {
-                        mSensorsDataAPI.flush();
+                        // note: must be SAContextManger before SensorsDataAPI init completed
+                        mContextManager.getAnalyticsMessages().flush();
                         SALog.i(TAG, "DisableSDK is true");
                     } catch (Exception e) {
                         SALog.printStackTrace(e);

@@ -37,7 +37,7 @@ public class VisualPropertiesLog implements VisualPropertiesManager.CollectLogLi
     private Context mContext;
     public synchronized String getVisualPropertiesLog() {
         synchronized (object) {
-            mContext = SensorsDataAPI.sharedInstance().getInternalConfigs().context;
+            mContext = SensorsDataAPI.sharedInstance().getSAContextManager().getContext();
             if (mJSONArray != null) {
                 return mJSONArray.toString();
             }

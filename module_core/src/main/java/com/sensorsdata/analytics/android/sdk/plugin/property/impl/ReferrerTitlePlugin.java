@@ -18,8 +18,7 @@
 package com.sensorsdata.analytics.android.sdk.plugin.property.impl;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.autotrack.business.PageInfoTools;
+import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertiesFetcher;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertyFilter;
@@ -39,7 +38,7 @@ public class ReferrerTitlePlugin extends SAPropertyPlugin {
 
     @Override
     public void properties(SAPropertiesFetcher fetcher) {
-        String lastTitle = PageInfoTools.getReferrerScreenTitle();
+        String lastTitle = SAModuleManager.getInstance().invokeAutoTrackFunction("getReferrerScreenTitle");
         if (lastTitle != null) {
             try {
                 fetcher.getProperties().put("$referrer_title", lastTitle);

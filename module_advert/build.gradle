@@ -64,5 +64,5 @@ dependencies {
     //Robolectric & JVM test
     testImplementation rootProject.ext.test.robolectric
     testImplementation rootProject.ext.test.powermock_core
-    testImplementation project(':module_core')
+    testImplementation project(':SensorsAnalyticsSDK')
 }

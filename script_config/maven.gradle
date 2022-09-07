@@ -61,6 +61,27 @@ if (project.name == "module_core") {
         artifactId_maven = "visual"
     }
     version = rootProject.ext.versions.module_version
+} else if (project.name == "module_autoTrack") {
+    if (isBeta) {
+        artifactId_maven = "autoTrack-" + betaPrefix
+    } else {
+        artifactId_maven = "autoTrack"
+    }
+    version = rootProject.ext.versions.module_version
+} else if (project.name == "module_push") {
+    if (isBeta) {
+        artifactId_maven = "push-" + betaPrefix
+    } else {
+        artifactId_maven = "push"
+    }
+    version = rootProject.ext.versions.module_version
+} else if (project.name == "module_encrypt") {
+    if (isBeta) {
+        artifactId_maven = "encrypt-" + betaPrefix
+    } else {
+        artifactId_maven = "encrypt"
+    }
+    version = rootProject.ext.versions.module_version
 }
 
 publishing {

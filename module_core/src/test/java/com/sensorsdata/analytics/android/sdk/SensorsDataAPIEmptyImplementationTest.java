@@ -17,7 +17,6 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Application;
 import android.app.Dialog;
@@ -34,7 +33,6 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.sensorsdata.analytics.android.sdk.deeplink.SADeepLinkObject;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
-import com.sensorsdata.analytics.android.sdk.internal.api.FragmentAPI;
 import com.sensorsdata.analytics.android.sdk.listener.SAJSListener;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertiesFetcher;
@@ -71,7 +69,7 @@ public class SensorsDataAPIEmptyImplementationTest {
     @Test
     public void enableAutoTrackFragment() {
         mSensorsAPI.enableAutoTrackFragment(Fragment.class);
-        Assert.assertFalse(mSensorsAPI.isFragmentAutoTrackAppViewScreen(FragmentAPI.class));
+        Assert.assertFalse(mSensorsAPI.isFragmentAutoTrackAppViewScreen(Fragment.class));
     }
 
     @Test
@@ -80,7 +78,7 @@ public class SensorsDataAPIEmptyImplementationTest {
         fragments.add(Fragment.class);
         fragments.add(DialogFragment.class);
         mSensorsAPI.enableAutoTrackFragments(fragments);
-        Assert.assertFalse(mSensorsAPI.isFragmentAutoTrackAppViewScreen(FragmentAPI.class));
+        Assert.assertFalse(mSensorsAPI.isFragmentAutoTrackAppViewScreen(Fragment.class));
         Assert.assertFalse(mSensorsAPI.isFragmentAutoTrackAppViewScreen(DialogFragment.class));
     }
 
@@ -90,7 +88,7 @@ public class SensorsDataAPIEmptyImplementationTest {
         fragments.add(Fragment.class);
         fragments.add(DialogFragment.class);
         mSensorsAPI.ignoreAutoTrackFragments(fragments);
-        Assert.assertFalse(mSensorsAPI.isFragmentAutoTrackAppViewScreen(FragmentAPI.class));
+        Assert.assertFalse(mSensorsAPI.isFragmentAutoTrackAppViewScreen(Fragment.class));
         Assert.assertFalse(mSensorsAPI.isFragmentAutoTrackAppViewScreen(DialogFragment.class));
     }
 
@@ -107,7 +105,7 @@ public class SensorsDataAPIEmptyImplementationTest {
         fragments.add(DialogFragment.class);
         mSensorsAPI.ignoreAutoTrackFragments(fragments);
         mSensorsAPI.resumeIgnoredAutoTrackFragments(fragments);
-        Assert.assertFalse(mSensorsAPI.isFragmentAutoTrackAppViewScreen(FragmentAPI.class));
+        Assert.assertFalse(mSensorsAPI.isFragmentAutoTrackAppViewScreen(Fragment.class));
         Assert.assertFalse(mSensorsAPI.isFragmentAutoTrackAppViewScreen(DialogFragment.class));
     }
 
@@ -203,7 +201,9 @@ public class SensorsDataAPIEmptyImplementationTest {
 
     @Test
     public void enableAutoTrack() {
-        mSensorsAPI.enableAutoTrack(SensorsAnalyticsAutoTrackEventType.APP_START);
+        List<SensorsDataAPI.AutoTrackEventType> list = new ArrayList<>();
+        list.add(SensorsDataAPI.AutoTrackEventType.APP_START);
+        mSensorsAPI.enableAutoTrack(list);
         Assert.assertFalse(mSensorsAPI.isAutoTrackEnabled());
     }
 

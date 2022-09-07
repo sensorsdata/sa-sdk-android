@@ -23,12 +23,12 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.text.TextUtils;
 
-import com.sensorsdata.analytics.android.sdk.advert.oaid.SAOaidHelper;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.advert.oaid.SAOaidHelper;
+import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
-import com.sensorsdata.analytics.android.sdk.encrypt.AESSecretManager;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
@@ -158,12 +158,12 @@ public class ChannelUtils {
     public static String getDeviceInfo(Context mContext, String androidId, String oaid) {
         return String.format("android_id=%s##imei=%s##imei_old=%s##imei_slot1=%s##imei_slot2=%s##imei_meid=%s##mac=%s##oaid=%s",
                 androidId,
-                SensorsDataUtils.getIMEI(mContext),
-                SensorsDataUtils.getIMEIOld(mContext),
+                SensorsDataUtils.getInternationalIdentifier(mContext),
+                SensorsDataUtils.getInternationalIdOld(mContext),
                 SensorsDataUtils.getSlot(mContext, 0),
                 SensorsDataUtils.getSlot(mContext, 1),
-                SensorsDataUtils.getMEID(mContext),
-                SensorsDataUtils.getMacAddress(mContext),
+                SensorsDataUtils.getEquipmentIdentifier(mContext),
+                SensorsDataUtils.getMediaAddress(mContext),
                 oaid);
     }
 
@@ -365,7 +365,7 @@ public class ChannelUtils {
      */
     public static boolean isFirstChannelEvent(String eventName) {
         boolean isDefault = SensorsDataAPI.getConfigOptions().getStorePlugins() == null || SensorsDataAPI.getConfigOptions().getStorePlugins().isEmpty();
-        String secretEventName = isDefault ? eventName : AESSecretManager.getInstance().encryptAES(eventName);
+        String secretEventName = isDefault ? eventName : (String) SAModuleManager.getInstance().invokeEncryptModuleFunction("encryptAES", eventName);
         boolean isFirst = DbAdapter.getInstance().isFirstChannelEvent(new String[]{secretEventName, eventName});
         if (isFirst) {
             DbAdapter.getInstance().addChannelEvent(secretEventName);
@@ -406,11 +406,11 @@ public class ChannelUtils {
         try {
             return !TextUtils.isEmpty(androidId) ||
                     !TextUtils.isEmpty(oaid) ||
-                    !TextUtils.isEmpty(SensorsDataUtils.getIMEI(context)) ||
-                    !TextUtils.isEmpty(SensorsDataUtils.getIMEIOld(context)) ||
+                    !TextUtils.isEmpty(SensorsDataUtils.getInternationalIdentifier(context)) ||
+                    !TextUtils.isEmpty(SensorsDataUtils.getInternationalIdOld(context)) ||
                     !TextUtils.isEmpty(SensorsDataUtils.getSlot(context, 0)) ||
                     !TextUtils.isEmpty(SensorsDataUtils.getSlot(context, 1)) ||
-                    !TextUtils.isEmpty(SensorsDataUtils.getMEID(context));
+                    !TextUtils.isEmpty(SensorsDataUtils.getEquipmentIdentifier(context));
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -486,21 +486,21 @@ public class ChannelUtils {
             return false;
         }
         return (deviceMaps.containsKey("oaid")//防止都为 null 返回 true
-                && TextUtils.equals(deviceMaps.get("oaid"), SAOaidHelper.getOAID(context))) ||
+                && TextUtils.equals(deviceMaps.get("oaid"), SAOaidHelper.getOpenAdIdentifier(context))) ||
                 (deviceMaps.containsKey("imei") &&
-                        TextUtils.equals(deviceMaps.get("imei"), SensorsDataUtils.getIMEI(context))) ||
+                        TextUtils.equals(deviceMaps.get("imei"), SensorsDataUtils.getInternationalIdentifier(context))) ||
                 (deviceMaps.containsKey("imei_old") &&
-                        TextUtils.equals(deviceMaps.get("imei_old"), SensorsDataUtils.getIMEIOld(context))) ||
+                        TextUtils.equals(deviceMaps.get("imei_old"), SensorsDataUtils.getInternationalIdOld(context))) ||
                 (deviceMaps.containsKey("imei_slot1") &&
                         TextUtils.equals(deviceMaps.get("imei_slot1"), SensorsDataUtils.getSlot(context, 0))) ||
                 (deviceMaps.containsKey("imei_slot2") &&
                         TextUtils.equals(deviceMaps.get("imei_slot2"), SensorsDataUtils.getSlot(context, 1))) ||
                 (deviceMaps.containsKey("imei_meid") &&
-                        TextUtils.equals(deviceMaps.get("imei_meid"), SensorsDataUtils.getMEID(context))) ||
+                        TextUtils.equals(deviceMaps.get("imei_meid"), SensorsDataUtils.getEquipmentIdentifier(context))) ||
                 (deviceMaps.containsKey("android_id") &&
-                        TextUtils.equals(deviceMaps.get("android_id"), SensorsDataUtils.getAndroidID(context))) ||
+                        TextUtils.equals(deviceMaps.get("android_id"), SensorsDataUtils.getIdentifier(context))) ||
                 (deviceMaps.containsKey("mac") &&
-                        TextUtils.equals(deviceMaps.get("mac"), SensorsDataUtils.getMacAddress(context)));
+                        TextUtils.equals(deviceMaps.get("mac"), SensorsDataUtils.getMediaAddress(context)));
     }
 
     /**

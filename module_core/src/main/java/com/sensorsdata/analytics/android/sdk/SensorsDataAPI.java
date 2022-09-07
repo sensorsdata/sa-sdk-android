@@ -26,32 +26,29 @@ import android.os.Build;
 import android.os.SystemClock;
 import android.text.TextUtils;
 import android.view.View;
-import android.view.Window;
 import android.webkit.WebView;
 
-import com.sensorsdata.analytics.android.sdk.autotrack.business.PageInfoTools;
 import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.core.business.timer.EventTimer;
 import com.sensorsdata.analytics.android.sdk.core.business.timer.EventTimerManager;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
+import com.sensorsdata.analytics.android.sdk.core.mediator.visual.SAVisual;
+import com.sensorsdata.analytics.android.sdk.core.rpc.SensorsDataContentObserver;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProperties;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
-import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
-import com.sensorsdata.analytics.android.sdk.internal.rpc.SensorsDataContentObserver;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.plugin.property.impl.SAPresetPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
 import com.sensorsdata.analytics.android.sdk.useridentity.LoginIDAndKey;
-import com.sensorsdata.analytics.android.sdk.util.AopUtil;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
-import com.sensorsdata.analytics.android.sdk.visual.SAVisual;
-import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -60,7 +57,6 @@ import org.json.JSONObject;
 import java.lang.reflect.Method;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -145,11 +141,8 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             final Context appContext = context.getApplicationContext();
             SensorsDataAPI instance = sInstanceMap.get(appContext);
             if (null == instance) {
-                instance = new SensorsDataAPI(appContext, saConfigOptions, debugMode);
+                instance = new SensorsDataAPI(context, saConfigOptions, debugMode);
                 sInstanceMap.put(appContext, instance);
-                if (context instanceof Activity) {
-                    instance.delayExecution((Activity) context);
-                }
             }
             return instance;
         }
@@ -193,7 +186,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 sensorsDataAPI.flush();
             }
             //关闭网络监听
-            sensorsDataAPI.unregisterNetworkListener();
+            sensorsDataAPI.unregisterNetworkListener(sensorsDataAPI.getSAContextManager().getContext());
             sensorsDataAPI.clearTrackTimer();
             SAModuleManager.getInstance().setModuleState(false);
             DbAdapter.getInstance().commitAppStartTime(0);
@@ -201,7 +194,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             //关闭日志
             SALog.setDisableSDK(true);
             if (!SensorsDataContentObserver.isDisableFromObserver) {
-                sensorsDataAPI.getInternalConfigs().context.getContentResolver().notifyChange(DbParams.getInstance().getDisableSDKUri(), null);
+                sensorsDataAPI.getSAContextManager().getContext().getContentResolver().notifyChange(DbParams.getInstance().getDisableSDKUri(), null);
             }
             SensorsDataContentObserver.isDisableFromObserver = false;
         } catch (Exception e) {
@@ -228,10 +221,10 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 SALog.setDisableSDK(false);
                 sensorsDataAPI.enableLog(SALog.isLogEnabled());
                 SALog.i(TAG, "enableSDK, enable log");
-                if (sensorsDataAPI.getSAContextManager().getFirstDay().get() == null) {
-                    sensorsDataAPI.getSAContextManager().getFirstDay().commit(TimeUtils.formatTime(System.currentTimeMillis(), TimeUtils.YYYY_MM_DD));
+                if (PersistentLoader.getInstance().getFirstDayPst().get() == null) {
+                    PersistentLoader.getInstance().getFirstDayPst().commit(TimeUtils.formatTime(System.currentTimeMillis(), TimeUtils.YYYY_MM_DD));
                 }
-                sensorsDataAPI.delayInitTask();
+                sensorsDataAPI.delayInitTask(sensorsDataAPI.getSAContextManager().getContext());
                 //重新请求采集控制
                 sensorsDataAPI.mSAContextManager.getRemoteManager().pullSDKConfigFromServer();
             } catch (Exception e) {
@@ -239,7 +232,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             }
 
             if (!SensorsDataContentObserver.isEnableFromObserver) {
-                sensorsDataAPI.getInternalConfigs().context.getContentResolver().notifyChange(DbParams.getInstance().getEnableSDKUri(), null);
+                sensorsDataAPI.getSAContextManager().getContext().getContentResolver().notifyChange(DbParams.getInstance().getEnableSDKUri(), null);
             }
             SensorsDataContentObserver.isEnableFromObserver = false;
         } catch (Exception e) {
@@ -269,7 +262,16 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public JSONObject getIdentities() {
-        return mSAContextManager.getUserIdentityAPI().getIdentities();
+        try {
+            JSONObject identities = mSAContextManager.getUserIdentityAPI().getIdentities();
+            if (identities != null) {
+                return new JSONObject(identities.toString());
+            }
+            return null;
+        } catch (JSONException e) {
+            SALog.printStackTrace(e);
+            return null;
+        }
     }
 
     @Override
@@ -398,7 +400,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 }
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -466,93 +468,42 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public void enableAutoTrack(List<AutoTrackEventType> eventTypeList) {
-        try {
-            if (eventTypeList == null || eventTypeList.isEmpty()) {
-                return;
-            }
-            this.mAutoTrack = true;
-            for (AutoTrackEventType autoTrackEventType : eventTypeList) {
-                mSAConfigOptions.setAutoTrackEventType(mSAConfigOptions.mAutoTrackEventType | autoTrackEventType.eventValue);
-            }
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
+        SAModuleManager.getInstance().invokeAutoTrackFunction("enableAutoTrack", eventTypeList);
     }
 
     @Override
     public void disableAutoTrack(List<AutoTrackEventType> eventTypeList) {
-        try {
-            if (eventTypeList == null) {
-                return;
-            }
-
-            if (mSAConfigOptions.mAutoTrackEventType == 0) {
-                return;
-            }
-
-            for (AutoTrackEventType autoTrackEventType : eventTypeList) {
-                if ((mSAConfigOptions.mAutoTrackEventType | autoTrackEventType.eventValue) == mSAConfigOptions.mAutoTrackEventType) {
-                    mSAConfigOptions.setAutoTrackEventType(mSAConfigOptions.mAutoTrackEventType ^ autoTrackEventType.eventValue);
-                }
-            }
-
-            if (mSAConfigOptions.mAutoTrackEventType == 0) {
-                this.mAutoTrack = false;
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
+        SAModuleManager.getInstance().invokeAutoTrackFunction("disableAutoTrack", eventTypeList);
     }
 
     @Override
     public void disableAutoTrack(AutoTrackEventType autoTrackEventType) {
-        try {
-            if (autoTrackEventType == null) {
-                return;
-            }
-
-            if (mSAConfigOptions.mAutoTrackEventType == 0) {
-                return;
-            }
-
-            int union = mSAConfigOptions.mAutoTrackEventType | autoTrackEventType.eventValue;
-            if (union == autoTrackEventType.eventValue) {
-                mSAConfigOptions.setAutoTrackEventType(0);
-            } else {
-                mSAConfigOptions.setAutoTrackEventType(autoTrackEventType.eventValue ^ union);
-            }
-
-            if (mSAConfigOptions.mAutoTrackEventType == 0) {
-                this.mAutoTrack = false;
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
+        SAModuleManager.getInstance().invokeAutoTrackFunction("disableAutoTrack", autoTrackEventType);
     }
 
     @Override
     public boolean isAutoTrackEnabled() {
-        if (isSDKDisabled()) {
+        try {
+            if (isSDKDisabled()) {
+                return false;
+            }
+            Boolean isAutoTrack = SAModuleManager.getInstance().invokeAutoTrackFunction("isAutoTrackEnabled");
+            return isAutoTrack != null && isAutoTrack;
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
             return false;
         }
-
-        if (mSAContextManager.getRemoteManager() != null) {
-            Boolean isAutoTrackEnabled = mSAContextManager.getRemoteManager().isAutoTrackEnabled();
-            if (isAutoTrackEnabled != null) {
-                return isAutoTrackEnabled;
-            }
-        }
-        return mAutoTrack;
     }
 
     @Override
     public void trackFragmentAppViewScreen() {
-        mFragmentAPI.trackFragmentAppViewScreen();
+        SAModuleManager.getInstance().invokeAutoTrackFunction("trackFragmentAppViewScreen");
     }
 
     @Override
     public boolean isTrackFragmentAppViewScreenEnabled() {
-        return mFragmentAPI.isTrackFragmentAppViewScreenEnabled();
+        Boolean isAutoTrackFragment = SAModuleManager.getInstance().invokeAutoTrackFunction("isTrackFragmentAppViewScreenEnabled");
+        return isAutoTrackFragment != null && isAutoTrackFragment;
     }
 
     @Override
@@ -575,7 +526,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
         if (webView != null) {
             webView.getSettings().setJavaScriptEnabled(true);
-            webView.addJavascriptInterface(new AppWebViewInterface(mInternalConfigs.context, properties, enableVerify, webView), "SensorsData_APP_JS_Bridge");
+            webView.addJavascriptInterface(new AppWebViewInterface(mSAContextManager.getContext(), properties, enableVerify, webView), "SensorsData_APP_JS_Bridge");
             SAVisual.addVisualJavascriptInterface(webView);
         }
     }
@@ -604,10 +555,10 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             if (addJavascriptInterface == null) {
                 return;
             }
-            addJavascriptInterface.invoke(x5WebView, new AppWebViewInterface(mInternalConfigs.context, properties, enableVerify), "SensorsData_APP_JS_Bridge");
+            addJavascriptInterface.invoke(x5WebView, new AppWebViewInterface(mSAContextManager.getContext(), properties, enableVerify), "SensorsData_APP_JS_Bridge");
             SAVisual.addVisualJavascriptInterface((View) x5WebView);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -626,7 +577,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             addJavascriptInterface.invoke(x5WebView, new AppWebViewInterface(mInternalConfigs.context, null, enableVerify, (View) x5WebView), "SensorsData_APP_JS_Bridge");
             SAVisual.addVisualJavascriptInterface((View) x5WebView);
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -637,325 +588,137 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public void ignoreAutoTrackActivities(List<Class<?>> activitiesList) {
-        if (activitiesList == null || activitiesList.size() == 0) {
-            return;
-        }
-
-        if (mAutoTrackIgnoredActivities == null) {
-            mAutoTrackIgnoredActivities = new ArrayList<>();
-        }
-
-        int hashCode;
-        for (Class<?> activity : activitiesList) {
-            if (activity != null) {
-                hashCode = activity.hashCode();
-                if (!mAutoTrackIgnoredActivities.contains(hashCode)) {
-                    mAutoTrackIgnoredActivities.add(hashCode);
-                }
-            }
-        }
+        SAModuleManager.getInstance().invokeAutoTrackFunction("ignoreAutoTrackActivities", activitiesList);
     }
 
     @Override
     public void resumeAutoTrackActivities(List<Class<?>> activitiesList) {
-        if (activitiesList == null || activitiesList.size() == 0) {
-            return;
-        }
-
-        if (mAutoTrackIgnoredActivities == null) {
-            mAutoTrackIgnoredActivities = new ArrayList<>();
-        }
-
-        try {
-            int hashCode;
-            for (Class activity : activitiesList) {
-                if (activity != null) {
-                    hashCode = activity.hashCode();
-                    if (mAutoTrackIgnoredActivities.contains(hashCode)) {
-                        mAutoTrackIgnoredActivities.remove(Integer.valueOf(hashCode));
-                    }
-                }
-            }
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
+        SAModuleManager.getInstance().invokeAutoTrackFunction("resumeAutoTrackActivities", activitiesList);
     }
 
     @Override
     public void ignoreAutoTrackActivity(Class<?> activity) {
-        if (activity == null) {
-            return;
-        }
-
-        if (mAutoTrackIgnoredActivities == null) {
-            mAutoTrackIgnoredActivities = new ArrayList<>();
-        }
-
-        try {
-            int hashCode = activity.hashCode();
-            if (!mAutoTrackIgnoredActivities.contains(hashCode)) {
-                mAutoTrackIgnoredActivities.add(hashCode);
-            }
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
+        SAModuleManager.getInstance().invokeAutoTrackFunction("ignoreAutoTrackActivity", activity);
     }
 
     @Override
     public void resumeAutoTrackActivity(Class<?> activity) {
-        if (activity == null) {
-            return;
-        }
-
-        if (mAutoTrackIgnoredActivities == null) {
-            mAutoTrackIgnoredActivities = new ArrayList<>();
-        }
-
-        try {
-            int hashCode = activity.hashCode();
-            if (mAutoTrackIgnoredActivities.contains(hashCode)) {
-                mAutoTrackIgnoredActivities.remove(Integer.valueOf(hashCode));
-            }
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
+        SAModuleManager.getInstance().invokeAutoTrackFunction("resumeAutoTrackActivity", activity);
     }
 
     @Override
     public void enableAutoTrackFragment(Class<?> fragment) {
-        mFragmentAPI.enableAutoTrackFragment(fragment);
+        SAModuleManager.getInstance().invokeAutoTrackFunction("enableAutoTrackFragment", fragment);
     }
 
     @Override
     public void enableAutoTrackFragments(List<Class<?>> fragmentsList) {
-        mFragmentAPI.enableAutoTrackFragments(fragmentsList);
+        SAModuleManager.getInstance().invokeAutoTrackFunction("enableAutoTrackFragments", fragmentsList);
     }
 
     @Override
     public boolean isActivityAutoTrackAppViewScreenIgnored(Class<?> activity) {
-        if (activity == null) {
-            return false;
-        }
-        if (mAutoTrackIgnoredActivities != null &&
-                mAutoTrackIgnoredActivities.contains(activity.hashCode())) {
-            return true;
-        }
-
-        if (activity.getAnnotation(SensorsDataIgnoreTrackAppViewScreenAndAppClick.class) != null) {
-            return true;
-        }
-
-        return activity.getAnnotation(SensorsDataIgnoreTrackAppViewScreen.class) != null;
+        Boolean isAutoTrackActivity = SAModuleManager.getInstance().invokeAutoTrackFunction("isActivityAutoTrackAppViewScreenIgnored", activity);
+        return isAutoTrackActivity != null && isAutoTrackActivity;
     }
 
     @Override
     public boolean isFragmentAutoTrackAppViewScreen(Class<?> fragment) {
-        return mFragmentAPI.isFragmentAutoTrackAppViewScreen(fragment);
+        Boolean isAutoTrackFragment = SAModuleManager.getInstance().invokeAutoTrackFunction("isFragmentAutoTrackAppViewScreen", fragment);
+        return isAutoTrackFragment != null && isAutoTrackFragment;
     }
 
     @Override
     public void ignoreAutoTrackFragments(List<Class<?>> fragmentList) {
-        mFragmentAPI.ignoreAutoTrackFragments(fragmentList);
+        SAModuleManager.getInstance().invokeAutoTrackFunction("ignoreAutoTrackFragments", fragmentList);
     }
 
     @Override
     public void ignoreAutoTrackFragment(Class<?> fragment) {
-        mFragmentAPI.ignoreAutoTrackFragment(fragment);
+        SAModuleManager.getInstance().invokeAutoTrackFunction("ignoreAutoTrackFragment", fragment);
     }
 
     @Override
     public void resumeIgnoredAutoTrackFragments(List<Class<?>> fragmentList) {
-        mFragmentAPI.resumeIgnoredAutoTrackFragments(fragmentList);
+        SAModuleManager.getInstance().invokeAutoTrackFunction("resumeIgnoredAutoTrackFragments", fragmentList);
     }
 
     @Override
     public void resumeIgnoredAutoTrackFragment(Class<?> fragment) {
-        mFragmentAPI.resumeIgnoredAutoTrackFragment(fragment);
+        SAModuleManager.getInstance().invokeAutoTrackFunction("resumeIgnoredAutoTrackFragment", fragment);
     }
 
     @Override
     public boolean isActivityAutoTrackAppClickIgnored(Class<?> activity) {
-        if (activity == null) {
-            return false;
-        }
-        if (mAutoTrackIgnoredActivities != null &&
-                mAutoTrackIgnoredActivities.contains(activity.hashCode())) {
-            return true;
-        }
-
-        if (activity.getAnnotation(SensorsDataIgnoreTrackAppViewScreenAndAppClick.class) != null) {
-            return true;
-        }
-
-        return activity.getAnnotation(SensorsDataIgnoreTrackAppClick.class) != null;
-
+        Boolean isAutoTrackActivity = SAModuleManager.getInstance().invokeAutoTrackFunction("isActivityAutoTrackAppClickIgnored", activity);
+        return isAutoTrackActivity != null && isAutoTrackActivity;
     }
 
     @Override
     public boolean isAutoTrackEventTypeIgnored(AutoTrackEventType eventType) {
-        if (eventType == null) {
-            return false;
-        }
-        return isAutoTrackEventTypeIgnored(eventType.eventValue);
+        Boolean isAutoTrackEventType = SAModuleManager.getInstance().invokeAutoTrackFunction("isAutoTrackEventTypeIgnored", eventType);
+        return isAutoTrackEventType != null && isAutoTrackEventType;
     }
 
     @Override
     public boolean isAutoTrackEventTypeIgnored(int autoTrackEventType) {
-        if (mSAContextManager.getRemoteManager() != null) {
-            Boolean isIgnored = mSAContextManager.getRemoteManager().isAutoTrackEventTypeIgnored(autoTrackEventType);
-            if (isIgnored != null) {
-                if (isIgnored) {
-                    SALog.i(TAG, "remote config: " + AutoTrackEventType.autoTrackEventName(autoTrackEventType) + " is ignored by remote config");
-                }
-                return isIgnored;
-            }
-        }
-
-        return (mSAConfigOptions.mAutoTrackEventType | autoTrackEventType) != mSAConfigOptions.mAutoTrackEventType;
+        Boolean isAutoTrackEventType = SAModuleManager.getInstance().invokeAutoTrackFunction("isAutoTrackEventTypeIgnored", autoTrackEventType);
+        return isAutoTrackEventType != null && isAutoTrackEventType;
     }
 
     @Override
     public void setViewID(View view, String viewID) {
-        if (view != null && !TextUtils.isEmpty(viewID)) {
-            view.setTag(R.id.sensors_analytics_tag_view_id, viewID);
-        }
+        SAModuleManager.getInstance().invokeAutoTrackFunction("setViewID", view, viewID);
     }
 
     @Override
     public void setViewID(android.app.Dialog view, String viewID) {
-        try {
-            if (view != null && !TextUtils.isEmpty(viewID)) {
-                if (view.getWindow() != null) {
-                    view.getWindow().getDecorView().setTag(R.id.sensors_analytics_tag_view_id, viewID);
-                }
-            }
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
+        SAModuleManager.getInstance().invokeAutoTrackFunction("setViewID", view, viewID);
     }
 
     @Override
     public void setViewID(Object alertDialog, String viewID) {
-        try {
-            if (alertDialog == null) {
-                return;
-
-            }
-
-            Class<?> supportAlertDialogClass = null;
-            Class<?> androidXAlertDialogClass = null;
-            Class<?> currentAlertDialogClass;
-            try {
-                supportAlertDialogClass = Class.forName("android.support.v7.app.AlertDialog");
-            } catch (Exception e) {
-                //ignored
-            }
-
-            try {
-                androidXAlertDialogClass = Class.forName("androidx.appcompat.app.AlertDialog");
-            } catch (Exception e) {
-                //ignored
-            }
-
-            if (supportAlertDialogClass != null) {
-                currentAlertDialogClass = supportAlertDialogClass;
-            } else {
-                currentAlertDialogClass = androidXAlertDialogClass;
-            }
-
-            if (currentAlertDialogClass == null) {
-                return;
-            }
-
-            if (!currentAlertDialogClass.isInstance(alertDialog)) {
-                return;
-            }
-
-            if (!TextUtils.isEmpty(viewID)) {
-                Method getWindowMethod = alertDialog.getClass().getMethod("getWindow");
-                if (getWindowMethod == null) {
-                    return;
-                }
-
-                Window window = (Window) getWindowMethod.invoke(alertDialog);
-                if (window != null) {
-                    window.getDecorView().setTag(R.id.sensors_analytics_tag_view_id, viewID);
-                }
-            }
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
+        SAModuleManager.getInstance().invokeAutoTrackFunction("setViewID", alertDialog, viewID);
     }
 
     @Override
     public void setViewActivity(View view, Activity activity) {
-        try {
-            if (view == null || activity == null) {
-                return;
-            }
-            view.setTag(R.id.sensors_analytics_tag_view_activity, activity);
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
+        SAModuleManager.getInstance().invokeAutoTrackFunction("setViewActivity", view, activity);
     }
 
     @Override
     public void setViewFragmentName(View view, String fragmentName) {
-        try {
-            if (view == null || TextUtils.isEmpty(fragmentName)) {
-                return;
-            }
-            view.setTag(R.id.sensors_analytics_tag_view_fragment_name2, fragmentName);
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
+        SAModuleManager.getInstance().invokeAutoTrackFunction("setViewFragmentName", view, fragmentName);
     }
 
     @Override
     public void ignoreView(View view) {
-        if (view != null) {
-            view.setTag(R.id.sensors_analytics_tag_view_ignored, "1");
-        }
+        SAModuleManager.getInstance().invokeAutoTrackFunction("ignoreView", view);
     }
 
     @Override
     public void ignoreView(View view, boolean ignore) {
-        if (view != null) {
-            view.setTag(R.id.sensors_analytics_tag_view_ignored, ignore ? "1" : "0");
-        }
+        SAModuleManager.getInstance().invokeAutoTrackFunction("ignoreView", view, ignore);
     }
 
     @Override
     public void setViewProperties(View view, JSONObject properties) {
-        if (view == null || properties == null) {
-            return;
-        }
-
-        view.setTag(R.id.sensors_analytics_tag_view_properties, properties);
+        SAModuleManager.getInstance().invokeAutoTrackFunction("setViewProperties", view, properties);
     }
 
     @Override
-    public List<Class> getIgnoredViewTypeList() {
-        if (mIgnoredViewTypeList == null) {
-            mIgnoredViewTypeList = new ArrayList<>();
+    public List<Class<?>> getIgnoredViewTypeList() {
+        try {
+            return SAModuleManager.getInstance().invokeAutoTrackFunction("getIgnoredViewTypeList");
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+            return null;
         }
-
-        return mIgnoredViewTypeList;
     }
 
     @Override
-    public void ignoreViewType(Class viewType) {
-        if (viewType == null) {
-            return;
-        }
-
-        if (mIgnoredViewTypeList == null) {
-            mIgnoredViewTypeList = new ArrayList<>();
-        }
-
-        if (!mIgnoredViewTypeList.contains(viewType)) {
-            mIgnoredViewTypeList.add(viewType);
-        }
+    public void ignoreViewType(Class<?> viewType) {
+        SAModuleManager.getInstance().invokeAutoTrackFunction("ignoreViewType", viewType);
     }
 
     @Override
@@ -1026,7 +789,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 return true;
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
         return false;
     }
@@ -1040,7 +803,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
             mHeatMapActivities.add(activity.hashCode());
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -1060,7 +823,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 }
             }
         } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
+            SALog.printStackTrace(e);
         }
     }
 
@@ -1424,212 +1187,48 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
 
     @Override
     public String getLastScreenUrl() {
-        return PageInfoTools.getLastScreenUrl();
+        return SAModuleManager.getInstance().invokeAutoTrackFunction("getLastScreenUrl");
     }
 
     @Override
     public void clearReferrerWhenAppEnd() {
-        mInternalConfigs.isClearReferrerWhenAppEnd = true;
+        SAModuleManager.getInstance().invokeAutoTrackFunction("clearReferrerWhenAppEnd");
     }
 
     @Override
     public void clearLastScreenUrl() {
-        if (mInternalConfigs.isClearReferrerWhenAppEnd) {
-            PageInfoTools.setLastScreenUrl(null);
-        }
+        SAModuleManager.getInstance().invokeAutoTrackFunction("clearLastScreenUrl");
     }
 
     @Override
     public JSONObject getLastScreenTrackProperties() {
-        return PageInfoTools.getLastScreenTrackProperties();
+        return SAModuleManager.getInstance().invokeAutoTrackFunction("getLastScreenTrackProperties");
     }
 
     @Override
     @Deprecated
     public void trackViewScreen(final String url, final JSONObject properties) {
-        try {
-            final JSONObject cloneProperties = JSONUtils.cloneJsonObject(properties);
-            mTrackTaskManager.addTrackEventTask(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        if (!TextUtils.isEmpty(url) || cloneProperties != null) {
-                            JSONObject trackProperties = new JSONObject();
-                            PageInfoTools.setCurrentScreenTrackProperties(cloneProperties);
-
-                            String currentUrl = url;
-                            if (cloneProperties != null) {
-                                if (cloneProperties.has("$title")) {
-                                    PageInfoTools.setCurrentScreenTitle(cloneProperties.getString("$title"));
-                                } else {
-                                    PageInfoTools.setCurrentScreenTitle(null);
-                                }
-                                if (cloneProperties.has("$url")) {
-                                    currentUrl = cloneProperties.optString("$url");
-                                }
-                            }
-                            PageInfoTools.setCurrentScreenUrl(currentUrl);
-                            if (PageInfoTools.getLastScreenUrl() != null) {
-                                trackProperties.put("$referrer", PageInfoTools.getLastScreenUrl());
-                            }
-
-                            trackProperties.put("$url", PageInfoTools.getCurrentScreenUrl());
-                            if (cloneProperties != null) {
-                                JSONUtils.mergeJSONObject(cloneProperties, trackProperties);
-                            }
-                            mSAContextManager.trackEvent(new InputData().setEventName("$AppViewScreen").setEventType(EventType.TRACK).setProperties(trackProperties));
-                        }
-                    } catch (Exception e) {
-                        SALog.printStackTrace(e);
-                    }
-                }
-            });
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
+        SAModuleManager.getInstance().invokeAutoTrackFunction("trackViewScreen", url, properties);
     }
 
     @Override
     public void trackViewScreen(final Activity activity) {
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (activity == null) {
-                        return;
-                    }
-                    JSONObject properties = AopUtil.buildTitleAndScreenName(activity);
-                    trackViewScreen(SensorsDataUtils.getScreenUrl(activity), properties);
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
-                }
-            }
-        });
+        SAModuleManager.getInstance().invokeAutoTrackFunction("trackViewScreen", activity);
     }
 
     @Override
     public void trackViewScreen(final Object fragment) {
-        if (fragment == null) {
-            return;
-        }
-
-        Class<?> supportFragmentClass = null;
-        Class<?> appFragmentClass = null;
-        Class<?> androidXFragmentClass = null;
-
-        try {
-            try {
-                supportFragmentClass = Class.forName("android.support.v4.app.Fragment");
-            } catch (Exception e) {
-                //ignored
-            }
-
-            try {
-                appFragmentClass = Class.forName("android.app.Fragment");
-            } catch (Exception e) {
-                //ignored
-            }
-
-            try {
-                androidXFragmentClass = Class.forName("androidx.fragment.app.Fragment");
-            } catch (Exception e) {
-                //ignored
-            }
-        } catch (Exception e) {
-            //ignored
-        }
-
-        if (!(supportFragmentClass != null && supportFragmentClass.isInstance(fragment)) &&
-                !(appFragmentClass != null && appFragmentClass.isInstance(fragment)) &&
-                !(androidXFragmentClass != null && androidXFragmentClass.isInstance(fragment))) {
-            return;
-        }
-
-        mTrackTaskManager.addTrackEventTask(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    JSONObject properties = new JSONObject();
-                    String screenName = fragment.getClass().getCanonicalName();
-
-                    String title = null;
-
-                    if (fragment.getClass().isAnnotationPresent(SensorsDataFragmentTitle.class)) {
-                        SensorsDataFragmentTitle sensorsDataFragmentTitle = fragment.getClass().getAnnotation(SensorsDataFragmentTitle.class);
-                        if (sensorsDataFragmentTitle != null) {
-                            title = sensorsDataFragmentTitle.title();
-                        }
-                    }
-
-                    if (Build.VERSION.SDK_INT >= 11) {
-                        Activity activity = null;
-                        try {
-                            Method getActivityMethod = fragment.getClass().getMethod("getActivity");
-                            if (getActivityMethod != null) {
-                                activity = (Activity) getActivityMethod.invoke(fragment);
-                            }
-                        } catch (Exception e) {
-                            //ignored
-                        }
-                        if (activity != null) {
-                            if (TextUtils.isEmpty(title)) {
-                                title = SensorsDataUtils.getActivityTitle(activity);
-                            }
-                            screenName = String.format(TimeUtils.SDK_LOCALE, "%s|%s", activity.getClass().getCanonicalName(), screenName);
-                        }
-                    }
-
-                    if (!TextUtils.isEmpty(title)) {
-                        properties.put(AopConstants.TITLE, title);
-                    }
-                    properties.put("$screen_name", screenName);
-                    if (fragment instanceof ScreenAutoTracker) {
-                        ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
-                        JSONObject otherProperties = screenAutoTracker.getTrackProperties();
-                        if (otherProperties != null) {
-                            JSONUtils.mergeJSONObject(otherProperties, properties);
-                        }
-                    }
-                    trackViewScreen(SensorsDataUtils.getScreenUrl(fragment), properties);
-                } catch (Exception e) {
-                    com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-                }
-            }
-        });
+        SAModuleManager.getInstance().invokeAutoTrackFunction("trackViewScreen", fragment);
     }
 
     @Override
     public void trackViewAppClick(View view) {
-        trackViewAppClick(view, null);
+        SAModuleManager.getInstance().invokeAutoTrackFunction("trackViewAppClick", view);
     }
 
     @Override
     public void trackViewAppClick(final View view, final JSONObject properties) {
-        if (view == null) {
-            return;
-        }
-        try {
-            final JSONObject cloneProperties = properties != null ? JSONUtils.cloneJsonObject(properties) : new JSONObject();
-            if (AopUtil.injectClickInfo(view, cloneProperties, true)) {
-                mTrackTaskManager.addTrackEventTask(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            Activity activity = AopUtil.getActivityFromContext(view.getContext(), view);
-                            ViewNode viewNode = AopUtil.addViewPathProperties(activity, view, cloneProperties);
-                            if (viewNode != null && SensorsDataAPI.getConfigOptions().isVisualizedPropertiesEnabled()) {
-                                SAVisual.mergeVisualProperties(properties, viewNode);
-                            }
-                            mSAContextManager.trackEvent(new InputData().setEventName(AopConstants.APP_CLICK_EVENT_NAME).setEventType(EventType.TRACK).setProperties(cloneProperties));
-                        } catch (Exception e) {
-                            SALog.printStackTrace(e);
-                        }
-                    }
-                });
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
+        SAModuleManager.getInstance().invokeAutoTrackFunction("trackViewAppClick", view, properties);
     }
 
     @Override
@@ -1638,7 +1237,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             @Override
             public void run() {
                 try {
-                    mMessages.flush();
+                    mSAContextManager.getAnalyticsMessages().flush();
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }
@@ -1657,7 +1256,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Override
     public void flushScheduled() {
         try {
-            mMessages.flushScheduled();
+            mSAContextManager.getAnalyticsMessages().flushScheduled();
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -1740,16 +1339,16 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
-                mMessages.deleteAll();
+                mSAContextManager.getAnalyticsMessages().deleteAll();
             }
         });
     }
 
     @Override
     public JSONObject getSuperProperties() {
-        synchronized (mSAContextManager.getSuperProperties()) {
+        synchronized (PersistentSuperProperties.class) {
             try {
-                return new JSONObject(mSAContextManager.getSuperProperties().get().toString());
+                return new JSONObject(PersistentLoader.getInstance().getSuperPropertiesPst().get().toString());
             } catch (JSONException e) {
                 SALog.printStackTrace(e);
                 return new JSONObject();
@@ -1768,10 +1367,8 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                         if (cloneSuperProperties == null) {
                             return;
                         }
-                        synchronized (mSAContextManager.getSuperProperties()) {
-                            JSONObject properties = mSAContextManager.getSuperProperties().get();
-                            mSAContextManager.getSuperProperties().commit(JSONUtils.mergeSuperJSONObject(cloneSuperProperties, properties));
-                        }
+                        JSONObject properties = PersistentLoader.getInstance().getSuperPropertiesPst().get();
+                        PersistentLoader.getInstance().getSuperPropertiesPst().commit(JSONUtils.mergeSuperJSONObject(cloneSuperProperties, properties));
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
                     }
@@ -1788,11 +1385,9 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             @Override
             public void run() {
                 try {
-                    synchronized (mSAContextManager.getSuperProperties()) {
-                        JSONObject superProperties = mSAContextManager.getSuperProperties().get();
-                        superProperties.remove(superPropertyName);
-                        mSAContextManager.getSuperProperties().commit(superProperties);
-                    }
+                    JSONObject superProperties = PersistentLoader.getInstance().getSuperPropertiesPst().get();
+                    superProperties.remove(superPropertyName);
+                    PersistentLoader.getInstance().getSuperPropertiesPst().commit(superProperties);
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }
@@ -1805,9 +1400,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
-                synchronized (mSAContextManager.getSuperProperties()) {
-                    mSAContextManager.getSuperProperties().commit(new JSONObject());
-                }
+                PersistentLoader.getInstance().getSuperPropertiesPst().commit(new JSONObject());
             }
         });
     }
@@ -1872,7 +1465,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             public void run() {
                 try {
                     mSAContextManager.trackEvent(new InputData().setEventType(EventType.PROFILE_SET_ONCE)
-                                    .setProperties(new JSONObject().put(property, value)));
+                            .setProperties(new JSONObject().put(property, value)));
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }
@@ -1887,7 +1480,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             public void run() {
                 try {
                     mSAContextManager.trackEvent(new InputData().setEventType(EventType.PROFILE_INCREMENT)
-                                    .setProperties(new JSONObject(properties)));
+                            .setProperties(new JSONObject(properties)));
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }
@@ -1902,7 +1495,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             public void run() {
                 try {
                     mSAContextManager.trackEvent(new InputData().setEventType(EventType.PROFILE_INCREMENT)
-                                    .setProperties(new JSONObject().put(property, value)));
+                            .setProperties(new JSONObject().put(property, value)));
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }
@@ -1921,7 +1514,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                     final JSONObject properties = new JSONObject();
                     properties.put(property, append_values);
                     mSAContextManager.trackEvent(new InputData().setEventType(EventType.PROFILE_APPEND)
-                                    .setProperties(properties));
+                            .setProperties(properties));
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }
@@ -1942,7 +1535,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                     final JSONObject properties = new JSONObject();
                     properties.put(property, append_values);
                     mSAContextManager.trackEvent(new InputData().setEventType(EventType.PROFILE_APPEND)
-                                    .setProperties(properties));
+                            .setProperties(properties));
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }
@@ -1957,7 +1550,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             public void run() {
                 try {
                     mSAContextManager.trackEvent(new InputData().setEventType(EventType.PROFILE_UNSET)
-                                    .setProperties(new JSONObject().put(property, true)));
+                            .setProperties(new JSONObject().put(property, true)));
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
                 }
@@ -2265,13 +1858,13 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         APP_END(1 << 1),
         APP_CLICK(1 << 2),
         APP_VIEW_SCREEN(1 << 3);
-        private final int eventValue;
+        public final int eventValue;
 
         AutoTrackEventType(int eventValue) {
             this.eventValue = eventValue;
         }
 
-        static String autoTrackEventName(int eventType) {
+        public static String autoTrackEventName(int eventType) {
             switch (eventType) {
                 case 1:
                     return "$AppStart";

@@ -27,8 +27,6 @@ import android.text.TextUtils;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
-import com.sensorsdata.analytics.android.sdk.SensorsAnalyticsAutoTrackEventType;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataDynamicSuperProperties;
 import com.sensorsdata.analytics.android.sdk.SensorsDataTrackEventCallBack;
@@ -96,7 +94,7 @@ public class RegressionTesting {
         int[] size = DeviceUtils.getDeviceSize(mApplication);
         assertEquals(jsonObject.opt("$screen_width"), size[0]);
         assertEquals(jsonObject.opt("$screen_height"), size[1]);
-        assertEquals(jsonObject.opt("$carrier"), SensorsDataUtils.getCarrier(mApplication));
+        assertEquals(jsonObject.opt("$carrier"), SensorsDataUtils.getOperator(mApplication));
         assertEquals(jsonObject.opt("$timezone_offset"), TimeUtils.getZoneOffset());
         assertEquals(jsonObject.opt("$app_id"), AppInfoUtils.getProcessName(mApplication));
         //assertEquals(jsonObject.opt("$app_name"), AppInfoUtils.getAppName(mApplication));
@@ -251,7 +249,7 @@ public class RegressionTesting {
         SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         String login_id = "SensorsDataAndroid";
         sensorsDataAPI.login(login_id);
-        Thread.sleep(1500);
+        Thread.sleep(2000);
         assertEquals(sensorsDataAPI.getDistinctId(), login_id);
         assertEquals(sensorsDataAPI.getLoginId(), login_id);
         // Load Data From Db
@@ -267,7 +265,6 @@ public class RegressionTesting {
         assertEquals(identityJson.opt("$identity_login_id"), login_id);
         // clear data
         sensorsDataAPI.logout();
-        Thread.sleep(1500);
     }
 
     @Test

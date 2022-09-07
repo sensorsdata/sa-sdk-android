@@ -1,0 +1,78 @@
+/*
+ * Created by dengshiwei on 2022/07/01.
+ * Copyright 2015－2021 Sensors Data Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+apply plugin: 'com.android.library'
+apply from: "../script_config/maven.gradle"
+
+android {
+    compileSdkVersion rootProject.ext.buildConfig.compileSdkVersion
+
+    defaultConfig {
+        minSdkVersion rootProject.ext.buildConfig.minSdkVersion
+        targetSdkVersion rootProject.ext.buildConfig.targetSdkVersion
+        versionCode rootProject.ext.buildConfig.versionCode
+        versionName rootProject.ext.buildConfig.versionName
+        consumerProguardFiles 'proguard-rules.pro'
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility rootProject.ext.buildConfig.sourceJavaVersion
+        targetCompatibility rootProject.ext.buildConfig.targetJavaVersion
+    }
+    testOptions {
+        unitTests.all {
+            systemProperty 'robolectric.dependency.repo.url', 'https://maven.aliyun.com/nexus/content/groups/public/'
+            systemProperty 'robolectric.dependency.repo.id', 'alimaven'
+            testLogging {
+                events 'passed', 'skipped', 'failed', 'standardOut', 'standardError'
+                outputs.upToDateWhen { false }
+                showStandardStreams = true
+            }
+            maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 2
+        }
+        unitTests.includeAndroidResources = true
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    testImplementation rootProject.ext.test.junit
+    testImplementation rootProject.ext.test.androidx_core
+    testImplementation rootProject.ext.test.androidx_runner
+    testImplementation rootProject.ext.test.androidx_rules
+    testImplementation rootProject.ext.test.androidx_junit
+    testImplementation rootProject.ext.androidx.google_material
+    testImplementation rootProject.ext.androidx.appcompat
+    testImplementation rootProject.ext.androidx.appcompat_resources
+    // Espresso dependencies
+    testImplementation rootProject.ext.test.espresso_core
+    testImplementation rootProject.ext.test.espresso_web
+    //Robolectric & JVM test
+    testImplementation rootProject.ext.test.robolectric
+    testImplementation rootProject.ext.test.powermock_core
+    // test
+    testImplementation project(':module_core')
+
+    compileOnly project(':module_core')
+}

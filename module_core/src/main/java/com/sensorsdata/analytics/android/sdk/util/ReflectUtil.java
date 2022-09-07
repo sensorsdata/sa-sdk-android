@@ -32,7 +32,7 @@ public class ReflectUtil {
     private static final LruCache<String, Class<?>> mObjectLruCache = new LruCache<>(64);
     private static final Set<String> mObjectSet = new HashSet<String>();
 
-    static <T> T findField(Class<?> clazz, Object instance, String... fieldName) {
+    public static <T> T findField(Class<?> clazz, Object instance, String... fieldName) {
         T t = null;
         Field field = findFieldObj(clazz, fieldName);
         if (field == null) {
@@ -135,7 +135,7 @@ public class ReflectUtil {
     }
 
     public static <T> T callMethod(Object instance, String methodName, Object... args) {
-        Class[] argsClass = new Class[args.length];
+        Class<?>[] argsClass = new Class[args.length];
         for (int i = 0; i < args.length; i++) {
             argsClass[i] = args[i].getClass();
         }
@@ -154,7 +154,7 @@ public class ReflectUtil {
         if (clazz == null) {
             return null;
         }
-        Class[] argsClass = new Class[args.length];
+        Class<?>[] argsClass = new Class[args.length];
         for (int i = 0; i < args.length; i++) {
             argsClass[i] = args[i].getClass();
         }

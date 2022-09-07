@@ -39,7 +39,7 @@ public class PersistentDistinctId extends PersistentIdentity<String> {
 
             @Override
             public String create() {
-                String androidId = SensorsDataUtils.getAndroidID(context);
+                String androidId = SensorsDataUtils.getIdentifier(context);
                 if (SensorsDataUtils.isValidAndroidId(androidId)) {
                     return androidId;
                 }

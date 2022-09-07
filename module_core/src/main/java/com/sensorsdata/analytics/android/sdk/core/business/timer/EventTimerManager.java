@@ -131,8 +131,7 @@ public class EventTimerManager {
                         }
                         EventTimer eventTimer = entry.getValue();
                         if (eventTimer != null && !eventTimer.isPaused()) {
-                            long eventAccumulatedDuration =
-                                    eventTimer.getEventAccumulatedDuration() + SystemClock.elapsedRealtime() - eventTimer.getStartTime() - SensorsDataAPI.sharedInstance().getSessionIntervalTime();
+                            long eventAccumulatedDuration = eventTimer.getEventAccumulatedDuration() + SystemClock.elapsedRealtime() - eventTimer.getStartTime();
                             eventTimer.setEventAccumulatedDuration(eventAccumulatedDuration);
                             eventTimer.setStartTime(SystemClock.elapsedRealtime());
                         }

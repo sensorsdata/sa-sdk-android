@@ -17,7 +17,7 @@
 
 package com.sensorsdata.analytics.android.sdk.core.mediator.protocol;
 
-import com.sensorsdata.analytics.android.sdk.util.SAContextManager;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 
 public interface SAModuleProtocol {
     void install(SAContextManager contextManager);
@@ -27,4 +27,6 @@ public interface SAModuleProtocol {
     String getModuleName();
 
     boolean isEnable();
+    // module init priority, scope [1..10]
+    int getPriority();
 }

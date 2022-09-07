@@ -17,25 +17,30 @@
 
 package com.sensorsdata.analytics.android.sdk.core.event.imp;
 
+import android.content.Context;
+
 import com.sensorsdata.analytics.android.sdk.AnalyticsMessages;
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.core.event.EventProcessor;
-import com.sensorsdata.analytics.android.sdk.core.event.InputData;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
+import com.sensorsdata.analytics.android.sdk.core.event.EventProcessor;
+import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 
 public class SendDataImpl implements EventProcessor.ISendData {
     private final InternalConfigOptions mInternalConfigs;
+    private final Context mContext;
 
-    public SendDataImpl(InternalConfigOptions internalConfigs) {
-        this.mInternalConfigs = internalConfigs;
+    public SendDataImpl(SAContextManager saContextManager) {
+        this.mInternalConfigs = saContextManager.getInternalConfigs();
+        mContext = saContextManager.getContext();
     }
 
     @Override
-    public void sendData(InputData inputData, int errorCode) {
+    public void sendData(InputData inputData, int code) {
         try {
-            AnalyticsMessages.getInstance(mInternalConfigs.context).flushEventMessage(errorCode < 0
-                    || errorCode > mInternalConfigs.saConfigOptions.getFlushBulkSize()
+            AnalyticsMessages.getInstance(mContext.getApplicationContext()).flushEventMessage(code < 0
+                    || code > mInternalConfigs.saConfigOptions.getFlushBulkSize()
                     || mInternalConfigs.debugMode.isDebugMode()
                     || inputData.getEventType() == EventType.TRACK_SIGNUP);
         } catch (Exception e) {

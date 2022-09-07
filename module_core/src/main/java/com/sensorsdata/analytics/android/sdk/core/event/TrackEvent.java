@@ -51,6 +51,8 @@ public class TrackEvent extends Event {
             jsonObject.put("type", getType());
             jsonObject.put("distinct_id", getDistinctId());
             jsonObject.put("anonymous_id", getAnonymousId());
+            jsonObject.put("lib", getLib());
+            jsonObject.put("properties", getProperties());
             if (getIdentities() != null) {
                 jsonObject.put("identities", getIdentities());
             }
@@ -75,8 +77,6 @@ public class TrackEvent extends Event {
             if (!TextUtils.isEmpty(getItemId())) {
                 jsonObject.put("item_id", getItemId());
             }
-            jsonObject.put("lib", getLib());
-            jsonObject.put("properties", getProperties());
             return jsonObject;
         } catch (Exception e) {
             SALog.printStackTrace(e);

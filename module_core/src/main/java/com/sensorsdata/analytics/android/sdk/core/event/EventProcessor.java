@@ -17,10 +17,10 @@
 
 package com.sensorsdata.analytics.android.sdk.core.event;
 
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.core.event.imp.AssembleDataImpl;
 import com.sensorsdata.analytics.android.sdk.core.event.imp.SendDataImpl;
 import com.sensorsdata.analytics.android.sdk.core.event.imp.StoreDataImpl;
-import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
 
 /**
  * Event Processor
@@ -30,9 +30,9 @@ public abstract class EventProcessor {
     IStoreData mStoreData;
     ISendData mSendData;
 
-    public EventProcessor(InternalConfigOptions internalConfigOptions) {
-        mAssembleData = new AssembleDataImpl(internalConfigOptions);
-        mSendData = new SendDataImpl(internalConfigOptions);
+    public EventProcessor(SAContextManager saContextManager) {
+        mAssembleData = new AssembleDataImpl(saContextManager);
+        mSendData = new SendDataImpl(saContextManager);
         mStoreData = new StoreDataImpl();
     }
 

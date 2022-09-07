@@ -24,7 +24,7 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentVisualConfig;
-import com.sensorsdata.analytics.android.sdk.visual.ViewTreeStatusObservable;
+import com.sensorsdata.analytics.android.sdk.visual.core.ViewTreeStatusObservable;
 import com.sensorsdata.analytics.android.sdk.visual.model.VisualConfig;
 
 import org.json.JSONArray;
@@ -41,24 +41,22 @@ public class VisualPropertiesCache {
 
     private static final String TAG = "SA.VP.VisualPropertiesCache";
 
-    private PersistentVisualConfig mPersistentVisualConfig;
 
     public VisualPropertiesCache() {
-        this.mPersistentVisualConfig = (PersistentVisualConfig) PersistentLoader.loadPersistent(DbParams.PersistentName.VISUAL_PROPERTIES);
     }
 
     public void save2Cache(String config) {
         SALog.i(TAG, "save2Cache config is:" + config);
-        this.mPersistentVisualConfig.commit(config);
+        PersistentLoader.getInstance().getVisualConfigPst().commit(config);
         doOnSaveCache(config);
     }
 
     public String getVisualCache() {
-        return this.mPersistentVisualConfig.get();
+        return PersistentLoader.getInstance().getVisualConfigPst().get();
     }
 
     public VisualConfig getVisualConfig() {
-        String persistentVisualConfig = this.mPersistentVisualConfig.get();
+        String persistentVisualConfig = PersistentLoader.getInstance().getVisualConfigPst().get();
         SALog.i(TAG, "local visual config is :" + persistentVisualConfig);
         if (TextUtils.isEmpty(persistentVisualConfig)) {
             return null;
@@ -140,7 +138,7 @@ public class VisualPropertiesCache {
     }
 
     public JSONArray getH5JsonArrayFromCache(String eventName, String webViewElementPath) {
-        String persistentVisualConfig = this.mPersistentVisualConfig.get();
+        String persistentVisualConfig = PersistentLoader.getInstance().getVisualConfigPst().get();
         if (TextUtils.isEmpty(persistentVisualConfig)) {
             return null;
         }

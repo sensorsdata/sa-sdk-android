@@ -290,7 +290,7 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
-    public List<Class> getIgnoredViewTypeList() {
+    public List<Class<?>> getIgnoredViewTypeList() {
         return new ArrayList<>();
     }
 
@@ -646,11 +646,6 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public void setDebugMode(DebugMode debugMode) {
-
-    }
-
-    @Override
-    void enableAutoTrack(int autoTrackEventType) {
 
     }
 

@@ -55,5 +55,9 @@ public class InternalCustomPropertyPlugin extends SAPropertyPlugin {
      */
     public void saveCustom(JSONObject properties) {
         mCustomProperties = properties;
+        if (properties != null) {
+            mCustomProperties.remove("$device_id");
+            mCustomProperties.remove("$anonymization_id");
+        }
     }
 }

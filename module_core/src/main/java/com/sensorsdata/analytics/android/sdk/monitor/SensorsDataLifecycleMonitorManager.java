@@ -17,14 +17,11 @@
 
 package com.sensorsdata.analytics.android.sdk.monitor;
 
-import com.sensorsdata.analytics.android.sdk.SensorsDataActivityLifecycleCallbacks;
 import com.sensorsdata.analytics.android.sdk.SensorsDataExceptionHandler;
-import com.sensorsdata.analytics.android.sdk.autotrack.SAFragmentLifecycleCallbacks;
-import com.sensorsdata.analytics.android.sdk.autotrack.aop.FragmentTrackHelper;
 
 public class SensorsDataLifecycleMonitorManager {
-    private SensorsDataActivityLifecycleCallbacks mCallback;
-    private static SensorsDataLifecycleMonitorManager instance = new SensorsDataLifecycleMonitorManager();
+    private final SensorsDataActivityLifecycleCallbacks mCallback;
+    private static final SensorsDataLifecycleMonitorManager instance = new SensorsDataLifecycleMonitorManager();
 
     private SensorsDataLifecycleMonitorManager() {
         mCallback = new SensorsDataActivityLifecycleCallbacks();
@@ -50,14 +47,7 @@ public class SensorsDataLifecycleMonitorManager {
         mCallback.removeActivityLifecycleCallbacks(callbacks);
     }
 
-    public void addFragmentLifeCallback(SAFragmentLifecycleCallbacks callback) {
-        FragmentTrackHelper.addFragmentCallbacks(callback);
-    }
-
-    public void removeFragmentLifeCallback(SAFragmentLifecycleCallbacks callback) {
-        FragmentTrackHelper.removeFragmentCallbacks(callback);
-    }
-    public SensorsDataActivityLifecycleCallbacks getCallback(){
+    public SensorsDataActivityLifecycleCallbacks getCallback() {
         return mCallback;
     }
 }

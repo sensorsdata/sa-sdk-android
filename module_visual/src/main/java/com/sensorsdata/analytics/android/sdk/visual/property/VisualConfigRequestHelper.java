@@ -28,7 +28,7 @@ import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
 import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
-import com.sensorsdata.analytics.android.sdk.visual.util.Dispatcher;
+import com.sensorsdata.analytics.android.sdk.visual.utils.Dispatcher;
 
 
 /**

@@ -180,8 +180,10 @@ public class JSONUtils {
 
     public static void mergeJSONObject(final JSONObject source, JSONObject dest) {
         try {
+            if (source == null) {
+                return;
+            }
             Iterator<String> superPropertiesIterator = source.keys();
-
             while (superPropertiesIterator.hasNext()) {
                 String key = superPropertiesIterator.next();
                 Object value = source.get(key);

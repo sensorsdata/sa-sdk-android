@@ -23,7 +23,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.net.Uri;
 
-import com.sensorsdata.analytics.android.advert.plugin.LatestUtmPlugin;
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
@@ -31,22 +30,23 @@ import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.advert.deeplink.DeepLinkManager;
 import com.sensorsdata.analytics.android.sdk.advert.monitor.SensorsDataAdvertActivityLifeCallback;
 import com.sensorsdata.analytics.android.sdk.advert.oaid.SAOaidHelper;
+import com.sensorsdata.analytics.android.sdk.advert.plugin.LatestUtmPlugin;
 import com.sensorsdata.analytics.android.sdk.advert.plugin.SAAdvertAppStartPlugin;
 import com.sensorsdata.analytics.android.sdk.advert.plugin.SAAdvertAppViewScreenPlugin;
 import com.sensorsdata.analytics.android.sdk.advert.scan.SAAdvertScanHelper;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.advert.utils.SAAdvertUtils;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
 import com.sensorsdata.analytics.android.sdk.core.mediator.advert.SAAdvertModuleProtocol;
 import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAScanListener;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
-import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataLifecycleMonitorManager;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
-import com.sensorsdata.analytics.android.sdk.util.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 
 import org.json.JSONException;
@@ -59,7 +59,7 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
     private boolean mEnable = false;
     private Context mContext;
     private SAConfigOptions mOptions;
-
+    private SAContextManager mSAContextManager;
     // $AppDeeplinkLaunch 是否携带设备信息
     private boolean mEnableDeepLinkInstallSource;
     private SAAdvertAppStartPlugin mStartPlugin;
@@ -68,18 +68,17 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
 
     @Override
     public void install(SAContextManager contextManager) {
+        mSAContextManager = contextManager;
         mContext = contextManager.getContext();
         mOptions = contextManager.getInternalConfigs().saConfigOptions;
-        init(contextManager);
+        init();
     }
 
-    private void init(SAContextManager contextManager) {
+    private void init() {
         mStartPlugin = new SAAdvertAppStartPlugin();
         mViewScreenPlugin = new SAAdvertAppViewScreenPlugin();
         mLatestUtmPlugin = new LatestUtmPlugin();
-        contextManager.getPluginManager().registerPropertyPlugin(mStartPlugin);
-        contextManager.getPluginManager().registerPropertyPlugin(mViewScreenPlugin);
-        contextManager.getPluginManager().registerPropertyPlugin(mLatestUtmPlugin);
+        registerPropertyPlugin();
         ChannelUtils.setSourceChannelKeys(mOptions.channelSourceKeys);
         if (!mOptions.isDisableSDK()) {
             setModuleState(true);
@@ -95,8 +94,10 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
             if (enable) {
                 delayInitTask();
                 registerLifeCallback();
+                registerPropertyPlugin();
             } else {
                 unregisterLifecycleCallback();
+                unregisterPropertyPlugin();
             }
             mEnable = enable;
         }
@@ -170,7 +171,7 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
                 if (mEnableDeepLinkInstallSource) {
                     try {
                         properties.put("$ios_install_source", ChannelUtils.getDeviceInfo(mContext,
-                                SAAdvertUtils.getAndroidId(mContext), oaid == null ? SAOaidHelper.getOAID(mContext) : oaid));
+                                SAAdvertUtils.getIdentifier(mContext), oaid == null ? SAOaidHelper.getOpenAdIdentifier(mContext) : oaid));
                     } catch (JSONException e) {
                         SALog.printStackTrace(e);
                     }
@@ -191,9 +192,7 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
             }
             // trackInstallation only on main process
             final JSONObject eventProperties = new JSONObject();
-            if (properties != null) {
-                JSONUtils.mergeJSONObject(properties, eventProperties);
-            }
+            JSONUtils.mergeJSONObject(properties, eventProperties);
             SADataHelper.addTimeProperty(eventProperties);
             SAEventManager.getInstance().trackQueueEvent(new Runnable() {
                 @Override
@@ -208,7 +207,7 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
                                 }
 
                                 if (!ChannelUtils.hasUtmProperties(eventProperties)) {
-                                    String androidId = SAAdvertUtils.getAndroidId(mContext);
+                                    String androidId = SAAdvertUtils.getIdentifier(mContext);
                                     String installSource;
                                     String oaid;
                                     if (eventProperties.has("$oaid")) {
@@ -216,7 +215,7 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
                                         installSource = ChannelUtils.getDeviceInfo(mContext, androidId, oaid);
                                         SALog.i(TAG, "properties has oaid " + oaid);
                                     } else {
-                                        oaid = SAOaidHelper.getOAID(mContext);
+                                        oaid = SAOaidHelper.getOpenAdIdentifier(mContext);
                                         installSource = ChannelUtils.getDeviceInfo(mContext, androidId, oaid);
                                     }
 
@@ -289,9 +288,7 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
             return;
         }
         final JSONObject eventProperties = new JSONObject();
-        if (properties != null) {
-            JSONUtils.mergeJSONObject(properties, eventProperties);
-        }
+        JSONUtils.mergeJSONObject(properties, eventProperties);
         SADataHelper.addTimeProperty(eventProperties);
         SAEventManager.getInstance().trackQueueEvent(new Runnable() {
             @Override
@@ -306,11 +303,11 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
                             if (eventProperties.has("$oaid")) {
                                 String oaid = eventProperties.optString("$oaid");
                                 eventProperties.put("$channel_device_info",
-                                        ChannelUtils.getDeviceInfo(mContext, SAAdvertUtils.getAndroidId(mContext), oaid));
+                                        ChannelUtils.getDeviceInfo(mContext, SAAdvertUtils.getIdentifier(mContext), oaid));
                                 SALog.i(TAG, "properties has oaid " + oaid);
                             } else {
                                 eventProperties.put("$channel_device_info",
-                                        ChannelUtils.getDeviceInfo(mContext, SAAdvertUtils.getAndroidId(mContext), SAOaidHelper.getOAID(mContext)));
+                                        ChannelUtils.getDeviceInfo(mContext, SAAdvertUtils.getIdentifier(mContext), SAOaidHelper.getOpenAdIdentifier(mContext)));
                             }
                         }
                         if (eventProperties.has("$oaid")) {
@@ -354,8 +351,8 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
             public void run() {
                 try {
                     if (ChannelUtils.isRequestDeferredDeeplink()) {
-                        DeepLinkManager.requestDeferredDeepLink(mContext, params, SAAdvertUtils.getAndroidId(mContext)
-                                , SAOaidHelper.getOAID(mContext), SensorsDataAPI.sharedInstance().getPresetProperties(), mOptions.getCustomADChannelUrl(), mOptions.isSaveDeepLinkInfo());
+                        DeepLinkManager.requestDeferredDeepLink(mContext, params, SAAdvertUtils.getIdentifier(mContext)
+                                , SAOaidHelper.getOpenAdIdentifier(mContext), SensorsDataAPI.sharedInstance().getPresetProperties(), mOptions.getCustomADChannelUrl(), mOptions.isSaveDeepLinkInfo());
                         ChannelUtils.commitRequestDeferredDeeplink(false);
                     }
                 } catch (Exception e) {
@@ -374,6 +371,11 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
     @Override
     public boolean isEnable() {
         return mEnable;
+    }
+
+    @Override
+    public int getPriority() {
+        return 5;
     }
 
     @Override
@@ -402,5 +404,17 @@ public class SAAdvertProtocolImpl implements SAAdvertModuleProtocol, SAScanListe
     @Override
     public void commitRequestDeferredDeeplink(boolean isRequest) {
         ChannelUtils.commitRequestDeferredDeeplink(isRequest);
+    }
+
+    private void registerPropertyPlugin() {
+        mSAContextManager.getPluginManager().registerPropertyPlugin(mStartPlugin);
+        mSAContextManager.getPluginManager().registerPropertyPlugin(mViewScreenPlugin);
+        mSAContextManager.getPluginManager().registerPropertyPlugin(mLatestUtmPlugin);
+    }
+
+    private void unregisterPropertyPlugin() {
+        mSAContextManager.getPluginManager().unregisterPropertyPlugin(mStartPlugin);
+        mSAContextManager.getPluginManager().unregisterPropertyPlugin(mViewScreenPlugin);
+        mSAContextManager.getPluginManager().unregisterPropertyPlugin(mLatestUtmPlugin);
     }
 }

@@ -21,5 +21,8 @@ public class ModuleConstants {
     public interface ModuleName {
         String ADVERT_NAME = "sensors_analytics_module_advertisement";
         String VISUAL_NAME = "sensors_analytics_module_visual";
+        String PUSH_NAME = "sensors_analytics_module_push";
+        String AUTO_TRACK_NAME = "sensors_analytics_module_autotrack";
+        String ENCRYPT_NAME = "sensors_analytics_module_encrypt";
     }
 }

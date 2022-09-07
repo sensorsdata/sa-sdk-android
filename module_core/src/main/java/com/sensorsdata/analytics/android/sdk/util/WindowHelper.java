@@ -1,3 +1,20 @@
+/*
+ * Created by dengshiwei on 2022/07/05.
+ * Copyright 2015－2022 Sensors Data Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.sensorsdata.analytics.android.sdk.util;
 
 import android.annotation.SuppressLint;
@@ -11,8 +28,6 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.TabHost;
-
-import com.sensorsdata.analytics.android.sdk.AppStateManager;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -119,7 +134,7 @@ public class WindowHelper {
     private static View[] getWindowViews() {
         View[] result = new View[0];
         if (sWindowManger == null) {
-            Activity current = AppStateManager.getInstance().getForegroundActivity();
+            Activity current = AppStateTools.getInstance().getForegroundActivity();
             View decorView = null;
             if (current != null) {
                 Window window = current.getWindow();
@@ -161,7 +176,7 @@ public class WindowHelper {
         public int compare(View lhs, View rhs) {
             int lhsHashCode = lhs.hashCode();
             int rhsHashCode = rhs.hashCode();
-            int currentHashCode = AppStateManager.getInstance().getCurrentRootWindowsHashCode();
+            int currentHashCode = AppStateTools.getInstance().getCurrentRootWindowsHashCode();
             if (lhsHashCode == currentHashCode) {
                 return -1;
             } else {
@@ -199,15 +214,15 @@ public class WindowHelper {
     private static Object getMenuItemData(View view) throws InvocationTargetException, IllegalAccessException {
         if (view.getClass() == sListMenuItemViewClazz) {
             return sItemViewGetDataMethod.invoke(view);
-        } else if (ViewUtil.instanceOfAndroidXListMenuItemView(view) || ViewUtil.instanceOfSupportListMenuItemView(view) || ViewUtil.instanceOfBottomNavigationItemView(view)) {
-            return ViewUtil.getItemData(view);
+        } else if (SAViewUtils.instanceOfAndroidXListMenuItemView(view) || SAViewUtils.instanceOfSupportListMenuItemView(view) || SAViewUtils.instanceOfBottomNavigationItemView(view)) {
+            return SAViewUtils.getMenuItemData(view);
         }
         return null;
     }
 
     private static View findMenuItemView(View view, MenuItem item) throws InvocationTargetException, IllegalAccessException {
         // 解决 actionbar 左侧返回按钮全埋点问题
-        if (ViewUtil.instanceOfActionMenuItem(item) && item.getItemId() == android.R.id.home && ViewUtil.instanceOfToolbar(view.getParent()) && view instanceof ImageButton) {
+        if (SAViewUtils.instanceOfActionMenuItem(item) && item.getItemId() == android.R.id.home && SAViewUtils.instanceOfToolbar(view.getParent()) && view instanceof ImageButton) {
             View navButtonView = ReflectUtil.findField(new String[]{"androidx.appcompat.widget.Toolbar", "android.support.v7.widget.Toolbar", "android.widget.Toolbar"}, view.getParent(), "mNavButtonView");
             if (navButtonView != null && navButtonView == view) {
                 return view;
@@ -312,7 +327,7 @@ public class WindowHelper {
     }
 
     public static String getWindowPrefix(View root) {
-        if (root.hashCode() == AppStateManager.getInstance().getCurrentRootWindowsHashCode()) {
+        if (root.hashCode() == AppStateTools.getInstance().getCurrentRootWindowsHashCode()) {
             return getMainWindowPrefix();
         }
         return getSubWindowPrefix(root);

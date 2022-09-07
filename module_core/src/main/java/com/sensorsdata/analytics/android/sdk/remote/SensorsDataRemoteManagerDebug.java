@@ -18,6 +18,7 @@
 package com.sensorsdata.analytics.android.sdk.remote;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.net.Uri;
 import android.text.TextUtils;
@@ -46,8 +47,8 @@ public class SensorsDataRemoteManagerDebug extends BaseSensorsDataSDKRemoteManag
     private static final String TAG = "SA.SensorsDataRemoteManagerDebug";
     private String errorMsg = "";
 
-    public SensorsDataRemoteManagerDebug(SensorsDataAPI sensorsDataAPI) {
-        super(sensorsDataAPI);
+    public SensorsDataRemoteManagerDebug(SensorsDataAPI sensorsDataAPI, Context context) {
+        super(sensorsDataAPI, sensorsDataAPI.getSAContextManager());
         SALog.i(TAG, "remote config: Construct a SensorsDataRemoteManagerDebug");
     }
 
@@ -180,7 +181,7 @@ public class SensorsDataRemoteManagerDebug extends BaseSensorsDataSDKRemoteManag
             localProject = new ServerUrl(serverUrl).getProject();
         }
         SALog.i(TAG, "remote config: ServerUrl is " + serverUrl);
-        if (!NetworkUtils.isNetworkAvailable(mContext)) {
+        if (!NetworkUtils.isNetworkAvailable(mContextManager.getContext())) {
             errorMsg = SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_remote_tip_error_network);
         } else if (mSensorsDataAPI != null && !mSensorsDataAPI.isNetworkRequestEnable()) {
             errorMsg = SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_remote_tip_error_disable_network);

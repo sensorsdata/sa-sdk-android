@@ -19,21 +19,21 @@ package com.sensorsdata.analytics.android.sdk.core.event.imp;
 
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.core.event.Event;
 import com.sensorsdata.analytics.android.sdk.core.event.EventProcessor;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
-import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
-import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
 
 public class AssembleDataImpl implements EventProcessor.IAssembleData {
     private final TrackEventAssemble mTrackEventAssemble;
     private final ItemEventAssemble mItemEventAssemble;
     private final H5TrackAssemble mH5EventAssemble;
 
-    public AssembleDataImpl(InternalConfigOptions internalConfigOptions) {
-        mTrackEventAssemble = new TrackEventAssemble(internalConfigOptions);
-        mItemEventAssemble = new ItemEventAssemble(internalConfigOptions);
-        mH5EventAssemble = new H5TrackAssemble(internalConfigOptions);
+    public AssembleDataImpl(SAContextManager saContextManager) {
+        mTrackEventAssemble = new TrackEventAssemble(saContextManager);
+        mItemEventAssemble = new ItemEventAssemble(saContextManager);
+        mH5EventAssemble = new H5TrackAssemble(saContextManager);
     }
 
     @Override

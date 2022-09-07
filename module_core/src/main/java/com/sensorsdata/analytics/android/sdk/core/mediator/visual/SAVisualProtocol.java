@@ -5,14 +5,13 @@ import android.content.Context;
 import android.view.View;
 
 import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAModuleProtocol;
-import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 
 import org.json.JSONObject;
 
 public interface SAVisualProtocol extends SAModuleProtocol {
     void requestVisualConfig();
 
-    void mergeVisualProperties(JSONObject srcObject, ViewNode viewNode);
+    void mergeVisualProperties(JSONObject srcObject, View view);
 
     String getAppVisualConfig();
 

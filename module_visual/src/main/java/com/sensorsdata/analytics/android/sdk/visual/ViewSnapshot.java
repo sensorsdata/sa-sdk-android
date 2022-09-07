@@ -39,17 +39,19 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.sensorsdata.analytics.android.sdk.AopConstants;
-import com.sensorsdata.analytics.android.sdk.AppStateManager;
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackHelper;
-import com.sensorsdata.analytics.android.sdk.util.AopUtil;
+import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
+import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.DeviceUtils;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
 import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
-import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
+import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
+import com.sensorsdata.analytics.android.sdk.util.SnapCache;
+import com.sensorsdata.analytics.android.sdk.util.WebUtils;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
 import com.sensorsdata.analytics.android.sdk.visual.model.SnapInfo;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
@@ -57,10 +59,10 @@ import com.sensorsdata.analytics.android.sdk.visual.model.WebNode;
 import com.sensorsdata.analytics.android.sdk.visual.model.WebNodeInfo;
 import com.sensorsdata.analytics.android.sdk.visual.snap.PropertyDescription;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceIds;
-import com.sensorsdata.analytics.android.sdk.visual.snap.SnapCache;
 import com.sensorsdata.analytics.android.sdk.visual.snap.SoftWareCanvas;
-import com.sensorsdata.analytics.android.sdk.visual.util.Dispatcher;
-import com.sensorsdata.analytics.android.sdk.visual.util.VisualUtil;
+import com.sensorsdata.analytics.android.sdk.visual.utils.Dispatcher;
+import com.sensorsdata.analytics.android.sdk.visual.utils.ViewUtil;
+import com.sensorsdata.analytics.android.sdk.visual.utils.VisualUtil;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -215,7 +217,7 @@ public class ViewSnapshot {
             WebNodeInfo webNodeInfo = WebNodesManager.getInstance().getWebNodes(url);
             if (webNodeInfo == null) {
                 SALog.i(TAG, "H5 page is not integrated Web JS SDK");
-                Context context = SensorsDataAPI.sharedInstance().getInternalConfigs().context;
+                Context context = SensorsDataAPI.sharedInstance().getSAContextManager().getContext();
                 String title = SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_sa_h5);
                 String message = SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_sa_h5_error);
                 String link_text = SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_sa_h5_error_link);
@@ -225,11 +227,10 @@ public class ViewSnapshot {
         }
     }
 
-
     private void snapshotView(final JSONArray j, final View view, int viewIndex)
             throws Exception {
         // 处理内嵌 H5 页面
-        if (ViewUtil.isViewSelfVisible(view)) {
+        if (SAViewUtils.isViewSelfVisible(view)) {
             List<String> webNodeIds = null;
             // webView 自身 level 需要小于所有的 H5 元素
             int webViewElementLevel = mSnapInfo.elementLevel;
@@ -249,7 +250,7 @@ public class ViewSnapshot {
                                 }
                                 latch.countDown();
                                 // 2021/07/02 修复 Web JS SDK 部分场景下无法监听页面变化 bug
-                                SensorsDataAutoTrackHelper.loadUrl(view, "javascript:window.sensorsdata_app_call_js('visualized')");
+                                WebUtils.loadUrl(view, "javascript:window.sensorsdata_app_call_js('visualized')");
                             } else {
                                 latch.countDown();
                             }
@@ -293,13 +294,13 @@ public class ViewSnapshot {
             JSONObject jsonSnapObject = new JSONObject();
             jsonSnapObject.put("hashCode", view.hashCode());
             jsonSnapObject.put("id", view.getId());
-            jsonSnapObject.put("index", VisualUtil.getChildIndex(view.getParent(), view));
+            jsonSnapObject.put("index", SAViewUtils.getChildIndex(view.getParent(), view));
             if (ViewUtil.instanceOfWebView(view)) {
                 jsonSnapObject.put("element_level", webViewElementLevel);
             } else {
                 jsonSnapObject.put("element_level", ++mSnapInfo.elementLevel);
             }
-            jsonSnapObject.put("element_selector", ViewUtil.getElementSelector(view));
+            jsonSnapObject.put("element_selector", SAViewUtils.getElementSelector(view));
 
             JSONObject object = VisualUtil.getScreenNameAndTitle(view, mSnapInfo);
             if (object != null) {
@@ -568,10 +569,14 @@ public class ViewSnapshot {
         public List<RootViewInfo> call() throws Exception {
             mRootViews.clear();
             try {
-                Activity activity = AppStateManager.getInstance().getForegroundActivity();
+                Activity activity = AppStateTools.getInstance().getForegroundActivity();
                 if (activity != null) {
-                    JSONObject object = AopUtil.buildTitleAndScreenName(activity);
-                    VisualUtil.mergeRnScreenNameAndTitle(object);
+                    JSONObject object = SAModuleManager.getInstance().invokeAutoTrackFunction("getActivityPageInfo", activity);
+                    JSONObject rnJson = SAModuleManager.getInstance().invokeAutoTrackFunction("getRNPageInfo");
+                    if (object == null) {
+                        object = new JSONObject();
+                    }
+                    JSONUtils.mergeJSONObject(rnJson, object);
                     String screenName = object.optString(AopConstants.SCREEN_NAME);
                     String activityTitle = object.optString(AopConstants.TITLE);
                     View rootView = null;
@@ -616,7 +621,7 @@ public class ViewSnapshot {
             int width = info.rootView.getWidth();
             int height = info.rootView.getHeight();
             if (width == 0 || height == 0) {
-                int[] screenSize = DeviceUtils.getDeviceSize(SensorsDataAPI.sharedInstance().getInternalConfigs().context);
+                int[] screenSize = DeviceUtils.getDeviceSize(SensorsDataAPI.sharedInstance().getSAContextManager().getContext());
                 width = screenSize[0];
                 height = screenSize[1];
                 if (width == 0 || height == 0) return null;

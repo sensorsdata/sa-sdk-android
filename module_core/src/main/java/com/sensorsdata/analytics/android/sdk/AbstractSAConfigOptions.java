@@ -202,11 +202,6 @@ abstract class AbstractSAConfigOptions {
     List<Class<?>> mIgnorePageLeave;
 
     /**
-     * 自定义加密器
-     */
-    List<SAEncryptListener> mEncryptListeners;
-
-    /**
      * 是否不采集 $device_id 属性
      */
     boolean mDisableDeviceId = false;
@@ -259,6 +254,10 @@ abstract class AbstractSAConfigOptions {
      */
     public List<SAEncryptListener> getEncryptors() {
         return mEncryptors;
+    }
+
+    public IPersistentSecretKey getPersistentSecretKey() {
+        return mPersistentSecretKey;
     }
 
     /**
@@ -338,6 +337,14 @@ abstract class AbstractSAConfigOptions {
         return mEventSessionTimeout;
     }
 
+    public int getAutoTrackEventType() {
+        return mAutoTrackEventType;
+    }
+
+    public boolean isEnableEncrypt() {
+        return mEnableEncrypt;
+    }
+
     /**
      * 弹窗中默认还使用该接口，暂时先保留，后续删除
      *
@@ -354,5 +361,17 @@ abstract class AbstractSAConfigOptions {
 
     public int getFlushBulkSize() {
         return mFlushBulkSize;
+    }
+
+    public boolean isWebViewSupportJellyBean() {
+        return isWebViewSupportJellyBean;
+    }
+
+    public boolean isAutoTrackWebView() {
+        return isAutoTrackWebView;
+    }
+
+    public List<Class<?>> getIgnorePageLeave() {
+        return mIgnorePageLeave;
     }
 }

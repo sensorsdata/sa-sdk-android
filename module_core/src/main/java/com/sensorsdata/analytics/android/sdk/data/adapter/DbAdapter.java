@@ -18,12 +18,11 @@
 package com.sensorsdata.analytics.android.sdk.data.adapter;
 
 import android.content.ContentValues;
-import android.content.Context;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
-import com.sensorsdata.analytics.android.sdk.encrypt.SensorsDataEncrypt;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 
 import org.json.JSONException;
@@ -35,27 +34,26 @@ public class DbAdapter {
     private DataOperation mTrackEventOperation;
     private DataOperation mPersistentOperation;
 
-    private DbAdapter(Context context, String packageName, SensorsDataEncrypt sensorsDataEncrypt) {
-        mDbParams = DbParams.getInstance(packageName);
-        if (sensorsDataEncrypt != null) {
-            mTrackEventOperation = new EncryptDataOperation(context.getApplicationContext(), sensorsDataEncrypt);
+    private DbAdapter(SAContextManager saContextManager) {
+        mDbParams = DbParams.getInstance(saContextManager.getContext().getPackageName());
+        if (saContextManager.getInternalConfigs().saConfigOptions.isEnableEncrypt()) {
+            mTrackEventOperation = new EncryptDataOperation(saContextManager.getContext().getApplicationContext());
         } else {
-            mTrackEventOperation = new EventDataOperation(context.getApplicationContext());
+            mTrackEventOperation = new EventDataOperation(saContextManager.getContext().getApplicationContext());
         }
-        mPersistentOperation = new PersistentDataOperation(context.getApplicationContext());
+        mPersistentOperation = new PersistentDataOperation(saContextManager.getContext().getApplicationContext());
     }
 
-    public static DbAdapter getInstance(Context context, String packageName,
-                                        SensorsDataEncrypt sensorsDataEncrypt) {
+    public static DbAdapter getInstance(SAContextManager saContextManager) {
         if (instance == null) {
-            instance = new DbAdapter(context, packageName, sensorsDataEncrypt);
+            instance = new DbAdapter(saContextManager);
         }
         return instance;
     }
 
     public static DbAdapter getInstance() {
         if (instance == null) {
-            throw new IllegalStateException("The static method getInstance(Context context, String packageName) should be called before calling getInstance()");
+            throw new IllegalStateException("The static method getInstance(SAContextManager saContextManager) should be called before calling getInstance()");
         }
         return instance;
     }
@@ -406,7 +404,7 @@ public class DbAdapter {
      */
     public String getRemoteConfigFromLocal() {
         try {
-            PersistentRemoteSDKConfig persistentRemoteSDKConfig = (PersistentRemoteSDKConfig) PersistentLoader.loadPersistent(DbParams.PersistentName.REMOTE_CONFIG);
+            PersistentRemoteSDKConfig persistentRemoteSDKConfig = PersistentLoader.getInstance().getRemoteSDKConfig();
             return persistentRemoteSDKConfig == null ? "" : persistentRemoteSDKConfig.get();
         } catch (Exception e) {
             SALog.printStackTrace(e);

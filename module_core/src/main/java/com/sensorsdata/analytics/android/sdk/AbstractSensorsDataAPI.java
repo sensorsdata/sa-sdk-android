@@ -17,7 +17,6 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
-import android.app.Activity;
 import android.app.Application;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -26,24 +25,14 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
 
-import com.sensorsdata.analytics.android.sdk.aop.push.PushLifecycleCallbacks;
-import com.sensorsdata.analytics.android.sdk.autotrack.ActivityLifecycleCallbacks;
-import com.sensorsdata.analytics.android.sdk.autotrack.ActivityPageLeaveCallbacks;
-import com.sensorsdata.analytics.android.sdk.autotrack.FragmentPageLeaveCallbacks;
-import com.sensorsdata.analytics.android.sdk.autotrack.FragmentViewScreenCallbacks;
-import com.sensorsdata.analytics.android.sdk.autotrack.aop.FragmentTrackHelper;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
-import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
-import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
-import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstStart;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
-import com.sensorsdata.analytics.android.sdk.encrypt.SensorsDataEncrypt;
-import com.sensorsdata.analytics.android.sdk.internal.api.FragmentAPI;
-import com.sensorsdata.analytics.android.sdk.internal.api.IFragmentAPI;
-import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
-import com.sensorsdata.analytics.android.sdk.internal.rpc.SensorsDataContentObserver;
+import com.sensorsdata.analytics.android.sdk.core.business.DefaultAppState;
+import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
+import com.sensorsdata.analytics.android.sdk.core.rpc.SensorsDataContentObserver;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.listener.SAFunctionListener;
 import com.sensorsdata.analytics.android.sdk.listener.SAJSListener;
@@ -52,14 +41,11 @@ import com.sensorsdata.analytics.android.sdk.monitor.TrackMonitor;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 import com.sensorsdata.analytics.android.sdk.remote.SensorsDataRemoteManager;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
+import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
-import com.sensorsdata.analytics.android.sdk.util.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
-import com.sensorsdata.analytics.android.sdk.util.ToastUtil;
-import com.sensorsdata.analytics.android.sdk.visual.SAVisual;
-import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 
 import org.json.JSONObject;
 
@@ -80,19 +66,12 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     protected static SAConfigOptions mSAConfigOptions;
     protected InternalConfigOptions mInternalConfigs;
     protected SAContextManager mSAContextManager;
-    protected ActivityLifecycleCallbacks mActivityLifecycleCallbacks;
-    protected AnalyticsMessages mMessages;
-    protected final PersistentFirstStart mFirstStart;
     protected final Object mLoginIdLock = new Object();
-    protected List<Class> mIgnoredViewTypeList = new ArrayList<>();
     /* SensorsAnalytics 地址 */
     protected String mServerUrl;
     protected String mOriginServerUrl;
     /* SDK 配置是否初始化 */
     protected boolean mSDKConfigInit;
-    /* SDK 自动采集事件 */
-    protected boolean mAutoTrack;
-    protected List<Integer> mAutoTrackIgnoredActivities;
     protected List<Integer> mHeatMapActivities;
     protected List<Integer> mVisualizedAutoTrackActivities;
     protected TrackTaskManager mTrackTaskManager;
@@ -100,23 +79,17 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     protected SensorsDataScreenOrientationDetector mOrientationDetector;
     protected SensorsDataDynamicSuperProperties mDynamicSuperPropertiesCallBack;
     private CopyOnWriteArrayList<SAJSListener> mSAJSListeners;
-    protected IFragmentAPI mFragmentAPI;
     protected SAStoreManager mStoreManager;
-    SensorsDataEncrypt mSensorsDataEncrypt;
 
     public AbstractSensorsDataAPI(Context context, SAConfigOptions configOptions, SensorsDataAPI.DebugMode debugMode) {
         mInternalConfigs = new InternalConfigOptions();
-        mInternalConfigs.context = context.getApplicationContext();
+        mInternalConfigs.context = context;
         setDebugMode(debugMode);
-        final String packageName = context.getApplicationContext().getPackageName();
-        mAutoTrackIgnoredActivities = new ArrayList<>();
         mHeatMapActivities = new ArrayList<>();
         mVisualizedAutoTrackActivities = new ArrayList<>();
-        PersistentLoader.initLoader(context);
-        mFirstStart = (PersistentFirstStart) PersistentLoader.loadPersistent(DbParams.PersistentName.FIRST_START);
-        mFragmentAPI = new FragmentAPI();
         try {
             mSAConfigOptions = configOptions.clone();
+            PersistentLoader.preInit(context);
             mStoreManager = SAStoreManager.getInstance();
             mStoreManager.registerPlugins(mSAConfigOptions.getStorePlugins(), context);
             mStoreManager.upgrade();
@@ -124,15 +97,14 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             mTrackTaskManagerThread = new TrackTaskManagerThread();
             new Thread(mTrackTaskManagerThread, ThreadNameConstants.THREAD_TASK_QUEUE).start();
             SensorsDataExceptionHandler.init();
-            initSAConfig(mSAConfigOptions.mServerUrl, packageName);
+            // 1. init config
+            initSAConfig(mSAConfigOptions.mServerUrl);
+            // 2. init context manager
             mSAContextManager = new SAContextManager((SensorsDataAPI) this, mInternalConfigs);
-            // 导入集成模块
-            SAModuleManager.getInstance().installService(mSAContextManager);
-            mMessages = AnalyticsMessages.getInstance(context, (SensorsDataAPI) this, mInternalConfigs);
-            registerLifecycleCallbacks();
-            registerObserver();
+            registerLifecycleCallbacks((SensorsDataAPI) this, context);
+            registerObserver(context);
             if (!mSAConfigOptions.isDisableSDK()) {
-                delayInitTask();
+                delayInitTask(context);
             }
             if (SALog.isLogEnabled()) {
                 SALog.i(TAG, String.format(TimeUtils.SDK_LOCALE, "Initialized the instance of Sensors Analytics SDK with server"
@@ -140,7 +112,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             }
             SensorsDataUtils.initUniAppStatus();
             if (mInternalConfigs.isMainProcess && SAModuleManager.getInstance().hasModuleByName(ModuleConstants.ModuleName.ADVERT_NAME)) {// 多进程影响数据，保证只有主进程操作
-                if (null != mSAContextManager.getFirstDay() && !TextUtils.isEmpty(mSAContextManager.getFirstDay().get())) { //升级场景，首次安装但 mFirstDay 已经有数据
+                if (null != PersistentLoader.getInstance().getFirstDayPst() && !TextUtils.isEmpty(PersistentLoader.getInstance().getFirstDayPst().get())) { //升级场景，首次安装但 mFirstDay 已经有数据
                     SAModuleManager.getInstance().getAdvertModuleService().commitRequestDeferredDeeplink(false);
                 }
             }
@@ -150,24 +122,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     }
 
     protected AbstractSensorsDataAPI() {
-        mMessages = null;
-        mFirstStart = null;
-        mSensorsDataEncrypt = null;
-    }
 
-    /**
-     * 延迟初始化处理逻辑
-     *
-     * @param activity 延迟初始化 Activity 补充执行
-     */
-    protected void delayExecution(Activity activity) {
-        if (mActivityLifecycleCallbacks != null) {
-            SensorsDataLifecycleMonitorManager.getInstance().getCallback().onActivityCreated(activity, null);//延迟初始化监听 onActivityCreated 处理
-            SensorsDataLifecycleMonitorManager.getInstance().getCallback().onActivityStarted(activity);//延迟初始化监听 onActivityCreated 处理
-        }
-        if (SALog.isLogEnabled()) {
-            SALog.i(TAG, "SDK init success by：" + activity.getClass().getName());
-        }
     }
 
     /**
@@ -307,10 +262,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         return mSAConfigOptions;
     }
 
-    public InternalConfigOptions getInternalConfigs() {
-        return mInternalConfigs;
-    }
-
     boolean _trackEventFromH5(String eventInfo) {
         try {
             if (TextUtils.isEmpty(eventInfo)) {
@@ -349,22 +300,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         }
     }
 
-    void enableAutoTrack(int autoTrackEventType) {
-        try {
-            if (autoTrackEventType <= 0 || autoTrackEventType > 15) {
-                return;
-            }
-            this.mAutoTrack = true;
-            mSAConfigOptions.setAutoTrackEventType(mSAConfigOptions.mAutoTrackEventType | autoTrackEventType);
-        } catch (Exception e) {
-            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(e);
-        }
-    }
-
-    public SensorsDataEncrypt getSensorsDataEncrypt() {
-        return mSensorsDataEncrypt;
-    }
-
     public boolean isDisableDefaultRemoteConfig() {
         return mInternalConfigs.isDefaultRemoteConfigEnable;
     }
@@ -373,25 +308,25 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         return mSAContextManager;
     }
 
-    void registerNetworkListener() {
+    void registerNetworkListener(final Context context) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
-                NetworkUtils.registerNetworkListener(mInternalConfigs.context);
+                NetworkUtils.registerNetworkListener(context);
             }
         });
     }
 
-    void unregisterNetworkListener() {
+    void unregisterNetworkListener(final Context context) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
-                NetworkUtils.unregisterNetworkListener(mInternalConfigs.context);
+                NetworkUtils.unregisterNetworkListener(context);
             }
         });
     }
 
-    protected void initSAConfig(String serverURL, String packageName) {
+    protected void initSAConfig(String serverURL) {
         Bundle configBundle = AppInfoUtils.getAppInfoBundle(mInternalConfigs.context);
         if (mSAConfigOptions == null) {
             this.mSDKConfigInit = false;
@@ -399,11 +334,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
         } else {
             this.mSDKConfigInit = true;
         }
-        if (mSAConfigOptions.mEnableEncrypt) {
-            mSensorsDataEncrypt = new SensorsDataEncrypt(mInternalConfigs.context, mSAConfigOptions.mPersistentSecretKey, mSAConfigOptions.getEncryptors());
-        }
-
-        DbAdapter.getInstance(mInternalConfigs.context, packageName, mSensorsDataEncrypt);
 
         if (mSAConfigOptions.mInvokeLog) {
             enableLog(mSAConfigOptions.mLogEnabled);
@@ -432,13 +362,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             mSAConfigOptions.setMaxCacheSize(32 * 1024 * 1024L);
         }
 
-        this.mAutoTrack = configBundle.getBoolean("com.sensorsdata.analytics.android.AutoTrack",
-                false);
-        if (mSAConfigOptions.mAutoTrackEventType != 0) {
-            enableAutoTrack(mSAConfigOptions.mAutoTrackEventType);
-            this.mAutoTrack = true;
-        }
-
         if (!mSAConfigOptions.mInvokeHeatMapEnabled) {
             mSAConfigOptions.mHeatMapEnabled = configBundle.getBoolean("com.sensorsdata.analytics.android.HeatMap",
                     false);
@@ -464,10 +387,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     protected void applySAConfigOptions() {
         if (mSAConfigOptions.mEnableTrackAppCrash) {
             SensorsDataExceptionHandler.enableAppCrash();
-        }
-
-        if (mSAConfigOptions.mAutoTrackEventType != 0) {
-            this.mAutoTrack = true;
         }
 
         if (mSAConfigOptions.mInvokeLog) {
@@ -504,30 +423,14 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     /**
      * 注册 ActivityLifecycleCallbacks
      */
-    private void registerLifecycleCallbacks() {
+    private void registerLifecycleCallbacks(SensorsDataAPI sensorsDataAPI, Context context) {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-                final Application app = (Application) mInternalConfigs.context.getApplicationContext();
-                app.registerActivityLifecycleCallbacks(AppStateManager.getInstance());
-                mActivityLifecycleCallbacks = new ActivityLifecycleCallbacks((SensorsDataAPI) this, mFirstStart, mInternalConfigs.context);
-                SensorsDataLifecycleMonitorManager.getInstance().addActivityLifeCallback(mActivityLifecycleCallbacks);
-                SensorsDataExceptionHandler.addExceptionListener(mActivityLifecycleCallbacks);
-                FragmentTrackHelper.addFragmentCallbacks(new FragmentViewScreenCallbacks());
-
-                if (mSAConfigOptions.isTrackPageLeave()) {
-                    ActivityPageLeaveCallbacks pageLeaveCallbacks = new ActivityPageLeaveCallbacks(mSAConfigOptions.mIgnorePageLeave);
-                    SensorsDataLifecycleMonitorManager.getInstance().addActivityLifeCallback(pageLeaveCallbacks);
-                    SensorsDataExceptionHandler.addExceptionListener(pageLeaveCallbacks);
-                    if (mSAConfigOptions.isTrackFragmentPageLeave()) {
-                        FragmentPageLeaveCallbacks fragmentPageLeaveCallbacks = new FragmentPageLeaveCallbacks(mSAConfigOptions.mIgnorePageLeave);
-                        FragmentTrackHelper.addFragmentCallbacks(fragmentPageLeaveCallbacks);
-                        SensorsDataExceptionHandler.addExceptionListener(fragmentPageLeaveCallbacks);
-                    }
-                }
-                if (mSAConfigOptions.isEnableTrackPush()) {
-                    SensorsDataLifecycleMonitorManager.getInstance().addActivityLifeCallback(new PushLifecycleCallbacks());
-                }
-                /** 防止并发问题注册一定要在 {@link SensorsDataActivityLifecycleCallbacks#addActivityLifecycleCallbacks(SensorsDataActivityLifecycleCallbacks.SAActivityLifecycleCallbacks)} 之后执行 */
+                final Application app = (Application) context.getApplicationContext();
+                SensorsDataLifecycleMonitorManager.getInstance().addActivityLifeCallback(AppStateTools.getInstance());
+                AppStateTools.getInstance().addAppStateListener(new DefaultAppState(sensorsDataAPI));
+                AppStateTools.getInstance().delayInit(context);
+                /* 防止并发问题注册一定要在 {@link SensorsDataActivityLifecycleCallbacks#addActivityLifecycleCallbacks(SensorsDataActivityLifecycleCallbacks.SAActivityLifecycleCallbacks)} 之后执行 */
                 app.registerActivityLifecycleCallbacks(SensorsDataLifecycleMonitorManager.getInstance().getCallback());
             }
         } catch (Exception e) {
@@ -538,10 +441,10 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     /**
      * 注册 ContentObserver 监听
      */
-    private void registerObserver() {
+    private void registerObserver(Context context) {
         // 注册跨进程业务的 ContentObserver 监听
         SensorsDataContentObserver contentObserver = new SensorsDataContentObserver();
-        ContentResolver contentResolver = mInternalConfigs.context.getContentResolver();
+        ContentResolver contentResolver = context.getContentResolver();
         contentResolver.registerContentObserver(DbParams.getInstance().getSessionTimeUri(), false, contentObserver);
         contentResolver.registerContentObserver(DbParams.getInstance().getLoginIdUri(), false, contentObserver);
         contentResolver.registerContentObserver(DbParams.getInstance().getDisableSDKUri(), false, contentObserver);
@@ -552,12 +455,12 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     /**
      * 延迟初始化任务
      */
-    protected void delayInitTask() {
+    protected void delayInitTask(final Context context) {
         mTrackTaskManager.addTrackEventTask(new Runnable() {
             @Override
             public void run() {
                 try {
-                    registerNetworkListener();
+                    registerNetworkListener(context);
                 } catch (Exception ex) {
                     SALog.printStackTrace(ex);
                 }

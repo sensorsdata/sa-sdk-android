@@ -24,7 +24,7 @@ import android.net.Uri;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.encrypt.SensorsDataEncrypt;
+import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -34,11 +34,8 @@ import java.util.Map;
 
 class EncryptDataOperation extends DataOperation {
 
-    private final SensorsDataEncrypt mSensorsDataEncrypt;
-
-    EncryptDataOperation(Context context, SensorsDataEncrypt sensorsDataEncrypt) {
+    EncryptDataOperation(Context context) {
         super(context);
-        this.mSensorsDataEncrypt = sensorsDataEncrypt;
     }
 
     @Override
@@ -47,7 +44,10 @@ class EncryptDataOperation extends DataOperation {
             if (deleteDataLowMemory(uri) != 0) {
                 return DbParams.DB_OUT_OF_MEMORY_ERROR;
             }
-            jsonObject = mSensorsDataEncrypt.encryptTrackData(jsonObject);
+            JSONObject jsonEncrypt = SAModuleManager.getInstance().invokeEncryptModuleFunction("encryptEventData", jsonObject);
+            if (jsonEncrypt != null) {
+                jsonObject = jsonEncrypt;
+            }
             ContentValues cv = new ContentValues();
             cv.put(DbParams.KEY_DATA, jsonObject.toString() + "\t" + jsonObject.toString().hashCode());
             cv.put(DbParams.KEY_CREATED_AT, System.currentTimeMillis());
@@ -101,7 +101,10 @@ class EncryptDataOperation extends DataOperation {
                         jsonObject = new JSONObject(keyData);
                         boolean isHasEkey = jsonObject.has(EKEY);
                         if (!isHasEkey) { // 如果没有包含 Ekey 字段，则重新进行加密
-                            jsonObject = mSensorsDataEncrypt.encryptTrackData(jsonObject);
+                            JSONObject jsonEncrypt = SAModuleManager.getInstance().invokeEncryptModuleFunction("encryptEventData", jsonObject);
+                            if (jsonEncrypt != null) {
+                                jsonObject = jsonEncrypt;
+                            }
                         }
 
                         if (jsonObject.has(EKEY)) {

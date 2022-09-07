@@ -19,7 +19,7 @@ package com.sensorsdata.analytics.android.sdk.plugin.property;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertiesFetcher;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertyFilter;
 import com.sensorsdata.analytics.android.sdk.plugin.property.impl.InternalCustomPropertyPlugin;
@@ -46,9 +46,9 @@ public final class PropertyPluginManager {
     private final Map<String, SAPropertyPlugin> mPluginMap;
     private List<SAPropertyPlugin> mPluginsList = new ArrayList<>();
 
-    public PropertyPluginManager(SensorsDataAPI sensorsDataAPI, InternalConfigOptions internalConfigOptions) {
+    public PropertyPluginManager(SensorsDataAPI sensorsDataAPI, SAContextManager contextManager) {
         mPluginMap = Collections.synchronizedMap(new LinkedHashMap<String, SAPropertyPlugin>());
-        registerDefaultProperty(sensorsDataAPI, internalConfigOptions);
+        registerDefaultProperty(sensorsDataAPI, contextManager);
     }
 
     /**
@@ -68,20 +68,6 @@ public final class PropertyPluginManager {
             }
         } catch (Exception e) {
             SALog.i(TAG, "register property plugin exception! ", e);
-        }
-    }
-
-    /**
-     * 注册属性插件
-     *
-     * @param plugins 注册属性插件对象
-     */
-    private synchronized void registerPropertyPlugin(List<SAPropertyPlugin> plugins) {
-        if (plugins == null || plugins.size() == 0) {
-            return;
-        }
-        for (SAPropertyPlugin plugin : plugins) {
-            this.registerPropertyPlugin(plugin);
         }
     }
 
@@ -112,6 +98,7 @@ public final class PropertyPluginManager {
             }
             SAPropertiesFetcher saPropertiesFetcher = new SAPropertiesFetcher();
             saPropertiesFetcher.setProperties(filter.getProperties());
+            saPropertiesFetcher.setEventJson(SAPropertyFilter.LIB, filter.getEventJson(SAPropertyFilter.LIB));
             for (SAPropertyPlugin plugin : mPluginsList) {
                 JSONObject filterJson = new JSONObject();
                 JSONUtils.mergeJSONObject(saPropertiesFetcher.getProperties(), filterJson);
@@ -122,7 +109,6 @@ public final class PropertyPluginManager {
                     plugin.properties(saPropertiesFetcher);
                 }
             }
-
             SALog.i(TAG, "SAPropertiesFetcher: %s", saPropertiesFetcher);
             return saPropertiesFetcher;
         } catch (Exception e) {
@@ -141,14 +127,14 @@ public final class PropertyPluginManager {
         return mPluginMap.get(pluginName);
     }
 
-    private void registerDefaultProperty(SensorsDataAPI sensorsDataAPI, InternalConfigOptions internalConfigOptions) {
+    private void registerDefaultProperty(SensorsDataAPI sensorsDataAPI, SAContextManager contextManager) {
         //插件顺序：预置属性插件->公共属性插件->实时获取属性插件->其它模块属性插件->自定义属性插件->设备 ID 属性插件
-        registerPropertyPlugin(new SAPresetPropertyPlugin(internalConfigOptions));
+        registerPropertyPlugin(new SAPresetPropertyPlugin(contextManager));
         registerPropertyPlugin(new SASuperPropertyPlugin(sensorsDataAPI));
         registerPropertyPlugin(new ReferrerTitlePlugin());
-        registerPropertyPlugin(new RealTimePropertyPlugin(internalConfigOptions.context));
+        registerPropertyPlugin(new RealTimePropertyPlugin(contextManager));
         //自定义插件
-        List<SAPropertyPlugin> plugins = internalConfigOptions.saConfigOptions.getPropertyPlugins();
+        List<SAPropertyPlugin> plugins = contextManager.getInternalConfigs().saConfigOptions.getPropertyPlugins();
         if (plugins != null) {
             for (SAPropertyPlugin plugin : plugins) {
                 registerPropertyPlugin(plugin);

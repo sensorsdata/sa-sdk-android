@@ -32,27 +32,15 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
-import com.sensorsdata.analytics.android.sdk.data.persistent.LoginIdKeyPersistent;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppEndData;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentAppExitData;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
-import com.sensorsdata.analytics.android.sdk.data.persistent.UserIdentityPersistent;
 
 import java.io.File;
 
 class SAProviderHelper {
     private ContentResolver contentResolver;
     private SQLiteOpenHelper mDbHelper;
-    private PersistentAppEndData persistentAppEndData;
-    private PersistentAppExitData persistentAppExitData;
-    private PersistentLoginId persistentLoginId;
-    private PersistentRemoteSDKConfig persistentRemoteSDKConfig;
-    private LoginIdKeyPersistent mLoginIdKeyPersistent;
-    private UserIdentityPersistent mUserIdsPersistent;
     private Context mContext;
     private boolean isDbWritable = true;
     private boolean mIsFlushDataState = false;
@@ -65,13 +53,6 @@ class SAProviderHelper {
             this.mDbHelper = dbHelper;
             this.mContext = context;
             contentResolver = context.getContentResolver();
-            PersistentLoader.initLoader(context);
-            persistentAppEndData = (PersistentAppEndData) PersistentLoader.loadPersistent(DbParams.PersistentName.APP_END_DATA);
-            persistentAppExitData = (PersistentAppExitData) PersistentLoader.loadPersistent(DbParams.APP_EXIT_DATA);
-            persistentLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(DbParams.PersistentName.LOGIN_ID);
-            persistentRemoteSDKConfig = (PersistentRemoteSDKConfig) PersistentLoader.loadPersistent(DbParams.PersistentName.REMOTE_CONFIG);
-            mUserIdsPersistent = (UserIdentityPersistent) PersistentLoader.loadPersistent(DbParams.PersistentName.PERSISTENT_USER_ID);
-            mLoginIdKeyPersistent = (LoginIdKeyPersistent) PersistentLoader.loadPersistent(DbParams.PersistentName.PERSISTENT_LOGIN_ID_KEY);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -237,28 +218,28 @@ class SAProviderHelper {
                     mAppStartTime = values.getAsLong(DbParams.TABLE_APP_START_TIME);
                     break;
                 case URI_CODE.APP_EXIT_DATA:
-                    persistentAppExitData.commit(values.getAsString(DbParams.APP_EXIT_DATA));
+                    PersistentLoader.getInstance().getAppExitDataPst().commit(values.getAsString(DbParams.APP_EXIT_DATA));
                     break;
                 case URI_CODE.SESSION_INTERVAL_TIME:
                     mSessionTime = values.getAsInteger(DbParams.TABLE_SESSION_INTERVAL_TIME);
                     contentResolver.notifyChange(uri, null);
                     break;
                 case URI_CODE.LOGIN_ID:
-                    persistentLoginId.commit(values.getAsString(DbParams.PersistentName.LOGIN_ID));
+                    PersistentLoader.getInstance().getLoginIdPst().commit(values.getAsString(DbParams.PersistentName.LOGIN_ID));
                     contentResolver.notifyChange(uri, null);
                     break;
                 case URI_CODE.FLUSH_DATA:
                     mIsFlushDataState = values.getAsBoolean(DbParams.PersistentName.SUB_PROCESS_FLUSH_DATA);
                     break;
                 case URI_CODE.REMOTE_CONFIG:
-                    persistentRemoteSDKConfig.commit(values.getAsString(DbParams.PersistentName.REMOTE_CONFIG));
+                    PersistentLoader.getInstance().getRemoteSDKConfig().commit(values.getAsString(DbParams.PersistentName.REMOTE_CONFIG));
                     break;
                 case URI_CODE.USER_IDENTITY_ID:
-                    mUserIdsPersistent.commit(values.getAsString(DbParams.PersistentName.PERSISTENT_USER_ID));
+                    PersistentLoader.getInstance().getUserIdsPst().commit(values.getAsString(DbParams.PersistentName.PERSISTENT_USER_ID));
                     contentResolver.notifyChange(uri, null);
                     break;
                 case URI_CODE.LOGIN_ID_KEY:
-                    mLoginIdKeyPersistent.commit(values.getAsString(DbParams.PersistentName.PERSISTENT_LOGIN_ID_KEY));
+                    PersistentLoader.getInstance().getLoginIdKeyPst().commit(values.getAsString(DbParams.PersistentName.PERSISTENT_LOGIN_ID_KEY));
                     break;
                 case URI_CODE.PUSH_ID_KEY:
                     SAStoreManager.getInstance().setString(values.getAsString(DbParams.PUSH_ID_KEY),
@@ -320,10 +301,10 @@ class SAProviderHelper {
                     column = DbParams.TABLE_APP_START_TIME;
                     break;
                 case URI_CODE.APP_EXIT_DATA:
-                    String exitData = persistentAppExitData.get();
+                    String exitData = PersistentLoader.getInstance().getAppExitDataPst().get();
                     if(TextUtils.isEmpty(exitData)) {
-                        exitData = persistentAppEndData.get();
-                        persistentAppEndData.remove();
+                        exitData = PersistentLoader.getInstance().getAppEndDataPst().get();
+                        PersistentLoader.getInstance().getAppEndDataPst().remove();
                     }
                     data = exitData;
                     column = DbParams.APP_EXIT_DATA;
@@ -333,7 +314,7 @@ class SAProviderHelper {
                     column = DbParams.TABLE_SESSION_INTERVAL_TIME;
                     break;
                 case URI_CODE.LOGIN_ID:
-                    data = persistentLoginId.get();
+                    data = PersistentLoader.getInstance().getLoginIdPst().get();
                     column = DbParams.PersistentName.LOGIN_ID;
                     break;
                 case URI_CODE.FLUSH_DATA:
@@ -341,14 +322,14 @@ class SAProviderHelper {
                     column = DbParams.PersistentName.SUB_PROCESS_FLUSH_DATA;
                     break;
                 case URI_CODE.REMOTE_CONFIG:
-                    data = persistentRemoteSDKConfig.get();
+                    data = PersistentLoader.getInstance().getRemoteSDKConfig().get();
                     break;
                 case URI_CODE.USER_IDENTITY_ID:
-                    data = mUserIdsPersistent.get();
+                    data = PersistentLoader.getInstance().getUserIdsPst().get();
                     column = DbParams.PersistentName.PERSISTENT_USER_ID;
                     break;
                 case URI_CODE.LOGIN_ID_KEY:
-                    data = mLoginIdKeyPersistent.get();
+                    data = PersistentLoader.getInstance().getLoginIdKeyPst().get();
                     column = DbParams.PersistentName.PERSISTENT_LOGIN_ID_KEY;
                     break;
                 case URI_CODE.PUSH_ID_KEY:

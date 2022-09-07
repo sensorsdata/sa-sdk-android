@@ -23,25 +23,54 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 
 public class PersistentLoader {
-
-    private static volatile PersistentLoader instance;
-    private static Context context;
+    private final Context mContext;
+    private volatile static PersistentLoader INSTANCE;
+    private final PersistentAppEndData mAppEndDataPst;
+    private final PersistentAppExitData mAppExitDataPst;
+    private final PersistentLoginId mLoginIdPst;
+    private final PersistentDistinctId mAnonymousIdPst;
+    private final PersistentRemoteSDKConfig mRemoteSDKConfig;
+    private final LoginIdKeyPersistent mLoginIdKeyPst;
+    private final UserIdentityPersistent mUserIdsPst;
+    private final PersistentFirstStart mFirstStartPst;
+    private final PersistentFirstDay mFirstDayPst;
+    private final PersistentSuperProperties mSuperPropertiesPst;
+    private final PersistentVisualConfig mVisualConfigPst;
+    private final PersistentFirstTrackInstallation mFirstInstallationPst;
+    private final PersistentFirstTrackInstallationWithCallback mFirstInstallationWithCallbackPst;
 
     private PersistentLoader(Context context) {
-        PersistentLoader.context = context.getApplicationContext();
+        this.mContext = context.getApplicationContext();
+        mAppEndDataPst = (PersistentAppEndData) loadPersistent(DbParams.PersistentName.APP_END_DATA);
+        mAppExitDataPst = (PersistentAppExitData) loadPersistent(DbParams.APP_EXIT_DATA);
+        mLoginIdPst = (PersistentLoginId) loadPersistent(DbParams.PersistentName.LOGIN_ID);
+        mRemoteSDKConfig = (PersistentRemoteSDKConfig) loadPersistent(DbParams.PersistentName.REMOTE_CONFIG);
+        mUserIdsPst = (UserIdentityPersistent) loadPersistent(DbParams.PersistentName.PERSISTENT_USER_ID);
+        mLoginIdKeyPst = (LoginIdKeyPersistent) loadPersistent(DbParams.PersistentName.PERSISTENT_LOGIN_ID_KEY);
+        mAnonymousIdPst = (PersistentDistinctId) loadPersistent(DbParams.PersistentName.DISTINCT_ID);
+        mFirstStartPst = (PersistentFirstStart) loadPersistent(DbParams.PersistentName.FIRST_START);
+        mFirstDayPst = (PersistentFirstDay) loadPersistent(DbParams.PersistentName.FIRST_DAY);
+        mSuperPropertiesPst = (PersistentSuperProperties) loadPersistent(DbParams.PersistentName.SUPER_PROPERTIES);
+        mVisualConfigPst = (PersistentVisualConfig) loadPersistent(DbParams.PersistentName.VISUAL_PROPERTIES);
+        mFirstInstallationPst = (PersistentFirstTrackInstallation) loadPersistent(DbParams.PersistentName.FIRST_INSTALL);
+        mFirstInstallationWithCallbackPst = (PersistentFirstTrackInstallationWithCallback) loadPersistent(DbParams.PersistentName.FIRST_INSTALL_CALLBACK);
     }
 
-    public static PersistentLoader initLoader(Context context) {
-        if (instance == null) {
-            instance = new PersistentLoader(context);
+    public static void preInit(Context context) {
+        if (INSTANCE == null) {
+            synchronized (PersistentLoader.class) {
+                if (INSTANCE == null) {
+                    INSTANCE = new PersistentLoader(context);
+                }
+            }
         }
-        return instance;
     }
 
-    public static PersistentIdentity<?> loadPersistent(String persistentKey) {
-        if (instance == null) {
-            throw new RuntimeException("you should call 'PersistentLoader.initLoader(Context)' first");
-        }
+    public static PersistentLoader getInstance() {
+        return INSTANCE;
+    }
+
+    private PersistentIdentity<?> loadPersistent(String persistentKey) {
         if (TextUtils.isEmpty(persistentKey)) {
             return null;
         }
@@ -49,7 +78,7 @@ public class PersistentLoader {
             case DbParams.PersistentName.APP_END_DATA:
                 return new PersistentAppEndData();
             case DbParams.PersistentName.DISTINCT_ID:
-                return new PersistentDistinctId(context);
+                return new PersistentDistinctId(mContext);
             case DbParams.PersistentName.FIRST_DAY:
                 return new PersistentFirstDay();
             case DbParams.PersistentName.FIRST_INSTALL:
@@ -75,5 +104,57 @@ public class PersistentLoader {
             default:
                 return null;
         }
+    }
+
+    public PersistentAppEndData getAppEndDataPst() {
+        return mAppEndDataPst;
+    }
+
+    public PersistentAppExitData getAppExitDataPst() {
+        return mAppExitDataPst;
+    }
+
+    public PersistentLoginId getLoginIdPst() {
+        return mLoginIdPst;
+    }
+
+    public PersistentDistinctId getAnonymousIdPst() {
+        return mAnonymousIdPst;
+    }
+
+    public PersistentRemoteSDKConfig getRemoteSDKConfig() {
+        return mRemoteSDKConfig;
+    }
+
+    public LoginIdKeyPersistent getLoginIdKeyPst() {
+        return mLoginIdKeyPst;
+    }
+
+    public UserIdentityPersistent getUserIdsPst() {
+        return mUserIdsPst;
+    }
+
+    public PersistentFirstStart getFirstStartPst() {
+        return mFirstStartPst;
+    }
+
+    public PersistentFirstDay getFirstDayPst() {
+        return mFirstDayPst;
+    }
+
+    public PersistentSuperProperties getSuperPropertiesPst() {
+        return mSuperPropertiesPst;
+    }
+
+    public PersistentVisualConfig getVisualConfigPst() {
+        return mVisualConfigPst;
+    }
+
+    public PersistentFirstTrackInstallation getFirstInstallationPst() {
+        return mFirstInstallationPst;
+    }
+
+    public PersistentFirstTrackInstallationWithCallback getFirstInstallationWithCallbackPst() {
+        return mFirstInstallationWithCallbackPst;
     }
 }

@@ -31,7 +31,7 @@ import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
 import com.sensorsdata.analytics.android.sdk.remote.SensorsDataRemoteManagerDebug;
-import com.sensorsdata.analytics.android.sdk.visual.SAVisual;
+import com.sensorsdata.analytics.android.sdk.core.mediator.visual.SAVisual;
 
 public class SASchemeHelper {
 
@@ -84,21 +84,9 @@ public class SASchemeHelper {
                     SensorsDataDialogUtils.showPopupWindowDialog(activity, uri);
                     intent.setData(null);
                 } else if ("encrypt".equals(host)) {
-                    String version = uri.getQueryParameter("v");
-                    String key = Uri.decode(uri.getQueryParameter("key"));
-                    String symmetricEncryptType = Uri.decode(uri.getQueryParameter("symmetricEncryptType"));
-                    String asymmetricEncryptType = Uri.decode(uri.getQueryParameter("asymmetricEncryptType"));
-                    SALog.i(TAG, "Encrypt, version = " + version
-                            + ", key = " + key
-                            + ", symmetricEncryptType = " + symmetricEncryptType
-                            + ", asymmetricEncryptType = " + asymmetricEncryptType);
-                    String tip;
-                    if (TextUtils.isEmpty(version) || TextUtils.isEmpty(key)) {
-                        tip = SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_encrypt_fail);
-                    } else if (sensorsDataAPI.getSensorsDataEncrypt() != null) {
-                        tip = sensorsDataAPI.getSensorsDataEncrypt().checkPublicSecretKey(activity, version, key, symmetricEncryptType, asymmetricEncryptType);
-                    } else {
-                        tip = SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_encrypt_disable);
+                    String tip = SAModuleManager.getInstance().invokeEncryptModuleFunction("verifySecretKey", uri);
+                    if (TextUtils.isEmpty(tip)) {
+                        tip = "未检测到加密模块库，请集成加密模块库后重试";
                     }
                     ToastUtil.showLong(activity, tip);
                     SensorsDataDialogUtils.startLaunchActivity(activity);
@@ -120,7 +108,7 @@ public class SASchemeHelper {
                         sensorsDataSDKRemoteManager.resetPullSDKConfigTimer();
                     }
                     final SensorsDataRemoteManagerDebug sensorsDataRemoteManagerDebug =
-                            new SensorsDataRemoteManagerDebug(sensorsDataAPI);
+                            new SensorsDataRemoteManagerDebug(sensorsDataAPI, activity.getBaseContext());
                     // replace SensorsDataRemoteManagerDebug object
                     sensorsDataAPI.getSAContextManager().setRemoteManager(sensorsDataRemoteManagerDebug);
                     SALog.i(TAG, "Start debugging remote config");

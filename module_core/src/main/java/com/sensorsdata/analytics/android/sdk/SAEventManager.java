@@ -38,12 +38,7 @@ public class SAEventManager {
     }
 
     public void trackEvent(InputData inputData) {
-        SensorsDataAPI sensorsDataAPI = SensorsDataAPI.sharedInstance();
-        if (sensorsDataAPI instanceof SensorsDataAPIEmptyImplementation) {
-            SALog.i(TAG, "SensorsDataAPI instance is Empty in trackEvent method");
-            return;
-        }
-        sensorsDataAPI.getSAContextManager().trackEvent(inputData);
+        SensorsDataAPI.sharedInstance().getSAContextManager().trackEvent(inputData);
     }
 
     public void trackQueueEvent(Runnable runnable) {

@@ -17,8 +17,8 @@
 
 package com.sensorsdata.analytics.android.sdk.advert.plugin;
 
-import com.sensorsdata.analytics.android.sdk.advert.deeplink.DeepLinkManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.advert.deeplink.DeepLinkManager;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertiesFetcher;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertyFilter;

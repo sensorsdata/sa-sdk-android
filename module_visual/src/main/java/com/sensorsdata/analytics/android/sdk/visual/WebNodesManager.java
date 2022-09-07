@@ -24,7 +24,7 @@ import android.util.LruCache;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.visual.model.WebNode;
 import com.sensorsdata.analytics.android.sdk.visual.model.WebNodeInfo;
-import com.sensorsdata.analytics.android.sdk.visual.util.Dispatcher;
+import com.sensorsdata.analytics.android.sdk.visual.utils.Dispatcher;
 
 import org.json.JSONArray;
 import org.json.JSONException;

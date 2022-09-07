@@ -23,6 +23,7 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataGPSLocation;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertiesFetcher;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertyFilter;
@@ -32,11 +33,12 @@ import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
  * 需要实时获取的属性插件
  */
 public class RealTimePropertyPlugin extends SAPropertyPlugin {
-
+    SAContextManager mContextManager;
     Context mContext;
 
-    public RealTimePropertyPlugin(Context context) {
-        mContext = context;
+    public RealTimePropertyPlugin(SAContextManager saContextManager) {
+        mContext = saContextManager.getContext();
+        mContextManager = saContextManager;
     }
 
     @Override
@@ -51,7 +53,7 @@ public class RealTimePropertyPlugin extends SAPropertyPlugin {
             String networkType = NetworkUtils.networkType(mContext);
             fetcher.getProperties().put("$wifi", "WIFI".equals(networkType));
             fetcher.getProperties().put("$network_type", networkType);
-            SensorsDataGPSLocation location = SensorsDataAPI.sharedInstance().getInternalConfigs().gpsLocation;
+            SensorsDataGPSLocation location = mContextManager.getInternalConfigs().gpsLocation;
             if (location != null) {
                 location.toJSON(fetcher.getProperties());
             }

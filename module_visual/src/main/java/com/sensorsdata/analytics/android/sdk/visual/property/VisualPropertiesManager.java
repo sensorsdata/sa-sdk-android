@@ -24,16 +24,15 @@ import android.text.TextUtils;
 import android.view.View;
 
 import com.sensorsdata.analytics.android.sdk.AopConstants;
-import com.sensorsdata.analytics.android.sdk.AppStateManager;
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
-import com.sensorsdata.analytics.android.sdk.util.AopUtil;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
+import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
 import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
-import com.sensorsdata.analytics.android.sdk.util.ViewUtil;
-import com.sensorsdata.analytics.android.sdk.visual.ViewTreeStatusObservable;
+import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
+import com.sensorsdata.analytics.android.sdk.visual.core.ViewTreeStatusObservable;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 import com.sensorsdata.analytics.android.sdk.visual.model.VisualConfig;
 
@@ -76,31 +75,19 @@ public class VisualPropertiesManager {
         private static final VisualPropertiesManager INSTANCE = new VisualPropertiesManager();
     }
 
-    public void requestVisualConfig(Context context, boolean isNetworkRequestEnable) {
+    public void requestVisualConfig(SAContextManager contextManager) {
         SALog.i(TAG, "requestVisualConfig");
         try {
-            if (!isNetworkRequestEnable) {
+            if (contextManager == null || !contextManager.getSensorsDataAPI().isNetworkRequestEnable() || SensorsDataAPI.isSDKDisabled()) {
                 SALog.i(TAG, "Close network request");
                 return;
             }
-            mRequestHelper.requestVisualConfig(context, getVisualConfigVersion(), new VisualConfigRequestHelper.IApiCallback() {
+            mRequestHelper.requestVisualConfig(contextManager.getContext(), getVisualConfigVersion(), new VisualConfigRequestHelper.IApiCallback() {
                 @Override
                 public void onSuccess(String message) {
                     save2Cache(message);
                 }
             });
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-    }
-
-    public void requestVisualConfig() {
-        try {
-            SensorsDataAPI sensorsDataAPI = SensorsDataAPI.sharedInstance();
-            InternalConfigOptions internalConfigOptions = sensorsDataAPI.getInternalConfigs();
-            if (internalConfigOptions != null && internalConfigOptions.context != null) {
-                requestVisualConfig(internalConfigOptions.context, sensorsDataAPI.isNetworkRequestEnable());
-            }
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -205,11 +192,11 @@ public class VisualPropertiesManager {
             if (viewNode != null) {
                 WeakReference<View> view = viewNode.getView();
                 if (view != null && view.get() != null) {
-                    activity = AopUtil.getActivityFromContext(view.get().getContext(), view.get());
+                    activity = SAViewUtils.getActivityOfView(view.get().getContext(), view.get());
                 }
             }
             if (activity == null) {
-                activity = AppStateManager.getInstance().getForegroundActivity();
+                activity = AppStateTools.getInstance().getForegroundActivity();
             }
             if (!(activity != null && SensorsDataAPI.sharedInstance().isVisualizedAutoTrackActivity(activity.getClass()))) {
                 SALog.i(TAG, "activity is null or not in white list and return");
@@ -223,14 +210,14 @@ public class VisualPropertiesManager {
             if (mVisualConfig == null) {
                 SALog.i(TAG, "visual properties is empty and return");
                 if (mCollectLogListener != null) {
-                    mCollectLogListener.onCheckVisualConfigFailure(SADisplayUtil.getStringResource(SensorsDataAPI.sharedInstance().getInternalConfigs().context, R.string.sensors_analytics_visual_cache_no_property_error));
+                    mCollectLogListener.onCheckVisualConfigFailure(SADisplayUtil.getStringResource(SensorsDataAPI.sharedInstance().getSAContextManager().getContext(), R.string.sensors_analytics_visual_cache_no_property_error));
                 }
                 return;
             }
 
             if (!checkAppIdAndProject()) {
                 if (mCollectLogListener != null) {
-                    mCollectLogListener.onCheckVisualConfigFailure(SADisplayUtil.getStringResource(SensorsDataAPI.sharedInstance().getInternalConfigs().context, R.string.sensors_analytics_visual_appid_error));
+                    mCollectLogListener.onCheckVisualConfigFailure(SADisplayUtil.getStringResource(SensorsDataAPI.sharedInstance().getSAContextManager().getContext(), R.string.sensors_analytics_visual_appid_error));
                 }
                 return;
             }
@@ -333,7 +320,7 @@ public class VisualPropertiesManager {
         // 校验当前 project 和 appId
         Uri uri = Uri.parse(serverUrl);
         String project = uri.getQueryParameter("project");
-        Context context = SensorsDataAPI.sharedInstance().getInternalConfigs().context;
+        Context context = SensorsDataAPI.sharedInstance().getSAContextManager().getContext();
         String appId = AppInfoUtils.getProcessName(context);
         if (TextUtils.isEmpty(project) || TextUtils.isEmpty(appId)) {
             SALog.i(TAG, "project or app_id is empty and return");
@@ -414,7 +401,7 @@ public class VisualPropertiesManager {
                     }
                     if (targetView != null && targetView.get() != null) {
                         // 为保证获取到的 element_content 是最新的，这里从 view 引用再次获取
-                        propertyElementContent = ViewUtil.getViewContentAndType(targetView.get(), true).getViewContent();
+                        propertyElementContent = SAViewUtils.getViewContent(targetView.get(), true);
                     }
                 }
             } catch (Exception e) {

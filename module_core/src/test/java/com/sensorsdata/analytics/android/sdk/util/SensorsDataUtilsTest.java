@@ -20,11 +20,8 @@ package com.sensorsdata.analytics.android.sdk.util;
 import android.Manifest;
 import android.app.Activity;
 import android.app.Application;
-import android.widget.Button;
 
 import androidx.test.core.app.ApplicationProvider;
-
-import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -43,7 +40,7 @@ public class SensorsDataUtilsTest {
 
     @Test
     public void getCarrier() {
-        String carrier = SensorsDataUtils.getCarrier(mApplication);
+        String carrier = SensorsDataUtils.getOperator(mApplication);
         System.out.println("carrier = " + carrier);
     }
 
@@ -64,20 +61,54 @@ public class SensorsDataUtilsTest {
     }
 
     @Test
+    public void mergeJSONObject() {
+        JSONObject source = new JSONObject();
+        JSONObject dest = new JSONObject();
+        try {
+            source.put("s1", "s1");
+            source.put("s2", "s2");
+            source.put("s3", "s3");
+            JSONUtils.mergeJSONObject(source, dest);
+            Assert.assertEquals(3, dest.length());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void mergeSuperJSONObject() {
+        JSONObject source = new JSONObject();
+        JSONObject dest = new JSONObject();
+        try {
+            source.put("s1", "s1");
+            source.put("s2", "s2");
+            source.put("s3", "s3");
+            dest.put("s1", "d1");
+            source.put("d3", "d3");
+            JSONObject result = JSONUtils.mergeSuperJSONObject(dest, source);
+            Assert.assertEquals(4, result.length());
+            Assert.assertEquals("d1", result.opt("s1"));
+            Assert.assertEquals("s2", result.opt("s2"));
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
     public void checkHasPermission() {
         Assert.assertTrue(SensorsDataUtils.checkHasPermission(mApplication, Manifest.permission.READ_PHONE_STATE));
         Assert.assertTrue(SensorsDataUtils.checkHasPermission(mApplication, Manifest.permission.ACCESS_WIFI_STATE));
     }
 
     @Test
-    public void getIMEI() {
-        String carrier = SensorsDataUtils.getIMEI(mApplication);
+    public void getInternationalIdentifier() {
+        String carrier = SensorsDataUtils.getInternationalIdentifier(mApplication);
         System.out.println("IMEI = " + carrier);
     }
 
     @Test
-    public void getIMEIOld() {
-        String carrier = SensorsDataUtils.getIMEIOld(mApplication);
+    public void getInternationalIdOld() {
+        String carrier = SensorsDataUtils.getInternationalIdOld(mApplication);
         System.out.println("IMEIOld = " + carrier);
     }
 
@@ -88,20 +119,20 @@ public class SensorsDataUtilsTest {
     }
 
     @Test
-    public void getMEID() {
-        String meid = SensorsDataUtils.getMEID(mApplication);
+    public void getEquipmentIdentifier() {
+        String meid = SensorsDataUtils.getEquipmentIdentifier(mApplication);
         System.out.println("meid = " + meid);
     }
 
     @Test
-    public void getAndroidID() {
-        String androidID = SensorsDataUtils.getAndroidID(mApplication);
+    public void getIdentifier() {
+        String androidID = SensorsDataUtils.getIdentifier(mApplication);
         System.out.println("androidID = " + androidID);
     }
 
     @Test
-    public void getMacAddress() {
-        String macAddress = SensorsDataUtils.getMacAddress(mApplication);
+    public void getMediaAddress() {
+        String macAddress = SensorsDataUtils.getMediaAddress(mApplication);
         System.out.println("macAddress = " + macAddress);
     }
 
@@ -115,31 +146,7 @@ public class SensorsDataUtilsTest {
         Assert.assertTrue(SensorsDataUtils.checkVersionIsNew(mApplication, "15.1.0-pre"));
     }
 
-    @Test
-    public void isDoubleClick() {
-        Button button = new Button(mApplication);
-        Assert.assertFalse(SensorsDataUtils.isDoubleClick(button));
-        Assert.assertTrue(SensorsDataUtils.isDoubleClick(button));
-    }
+    static class TestActivity extends Activity{
 
-    @Test
-    public void getScreenUrl() {
-        TestActivity activity = Robolectric.setupActivity(TestActivity.class);
-        String url = SensorsDataUtils.getScreenUrl(activity);
-        Assert.assertEquals("UnitTestActivityUrl", url);
-    }
-
-
-    static class TestActivity extends Activity implements ScreenAutoTracker {
-
-        @Override
-        public String getScreenUrl() {
-            return "UnitTestActivityUrl";
-        }
-
-        @Override
-        public JSONObject getTrackProperties() throws JSONException {
-            return null;
-        }
     }
 }

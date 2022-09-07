@@ -22,8 +22,8 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
-import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertiesFetcher;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertyFilter;
@@ -47,10 +47,10 @@ public final class SAPresetPropertyPlugin extends SAPropertyPlugin {
     private final boolean mDisableAndroidId;
     private JSONObject presetProperty;
 
-    public SAPresetPropertyPlugin(InternalConfigOptions internalConfigOptions) {
-        this.mContext = internalConfigOptions.context;
-        this.mDisableTrackDeviceId = internalConfigOptions.isTrackDeviceId;
-        this.mDisableAndroidId = internalConfigOptions.saConfigOptions.isDisableDeviceId();
+    public SAPresetPropertyPlugin(SAContextManager contextManager) {
+        this.mContext = contextManager.getContext();
+        this.mDisableTrackDeviceId = contextManager.getInternalConfigs().isTrackDeviceId;
+        this.mDisableAndroidId = contextManager.getInternalConfigs().saConfigOptions.isDisableDeviceId();
     }
 
     @Override
@@ -63,16 +63,24 @@ public final class SAPresetPropertyPlugin extends SAPropertyPlugin {
     public void properties(SAPropertiesFetcher saPropertiesFetcher) {
         try {
             JSONObject jsonObject = getPresetProperties();
-            presetProperty = new JSONObject(jsonObject.toString());
             //之前可能会因为没有权限无法获取运营商信息，检测再次获取
-            if (TextUtils.isEmpty(presetProperty.optString("$carrier"))) {
-                String carrier = SensorsDataUtils.getCarrier(mContext);
+            if (TextUtils.isEmpty(jsonObject.optString("$carrier"))) {
+                String carrier = SensorsDataUtils.getOperator(mContext);
                 if (!TextUtils.isEmpty(carrier)) {
-                    presetProperty.put("$carrier", carrier);
+                    jsonObject.put("$carrier", carrier);
                 }
             }
-
-            JSONUtils.mergeJSONObject(presetProperty, saPropertiesFetcher.getProperties());
+            // 防止覆盖客户自己传递的，SDK 内部有补发的 $AppEnd 场景
+            if (saPropertiesFetcher.getProperties().has("$lib_version")) {
+                jsonObject.remove("$lib_version");
+            }
+            if (saPropertiesFetcher.getProperties().has("$lib")) {
+                jsonObject.remove("$lib");
+            }
+            if (saPropertiesFetcher.getProperties().has("$app_version")) {
+                jsonObject.remove("$app_version");
+            }
+            JSONUtils.mergeJSONObject(jsonObject, saPropertiesFetcher.getProperties());
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -100,7 +108,7 @@ public final class SAPresetPropertyPlugin extends SAPropertyPlugin {
             properties.put("$screen_width", size[0]);
             properties.put("$screen_height", size[1]);
 
-            String carrier = SensorsDataUtils.getCarrier(mContext);
+            String carrier = SensorsDataUtils.getOperator(mContext);
             if (!TextUtils.isEmpty(carrier)) {
                 properties.put("$carrier", carrier);
             }
@@ -112,7 +120,7 @@ public final class SAPresetPropertyPlugin extends SAPropertyPlugin {
 
             properties.put("$app_id", AppInfoUtils.getProcessName(mContext));
             properties.put("$app_name", AppInfoUtils.getAppName(mContext));
-            String mAndroidId = SensorsDataUtils.getAndroidID(mContext);
+            String mAndroidId = SensorsDataUtils.getIdentifier(mContext);
             if (!mDisableTrackDeviceId && !TextUtils.isEmpty(mAndroidId)) {
                 if (mDisableAndroidId) {
                     properties.put("$anonymization_id", Base64Coder.encodeString(mAndroidId));

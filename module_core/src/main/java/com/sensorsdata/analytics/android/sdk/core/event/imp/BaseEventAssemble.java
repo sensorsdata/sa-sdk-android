@@ -26,7 +26,7 @@ import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.monitor.TrackMonitor;
-import com.sensorsdata.analytics.android.sdk.util.SAContextManager;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
 import org.json.JSONException;
@@ -40,8 +40,8 @@ public abstract class BaseEventAssemble implements EventProcessor.IAssembleData 
     private static final String TAG = "SA.BaseEventAssemble";
     protected InternalConfigOptions mInternalConfigs;
 
-    public BaseEventAssemble(InternalConfigOptions internalConfigs) {
-        this.mInternalConfigs = internalConfigs;
+    public BaseEventAssemble(SAContextManager saContextManager) {
+        this.mInternalConfigs = saContextManager.getInternalConfigs();
     }
 
     protected void appendSessionId(EventType eventType, TrackEvent trackEvent) {
@@ -55,8 +55,6 @@ public abstract class BaseEventAssemble implements EventProcessor.IAssembleData 
     }
 
     /**
-     * handle TrackEventCallback
-     *
      * @param eventType EventType
      * @param trackEvent TrackEvent
      * @return true enter db, false is ignored

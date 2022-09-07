@@ -21,19 +21,20 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.core.business.timer.EventTimer;
 import com.sensorsdata.analytics.android.sdk.core.business.timer.EventTimerManager;
 import com.sensorsdata.analytics.android.sdk.core.event.Event;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.core.event.TrackEvent;
-import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
-import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
+import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertiesFetcher;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertyFilter;
 import com.sensorsdata.analytics.android.sdk.plugin.property.impl.InternalCustomPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
-import com.sensorsdata.analytics.android.sdk.util.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 
 import org.json.JSONException;
@@ -43,9 +44,10 @@ import java.security.SecureRandom;
 
 class TrackEventAssemble extends BaseEventAssemble {
     private static final String TAG = "SA.TrackEventAssemble";
-
-    public TrackEventAssemble(InternalConfigOptions internalConfigs) {
-        super(internalConfigs);
+    private final SAContextManager mContextManager;
+    public TrackEventAssemble(SAContextManager saContextManager) {
+        super(saContextManager);
+        mContextManager = saContextManager;
     }
 
     @Override
@@ -57,8 +59,7 @@ class TrackEventAssemble extends BaseEventAssemble {
                 properties = new JSONObject();
             }
 
-            SensorsDataAPI sensorsDataAPI = SensorsDataAPI.sharedInstance();
-            if (isEventIgnore(input.getEventName(), eventType, sensorsDataAPI.getSAContextManager())) {
+            if (isEventIgnore(input.getEventName(), eventType, mContextManager)) {
                 return null;
             }
 
@@ -66,18 +67,17 @@ class TrackEventAssemble extends BaseEventAssemble {
             trackEvent.setProperties(properties);
             appendDefaultProperty(input, trackEvent);
             appendEventDuration(trackEvent);
-            appendLibProperty(eventType, trackEvent, sensorsDataAPI);
-            handleSpecialEvent(trackEvent);
-            appendUserIDs(eventType, trackEvent, sensorsDataAPI);
+            appendLibProperty(eventType, trackEvent);
+            appendUserIDs(eventType, trackEvent);
             appendSessionId(eventType, trackEvent);
-            appendPluginProperties(eventType, properties, trackEvent, sensorsDataAPI.getSAContextManager());
+            appendPluginProperties(eventType, input.getProperties(), trackEvent);
             handlePropertyProtocols(trackEvent);
             if (!handleEventCallback(eventType, trackEvent)) {
                 return null;
             }
             appendPluginVersion(eventType, trackEvent);
             SADataHelper.assertPropertyTypes(trackEvent.getProperties());
-            handleEventListener(eventType, trackEvent, sensorsDataAPI.getSAContextManager());
+            handleEventListener(eventType, trackEvent, mContextManager);
             if (SALog.isLogEnabled()) {
                 SALog.i(TAG, "track event:\n" + JSONUtils.formatJson(trackEvent.toJSONObject().toString()));
             }
@@ -132,7 +132,7 @@ class TrackEventAssemble extends BaseEventAssemble {
         }
     }
 
-    private void appendLibProperty(EventType eventType, TrackEvent trackEvent, SensorsDataAPI sensorsDataAPI) throws JSONException {
+    private void appendLibProperty(EventType eventType, TrackEvent trackEvent) throws JSONException {
         JSONObject libProperties = new JSONObject();
         JSONObject propertyJson = trackEvent.getProperties();
         String libDetail = null;
@@ -157,20 +157,20 @@ class TrackEventAssemble extends BaseEventAssemble {
             }
         }
         libProperties.put("$lib", "Android");
-        libProperties.put("$lib_version", SensorsDataAPI.sharedInstance().getSDKVersion());
-        libProperties.put("$app_version", AppInfoUtils.getAppVersionName(mInternalConfigs.context));
+        libProperties.put("$lib_version", mContextManager.getSensorsDataAPI().getSDKVersion());
+        libProperties.put("$app_version", AppInfoUtils.getAppVersionName(mContextManager.getContext()));
         //update lib $app_version from super properties
-        JSONObject superProperties = sensorsDataAPI.getSAContextManager().getSuperProperties().get();
+        JSONObject superProperties = PersistentLoader.getInstance().getSuperPropertiesPst().get();
         if (superProperties != null) {
             if (superProperties.has("$app_version")) {
                 libProperties.put("$app_version", superProperties.get("$app_version"));
             }
         }
 
-        if (sensorsDataAPI.isAutoTrackEnabled()
+        if (mContextManager.getSensorsDataAPI().isAutoTrackEnabled()
                 && propertyJson != null && isAutoTrackType(trackEvent.getEventName())) {
             SensorsDataAPI.AutoTrackEventType trackEventType = autoTrackEventTypeFromEventName(trackEvent.getEventName());
-            if (trackEventType != null && !sensorsDataAPI.isAutoTrackEventTypeIgnored(trackEventType)
+            if (trackEventType != null && !mContextManager.getSensorsDataAPI().isAutoTrackEventTypeIgnored(trackEventType)
                     && trackEvent.getProperties().has("$screen_name")) {
                 String screenName = propertyJson.getString("$screen_name");
                 if (!TextUtils.isEmpty(screenName)) {
@@ -197,69 +197,31 @@ class TrackEventAssemble extends BaseEventAssemble {
         trackEvent.setProperties(propertyJson);
     }
 
-    private void handleSpecialEvent(TrackEvent trackEvent) {
-        if (trackEvent.getProperties() == null) {
-            return;
-        }
-
-        try {
-            JSONObject properties = trackEvent.getProperties();
-            //  handle $AppStart、$AppEnd
-            if ("$AppEnd".equals(trackEvent.getEventName())) {
-                long appEndTime = properties.optLong("event_time");
-                // 退出时间戳不合法不使用，2000 为打点间隔时间戳
-                if (appEndTime > 2000) {
-                    trackEvent.setTime(appEndTime);
-                }
-                String appEnd_lib_version = properties.optString("$lib_version");
-                if (!TextUtils.isEmpty(appEnd_lib_version)) {
-                    trackEvent.getLib().put("$lib_version", appEnd_lib_version);
-                } else {
-                    properties.remove("$lib_version");
-                }
-
-                String appEnd_app_version = properties.optString("$app_version");
-                if (TextUtils.isEmpty(appEnd_app_version)) {
-                    properties.remove("$app_version");
-                } else {
-                    trackEvent.getLib().put("$app_version", appEnd_app_version);
-                }
-
-                properties.remove("event_time");
-            } else if ("$AppStart".equals(trackEvent.getEventName())) {
-                long appStartTime = properties.optLong("event_time");
-                if (appStartTime > 0) {
-                    trackEvent.setTime(appStartTime);
-                }
-                properties.remove("event_time");
-            }
-            trackEvent.setProperties(properties);
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-    }
-
-    private void appendPluginProperties(EventType eventType, JSONObject properties, TrackEvent trackEvent, SAContextManager contextManager) throws JSONException {
+    private void appendPluginProperties(EventType eventType, JSONObject properties, TrackEvent trackEvent) throws JSONException {
         SAPropertyFilter filter = new SAPropertyFilter();
         filter.setEvent(trackEvent.getEventName());
         filter.setTime(trackEvent.getTime());
-        filter.setEventJson(SAPropertyFilter.LIB, new JSONObject(trackEvent.getLib().toString()));
+        filter.setEventJson(SAPropertyFilter.LIB, trackEvent.getLib());
         filter.setEventJson(SAPropertyFilter.IDENTITIES, new JSONObject(trackEvent.getIdentities().toString()));
         filter.setProperties(trackEvent.getProperties());
         filter.setType(eventType);
         // custom properties from user
-        SAPropertyPlugin customPlugin = contextManager.getPluginManager().getPropertyPlugin(InternalCustomPropertyPlugin.class.getName());
+        SAPropertyPlugin customPlugin = mContextManager.getPluginManager().getPropertyPlugin(InternalCustomPropertyPlugin.class.getName());
         if (customPlugin instanceof InternalCustomPropertyPlugin) {
             ((InternalCustomPropertyPlugin) customPlugin).saveCustom(properties);
         }
 
-        contextManager.getPluginManager().propertiesHandler(filter);
+        SAPropertiesFetcher propertiesFetcher = mContextManager.getPluginManager().propertiesHandler(filter);
+        if (propertiesFetcher != null) {
+            trackEvent.setProperties(propertiesFetcher.getProperties());
+            trackEvent.setLib(propertiesFetcher.getEventJson(SAPropertyFilter.LIB));
+        }
     }
 
-    private void appendUserIDs(EventType eventType, TrackEvent trackEvent, SensorsDataAPI sensorsDataAPI) throws JSONException {
-        String distinctId = sensorsDataAPI.getDistinctId();
-        String loginId = sensorsDataAPI.getLoginId();
-        String anonymousId = sensorsDataAPI.getAnonymousId();
+    private void appendUserIDs(EventType eventType, TrackEvent trackEvent) throws JSONException {
+        String distinctId = mContextManager.getUserIdentityAPI().getDistinctId();
+        String loginId = mContextManager.getUserIdentityAPI().getLoginId();
+        String anonymousId = mContextManager.getUserIdentityAPI().getAnonymousId();
         try {
             //针对 SF 弹窗展示事件特殊处理
             if ("$PlanPopupDisplay".equals(trackEvent.getEventName())) {
@@ -287,10 +249,10 @@ class TrackEventAssemble extends BaseEventAssemble {
             trackEvent.setLoginId(loginId);
         }
         trackEvent.setAnonymousId(anonymousId);
-        trackEvent.setIdentities(sensorsDataAPI.getSAContextManager().getUserIdentityAPI().getIdentities(eventType));
+        trackEvent.setIdentities(mContextManager.getUserIdentityAPI().getIdentities(eventType));
         if (eventType == EventType.TRACK || eventType == EventType.TRACK_ID_BIND || eventType == EventType.TRACK_ID_UNBIND) {
             //是否首日访问
-            trackEvent.getProperties().put("$is_first_day", sensorsDataAPI.getSAContextManager().isFirstDay(trackEvent.getTime()));
+            trackEvent.getProperties().put("$is_first_day", mContextManager.isFirstDay(trackEvent.getTime()));
         } else if (eventType == EventType.TRACK_SIGNUP) {
             trackEvent.setOriginalId(trackEvent.getAnonymousId());
         }

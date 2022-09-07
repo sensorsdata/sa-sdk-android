@@ -17,11 +17,57 @@
 
 package com.sensorsdata.analytics.android.sdk.util;
 
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.Context;
+import android.os.Build;
+import android.text.TextUtils;
+import android.util.LruCache;
+import android.view.View;
+import android.view.ViewParent;
+import android.view.Window;
+
+import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 
 public class SAFragmentUtils {
+    @SuppressLint("NewApi")
+    private static LruCache<String, WeakReference<Object>> sFragmentLruCache = new LruCache<>(Integer.MAX_VALUE);
+
+    public static void setFragmentToCache(String fragmentName, Object object) {
+        if (!TextUtils.isEmpty(fragmentName) && null != object && Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
+            sFragmentLruCache.put(fragmentName, new WeakReference<>(object));
+        }
+    }
+
+    public static Object getFragmentFromCache(String fragmentName) {
+        try {
+            if (!TextUtils.isEmpty(fragmentName)) {
+                WeakReference<Object> weakReference = null;
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB_MR1) {
+                    weakReference = sFragmentLruCache.get(fragmentName);
+                }
+                Object object;
+                if (null != weakReference) {
+                    object = weakReference.get();
+                    if (null != object) {
+                        return object;
+                    }
+                }
+                object = Class.forName(fragmentName).newInstance();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
+                    sFragmentLruCache.put(fragmentName, new WeakReference<>(object));
+                }
+                return object;
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return null;
+    }
 
     /**
      * Fragment 是否可见
@@ -147,5 +193,88 @@ public class SAFragmentUtils {
             //ignored
         }
         return false;
+    }
+    /**
+     * 获取点击 view 的 fragment 对象
+     *
+     * @param view 点击的 view
+     * @return object 这里是 fragment 实例对象
+     */
+    public static Object getFragmentFromView(View view) {
+        return getFragmentFromView(view, null);
+    }
+
+    /**
+     * 根据 Fragment 获取对应的 Activity
+     *
+     * @param fragment，Fragment
+     * @return Activity or null
+     */
+    public static Activity getActivityFromFragment(Object fragment) {
+        Activity activity = null;
+        if (Build.VERSION.SDK_INT >= 11) {
+            try {
+                Method getActivityMethod = fragment.getClass().getMethod("getActivity");
+                activity = (Activity) getActivityMethod.invoke(fragment);
+            } catch (Exception e) {
+                //ignored
+            }
+        }
+        return activity;
+    }
+
+    /**
+     * 获取点击 view 的 fragment 对象
+     *
+     * @param view 点击的 view
+     * @param activity Activity
+     * @return object 这里是 fragment 实例对象
+     */
+    public static Object getFragmentFromView(View view, Activity activity) {
+        try {
+            if (view != null) {
+                String fragmentName = (String) view.getTag(R.id.sensors_analytics_tag_view_fragment_name);
+                String fragmentName2 = (String) view.getTag(R.id.sensors_analytics_tag_view_fragment_name2);
+                if (!TextUtils.isEmpty(fragmentName2)) {
+                    fragmentName = fragmentName2;
+                }
+                if (TextUtils.isEmpty(fragmentName)) {
+                    if (activity == null) {
+                        //获取所在的 Context
+                        Context context = view.getContext();
+                        //将 Context 转成 Activity
+                        activity = SAViewUtils.getActivityOfView(context, view);
+                    }
+                    if (activity != null) {
+                        Window window = activity.getWindow();
+                        if (window != null && window.isActive()) {
+                            Object tag = window.getDecorView().getRootView().getTag(R.id.sensors_analytics_tag_view_fragment_name);
+                            if (tag != null) {
+                                fragmentName = traverseParentViewTag(view);
+                            }
+                        }
+                    }
+                }
+                return getFragmentFromCache(fragmentName);
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return null;
+    }
+
+    private static String traverseParentViewTag(View view) {
+        try {
+            ViewParent parentView = view.getParent();
+            String fragmentName = null;
+            while (TextUtils.isEmpty(fragmentName) && parentView instanceof View) {
+                fragmentName = (String) ((View) parentView).getTag(R.id.sensors_analytics_tag_view_fragment_name);
+                parentView = parentView.getParent();
+            }
+            return fragmentName;
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+        return "";
     }
 }

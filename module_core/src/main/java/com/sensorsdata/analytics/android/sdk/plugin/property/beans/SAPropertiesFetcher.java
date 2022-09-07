@@ -54,7 +54,7 @@ public class SAPropertiesFetcher {
      * @param name 字段名
      * @return 对应 JSON
      */
-    private JSONObject getEventJson(String name) {
+    public JSONObject getEventJson(String name) {
         return eventJson.get(name);
     }
 
@@ -64,7 +64,7 @@ public class SAPropertiesFetcher {
      * @param name 字段名
      * @param jsonObject 值
      */
-    private void setEventJson(String name, JSONObject jsonObject) {
+    public void setEventJson(String name, JSONObject jsonObject) {
         this.eventJson.put(name, jsonObject);
     }
 

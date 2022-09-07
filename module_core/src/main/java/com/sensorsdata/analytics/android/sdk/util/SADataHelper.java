@@ -210,7 +210,7 @@ public class SADataHelper {
     public static void addCarrier(Context context, JSONObject property) {
         try {
             if (TextUtils.isEmpty(property.optString("$carrier"))) {
-                String carrier = SensorsDataUtils.getCarrier(context);
+                String carrier = SensorsDataUtils.getOperator(context);
                 if (!TextUtils.isEmpty(carrier)) {
                     property.put("$carrier", carrier);
                 }

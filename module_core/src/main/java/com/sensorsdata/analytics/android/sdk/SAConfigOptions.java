@@ -454,7 +454,7 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
     }
 
     @Override
-    protected SAConfigOptions clone() {
+    public SAConfigOptions clone() {
         SAConfigOptions copyObject = this;
         try {
             copyObject = (SAConfigOptions) super.clone();

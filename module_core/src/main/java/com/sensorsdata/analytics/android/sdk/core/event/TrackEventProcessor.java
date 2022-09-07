@@ -17,12 +17,12 @@
 
 package com.sensorsdata.analytics.android.sdk.core.event;
 
-import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 
 public class TrackEventProcessor extends EventProcessor {
 
-    public TrackEventProcessor(InternalConfigOptions internalConfigOptions) {
-        super(internalConfigOptions);
+    public TrackEventProcessor(SAContextManager saContextManager) {
+        super(saContextManager);
     }
 
     /**

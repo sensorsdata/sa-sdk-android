@@ -17,17 +17,14 @@
 
 package com.sensorsdata.analytics.android.sdk.remote;
 
-import android.content.Context;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Patterns;
 
-import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.encrypt.SAEncryptListener;
-import com.sensorsdata.analytics.android.sdk.encrypt.SecreteKey;
-import com.sensorsdata.analytics.android.sdk.encrypt.SensorsDataEncrypt;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
+import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
 import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
@@ -42,22 +39,17 @@ import org.json.JSONObject;
 public abstract class BaseSensorsDataSDKRemoteManager {
 
     protected static final String TAG = "SA.SensorsDataSDKRemoteConfigBase";
-    protected Context mContext;
-    protected SAConfigOptions mSAConfigOptions;
-    protected SensorsDataEncrypt mSensorsDataEncrypt;
+    protected SAContextManager mContextManager;
     protected boolean mDisableDefaultRemoteConfig;
 
     protected static SensorsDataSDKRemoteConfig mSDKRemoteConfig;
     protected SensorsDataAPI mSensorsDataAPI;
 
-    protected BaseSensorsDataSDKRemoteManager(SensorsDataAPI sensorsDataAPI) {
+    protected BaseSensorsDataSDKRemoteManager(SensorsDataAPI sensorsDataAPI, SAContextManager saContextManager) {
         this.mSensorsDataAPI = sensorsDataAPI;
-        this.mContext = sensorsDataAPI.getInternalConfigs().context;
-        this.mSAConfigOptions = sensorsDataAPI.getInternalConfigs().saConfigOptions;
-        this.mSensorsDataEncrypt = sensorsDataAPI.getSensorsDataEncrypt();
+        this.mContextManager = saContextManager;
         this.mDisableDefaultRemoteConfig = sensorsDataAPI.isDisableDefaultRemoteConfig();
     }
-
 
     public abstract void pullSDKConfigFromServer();
 
@@ -103,7 +95,6 @@ public abstract class BaseSensorsDataSDKRemoteManager {
                 sdkRemoteConfig.setOldVersion(jsonObject.optString("v"));
 
                 String configs = jsonObject.optString("configs");
-                SecreteKey secreteKey = new SecreteKey("", -1, "", "");
                 if (!TextUtils.isEmpty(configs)) {
                     JSONObject configObject = new JSONObject(configs);
                     sdkRemoteConfig.setDisableDebugMode(configObject.optBoolean("disableDebugMode", false));
@@ -112,35 +103,11 @@ public abstract class BaseSensorsDataSDKRemoteManager {
                     sdkRemoteConfig.setEventBlacklist(configObject.optJSONArray("event_blacklist"));
                     sdkRemoteConfig.setNewVersion(configObject.optString("nv", ""));
                     sdkRemoteConfig.setEffectMode(configObject.optInt("effect_mode", 0));
-                    if (mSAConfigOptions.getEncryptors() != null && !mSAConfigOptions.getEncryptors().isEmpty()) {
-                        JSONObject keyObject = configObject.optJSONObject("key_v2");
-                        if (keyObject != null) {
-                            String[] types = keyObject.optString("type").split("\\+");
-                            if (types.length == 2) {
-                                String asymmetricType = types[0];
-                                String symmetricType = types[1];
-                                for (SAEncryptListener encryptListener : mSAConfigOptions.getEncryptors()) {
-                                    if (asymmetricType.equals(encryptListener.asymmetricEncryptType())
-                                            && symmetricType.equals(encryptListener.symmetricEncryptType())) {
-                                        secreteKey.key = keyObject.optString("public_key");
-                                        secreteKey.version = keyObject.optInt("pkv");
-                                        secreteKey.asymmetricEncryptType = asymmetricType;
-                                        secreteKey.symmetricEncryptType = symmetricType;
-                                    }
-                                }
-                            }
-                        }
-                        if (TextUtils.isEmpty(secreteKey.key)) {
-                            parseSecreteKey(configObject.optJSONObject("key"), secreteKey);
-                        }
-                        sdkRemoteConfig.setSecretKey(secreteKey);
-                    }
                 } else {
                     //默认配置
                     sdkRemoteConfig.setDisableDebugMode(false);
                     sdkRemoteConfig.setDisableSDK(false);
                     sdkRemoteConfig.setAutoTrackMode(-1);
-                    sdkRemoteConfig.setSecretKey(secreteKey);
                     sdkRemoteConfig.setEventBlacklist(new JSONArray());
                     sdkRemoteConfig.setNewVersion("");
                     sdkRemoteConfig.setEffectMode(0);
@@ -151,32 +118,6 @@ public abstract class BaseSensorsDataSDKRemoteManager {
             SALog.printStackTrace(e);
         }
         return sdkRemoteConfig;
-    }
-
-    private void parseSecreteKey(JSONObject keyObject, SecreteKey secreteKey) {
-        if (keyObject != null) {
-            try {
-                if (keyObject.has("key_ec") && SensorsDataEncrypt.isECEncrypt()) {
-                    String key_ec = keyObject.optString("key_ec");
-                    if (!TextUtils.isEmpty(key_ec)) {
-                        keyObject = new JSONObject(key_ec);
-                    }
-                }
-
-                secreteKey.key = keyObject.optString("public_key");
-                secreteKey.symmetricEncryptType = "AES";
-                if (keyObject.has("type")) {
-                    String type = keyObject.optString("type");
-                    secreteKey.key = type + ":" + secreteKey.key;
-                    secreteKey.asymmetricEncryptType = type;
-                } else {
-                    secreteKey.asymmetricEncryptType = "RSA";
-                }
-                secreteKey.version = keyObject.optInt("pkv");
-            } catch (Exception e) {
-                SALog.printStackTrace(e);
-            }
-        }
     }
 
     /**
@@ -232,8 +173,8 @@ public abstract class BaseSensorsDataSDKRemoteManager {
         boolean configV = enableConfigV;
         String serverUlr = mSensorsDataAPI.getServerUrl();
         String configOptionsRemoteUrl = null;
-        if (mSAConfigOptions != null) {
-            configOptionsRemoteUrl = mSAConfigOptions.mRemoteConfigUrl;
+        if (mContextManager.getInternalConfigs().saConfigOptions != null) {
+            configOptionsRemoteUrl = mContextManager.getInternalConfigs().saConfigOptions.mRemoteConfigUrl;
         }
 
         if (!TextUtils.isEmpty(configOptionsRemoteUrl)
@@ -255,8 +196,7 @@ public abstract class BaseSensorsDataSDKRemoteManager {
         }
 
         //再次检查是否应该在请求中带 v，比如在禁止分散请求的情况下，SDK 升级了或者公钥为空，此时应该不带 v
-        if (configV && (SensorsDataUtils.checkVersionIsNew(mContext, mSensorsDataAPI.getSDKVersion()) ||
-                (mSensorsDataEncrypt != null && mSensorsDataEncrypt.isPublicSecretKeyNull()))) {
+        if (configV && (SensorsDataUtils.checkVersionIsNew(mContextManager.getContext(), mSensorsDataAPI.getSDKVersion()) || !isSecretKeyValid())) {
             configV = false;
         }
         Uri configUri = Uri.parse(remoteUrl);
@@ -286,7 +226,7 @@ public abstract class BaseSensorsDataSDKRemoteManager {
             }
         }
         if (TextUtils.isEmpty(configUri.getQueryParameter("app_id"))) {
-            String appId = AppInfoUtils.getProcessName(mContext);
+            String appId = AppInfoUtils.getProcessName(mContextManager.getContext());
             builder.appendQueryParameter("app_id", appId);
         }
         builder.build();
@@ -311,6 +251,28 @@ public abstract class BaseSensorsDataSDKRemoteManager {
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
+    }
+
+    /*
+     * check remote key is valid
+     */
+    protected boolean isSecretKeyValid() {
+        if (mContextManager.getInternalConfigs().saConfigOptions.isEnableEncrypt()) {
+            String secretKey = SAModuleManager.getInstance().invokeEncryptModuleFunction("loadSecretKey");
+            try {
+                if (TextUtils.isEmpty(secretKey)) {
+                    return false;
+                }
+                JSONObject jsonObject = new JSONObject(secretKey);
+                if (!jsonObject.has("key") || TextUtils.isEmpty(jsonObject.optString("key"))) {
+                    return false;
+                }
+            } catch (JSONException e) {
+                SALog.printStackTrace(e);
+                return false;
+            }
+        }
+        return true;
     }
 
     public enum RandomTimeType {

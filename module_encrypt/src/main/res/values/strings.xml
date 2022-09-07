@@ -1,0 +1,9 @@
+<resources>
+    <!-- encrypt dialog-->
+    <string name="sensors_analytics_encrypt_fail">密钥验证不通过，所选密钥无效</string>
+    <string name="sensors_analytics_encrypt_disable">当前 App 未开启加密，请开启加密后再试</string>
+    <string name="sensors_analytics_encrypt_key_null">密钥验证不通过，App 端密钥为空</string>
+    <string name="sensors_analytics_encrypt_pass">密钥验证通过，所选密钥与 App 端密钥相同</string>
+    <string name="sensors_analytics_encrypt_verify_fail_type">"密钥验证不通过，所选密钥类型与 App 端密钥类型不相同。所选密钥对称算法类型: %s，非对称算法类型: %s，App 端密钥对称算法类型: %s，非对称算法类型: %s"</string>
+    <string name="sensors_analytics_encrypt_verify_fail_version">"密钥验证不通过，所选密钥与 App 端密钥不相同。所选密钥版本:%s，App 端密钥版本: %s"</string>
+</resources>

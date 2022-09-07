@@ -22,7 +22,6 @@ import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import org.json.JSONObject;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**

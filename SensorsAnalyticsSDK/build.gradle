@@ -37,4 +37,7 @@ dependencies {
     api project(':module_core')
     api project(':module_advert')
     api project(':module_visual')
+    api project(':module_autoTrack')
+    api project(':module_push')
+    api project(':module_encrypt')
 }

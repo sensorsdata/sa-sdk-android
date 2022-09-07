@@ -25,29 +25,20 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
-import android.content.res.AssetManager;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
-import android.os.SystemClock;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
-import android.view.View;
 
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
-import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackAppViewScreenUrl;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
-import com.sensorsdata.analytics.android.sdk.visual.snap.SnapCache;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.net.NetworkInterface;
 import java.util.ArrayList;
@@ -90,7 +81,7 @@ public final class SensorsDataUtils {
      * @param context Context
      * @return 运营商信息
      */
-    public static String getCarrier(Context context) {
+    public static String getOperator(Context context) {
         try {
             if (TextUtils.isEmpty(mCurrentCarrier) && SensorsDataUtils.checkHasPermission(context, Manifest.permission.READ_PHONE_STATE)) {
                 try {
@@ -269,7 +260,7 @@ public final class SensorsDataUtils {
         return "";
     }
 
-    static String getToolbarTitle(Activity activity) {
+    public static String getToolbarTitle(Activity activity) {
         try {
             String canonicalName = SnapCache.getInstance().getCanonicalName(activity.getClass());
             if ("com.tencent.connect.common.AssistActivity".equals(canonicalName)) {
@@ -385,7 +376,7 @@ public final class SensorsDataUtils {
      * @return IMEI
      */
     @SuppressLint({"MissingPermission", "HardwareIds"})
-    public static String getIMEI(Context context) {
+    public static String getInternationalIdentifier(Context context) {
         String imei = "";
         try {
             if (deviceUniqueIdentifiersMap.containsKey("IMEI")) {
@@ -418,8 +409,8 @@ public final class SensorsDataUtils {
      * @param context Context
      * @return 设备标识
      */
-    public static String getIMEIOld(Context context) {
-        return getDeviceID(context, -1);
+    public static String getInternationalIdOld(Context context) {
+        return getPhoneIdentifier(context, -1);
     }
 
     /**
@@ -430,7 +421,7 @@ public final class SensorsDataUtils {
      * @return 设备标识
      */
     public static String getSlot(Context context, int number) {
-        return getDeviceID(context, number);
+        return getPhoneIdentifier(context, number);
     }
 
     /**
@@ -439,8 +430,8 @@ public final class SensorsDataUtils {
      * @param context Context
      * @return 设备标识
      */
-    public static String getMEID(Context context) {
-        return getDeviceID(context, -2);
+    public static String getEquipmentIdentifier(Context context) {
+        return getPhoneIdentifier(context, -2);
     }
 
     /**
@@ -451,7 +442,7 @@ public final class SensorsDataUtils {
      * @return 设备唯一标识
      */
     @SuppressLint({"MissingPermission", "HardwareIds"})
-    private static String getDeviceID(Context context, int number) {
+    private static String getPhoneIdentifier(Context context, int number) {
         String deviceId = "";
         try {
             String deviceIDKey = "deviceID" + number;
@@ -499,7 +490,7 @@ public final class SensorsDataUtils {
      * @return androidID
      */
     @SuppressLint("HardwareIds")
-    public static String getAndroidID(Context context) {
+    public static String getIdentifier(Context context) {
         try {
             if (TextUtils.isEmpty(androidID)) {
                 androidID = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
@@ -550,7 +541,7 @@ public final class SensorsDataUtils {
      * @return String 当前手机的 Mac 地址
      */
     @SuppressLint("MissingPermission")
-    public static String getMacAddress(Context context) {
+    public static String getMediaAddress(Context context) {
         String macAddress = "";
         try {
             if (deviceUniqueIdentifiersMap.containsKey("macAddress")) {
@@ -608,62 +599,6 @@ public final class SensorsDataUtils {
             return true;
         }
         return false;
-    }
-
-    /**
-     * 是否是连续点击
-     *
-     * @param view view
-     * @return Boolean
-     */
-    public static boolean isDoubleClick(View view) {
-        if (view == null) {
-            return false;
-        }
-        try {
-            long currentOnClickTimestamp = SystemClock.elapsedRealtime();
-            String tag = (String) view.getTag(R.id.sensors_analytics_tag_view_onclick_timestamp);
-            if (!TextUtils.isEmpty(tag)) {
-                long lastOnClickTimestamp = Long.parseLong(tag);
-                if ((currentOnClickTimestamp - lastOnClickTimestamp) < 500) {
-                    return true;
-                }
-            }
-            view.setTag(R.id.sensors_analytics_tag_view_onclick_timestamp, String.valueOf(currentOnClickTimestamp));
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-        return false;
-    }
-
-    /**
-     * 获取 ScreenUrl
-     *
-     * @param object activity/fragment
-     * @return screenUrl
-     */
-    public static String getScreenUrl(Object object) {
-        if (object == null) {
-            return null;
-        }
-        String screenUrl = null;
-        try {
-            if (object instanceof ScreenAutoTracker) {
-                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) object;
-                screenUrl = screenAutoTracker.getScreenUrl();
-            } else {
-                SensorsDataAutoTrackAppViewScreenUrl autoTrackAppViewScreenUrl = object.getClass().getAnnotation(SensorsDataAutoTrackAppViewScreenUrl.class);
-                if (autoTrackAppViewScreenUrl != null) {
-                    screenUrl = autoTrackAppViewScreenUrl.url();
-                }
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-        if (screenUrl == null) {
-            screenUrl = object.getClass().getCanonicalName();
-        }
-        return screenUrl;
     }
 
     /**

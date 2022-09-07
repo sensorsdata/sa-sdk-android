@@ -4,7 +4,6 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.sensorsdata.analytics.android.sdk.R;
-import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 
 import java.util.regex.Pattern;
 
@@ -17,8 +16,7 @@ public class KeyboardViewUtil {
         if (!isSensorsCheckKeyboard || null == view) {
             return false;
         }
-        ViewNode viewNode = ViewUtil.getViewContentAndType(view);
-        String viewText = viewNode.getViewContent();
+        String viewText = SAViewUtils.getViewContent(view);
         if (Pattern.matches(MATCH_RULE_KEYBOARD, viewText)) {
             return getKeyboardSimilarView(view);
         }
@@ -37,7 +35,7 @@ public class KeyboardViewUtil {
                 boolean isKeyboardView = false;
                 for (int i = 0; i < viewCount; i++) {
                     if (currentIndex != i &&
-                            Pattern.matches(MATCH_RULE_KEYBOARD, ViewUtil.getViewContentAndType(viewGroup.getChildAt(i)).getViewContent())) {
+                            Pattern.matches(MATCH_RULE_KEYBOARD, SAViewUtils.getViewContent(viewGroup.getChildAt(i)))) {
                         isKeyboardView = true;
                         break;
                     }
@@ -78,7 +76,7 @@ public class KeyboardViewUtil {
                             int numOther = viewGroupOther.getChildCount();
                             boolean isKeyBoardSunView = false;
                             for (int n = 0; n < numOther; n++) {
-                                if (Pattern.matches(MATCH_RULE_KEYBOARD, ViewUtil.getViewContentAndType(viewGroupOther.getChildAt(n)).getViewContent())) {
+                                if (Pattern.matches(MATCH_RULE_KEYBOARD, SAViewUtils.getViewContent(viewGroupOther.getChildAt(n)))) {
                                     isKeyBoardSunView = true;
                                     break;
                                 }
@@ -90,7 +88,7 @@ public class KeyboardViewUtil {
                                 break;
                             }
                         } else {
-                            if (Pattern.matches(MATCH_RULE_KEYBOARD, ViewUtil.getViewContentAndType(viewTemp).getViewContent())) {
+                            if (Pattern.matches(MATCH_RULE_KEYBOARD, SAViewUtils.getViewContent(viewTemp))) {
                                 viewTemp.setTag(R.id.sensors_analytics_tag_view_keyboard, TAG_KEYBOARD);
                                 viewGroupParent.setTag(R.id.sensors_analytics_tag_view_keyboard, TAG_KEYBOARD);
                                 isKeyboardFatherView = true;

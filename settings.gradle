@@ -1,2 +1,5 @@
 include ':module_core', ':demo', ':module_advert', ':SensorsAnalyticsSDK'
 include ':module_visual'
+include ':module_autoTrack'
+include ':module_push'
+include ':module_encrypt'

@@ -21,7 +21,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.text.TextUtils;
 
-import com.sensorsdata.analytics.android.sdk.encrypt.AESSecretManager;
+import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.util.SASpUtils;
 
 public class SAEncryptStorePlugin implements StorePlugin {
@@ -128,11 +128,13 @@ public class SAEncryptStorePlugin implements StorePlugin {
 
     }
 
-    private String decryptValue(final String value) {
-        return AESSecretManager.getInstance().decryptAES(value);
+    private String decryptValue(String value) {
+        String decryptValue = SAModuleManager.getInstance().invokeEncryptModuleFunction("decryptAES", value);
+        return TextUtils.isEmpty(decryptValue) ? value : decryptValue;
     }
 
     private String encryptValue(String value) {
-        return AESSecretManager.getInstance().encryptAES(value);
+        String encryptValue = SAModuleManager.getInstance().invokeEncryptModuleFunction("encryptAES", value);
+        return TextUtils.isEmpty(encryptValue) ? value : encryptValue;
     }
 }

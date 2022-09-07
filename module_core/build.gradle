@@ -81,4 +81,8 @@ dependencies {
     testImplementation rootProject.ext.test.powermock_module_junit4
     testImplementation rootProject.ext.test.powermock_api_mockito2
     testImplementation rootProject.ext.test.powermock_core
+    // module
+    testImplementation project(':module_advert')
+    testImplementation project(':module_visual')
+    testImplementation project(':module_autoTrack')
 }

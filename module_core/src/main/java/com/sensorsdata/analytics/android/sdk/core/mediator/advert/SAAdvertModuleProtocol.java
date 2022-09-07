@@ -18,11 +18,8 @@
 package com.sensorsdata.analytics.android.sdk.core.mediator.advert;
 
 import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAModuleProtocol;
-import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 
 import org.json.JSONObject;
-
-import java.util.List;
 
 public interface SAAdvertModuleProtocol extends SAModuleProtocol, SAAdvertAPIProtocol {
 

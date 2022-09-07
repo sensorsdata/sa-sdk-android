@@ -35,12 +35,12 @@ import android.os.Process;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.AopConstants;
-import com.sensorsdata.analytics.android.sdk.AppStateManager;
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
+import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 import com.sensorsdata.analytics.android.sdk.visual.model.SnapInfo;
@@ -50,6 +50,7 @@ import com.sensorsdata.analytics.android.sdk.visual.snap.EditProtocol;
 import com.sensorsdata.analytics.android.sdk.visual.snap.EditState;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceIds;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceReader;
+import com.sensorsdata.analytics.android.sdk.visual.utils.AppStateManager;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -340,7 +341,7 @@ public abstract class AbstractViewCrawler implements VTrack {
 
                 // 页面浏览事件中，如果存在 fragment ，则优先取 fragment screenName
                 if (info.hasFragment) {
-                    String fragmentScreenName = AppStateManager.getInstance().getFragmentScreenName();
+                    String fragmentScreenName = AppStateTools.getInstance().getFragmentScreenName();
                     if (!TextUtils.isEmpty(fragmentScreenName)) {
                         pageName = fragmentScreenName;
                     }

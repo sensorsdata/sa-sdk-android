@@ -21,11 +21,12 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.core.event.Event;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.core.event.TrackEvent;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
-import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
@@ -37,8 +38,8 @@ import org.json.JSONObject;
 class ItemEventAssemble extends BaseEventAssemble {
     private static final String TAG = "SA.ItemEventAssemble";
 
-    public ItemEventAssemble(InternalConfigOptions internalConfigs) {
-        super(internalConfigs);
+    public ItemEventAssemble(SAContextManager saContextManager) {
+        super(saContextManager);
     }
 
     @Override
@@ -92,8 +93,8 @@ class ItemEventAssemble extends BaseEventAssemble {
         libProperties.put("$lib", "Android");
         libProperties.put("$lib_version", sensorsDataAPI.getSDKVersion());
         libProperties.put("$lib_method", "code");
-        libProperties.put("$app_version", AppInfoUtils.getAppVersionName(mInternalConfigs.context));
-        JSONObject superProperties = sensorsDataAPI.getSAContextManager().getSuperProperties().get();
+        libProperties.put("$app_version", AppInfoUtils.getAppVersionName(sensorsDataAPI.getSAContextManager().getContext()));
+        JSONObject superProperties = PersistentLoader.getInstance().getSuperPropertiesPst().get();
         if (superProperties != null) {
             if (superProperties.has("$app_version")) {
                 libProperties.put("$app_version", superProperties.get("$app_version"));

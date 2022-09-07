@@ -24,20 +24,27 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
 import com.sensorsdata.analytics.android.sdk.core.mediator.advert.SAAdvertModuleProtocol;
+import com.sensorsdata.analytics.android.sdk.core.mediator.autotrack.AutoTrackModuleProtocol;
+import com.sensorsdata.analytics.android.sdk.core.mediator.encrypt.SAEncryptProtocol;
 import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAModuleProtocol;
 import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAScanListener;
 import com.sensorsdata.analytics.android.sdk.core.mediator.visual.SAVisualProtocol;
-import com.sensorsdata.analytics.android.sdk.util.SAContextManager;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 
 public class SAModuleManager {
 
-    private Map<String, SAModuleProtocol> mServiceMap = new HashMap<>();
+    private final Map<String, SAModuleProtocol> mServiceMap = new HashMap<>();
 
     private volatile static SAModuleManager mSingleton = null;
+    private AutoTrackModuleProtocol mAutoTrackModuleProtocol;
+    private SAEncryptProtocol mEncryptProtocol;
 
     private SAModuleManager() {
     }
@@ -59,9 +66,21 @@ public class SAModuleManager {
      * @param contextManager SAContextManager
      */
     public void installService(SAContextManager contextManager) {
-        ServiceLoader<SAModuleProtocol> serviceLoader = ServiceLoader.load(SAModuleProtocol.class);
-        for (SAModuleProtocol saModuleProtocol : serviceLoader) {
-            if (saModuleProtocol != null) {
+        try {
+            ServiceLoader<SAModuleProtocol> serviceLoader = ServiceLoader.load(SAModuleProtocol.class);
+            List<SAModuleProtocol> protocolList = new ArrayList<>();
+            for (SAModuleProtocol saModuleProtocol : serviceLoader) {
+                if (saModuleProtocol != null) {
+                    protocolList.add(saModuleProtocol);
+                }
+            }
+            Collections.sort(protocolList, new Comparator<SAModuleProtocol>() {
+                @Override
+                public int compare(SAModuleProtocol o1, SAModuleProtocol o2) {
+                    return o2.getPriority() - o1.getPriority();
+                }
+            });
+            for (SAModuleProtocol saModuleProtocol : protocolList) {
                 try {
                     saModuleProtocol.install(contextManager);
                     mServiceMap.put(saModuleProtocol.getModuleName(), saModuleProtocol);
@@ -69,6 +88,8 @@ public class SAModuleManager {
                     SALog.printStackTrace(e);
                 }
             }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
     }
 
@@ -98,7 +119,10 @@ public class SAModuleManager {
             return false;
         }
         if (mServiceMap.containsKey(moduleName)) {
-            return mServiceMap.get(moduleName).isEnable();
+            SAModuleProtocol saModuleProtocol = mServiceMap.get(moduleName);
+            if (saModuleProtocol != null) {
+                return saModuleProtocol.isEnable();
+            }
         }
         return false;
     }
@@ -151,6 +175,44 @@ public class SAModuleManager {
     public SAVisualProtocol getVisualModuleService() {
         return getService(ModuleConstants.ModuleName.VISUAL_NAME, SAVisualProtocol.class);
     }
+
+    /**
+     * invoke auto_track module method
+     */
+    public <T> T invokeAutoTrackFunction(String methodName, Object... argv) {
+        try {
+            if (mAutoTrackModuleProtocol == null) {
+                if (SAModuleManager.getInstance().hasModuleByName(ModuleConstants.ModuleName.AUTO_TRACK_NAME)) {
+                    mAutoTrackModuleProtocol = getService(ModuleConstants.ModuleName.AUTO_TRACK_NAME, AutoTrackModuleProtocol.class);
+                }
+            }
+
+            if (mAutoTrackModuleProtocol != null) {
+                return mAutoTrackModuleProtocol.invokeModuleFunction(methodName, argv);
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return null;
+    }
+
+    /**
+     * invoke module method
+     */
+    public <T> T invokeEncryptModuleFunction(String methodName, Object... argv) {
+        try {
+            if (mEncryptProtocol == null) {
+                mEncryptProtocol = getService(ModuleConstants.ModuleName.ENCRYPT_NAME, SAEncryptProtocol.class);
+            }
+            if (mEncryptProtocol != null) {
+                return mEncryptProtocol.invokeModuleFunction(methodName, argv);
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return null;
+    }
+
 
     /**
      * 扫码唤起 scheme 通知模块处理

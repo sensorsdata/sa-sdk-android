@@ -110,7 +110,7 @@ public class ChannelDebugScanHelper implements IAdvertScanListener {
                 try {
                     JSONObject _properties = new JSONObject();
                     _properties.put("$ios_install_source", ChannelUtils.getDeviceInfo(activity,
-                            SAAdvertUtils.getAndroidId(activity), SAOaidHelper.getOAID(activity)));
+                            SAAdvertUtils.getIdentifier(activity), SAOaidHelper.getOpenAdIdentifier(activity)));
                     // first step: track
                     SAEventManager.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK).setEventName("$ChannelDebugInstall").setProperties(_properties));
                     // second step: profile_set_once or profile_set
@@ -142,8 +142,8 @@ public class ChannelDebugScanHelper implements IAdvertScanListener {
                         Context context = activity.getApplicationContext();
                         boolean isTrackInstallation = ChannelUtils.isTrackInstallation();
                         if (!isTrackInstallation || ChannelUtils.isCorrectTrackInstallation()) {
-                            String androidId = SensorsDataUtils.getAndroidID(context);
-                            String oaid = SAOaidHelper.getOAID(context);
+                            String androidId = SensorsDataUtils.getIdentifier(context);
+                            String oaid = SAOaidHelper.getOpenAdIdentifier(context);
                             if (isTrackInstallation && !ChannelUtils.isGetDeviceInfo(context, androidId, oaid)) {
                                 showChannelDebugErrorDialog(activity);
                                 return;

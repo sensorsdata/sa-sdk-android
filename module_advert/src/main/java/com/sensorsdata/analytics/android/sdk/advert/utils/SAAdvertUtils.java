@@ -19,8 +19,7 @@ package com.sensorsdata.analytics.android.sdk.advert.utils;
 
 import android.content.Context;
 
-import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
-import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 public class SAAdvertUtils {
@@ -32,9 +31,9 @@ public class SAAdvertUtils {
      */
     public static boolean isFirstTrackInstallation(boolean disableCallback) {
         if (disableCallback) {
-            return !SAStoreManager.getInstance().isExists(DbParams.PersistentName.FIRST_INSTALL_CALLBACK);
+            return PersistentLoader.getInstance().getFirstInstallationWithCallbackPst().get();
         }
-        return !SAStoreManager.getInstance().isExists(DbParams.PersistentName.FIRST_INSTALL);
+        return PersistentLoader.getInstance().getFirstInstallationPst().get();
     }
 
     /**
@@ -44,9 +43,9 @@ public class SAAdvertUtils {
      */
     public static void setTrackInstallation(boolean disableCallback) {
         if (disableCallback) {
-            SAStoreManager.getInstance().setString(DbParams.PersistentName.FIRST_INSTALL_CALLBACK, "false");
+            PersistentLoader.getInstance().getFirstInstallationWithCallbackPst().commit(false);
         }
-        SAStoreManager.getInstance().setString(DbParams.PersistentName.FIRST_INSTALL, "false");
+        PersistentLoader.getInstance().getFirstInstallationPst().commit(false);
     }
 
     /**
@@ -54,8 +53,8 @@ public class SAAdvertUtils {
      *
      * @return AndroidID
      */
-    public static String getAndroidId(Context context) {
-        return SensorsDataUtils.getAndroidID(context);
+    public static String getIdentifier(Context context) {
+        return SensorsDataUtils.getIdentifier(context);
     }
 
     /**
@@ -63,12 +62,12 @@ public class SAAdvertUtils {
      *
      * @return IMEI 拼接数据
      */
-    public static String getIMEI(Context context) {
+    public static String getInstallSource(Context context) {
         return String.format("imei=%s##imei_old=%s##imei_slot1=%s##imei_slot2=%s##imei_meid=%s",
-                SensorsDataUtils.getIMEI(context),
-                SensorsDataUtils.getIMEIOld(context),
+                SensorsDataUtils.getInternationalIdentifier(context),
+                SensorsDataUtils.getInternationalIdOld(context),
                 SensorsDataUtils.getSlot(context, 0),
                 SensorsDataUtils.getSlot(context, 1),
-                SensorsDataUtils.getMEID(context));
+                SensorsDataUtils.getEquipmentIdentifier(context));
     }
 }

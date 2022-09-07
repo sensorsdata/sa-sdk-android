@@ -8,31 +8,34 @@ import android.view.View;
 
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
 import com.sensorsdata.analytics.android.sdk.core.mediator.visual.SAVisualProtocol;
+import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataLifecycleMonitorManager;
 import com.sensorsdata.analytics.android.sdk.util.H5Util;
-import com.sensorsdata.analytics.android.sdk.util.SAContextManager;
+import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
 import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
+import com.sensorsdata.analytics.android.sdk.visual.utils.AppStateManager;
+import com.sensorsdata.analytics.android.sdk.visual.utils.VisualUtil;
 import com.sensorsdata.analytics.android.sdk.visual.view.PairingCodeEditDialog;
+import com.sensorsdata.analytics.android.sdk.visual.view.VisualDialog;
 
 import org.json.JSONObject;
 
 public class SAVisualProtocolImpl implements SAVisualProtocol {
     private boolean mEnable = false;
     private static final String TAG = "SA.SAVisualProtocolImpl";
-    private SAConfigOptions options;
+    private SAContextManager mSAContextManager;
 
     @Override
     public void install(SAContextManager contextManager) {
-        this.options = contextManager.getInternalConfigs().saConfigOptions;
-        if (!options.isDisableSDK()) {
+        mSAContextManager = contextManager;
+        if (!contextManager.getInternalConfigs().saConfigOptions.isDisableSDK()) {
             setModuleState(true);
-            //在刚初次初始化的时候状态值不能满足；初始化之后状态值才能满足。
-            if (options.isVisualizedPropertiesEnabled()) {
-                VisualPropertiesManager.getInstance().requestVisualConfig(contextManager.getContext(), true);
-            }
         }
+        SensorsDataLifecycleMonitorManager.getInstance().addActivityLifeCallback(new AppStateManager());
     }
 
     @Override
@@ -40,9 +43,9 @@ public class SAVisualProtocolImpl implements SAVisualProtocol {
         if (mEnable != enable) {
             mEnable = enable;
         }
-        if (enable && options.isVisualizedPropertiesEnabled()) {
+        if (enable && mSAContextManager.getInternalConfigs().saConfigOptions.isVisualizedPropertiesEnabled()) {
             // 可视化自定义属性拉取配置
-            requestVisualConfig();
+            VisualPropertiesManager.getInstance().requestVisualConfig(mSAContextManager);
         }
     }
 
@@ -57,13 +60,28 @@ public class SAVisualProtocolImpl implements SAVisualProtocol {
     }
 
     @Override
-    public void requestVisualConfig() {
-        VisualPropertiesManager.getInstance().requestVisualConfig();
+    public int getPriority() {
+        return 5;
     }
 
     @Override
-    public void mergeVisualProperties(JSONObject srcObject, ViewNode viewNode) {
-        VisualPropertiesManager.getInstance().mergeVisualProperties(VisualPropertiesManager.VisualEventType.APP_CLICK, srcObject, viewNode);
+    public void requestVisualConfig() {
+        VisualPropertiesManager.getInstance().requestVisualConfig(mSAContextManager);
+    }
+
+    @Override
+    public void mergeVisualProperties(JSONObject srcObject, View view) {
+        try {
+            Activity activity = SAViewUtils.getActivityOfView(view.getContext(), view);
+            // append $element_path
+            ViewNode viewNode = VisualUtil.addViewPathProperties(activity, view, srcObject);
+            // append visual custom properties
+            if (mSAContextManager.getInternalConfigs().saConfigOptions.isVisualizedPropertiesEnabled()) {
+                VisualPropertiesManager.getInstance().mergeVisualProperties(VisualPropertiesManager.VisualEventType.APP_CLICK, srcObject, viewNode);
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override

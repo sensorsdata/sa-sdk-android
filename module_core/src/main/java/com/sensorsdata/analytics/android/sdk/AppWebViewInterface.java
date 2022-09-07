@@ -23,25 +23,25 @@ import android.view.View;
 import android.webkit.JavascriptInterface;
 
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
-import com.sensorsdata.analytics.android.sdk.visual.SAVisual;
+import com.sensorsdata.analytics.android.sdk.core.mediator.visual.SAVisual;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.ref.WeakReference;
 
-/* package */ class AppWebViewInterface {
+public class AppWebViewInterface {
     private static final String TAG = "SA.AppWebViewInterface";
     private final Context mContext;
     private JSONObject properties;
     private final boolean enableVerify;
     private WeakReference<View> mWebView;
 
-    AppWebViewInterface(Context c, JSONObject p, boolean b) {
+    public AppWebViewInterface(Context c, JSONObject p, boolean b) {
         this(c, p, b, null);
     }
 
-    AppWebViewInterface(Context c, JSONObject p, boolean b, View view) {
+    public AppWebViewInterface(Context c, JSONObject p, boolean b, View view) {
         this.mContext = c;
         this.properties = p;
         this.enableVerify = b;

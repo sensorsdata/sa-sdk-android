@@ -21,7 +21,6 @@ import android.content.Context;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
-import com.sensorsdata.analytics.android.sdk.encrypt.AESSecretManager;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -58,7 +57,6 @@ public class SAStoreManager extends AbstractStoreManager {
             registerSensorsDataPlugin(context);
         } else {
             mDefaultState = false;
-            AESSecretManager.getInstance().initSecretKey(context);
             if (isRegisterPlugin(context, SP_SENSORS_DATA_EXIT)) {
                 registerExitPlugin(context);
             }

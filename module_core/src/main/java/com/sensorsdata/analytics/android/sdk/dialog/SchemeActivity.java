@@ -26,10 +26,8 @@ import android.view.Window;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPIEmptyImplementation;
-import com.sensorsdata.analytics.android.sdk.SensorsDataIgnoreTrackAppViewScreen;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
-@SensorsDataIgnoreTrackAppViewScreen
 public class SchemeActivity extends Activity {
 
     private static final String TAG = "SA.SchemeActivity";

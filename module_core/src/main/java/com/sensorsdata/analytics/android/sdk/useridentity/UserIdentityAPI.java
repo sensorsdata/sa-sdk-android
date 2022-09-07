@@ -20,16 +20,14 @@ package com.sensorsdata.analytics.android.sdk.useridentity;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.useridentity.h5identity.H5UserIdentityStrategy;
-import com.sensorsdata.analytics.android.sdk.monitor.TrackMonitor;
-import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentDistinctId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
-import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
+import com.sensorsdata.analytics.android.sdk.monitor.TrackMonitor;
+import com.sensorsdata.analytics.android.sdk.useridentity.h5identity.H5UserIdentityStrategy;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
-import com.sensorsdata.analytics.android.sdk.util.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONObject;
@@ -48,14 +46,14 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
 
     public UserIdentityAPI(SAContextManager contextManager) {
         this.mSAContextManager = contextManager;
-        this.mAnonymousId = (PersistentDistinctId) PersistentLoader.loadPersistent(DbParams.PersistentName.DISTINCT_ID);
+        this.mAnonymousId = PersistentLoader.getInstance().getAnonymousIdPst();
         mIdentitiesInstance = new Identities();
         try {
             String mayEmpty_anonymousId = null;
             if (this.mAnonymousId != null && this.mAnonymousId.isExists()) {
                 mayEmpty_anonymousId = mAnonymousId.get();
             }
-            mIdentitiesInstance.init(mayEmpty_anonymousId, mSAContextManager.getAndroidId(), mAnonymousId.get());
+            mIdentitiesInstance.init(mayEmpty_anonymousId, SensorsDataUtils.getIdentifier(contextManager.getContext()), mAnonymousId.get());
             mLoginIdValue = mIdentitiesInstance.getJointLoginID();
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -93,7 +91,7 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
         try {
             synchronized (mAnonymousId) {
                 SALog.i(TAG, "resetAnonymousId is called");
-                String androidId = mSAContextManager.getAndroidId();
+                String androidId = SensorsDataUtils.getIdentifier(mSAContextManager.getContext());
                 if (androidId.equals(mAnonymousId.get())) {
                     SALog.i(TAG, "DistinctId not change");
                     return;

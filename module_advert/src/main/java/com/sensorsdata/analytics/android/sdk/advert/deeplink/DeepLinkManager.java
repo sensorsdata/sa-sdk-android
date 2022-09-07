@@ -152,7 +152,7 @@ public class DeepLinkManager {
                 if (isDeepLinkInstallSource) {
                     try {
                         properties.put("$ios_install_source", ChannelUtils.getDeviceInfo(context,
-                                SensorsDataUtils.getAndroidID(context), SAOaidHelper.getOAID(context)));
+                                SensorsDataUtils.getIdentifier(context), SAOaidHelper.getOpenAdIdentifier(context)));
                     } catch (JSONException e) {
                         SALog.printStackTrace(e);
                     }

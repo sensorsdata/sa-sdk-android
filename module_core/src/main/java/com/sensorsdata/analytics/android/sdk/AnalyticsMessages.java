@@ -17,6 +17,8 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
+import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
+
 import android.content.Context;
 import android.net.Uri;
 import android.os.Handler;
@@ -29,16 +31,14 @@ import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.exceptions.ConnectErrorException;
-import com.sensorsdata.analytics.android.sdk.exceptions.DebugModeException;
 import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.exceptions.ResponseErrorException;
 import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
+import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
-
-import org.json.JSONObject;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -49,13 +49,10 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
 import javax.net.ssl.HttpsURLConnection;
-
-import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
 
 
 /**
@@ -73,7 +70,7 @@ public class AnalyticsMessages {
     private final Context mContext;
     private final DbAdapter mDbAdapter;
     private final SensorsDataAPI mSensorsDataAPI;
-    private final InternalConfigOptions mConfigOption;
+    private final InternalConfigOptions mInternalConfigs;
 
     /**
      * 不要直接调用，通过 getInstance 方法获取实例
@@ -83,7 +80,7 @@ public class AnalyticsMessages {
         mDbAdapter = DbAdapter.getInstance();
         mWorker = new Worker();
         mSensorsDataAPI = sensorsDataAPI;
-        mConfigOption = internalConfigOptions;
+        mInternalConfigs = internalConfigOptions;
     }
 
     /**
@@ -138,7 +135,7 @@ public class AnalyticsMessages {
         }
     }
 
-    void flush() {
+    public void flush() {
         try {
             final Message m = Message.obtain();
             m.what = FLUSH_QUEUE;
@@ -196,13 +193,13 @@ public class AnalyticsMessages {
             }
 
             // 如果开启多进程上报
-            if (AbstractSensorsDataAPI.getConfigOptions().isMultiProcessFlush()) {
+            if (mInternalConfigs.saConfigOptions.isMultiProcessFlush()) {
                 // 已经有进程在上报
                 if (DbAdapter.getInstance().isSubProcessFlushing()) {
                     return;
                 }
                 DbAdapter.getInstance().commitSubProcessFlushState(true);
-            } else if (!mConfigOption.isMainProcess) {//不是主进程
+            } else if (!mInternalConfigs.isMainProcess) {//不是主进程
                 return;
             }
         } catch (Exception e) {
@@ -257,8 +254,8 @@ public class AnalyticsMessages {
                 if (!TextUtils.isEmpty(errorMessage)) {
                     if (isDebugMode || SALog.isLogEnabled()) {
                         SALog.i(TAG, errorMessage);
-                        if (isDebugMode && mConfigOption.isShowDebugView) {
-                            SensorsDataDialogUtils.showHttpErrorDialog(AppStateManager.getInstance().getForegroundActivity(), errorMessage);
+                        if (isDebugMode && mInternalConfigs.isShowDebugView) {
+                            SensorsDataDialogUtils.showHttpErrorDialog(AppStateTools.getInstance().getForegroundActivity(), errorMessage);
                         }
                     }
                 }
@@ -271,7 +268,7 @@ public class AnalyticsMessages {
 
             }
         }
-        if (AbstractSensorsDataAPI.getConfigOptions().isMultiProcessFlush()) {
+        if (mInternalConfigs.saConfigOptions.isMultiProcessFlush()) {
             DbAdapter.getInstance().commitSubProcessFlushState(false);
         }
     }
@@ -424,9 +421,10 @@ public class AnalyticsMessages {
     private String encodeData(final String rawMessage) throws InvalidDataException {
         GZIPOutputStream gos = null;
         try {
-            ByteArrayOutputStream os = new ByteArrayOutputStream(rawMessage.getBytes(CHARSET_UTF8).length);
+            byte[] bytes = rawMessage.getBytes(CHARSET_UTF8);
+            ByteArrayOutputStream os = new ByteArrayOutputStream(bytes.length);
             gos = new GZIPOutputStream(os);
-            gos.write(rawMessage.getBytes(CHARSET_UTF8));
+            gos.write(bytes);
             gos.close();
             byte[] compressed = os.toByteArray();
             os.close();

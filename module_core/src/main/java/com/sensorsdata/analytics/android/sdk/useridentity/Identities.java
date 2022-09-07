@@ -4,7 +4,6 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
-import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.LoginIdKeyPersistent;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
@@ -387,7 +386,7 @@ public class Identities {
          */
         public static String getLoginIdFromLocal() {
             try {
-                PersistentLoginId persistentLoginId = (PersistentLoginId) PersistentLoader.loadPersistent(DbParams.PersistentName.LOGIN_ID);
+                PersistentLoginId persistentLoginId = PersistentLoader.getInstance().getLoginIdPst();
                 return (persistentLoginId == null) ? "" : persistentLoginId.get();
             } catch (Exception e) {
                 SALog.printStackTrace(e);
@@ -402,7 +401,7 @@ public class Identities {
          */
         public static String getLoginIdKeyFromLocal() {
             try {
-                LoginIdKeyPersistent loginIdKeyPersistent = (LoginIdKeyPersistent) PersistentLoader.loadPersistent(DbParams.PersistentName.PERSISTENT_LOGIN_ID_KEY);
+                LoginIdKeyPersistent loginIdKeyPersistent = PersistentLoader.getInstance().getLoginIdKeyPst();
                 return (loginIdKeyPersistent == null) ? "" : loginIdKeyPersistent.get();
             } catch (Exception e) {
                 SALog.printStackTrace(e);
@@ -417,7 +416,7 @@ public class Identities {
          */
         public static String getIdentitiesFromLocal() {
             try {
-                UserIdentityPersistent userPersistent = (UserIdentityPersistent) PersistentLoader.loadPersistent(DbParams.PersistentName.PERSISTENT_USER_ID);
+                UserIdentityPersistent userPersistent = PersistentLoader.getInstance().getUserIdsPst();
                 if (userPersistent != null) {
                     return DbAdapter.decodeIdentities(userPersistent.get());
                 }

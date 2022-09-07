@@ -19,11 +19,11 @@ package com.sensorsdata.analytics.android.sdk.advert.deeplink;
 
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.advert.R;
 import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.deeplink.SADeepLinkObject;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
@@ -142,7 +142,7 @@ public class DeferredDeepLinkHelper {
                                     SALog.printStackTrace(e);
                                 }
                             } else if (isSuccess) {
-                                properties.put("$deeplink_match_fail_reason", SADisplayUtil.getStringResource(sensorsDataAPI.getInternalConfigs().context, R.string.sensors_analytics_ad_listener));
+                                properties.put("$deeplink_match_fail_reason", SADisplayUtil.getStringResource(sensorsDataAPI.getSAContextManager().getContext(), R.string.sensors_analytics_ad_listener));
                             }
                             JSONUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
                             SAEventManager.getInstance().trackQueueEvent(new Runnable() {
