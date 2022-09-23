@@ -44,8 +44,8 @@ public class SAEncryptAPIImpl implements SAEncryptAPI{
         this.mSAContextManager = contextManager;
         mSensorsDataEncrypt = new SAEventEncryptTools(contextManager);
         mSecretKeyManager = SecretKeyManager.getInstance(contextManager);
-        if (contextManager.getInternalConfigs().saConfigOptions.getEncryptors() != null &&
-                !contextManager.getInternalConfigs().saConfigOptions.getEncryptors().isEmpty()) {// 注册默认的 Plugin
+        if (contextManager.getInternalConfigs().saConfigOptions.getStorePlugins() != null &&
+                !contextManager.getInternalConfigs().saConfigOptions.getStorePlugins().isEmpty()) {// 注册默认的 Plugin
             AESSecretManager.getInstance().initSecretKey(contextManager.getContext());
         }
     }

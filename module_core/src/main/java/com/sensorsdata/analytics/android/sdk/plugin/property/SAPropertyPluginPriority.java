@@ -32,7 +32,7 @@ public class SAPropertyPluginPriority {
 
     private final long priority;
 
-    private SAPropertyPluginPriority(long priority) {
+    public SAPropertyPluginPriority(long priority) {
         this.priority = priority;
     }
 

@@ -95,35 +95,40 @@ public class AopUtil {
                 return null;
             }
             Context context = viewContext.view.getContext();
+            JSONObject eventJson = new JSONObject();
             //1.获取预置属性
             String idString = SAViewUtils.getViewId(viewContext.view);
             if (!TextUtils.isEmpty(idString)) {
                 //ViewId
-                properties.put(AopConstants.ELEMENT_ID, idString);
+                eventJson.put(AopConstants.ELEMENT_ID, idString);
             }
 
             String viewText = SAViewUtils.getViewContent(viewContext.view);
             //$element_content
             if (!TextUtils.isEmpty(viewText)) {
-                properties.put(AopConstants.ELEMENT_CONTENT, viewText);
+                eventJson.put(AopConstants.ELEMENT_CONTENT, viewText);
             }
             //$element_type
-            properties.put(AopConstants.ELEMENT_TYPE, SAViewUtils.getViewType(viewContext.view));
+            eventJson.put(AopConstants.ELEMENT_TYPE, SAViewUtils.getViewType(viewContext.view));
 
             Activity activity = viewContext.activity != null ? viewContext.activity : SAViewUtils.getActivityOfView(context, viewContext.view);
             //2.获取 Activity 页面信息及 ScreenAutoTracker 定义的属性
             if (activity != null) {
-                JSONUtils.mergeJSONObject(SAPageTools.getActivityPageInfo(activity), properties);
+                JSONUtils.mergeJSONObject(SAPageTools.getActivityPageInfo(activity), eventJson);
             }
 
             //fragmentName
             Object fragment = viewContext.fragment != null ? viewContext.fragment : SAFragmentUtils.getFragmentFromView(viewContext.view, activity);
             if (fragment != null) {
-                JSONUtils.mergeJSONObject(SAPageTools.getFragmentPageInfo(activity, fragment), properties);
+                JSONUtils.mergeJSONObject(SAPageTools.getFragmentPageInfo(activity, fragment), eventJson);
             }
             //3.获取 View 自定义属性
             JSONObject p = (JSONObject) viewContext.view.getTag(R.id.sensors_analytics_tag_view_properties);
-            JSONUtils.mergeJSONObject(p, properties);
+            if (p != null) {
+                JSONUtils.mergeJSONObject(p, eventJson);
+            }
+            //4.事件传入的自定义属性
+            JSONUtils.mergeDistinctProperty(eventJson, properties);
             return properties;
         } catch (JSONException e) {
             SALog.printStackTrace(e);

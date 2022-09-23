@@ -43,6 +43,6 @@ public class SASuperPropertyPlugin extends SAPropertyPlugin {
         // merge super and dynamic property
         JSONObject removeDuplicateSuperProperties = JSONUtils.mergeSuperJSONObject(dynamicProperty, superProperties);
         // merge custom property and super property
-        JSONUtils.mergeDistinctProperty(removeDuplicateSuperProperties, saPropertiesFetcher.getProperties());
+        JSONUtils.mergeJSONObject(removeDuplicateSuperProperties, saPropertiesFetcher.getProperties());
     }
 }

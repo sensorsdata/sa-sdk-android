@@ -24,6 +24,7 @@ import static org.junit.Assert.fail;
 
 import android.app.Application;
 import android.text.TextUtils;
+import android.widget.TextView;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -49,6 +50,8 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
 import java.util.Iterator;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {Config.OLDEST_SDK})
@@ -70,6 +73,33 @@ public class RegressionTesting {
         assertEquals(sensorsDataAPI.getServerUrl(), SAHelper.getSaServerUrl());
         assertTrue(sensorsDataAPI.isNetworkRequestEnable());
         assertTrue(sensorsDataAPI.isTrackFragmentAppViewScreenEnabled());
+    }
+
+    /**
+     * 检查 点击事件及自定义属性覆盖问题
+     */
+    @Test
+    public void trackAppViewClickTest() throws Exception {
+        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
+        JSONObject properties = new JSONObject();
+        final CountDownLatch downLatch = new CountDownLatch(1);
+        properties.put("$title", "title");
+        properties.put("$screen_name", "ScreenName");
+        sensorsDataAPI.setTrackEventCallBack(new SensorsDataTrackEventCallBack() {
+            @Override
+            public boolean onTrackEvent(String eventName, JSONObject eventProperties) {
+                if ("$AppClick".equals(eventName)) {
+                    assertEquals(eventProperties.opt("$screen_name"), "ScreenName");
+                    assertEquals(eventProperties.opt("$title"), "title");
+                    downLatch.countDown();
+                }
+                return false;
+            }
+        });
+        TextView view = new TextView(mApplication);
+        view.setText("text");
+        sensorsDataAPI.trackViewAppClick(view, properties);
+        downLatch.await(500, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -111,7 +141,7 @@ public class RegressionTesting {
             public boolean onTrackEvent(String eventName, JSONObject eventProperties) {
                 assertEquals(eventUnitName, eventName);
                 assertEquals(eventProperties.opt(unitKey), eventUnitName);
-                return true;
+                return false;
             }
         });
         JSONObject jsonObject = new JSONObject();
@@ -133,7 +163,7 @@ public class RegressionTesting {
             public boolean onTrackEvent(String eventName, JSONObject eventProperties) {
                 assertEquals(eventUnitName, eventName);
                 assertEquals(eventProperties.opt(superKey), eventUnitName);
-                return true;
+                return false;
             }
         });
         JSONObject jsonObject = new JSONObject();
@@ -166,7 +196,7 @@ public class RegressionTesting {
             public boolean onTrackEvent(String eventName, JSONObject eventProperties) {
                 assertEquals(eventUnitName, eventName);
                 assertEquals(eventProperties.opt(superKey), eventUnitName);
-                return true;
+                return false;
             }
         });
 
@@ -202,7 +232,7 @@ public class RegressionTesting {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-                return true;
+                return false;
             }
         });
 
@@ -246,25 +276,32 @@ public class RegressionTesting {
 
     @Test
     public void loginTest() throws Exception {
-        SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
-        String login_id = "SensorsDataAndroid";
+        final SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
+        final String login_id = "SensorsDataAndroid";
         sensorsDataAPI.login(login_id);
-        Thread.sleep(2000);
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
         assertEquals(sensorsDataAPI.getDistinctId(), login_id);
         assertEquals(sensorsDataAPI.getLoginId(), login_id);
         // Load Data From Db
-        String eventLogin = DatabaseUtilsTest.loadEventFromDb(mApplication);
-        assertNotNull(eventLogin);
-        JSONObject jsonObject = new JSONObject(eventLogin);
-        assertEquals(jsonObject.opt("event"), "$SignUp");
-        assertEquals(jsonObject.opt("type"), "track_signup");
-        assertEquals(jsonObject.opt("distinct_id"), login_id);
-        assertEquals(jsonObject.opt("login_id"), login_id);
-        JSONObject identityJson = jsonObject.optJSONObject("identities");
-        assertNotNull(identityJson);
-        assertEquals(identityJson.opt("$identity_login_id"), login_id);
-        // clear data
-        sensorsDataAPI.logout();
+        sensorsDataAPI.setTrackEventCallBack(new SensorsDataTrackEventCallBack() {
+            @Override
+            public boolean onTrackEvent(String eventName, JSONObject eventProperties) {
+                if (eventName.equals("SignUp")) {
+                    assertEquals(eventName, "$SignUp");
+                    assertEquals(eventProperties.opt("type"), "track_signup");
+                    assertEquals(eventProperties.opt("distinct_id"), login_id);
+                    assertEquals(eventProperties.opt("login_id"), login_id);
+                    JSONObject identityJson = eventProperties.optJSONObject("identities");
+                    assertNotNull(identityJson);
+                    assertEquals(identityJson.opt("$identity_login_id"), login_id);
+                    countDownLatch.countDown();
+                }
+                // clear data
+                sensorsDataAPI.logout();
+                return false;
+            }
+        });
+        countDownLatch.await(500, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -308,7 +345,7 @@ public class RegressionTesting {
     }
 
     @Test
-    public void profileSetOnceTest()throws Exception  {
+    public void profileSetOnceTest() throws Exception {
         final String key = "profile_SetOnceTest";
         final String value = "profile_SetOnceTest";
         SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
@@ -333,22 +370,29 @@ public class RegressionTesting {
         final String value = "profile_AppendTest";
         SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         sensorsDataAPI.deleteAll();
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
         // 检查事件类型和属性
-        Thread.sleep(1500);
         sensorsDataAPI.profileAppend(key, value);
-        // 检查事件类型和属性
-        Thread.sleep(1500);
-        String eventData = DatabaseUtilsTest.loadEventFromDb(mApplication);
-        assertNotNull(eventData);
-        JSONObject jsonObject = new JSONObject(eventData);
-        ProfileTestUtils.checkProfileEvent(jsonObject, "profile_append");
-        JSONObject propertyJson = jsonObject.optJSONObject("properties");
-        assertNotNull(propertyJson);
-        assertEquals(propertyJson.optJSONArray(key).get(0), value);
+        sensorsDataAPI.setTrackEventCallBack(new SensorsDataTrackEventCallBack() {
+            @Override
+            public boolean onTrackEvent(String eventName, JSONObject eventProperties) {
+                try {
+                    ProfileTestUtils.checkProfileEvent(eventProperties, "profile_append");
+                    JSONObject propertyJson = eventProperties.optJSONObject("properties");
+                    assertNotNull(propertyJson);
+                    assertEquals(propertyJson.optJSONArray(key).get(0), value);
+                    countDownLatch.countDown();
+                }catch (Exception e){
+
+                }
+                return false;
+            }
+        });
+        countDownLatch.await(500, TimeUnit.MILLISECONDS);
     }
 
     @Test
-    public void profilePushIdTest() throws Exception{
+    public void profilePushIdTest() throws Exception {
         final String key = "profile_PushIdKeyTest";
         final String value = "profile_PushIdValueTest";
         SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
@@ -379,7 +423,7 @@ public class RegressionTesting {
     }
 
     @Test
-    public void profileUnsetPushIdTest()throws Exception {
+    public void profileUnsetPushIdTest() throws Exception {
         final String key = "profile_PushIdKeyTest";
         SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
         sensorsDataAPI.profilePushId(key, "value");
@@ -430,7 +474,7 @@ public class RegressionTesting {
     }
 
     @Test
-    public void itemDeleteTest()throws Exception  {
+    public void itemDeleteTest() throws Exception {
         final String itemType = "itemType_unitTest";
         final String itemId = "itemId_unitTest";
         SensorsDataAPI sensorsDataAPI = SAHelper.initSensors(mApplication);
@@ -482,4 +526,5 @@ public class RegressionTesting {
             }
         }
     }
+
 }

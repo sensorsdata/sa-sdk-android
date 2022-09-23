@@ -47,7 +47,7 @@ public class SAEncryptProtocolImpl implements SAEncryptProtocol {
 
     @Override
     public boolean isEnable() {
-        return false;
+        return mEnable;
     }
 
     @Override

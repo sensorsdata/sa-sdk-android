@@ -39,7 +39,7 @@ dependencies {
     implementation rootProject.ext.androidx.google_material
     implementation rootProject.ext.androidx.constraintlayout
     implementation project(':SensorsAnalyticsSDK')
-//    implementation ('com.sensorsdata.analytics.android:SensorsAnalyticsSDK:6.4.4-build1') {
+//    implementation ('com.sensorsdata.analytics.android:SensorsAnalyticsSDK:6.5.0') {
 //        exclude(group:'com.sensorsdata.analytics.android', module:'encrypt')
 //    }
 }
