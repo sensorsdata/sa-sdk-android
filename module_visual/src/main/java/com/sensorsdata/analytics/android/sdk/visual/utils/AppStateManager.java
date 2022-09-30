@@ -23,7 +23,8 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataActivityLifecycleCallbacks;
-import com.sensorsdata.analytics.android.sdk.visual.core.ViewTreeStatusObservable;
+import com.sensorsdata.analytics.android.sdk.util.visual.ViewTreeStatusObservable;
+import com.sensorsdata.analytics.android.sdk.util.visual.ViewUtil;
 
 @SuppressLint("NewApi")
 public class AppStateManager implements SensorsDataActivityLifecycleCallbacks.SAActivityLifecycleCallbacks {

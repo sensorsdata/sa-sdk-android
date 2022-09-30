@@ -24,5 +24,6 @@ public class ModuleConstants {
         String PUSH_NAME = "sensors_analytics_module_push";
         String AUTO_TRACK_NAME = "sensors_analytics_module_autotrack";
         String ENCRYPT_NAME = "sensors_analytics_module_encrypt";
+        String EXPOSURE_NAME = "sensors_analytics_module_exposure";
     }
 }

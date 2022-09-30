@@ -29,6 +29,8 @@ import android.view.View;
 import android.webkit.WebView;
 
 import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
+import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposure;
+import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureData;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.core.business.timer.EventTimer;
 import com.sensorsdata.analytics.android.sdk.core.business.timer.EventTimerManager;
@@ -1817,6 +1819,48 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         return VERSION;
     }
 
+    /**
+     * 设置曝光 view 唯一标记位，一般只在列表复用的情况下使用
+     *
+     * @param view 被标记的 view
+     * @param exposureIdentifier 被标记 view 的唯一标记位
+     */
+    @Override
+    public void setExposureIdentifier(View view, String exposureIdentifier) {
+        SAExposure.setExposureIdentifier(view, exposureIdentifier);
+    }
+
+    /**
+     * 曝光 view 标记
+     *
+     * @param view 被标记的 view
+     * @param exposureData 曝光配置
+     */
+    @Override
+    public void addExposureView(View view, SAExposureData exposureData) {
+        SAExposure.addExposureView(view, exposureData);
+    }
+
+    /**
+     * 曝光 view 标记取消
+     *
+     * @param view 被标记的 view
+     * @param identifier 被标记的 view 的唯一标识
+     */
+    @Override
+    public void removeExposureView(View view, String identifier) {
+        SAExposure.removeExposureView(view, identifier);
+    }
+
+    /**
+     * 曝光 view 标记取消
+     *
+     * @param view 被标记的 view
+     */
+    @Override
+    public void removeExposureView(View view) {
+        SAExposure.removeExposureView(view, null);
+    }
 
     /**
      * Debug 模式，用于检验数据导入是否正确。该模式下，事件会逐条实时发送到 Sensors Analytics，并根据返回值检查

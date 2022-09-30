@@ -53,15 +53,15 @@ import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
 import com.sensorsdata.analytics.android.sdk.util.SnapCache;
 import com.sensorsdata.analytics.android.sdk.util.WebUtils;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
+import com.sensorsdata.analytics.android.sdk.util.visual.ViewNode;
 import com.sensorsdata.analytics.android.sdk.visual.model.SnapInfo;
-import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 import com.sensorsdata.analytics.android.sdk.visual.model.WebNode;
 import com.sensorsdata.analytics.android.sdk.visual.model.WebNodeInfo;
 import com.sensorsdata.analytics.android.sdk.visual.snap.PropertyDescription;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceIds;
 import com.sensorsdata.analytics.android.sdk.visual.snap.SoftWareCanvas;
 import com.sensorsdata.analytics.android.sdk.visual.utils.Dispatcher;
-import com.sensorsdata.analytics.android.sdk.visual.utils.ViewUtil;
+import com.sensorsdata.analytics.android.sdk.util.visual.ViewUtil;
 import com.sensorsdata.analytics.android.sdk.visual.utils.VisualUtil;
 
 import org.json.JSONArray;
@@ -186,8 +186,7 @@ public class ViewSnapshot {
         }
         int[] offset = new int[2];
         view.getLocationOnScreen(offset);
-        boolean visibleRect = view.getLocalVisibleRect(rect);
-        SnapCache.getInstance().setLocalVisibleRect(view, visibleRect);
+        view.getLocalVisibleRect(rect);
         rect.offset(offset[0], offset[1]);
     }
 
@@ -221,7 +220,7 @@ public class ViewSnapshot {
                 String title = SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_sa_h5);
                 String message = SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_sa_h5_error);
                 String link_text = SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_sa_h5_error_link);
-                String msg = "{\"callType\":\"app_alert\",\"data\":[{\"title\":\"" + title + "\",\"message\":\"" + message + "\",\"link_text\":\"" + link_text +"\",\"link_url\":\"https://manual.sensorsdata.cn/sa/latest/tech_sdk_client_web_use-7545346.html\"}]}";
+                String msg = "{\"callType\":\"app_alert\",\"data\":[{\"title\":\"" + title + "\",\"message\":\"" + message + "\",\"link_text\":\"" + link_text + "\",\"link_url\":\"https://manual.sensorsdata.cn/sa/latest/tech_sdk_client_web_use-7545346.html\"}]}";
                 WebNodesManager.getInstance().handlerFailure(url, msg);
             }
         }

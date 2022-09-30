@@ -27,11 +27,11 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
-import com.sensorsdata.analytics.android.sdk.visual.core.ViewTreeStatusObservable;
+import com.sensorsdata.analytics.android.sdk.util.visual.ViewNode;
+import com.sensorsdata.analytics.android.sdk.util.visual.ViewTreeStatusObservable;
 import com.sensorsdata.analytics.android.sdk.visual.bridge.JSBridgeHelper;
 import com.sensorsdata.analytics.android.sdk.visual.bridge.OnBridgeCallback;
 import com.sensorsdata.analytics.android.sdk.visual.bridge.WebViewJavascriptBridge;
-import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 import com.sensorsdata.analytics.android.sdk.visual.model.VisualConfig;
 
 import org.json.JSONArray;

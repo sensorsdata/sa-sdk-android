@@ -18,9 +18,6 @@
 package com.sensorsdata.analytics.android.autotrack.core.business;
 
 import android.app.Activity;
-import android.content.pm.ActivityInfo;
-import android.content.pm.PackageManager;
-import android.os.Build;
 import android.text.TextUtils;
 import android.view.View;
 
@@ -162,7 +159,7 @@ public class SAPageTools {
         JSONObject propertyJSON = new JSONObject();
         try {
             propertyJSON.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
-            String activityTitle = getActivityTitle(activity);
+            String activityTitle = SensorsDataUtils.getActivityTitle(activity);
             if (!TextUtils.isEmpty(activityTitle)) {
                 propertyJSON.put(AopConstants.TITLE, activityTitle);
             }
@@ -176,50 +173,6 @@ public class SAPageTools {
             return new JSONObject();
         }
         return propertyJSON;
-    }
-
-    /**
-     * 获取 Activity 的 title
-     *
-     * @param activity Activity
-     * @return Activity 的 title
-     */
-    public static String getActivityTitle(Activity activity) {
-        try {
-            if (activity != null) {
-                try {
-                    String activityTitle = null;
-                    if (!TextUtils.isEmpty(activity.getTitle())) {
-                        activityTitle = activity.getTitle().toString();
-                    }
-
-                    if (Build.VERSION.SDK_INT >= 11) {
-                        String toolbarTitle = SensorsDataUtils.getToolbarTitle(activity);
-                        if (!TextUtils.isEmpty(toolbarTitle)) {
-                            activityTitle = toolbarTitle;
-                        }
-                    }
-
-                    if (TextUtils.isEmpty(activityTitle)) {
-                        PackageManager packageManager = activity.getPackageManager();
-                        if (packageManager != null) {
-                            ActivityInfo activityInfo = packageManager.getActivityInfo(activity.getComponentName(), 0);
-                            if (!TextUtils.isEmpty(activityInfo.loadLabel(packageManager))) {
-                                activityTitle = activityInfo.loadLabel(packageManager).toString();
-                            }
-                        }
-                    }
-
-                    return activityTitle;
-                } catch (Exception e) {
-                    return null;
-                }
-            }
-            return null;
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-            return null;
-        }
     }
 
     public static JSONObject getRNPageInfo() {

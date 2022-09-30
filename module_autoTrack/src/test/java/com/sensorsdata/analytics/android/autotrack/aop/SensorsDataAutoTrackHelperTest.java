@@ -17,7 +17,7 @@
 
 package com.sensorsdata.analytics.android.autotrack.aop;
 
-import static com.sensorsdata.analytics.android.autotrack.core.business.SAPageTools.getActivityTitle;
+import static com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils.getActivityTitle;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -25,7 +25,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Application;
 import android.content.DialogInterface;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
@@ -42,13 +41,10 @@ import android.widget.TabHost;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.test.core.app.ApplicationProvider;
 
-import com.google.android.material.tabs.TabLayout;
 import com.sensorsdata.analytics.android.autotrack.SAHelper;
-import com.sensorsdata.analytics.android.autotrack.core.impl.AutoTrackProtocolIml;
 import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataTrackEventCallBack;
@@ -58,10 +54,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import org.robolectric.fakes.RoboMenuItem;
-import org.robolectric.shadows.ShadowActivity;
 
 import java.util.ArrayList;
 import java.util.List;

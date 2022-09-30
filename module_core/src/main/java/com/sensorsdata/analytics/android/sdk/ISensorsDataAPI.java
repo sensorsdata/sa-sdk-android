@@ -20,6 +20,7 @@ import android.webkit.WebView;
 
 import com.sensorsdata.analytics.android.sdk.core.mediator.advert.SAAdvertAPIProtocol;
 import com.sensorsdata.analytics.android.sdk.core.mediator.autotrack.AutoTrackProtocol;
+import com.sensorsdata.analytics.android.sdk.core.mediator.exposure.SAExposureAPIProtocol;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.useridentity.IUserIdentityAPI;
 
@@ -30,7 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public interface ISensorsDataAPI extends IUserIdentityAPI, SAAdvertAPIProtocol, AutoTrackProtocol {
+public interface ISensorsDataAPI extends IUserIdentityAPI, SAAdvertAPIProtocol, AutoTrackProtocol, SAExposureAPIProtocol {
     /**
      * 返回预置属性
      *
@@ -460,6 +461,7 @@ public interface ISensorsDataAPI extends IUserIdentityAPI, SAAdvertAPIProtocol, 
 
     /**
      * 注册自定义插件
+     *
      * @param plugin 自定义插件
      */
     public void registerPropertyPlugin(SAPropertyPlugin plugin);

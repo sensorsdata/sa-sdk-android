@@ -19,6 +19,7 @@ package com.sensorsdata.analytics.android.sdk;
 
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureConfig;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.StorePlugin;
 import com.sensorsdata.analytics.android.sdk.encrypt.IPersistentSecretKey;
 import com.sensorsdata.analytics.android.sdk.encrypt.SAEncryptListener;
@@ -491,6 +492,26 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
             this.mPropertyPlugins = new ArrayList<>();
         }
         this.mPropertyPlugins.add(property);
+        return this;
+    }
+
+    /**
+     * 获取曝光配置信息
+     *
+     * @return 返回曝光全局配置信息
+     */
+    public SAExposureConfig getExposureConfig() {
+        return mExposureConfig;
+    }
+
+    /**
+     * 设置曝光配置信息
+     *
+     * @param exposureConfig 曝光配置信息
+     * @return 返回全局配置信息
+     */
+    public SAConfigOptions setExposureConfig(SAExposureConfig exposureConfig) {
+        mExposureConfig = exposureConfig;
         return this;
     }
 }

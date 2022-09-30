@@ -26,6 +26,7 @@ import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
 import com.sensorsdata.analytics.android.sdk.core.mediator.advert.SAAdvertModuleProtocol;
 import com.sensorsdata.analytics.android.sdk.core.mediator.autotrack.AutoTrackModuleProtocol;
 import com.sensorsdata.analytics.android.sdk.core.mediator.encrypt.SAEncryptProtocol;
+import com.sensorsdata.analytics.android.sdk.core.mediator.exposure.SAExposureProtocol;
 import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAModuleProtocol;
 import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAScanListener;
 import com.sensorsdata.analytics.android.sdk.core.mediator.visual.SAVisualProtocol;
@@ -174,6 +175,15 @@ public class SAModuleManager {
      */
     public SAVisualProtocol getVisualModuleService() {
         return getService(ModuleConstants.ModuleName.VISUAL_NAME, SAVisualProtocol.class);
+    }
+
+    /**
+     * 获取曝光模块间交互服务
+     *
+     * @return 模块实现接口
+     */
+    public SAExposureProtocol getExposureModuleService() {
+        return getService(ModuleConstants.ModuleName.EXPOSURE_NAME, SAExposureProtocol.class);
     }
 
     /**

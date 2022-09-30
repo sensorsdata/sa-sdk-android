@@ -40,4 +40,5 @@ dependencies {
     api project(':module_autoTrack')
     api project(':module_push')
     api project(':module_encrypt')
+    api project(':module_exposure')
 }

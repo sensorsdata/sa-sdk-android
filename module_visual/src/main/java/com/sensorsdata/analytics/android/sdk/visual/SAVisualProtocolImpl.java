@@ -6,16 +6,14 @@ import android.text.TextUtils;
 import android.util.Base64;
 import android.view.View;
 
-import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
 import com.sensorsdata.analytics.android.sdk.core.mediator.visual.SAVisualProtocol;
 import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataLifecycleMonitorManager;
 import com.sensorsdata.analytics.android.sdk.util.H5Util;
 import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
-import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
+import com.sensorsdata.analytics.android.sdk.util.visual.ViewNode;
 import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
 import com.sensorsdata.analytics.android.sdk.visual.utils.AppStateManager;
 import com.sensorsdata.analytics.android.sdk.visual.utils.VisualUtil;

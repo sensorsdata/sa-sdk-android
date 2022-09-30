@@ -39,9 +39,12 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
+import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
+import org.json.JSONObject;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -404,7 +407,7 @@ public class SAViewUtils {
                 viewType = SAViewUtils.getViewType(viewType, "Spinner");
             } else if (instanceOfTabView(view) != null) {
                 viewType = SAViewUtils.getViewType(viewType, "TabLayout");
-            }else if (instanceOfNavigationView(view)) {
+            } else if (instanceOfNavigationView(view)) {
                 viewType = SAViewUtils.getViewType(viewType, "NavigationView");
             } else if (view instanceof ViewGroup) {
                 viewType = SAViewUtils.getViewGroupTypeByReflect(view);
@@ -464,14 +467,7 @@ public class SAViewUtils {
             return true;
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            Boolean localVisibleRect = SnapCache.getInstance().getLocalVisibleRect(view);
-            boolean viewLocalVisiable;
-            if (localVisibleRect == null) {
-                viewLocalVisiable = view.getLocalVisibleRect(new Rect());
-                SnapCache.getInstance().setLocalVisibleRect(view, viewLocalVisiable);
-            } else {
-                viewLocalVisiable = localVisibleRect;
-            }
+            boolean viewLocalVisiable = view.getLocalVisibleRect(new Rect());
             if (view.getWidth() <= 0 || view.getHeight() <= 0 || view.getAlpha() <= 0.0f || !viewLocalVisiable) {
                 return false;
             }
@@ -703,5 +699,57 @@ public class SAViewUtils {
             return defaultTypeName;
         }
         return viewName;
+    }
+
+    /**
+     * 取控件响应链的 screen_name
+     *
+     * @param view ViewTree 中的 控件
+     * @return 含 $screen_name 和 $title 的 json
+     */
+    public static JSONObject getScreenNameAndTitle(View view) {
+        if (view == null) {
+            return null;
+        }
+        JSONObject object = null;
+        Activity activity = SAViewUtils.getActivityOfView(view.getContext(), view);
+        if (activity == null) {
+            activity = AppStateTools.getInstance().getForegroundActivity();
+        }
+        if (activity != null && activity.getWindow() != null && activity.getWindow().isActive()) {
+            Object fragment = SAFragmentUtils.getFragmentFromView(view, activity);
+            if (fragment != null) {
+                object = SAModuleManager.getInstance().invokeAutoTrackFunction("getFragmentPageInfo", activity, fragment);
+            } else {
+                object = SAModuleManager.getInstance().invokeAutoTrackFunction("getActivityPageInfo", activity);
+                JSONObject rnJson = SAModuleManager.getInstance().invokeAutoTrackFunction("getRNPageInfo");
+                if (object == null) {
+                    object = new JSONObject();
+                }
+                JSONUtils.mergeJSONObject(rnJson, object);
+            }
+        }
+        return object;
+    }
+
+    /**
+     * 构建 Title 和 Screen 的名称
+     *
+     * @param activity 页面
+     * @return JSONObject
+     */
+    public static JSONObject buildTitleAndScreenName(Activity activity) {
+        JSONObject propertyJSON = new JSONObject();
+        try {
+            propertyJSON.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
+            String activityTitle = SensorsDataUtils.getActivityTitle(activity);
+            if (!TextUtils.isEmpty(activityTitle)) {
+                propertyJSON.put(AopConstants.TITLE, activityTitle);
+            }
+        } catch (Exception ex) {
+            com.sensorsdata.analytics.android.sdk.SALog.printStackTrace(ex);
+            return new JSONObject();
+        }
+        return propertyJSON;
     }
 }

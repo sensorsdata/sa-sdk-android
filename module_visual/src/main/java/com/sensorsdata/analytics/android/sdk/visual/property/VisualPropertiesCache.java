@@ -21,10 +21,8 @@ import android.text.TextUtils;
 import android.view.View;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
-import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentVisualConfig;
-import com.sensorsdata.analytics.android.sdk.visual.core.ViewTreeStatusObservable;
+import com.sensorsdata.analytics.android.sdk.util.visual.ViewTreeStatusObservable;
 import com.sensorsdata.analytics.android.sdk.visual.model.VisualConfig;
 
 import org.json.JSONArray;

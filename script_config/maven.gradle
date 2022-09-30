@@ -82,6 +82,13 @@ if (project.name == "module_core") {
         artifactId_maven = "encrypt"
     }
     version = rootProject.ext.versions.module_version
+} else if (project.name == "module_exposure") {
+    if (isBeta) {
+        artifactId_maven = "exposure-" + betaPrefix
+    } else {
+        artifactId_maven = "exposure"
+    }
+    version = rootProject.ext.versions.module_version
 }
 
 publishing {

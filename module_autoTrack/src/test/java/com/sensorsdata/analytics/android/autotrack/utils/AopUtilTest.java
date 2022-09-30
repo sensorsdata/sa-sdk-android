@@ -17,6 +17,8 @@
 
 package com.sensorsdata.analytics.android.autotrack.utils;
 
+import static com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils.getActivityTitle;
+
 import android.app.Activity;
 import android.app.Application;
 import android.widget.Button;
@@ -27,8 +29,6 @@ import android.widget.ToggleButton;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.sensorsdata.analytics.android.autotrack.core.beans.ViewContext;
-import com.sensorsdata.analytics.android.autotrack.core.business.SAPageTools;
-
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
@@ -53,7 +53,7 @@ public class AopUtilTest {
         ScreenActivity activity = Robolectric.setupActivity(ScreenActivity.class);
         JSONObject jsonObject = AopUtil.buildTitleNoAutoTrackerProperties(activity);
         Assert.assertEquals(activity.getClass().getCanonicalName(), jsonObject.optString("$screen_name"));
-        Assert.assertEquals(SAPageTools.getActivityTitle(activity), jsonObject.optString("$title"));
+        Assert.assertEquals(getActivityTitle(activity), jsonObject.optString("$title"));
     }
 
     public void injectClickInfo() {

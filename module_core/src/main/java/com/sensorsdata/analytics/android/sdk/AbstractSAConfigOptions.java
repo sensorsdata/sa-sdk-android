@@ -17,6 +17,7 @@
 
 package com.sensorsdata.analytics.android.sdk;
 
+import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureConfig;
 import com.sensorsdata.analytics.android.sdk.encrypt.IPersistentSecretKey;
 import com.sensorsdata.analytics.android.sdk.encrypt.SAEncryptListener;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.StorePlugin;
@@ -210,6 +211,11 @@ abstract class AbstractSAConfigOptions {
      * 注册属性插件
      */
     List<SAPropertyPlugin> mPropertyPlugins;
+
+    /**
+     * 曝光配置
+     */
+    public SAExposureConfig mExposureConfig;
 
     /**
      * 是否开启 DeepLink

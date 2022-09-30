@@ -143,15 +143,6 @@ public class SnapCache {
     }
 
     @SuppressLint("NewApi")
-    public Boolean getLocalVisibleRect(View view) {
-        return null;
-    }
-
-    @SuppressLint("NewApi")
-    public void setLocalVisibleRect(View view, Boolean localVisibleRect) {
-    }
-
-    @SuppressLint("NewApi")
     public String getViewText(View view) {
         return null;
     }

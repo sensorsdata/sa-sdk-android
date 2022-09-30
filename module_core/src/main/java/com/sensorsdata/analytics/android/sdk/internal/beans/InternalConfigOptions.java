@@ -23,6 +23,7 @@ import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataGPSLocation;
 import com.sensorsdata.analytics.android.sdk.SensorsDataTrackEventCallBack;
+import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureConfig;
 
 public class InternalConfigOptions {
     public Context context;

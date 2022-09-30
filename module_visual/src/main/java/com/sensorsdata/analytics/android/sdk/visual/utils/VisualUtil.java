@@ -37,9 +37,10 @@ import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
-import com.sensorsdata.analytics.android.sdk.visual.core.ViewTreeStatusObservable;
+import com.sensorsdata.analytics.android.sdk.util.visual.ViewNode;
+import com.sensorsdata.analytics.android.sdk.util.visual.ViewTreeStatusObservable;
+import com.sensorsdata.analytics.android.sdk.util.visual.ViewUtil;
 import com.sensorsdata.analytics.android.sdk.visual.model.SnapInfo;
-import com.sensorsdata.analytics.android.sdk.visual.model.ViewNode;
 
 import org.json.JSONException;
 import org.json.JSONObject;

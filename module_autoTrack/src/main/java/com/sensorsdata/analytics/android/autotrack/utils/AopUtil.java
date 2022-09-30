@@ -32,7 +32,6 @@ import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
-import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.autotrack.core.business.SAPageTools;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
@@ -51,13 +50,9 @@ public class AopUtil {
      * @return JSONObject
      */
     public static JSONObject buildTitleNoAutoTrackerProperties(Activity activity) {
-        JSONObject propertyJSON = new JSONObject();
+        JSONObject propertyJSON;
         try {
-            propertyJSON.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
-            String activityTitle = SAPageTools.getActivityTitle(activity);
-            if (!TextUtils.isEmpty(activityTitle)) {
-                propertyJSON.put(AopConstants.TITLE, activityTitle);
-            }
+            propertyJSON = SAViewUtils.buildTitleAndScreenName(activity);
             if (activity instanceof ScreenAutoTracker) {
                 ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
                 JSONObject trackProperties = screenAutoTracker.getTrackProperties();

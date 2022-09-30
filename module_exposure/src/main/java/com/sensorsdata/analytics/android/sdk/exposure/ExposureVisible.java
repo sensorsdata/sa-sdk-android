@@ -1,0 +1,80 @@
+package com.sensorsdata.analytics.android.sdk.exposure;
+
+import android.graphics.Rect;
+import android.view.View;
+import android.view.ViewParent;
+
+import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
+
+import java.util.HashMap;
+
+public class ExposureVisible {
+
+    private final HashMap<String, Boolean> mVisible;
+
+    public ExposureVisible() {
+        mVisible = new HashMap<>();
+    }
+
+    public void cleanVisible() {
+        mVisible.clear();
+    }
+
+    public boolean isVisible(View view, Rect rect) {
+        if (!isViewSelfVisible(view, rect)) {
+            return false;
+        }
+        if (!isParentVisible(view)) {
+            return false;
+        }
+        if (!view.isShown()) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean isViewSelfVisible(View view, Rect rect) {
+        if (view == null || view.getWindowVisibility() == View.GONE) {
+            return false;
+        }
+        if (WindowHelper.isDecorView(view.getClass())) {
+            return true;
+        }
+        Boolean localVisible = mVisible.get(view.hashCode() + "");
+        boolean viewLocalVisible;
+        if (localVisible == null) {
+            viewLocalVisible = view.getLocalVisibleRect(rect);
+            mVisible.put(view.hashCode() + "", viewLocalVisible);
+        } else {
+            viewLocalVisible = localVisible;
+        }
+        if (view.getWidth() <= 0 || view.getHeight() <= 0 || view.getAlpha() <= 0.0f || !viewLocalVisible) {
+            return false;
+        }
+        boolean flag = view.getVisibility() == View.VISIBLE || view.getAnimation() == null || !view.getAnimation().getFillAfter();
+        flag = flag && (view.getVisibility() != View.VISIBLE);
+        if (flag) {
+            return false;
+        }
+        return true;
+    }
+
+
+    private boolean isParentVisible(View view) {
+        if (view == null) {
+            return false;
+        }
+        ViewParent viewParent = view.getParent();
+        do {
+            if (!(viewParent instanceof View)) {
+                return true;
+            }
+            if (!isViewSelfVisible((View) viewParent, new Rect())) {
+                return false;
+            }
+            viewParent = viewParent.getParent();
+        } while (viewParent != null);
+
+        return false;
+    }
+}

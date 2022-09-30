@@ -1,8 +1,8 @@
 ext {
     versions = [
-            sdk_version       : '6.5.1',    // 全量 SDK 版本号
+            sdk_version       : '6.5.2',    // 全量 SDK 版本号
             min_plugin_version: "3.5.0",    // 最小插件版本号依赖
-            module_version    : "0.0.11"     // 子模块版本号
+            module_version    : "0.0.12"     // 子模块版本号
     ]
 
     buildConfig = [
