@@ -23,7 +23,7 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.advert.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.ServerUrl;
+import com.sensorsdata.analytics.android.sdk.internal.beans.ServerUrl;
 import com.sensorsdata.analytics.android.sdk.advert.model.SASlinkResponse;
 import com.sensorsdata.analytics.android.sdk.advert.model.SATLandingPageType;
 import com.sensorsdata.analytics.android.sdk.advert.monitor.SensorsDataCreateSLinkCallback;

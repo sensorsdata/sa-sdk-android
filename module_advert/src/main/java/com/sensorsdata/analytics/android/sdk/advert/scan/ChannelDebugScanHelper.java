@@ -18,7 +18,6 @@
 package com.sensorsdata.analytics.android.sdk.advert.scan;
 
 import static com.sensorsdata.analytics.android.sdk.advert.SAAdvertConstants.TAG;
-import static com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils.dialogShowDismissOld;
 import static com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils.showDialog;
 
 import android.app.Activity;
@@ -28,17 +27,17 @@ import android.net.Uri;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.advert.R;
-import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.ServerUrl;
 import com.sensorsdata.analytics.android.sdk.advert.oaid.SAOaidHelper;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.advert.utils.SAAdvertUtils;
+import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataLoadingDialog;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
+import com.sensorsdata.analytics.android.sdk.internal.beans.ServerUrl;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
 import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
@@ -112,12 +111,12 @@ public class ChannelDebugScanHelper implements IAdvertScanListener {
                     _properties.put("$ios_install_source", ChannelUtils.getDeviceInfo(activity,
                             SAAdvertUtils.getIdentifier(activity), SAOaidHelper.getOpenAdIdentifier(activity)));
                     // first step: track
-                    SAEventManager.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK).setEventName("$ChannelDebugInstall").setProperties(_properties));
+                    SACoreHelper.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK).setEventName("$ChannelDebugInstall").setProperties(_properties));
                     // second step: profile_set_once or profile_set
                     JSONObject profileProperties = new JSONObject();
                     JSONUtils.mergeJSONObject(_properties, profileProperties);
                     profileProperties.put("$first_visit_time", new java.util.Date());
-                    SAEventManager.getInstance().trackEvent(new InputData().setEventType(EventType.PROFILE_SET_ONCE).setProperties(profileProperties));
+                    SACoreHelper.getInstance().trackEvent(new InputData().setEventType(EventType.PROFILE_SET_ONCE).setProperties(profileProperties));
                     SensorsDataAPI.sharedInstance().flush();
                 } catch (Exception e) {
                     SALog.printStackTrace(e);
@@ -154,7 +153,7 @@ public class ChannelDebugScanHelper implements IAdvertScanListener {
                             }
                             String deviceCode = ChannelUtils.getDeviceInfo(activity, androidId, oaid);
                             final SensorsDataLoadingDialog loadingDialog = new SensorsDataLoadingDialog(activity);
-                            dialogShowDismissOld(loadingDialog);
+                            SensorsDataDialogUtils.getInstance().dialogShowDismissOld(loadingDialog);
                             requestActiveChannel(baseUrl,
                                     monitorId, projectId, accountId,
                                     deviceCode, isTrackInstallation,

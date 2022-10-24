@@ -20,8 +20,10 @@ package com.sensorsdata.analytics.android.sdk.encrypt.impl;
 import android.net.Uri;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
+import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
 import com.sensorsdata.analytics.android.sdk.encrypt.AESSecretManager;
 import com.sensorsdata.analytics.android.sdk.encrypt.R;
 import com.sensorsdata.analytics.android.sdk.encrypt.SAEncryptListener;
@@ -33,36 +35,42 @@ import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class SAEncryptAPIImpl implements SAEncryptAPI{
+public class SAEncryptAPIImpl implements SAEncryptAPI {
 
     private static final String TAG = "SA.EncryptAPIImpl";
-    private final SAContextManager mSAContextManager;
-    private final SAEventEncryptTools mSensorsDataEncrypt;
-    private final SecretKeyManager mSecretKeyManager;
+    private SAContextManager mSAContextManager;
+    private SAEventEncryptTools mSensorsDataEncrypt;
+    private SecretKeyManager mSecretKeyManager;
 
     public SAEncryptAPIImpl(SAContextManager contextManager) {
-        this.mSAContextManager = contextManager;
-        mSensorsDataEncrypt = new SAEventEncryptTools(contextManager);
-        mSecretKeyManager = SecretKeyManager.getInstance(contextManager);
-        if (contextManager.getInternalConfigs().saConfigOptions.getStorePlugins() != null &&
-                !contextManager.getInternalConfigs().saConfigOptions.getStorePlugins().isEmpty()) {// 注册默认的 Plugin
-            AESSecretManager.getInstance().initSecretKey(contextManager.getContext());
+        try {
+            this.mSAContextManager = contextManager;
+            SAConfigOptions configOptions = contextManager.getInternalConfigs().saConfigOptions;
+            if (configOptions.isEnableEncrypt()) {
+                mSensorsDataEncrypt = new SAEventEncryptTools(contextManager);
+                mSecretKeyManager = SecretKeyManager.getInstance(contextManager);
+            }
+            if (configOptions.getStorePlugins() != null && !configOptions.getStorePlugins().isEmpty()) {// 注册默认的 Plugin
+                AESSecretManager.getInstance().initSecretKey(contextManager.getContext());
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
     }
 
     public <T> T invokeModuleFunction(String methodName, Object... argv) {
         try {
-            if ("encryptAES".equals(methodName)) {
+            if (Modules.Encrypt.METHOD_ENCRYPT_AES.equals(methodName)) {
                 return (T) encryptAES((String) argv[0]);
-            } else if ("decryptAES".equals(methodName)) {
+            } else if (Modules.Encrypt.METHOD_DECRYPT_AES.equals(methodName)) {
                 return (T) decryptAES((String) argv[0]);
-            } else if ("verifySecretKey".equals(methodName)) {
+            } else if (Modules.Encrypt.METHOD_VERIFY_SECRET_KEY.equals(methodName)) {
                 return (T) verifySecretKey((Uri) argv[0]);
-            } else if ("encryptEventData".equals(methodName)) {
+            } else if (Modules.Encrypt.METHOD_ENCRYPT_EVENT_DATA.equals(methodName)) {
                 return (T) encryptEventData((JSONObject) argv[0]);
-            } else if ("storeSecretKey".equals(methodName)) {
+            } else if (Modules.Encrypt.METHOD_STORE_SECRET_KEY.equals(methodName)) {
                 storeSecretKey((String) argv[0]);
-            } else if ("loadSecretKey".equals(methodName)) {
+            } else if (Modules.Encrypt.METHOD_LOAD_SECRET_KEY.equals(methodName)) {
                 return (T) loadSecretKey();
             }
         } catch (Exception e) {
@@ -109,18 +117,22 @@ public class SAEncryptAPIImpl implements SAEncryptAPI{
 
     @Override
     public void storeSecretKey(String secretKeyJson) {
-        SecretKeyManager.getInstance(mSAContextManager).storeSecretKey(secretKeyJson);
+        if (mSAContextManager.getInternalConfigs().saConfigOptions.isEnableEncrypt()) {
+            SecretKeyManager.getInstance(mSAContextManager).storeSecretKey(secretKeyJson);
+        }
     }
 
     @Override
     public String loadSecretKey() {
         try {
-            SecreteKey secreteKey = mSecretKeyManager.loadSecretKey();
-            SAEncryptListener mEncryptListener = mSecretKeyManager.getEncryptListener(secreteKey);
-            if (mEncryptListener == null) {
-                return "";
+            if (mSAContextManager.getInternalConfigs().saConfigOptions.isEnableEncrypt()) {
+                SecreteKey secreteKey = mSecretKeyManager.loadSecretKey();
+                SAEncryptListener mEncryptListener = mSecretKeyManager.getEncryptListener(secreteKey);
+                if (mEncryptListener == null) {
+                    return "";
+                }
+                return secreteKey.toString();
             }
-            return secreteKey.toString();
         } catch (JSONException e) {
             SALog.printStackTrace(e);
         }

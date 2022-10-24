@@ -1,0 +1,6 @@
+<resources>
+    <item name="sensors_analytics_tag_view_value" type="id" />
+    <item name="sensors_analytics_tag_view_properties" type="id" />
+    <item name="sensors_analytics_tag_view_onclick_timestamp" type="id" />
+    <item name="sensors_analytics_tag_view_keyboard" type="id"/>
+</resources>

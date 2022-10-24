@@ -26,7 +26,8 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.advert.oaid.SAOaidHelper;
-import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
+import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
+import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
@@ -365,7 +366,7 @@ public class ChannelUtils {
      */
     public static boolean isFirstChannelEvent(String eventName) {
         boolean isDefault = SensorsDataAPI.getConfigOptions().getStorePlugins() == null || SensorsDataAPI.getConfigOptions().getStorePlugins().isEmpty();
-        String secretEventName = isDefault ? eventName : (String) SAModuleManager.getInstance().invokeEncryptModuleFunction("encryptAES", eventName);
+        String secretEventName = isDefault ? eventName : (String) SAModuleManager.getInstance().invokeModuleFunction(Modules.Encrypt.MODULE_NAME, Modules.Encrypt.METHOD_ENCRYPT_AES, eventName);
         boolean isFirst = DbAdapter.getInstance().isFirstChannelEvent(new String[]{secretEventName, eventName});
         if (isFirst) {
             DbAdapter.getInstance().addChannelEvent(secretEventName);

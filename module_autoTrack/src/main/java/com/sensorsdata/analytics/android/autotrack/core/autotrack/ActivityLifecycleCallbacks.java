@@ -28,29 +28,27 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.autotrack.core.business.SAPageTools;
 import com.sensorsdata.analytics.android.autotrack.utils.AopUtil;
-import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.SensorsDataExceptionHandler;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
-import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
-import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
+import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
 import com.sensorsdata.analytics.android.sdk.core.business.session.SessionRelatedManager;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.core.eventbus.SAEventBus;
 import com.sensorsdata.analytics.android.sdk.core.eventbus.SAEventBusConstants;
 import com.sensorsdata.analytics.android.sdk.core.eventbus.Subscription;
-import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
+import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
+import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
+import com.sensorsdata.analytics.android.sdk.exceptions.SensorsDataExceptionHandler;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataActivityLifecycleCallbacks;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
-import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
 import org.json.JSONObject;
@@ -105,12 +103,12 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
     }
 
     private void registerAdvertObserver() {
-        if (SAModuleManager.getInstance().hasModuleByName(ModuleConstants.ModuleName.ADVERT_NAME)) {
+        if (SAModuleManager.getInstance().hasModuleByName(Modules.Advert.MODULE_NAME)) {
             SAEventBus.getInstance().register(SAEventBusConstants.Tag.DEEPLINK_LAUNCH, new Subscription<JSONObject>() {
                 @Override
                 public void notify(JSONObject result) {
                     // step 1 清除 AppEnd 中的 utm 属性，防止 deeplink 属性名不一样造成的属性错误
-                    SAModuleManager.getInstance().getAdvertModuleService().removeDeepLinkInfo(endDataProperty);
+                    SAModuleManager.getInstance().invokeModuleFunction(Modules.Advert.MODULE_NAME, Modules.Advert.METHOD_REMOVE_DEEPLINK_INFO, endDataProperty);
                     // step 2 获取最新的 latest utm 属性存入 AppEnd 属性中
                     JSONUtils.mergeJSONObject(result, endDataProperty);
                 }
@@ -120,9 +118,6 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
 
     @Override
     public void onActivityCreated(Activity activity, Bundle bundle) {
-        if (!SensorsDataDialogUtils.isSchemeActivity(activity)) {
-            SensorsDataUtils.handleSchemeUrl(activity, activity.getIntent());
-        }
     }
 
     @Override
@@ -228,9 +223,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                             // 如果是正常的退到后台，需要重置标记位
                             resumeFromBackground = true;
                             if (resetState) {
-                                if (SAModuleManager.getInstance().hasModuleByName(ModuleConstants.ModuleName.ADVERT_NAME)) {
-                                    SAModuleManager.getInstance().getAdvertModuleService().commitRequestDeferredDeeplink(false);
-                                }
+                                SAModuleManager.getInstance().invokeModuleFunction(Modules.Advert.MODULE_NAME, Modules.Advert.METHOD_COMMIT_REQUEST_DEFERRED_DEEPLINK, false);
                                 // 对于 Unity 多进程跳转的场景，需要在判断一下
                                 if (DbAdapter.getInstance().getActivityCount() <= 0) {
                                     trackAppEnd(endData);
@@ -254,17 +247,15 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
             mDbAdapter.commitActivityCount(++mStartActivityCount);
             // 如果是第一个页面
             if (mStartActivityCount == 1) {
-                if (SAModuleManager.getInstance().hasModuleByName(ModuleConstants.ModuleName.ADVERT_NAME)) {
-                    if (mSensorsDataInstance.getConfigOptions().isSaveDeepLinkInfo()) {// 保存 utm 信息时,在 endData 中合并保存的 latestUtm 信息。
-                        JSONUtils.mergeJSONObject(SAModuleManager.getInstance().getAdvertModuleService().getLatestUtmProperties(), endDataProperty);
-                    }
+                if (mSensorsDataInstance.getConfigOptions().isSaveDeepLinkInfo()) {// 保存 utm 信息时,在 endData 中合并保存的 latestUtm 信息。
+                    JSONObject latestJson = SAModuleManager.getInstance().invokeModuleFunction(Modules.Advert.MODULE_NAME, Modules.Advert.METHOD_GET_LATEST_UTM_PROPERTIES);
+                    JSONUtils.mergeJSONObject(latestJson, endDataProperty);
                 }
                 mHandler.removeMessages(MESSAGE_CODE_APP_END);
                 isSessionTimeout = isSessionTimeOut();
                 if (isSessionTimeout) {
                     // 超时尝试补发 $AppEnd
                     mHandler.sendMessage(obtainAppEndMessage(false));
-                    checkFirstDay();
                     // XXX: 注意内部执行顺序
                     boolean firstStart = PersistentLoader.getInstance().getFirstStartPst().get();
                     Bundle bundle = message.getData();
@@ -285,7 +276,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                             // 读取 Message 中的时间戳
                             long eventTime = bundle.getLong(TIME);
                             properties.put("event_time", eventTime > 0 ? eventTime : System.currentTimeMillis());
-                            SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+                            SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
                                 @Override
                                 public void run() {
                                     mContextManager.trackEvent(new InputData().setEventName("$AppStart").
@@ -371,11 +362,11 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                 if (DbAdapter.getInstance().getAppStartTime() == 0) {
                     property.remove(EVENT_DURATION);
                 }
-                SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+                SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
                     @Override
                     public void run() {
                         mContextManager.trackEvent(new InputData().setEventName("$AppEnd").
-                                        setProperties(SADataHelper.appendLibMethodAutoTrack(property)).setEventType(EventType.TRACK));
+                                setProperties(SADataHelper.appendLibMethodAutoTrack(property)).setEventType(EventType.TRACK));
                     }
                 });
                 mDbAdapter.commitAppExitData(""); // 保存的信息只使用一次就置空，防止后面状态错乱再次发送。
@@ -481,15 +472,6 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
         bundle.putBoolean(APP_RESET_STATE, resetState);
         message.setData(bundle);
         return message;
-    }
-
-    /**
-     * 检查更新首日逻辑
-     */
-    private void checkFirstDay() {
-        if (PersistentLoader.getInstance().getFirstDayPst().get() == null) {
-            PersistentLoader.getInstance().getFirstDayPst().commit(TimeUtils.formatTime(System.currentTimeMillis(), TimeUtils.YYYY_MM_DD));
-        }
     }
 
     private boolean isAutoTrackAppEnd() {

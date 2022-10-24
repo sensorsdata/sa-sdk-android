@@ -29,16 +29,17 @@ import android.widget.ListView;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
 
-import com.sensorsdata.analytics.android.sdk.AopConstants;
-import com.sensorsdata.analytics.android.sdk.R;
+import com.sensorsdata.analytics.android.autotrack.R;
+import com.sensorsdata.analytics.android.autotrack.core.beans.AutoTrackConstants;
+import com.sensorsdata.analytics.android.autotrack.core.business.SAPageTools;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.autotrack.core.business.SAPageTools;
 import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
+import com.sensorsdata.analytics.android.sdk.util.SAPageInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
 import com.sensorsdata.analytics.android.sdk.util.WeakSet;
 
@@ -160,8 +161,8 @@ public class FragmentViewScreenCallbacks implements SAFragmentLifecycleCallbacks
 
     private void trackFragmentAppViewScreen(Object fragment) {
         try {
-            JSONObject properties = SAPageTools.getFragmentPageInfo(null, fragment);
-            AppStateTools.getInstance().setFragmentScreenName(fragment, properties.optString(AopConstants.SCREEN_NAME));
+            JSONObject properties = SAPageInfoUtils.getFragmentPageInfo(null, fragment);
+            AppStateTools.getInstance().setFragmentScreenName(fragment, properties.optString(AutoTrackConstants.SCREEN_NAME));
             if (fragment instanceof ScreenAutoTracker) {
                 ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
                 JSONUtils.mergeJSONObject(screenAutoTracker.getTrackProperties(), properties);
@@ -175,17 +176,23 @@ public class FragmentViewScreenCallbacks implements SAFragmentLifecycleCallbacks
 
     private boolean isFragmentValid(Object fragment) {
         if (fragment == null) {
-            SALog.i(TAG, "fragment is null,return");
+            SALog.i(TAG, "fragment is null, return");
             return false;
         }
 
         if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
-            SALog.i(TAG, "AutoTrackEventTypeIgnored,return");
+            SALog.i(TAG, "AutoTrackEventTypeIgnored, return");
             return false;
         }
 
         if (!SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
-            SALog.i(TAG, "TrackFragmentAppViewScreenEnabled is false,return");
+            SALog.i(TAG, "TrackFragmentAppViewScreenEnabled is false, return");
+            return false;
+        }
+
+        Activity activity = SAFragmentUtils.getActivityFromFragment(fragment);
+        if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppViewScreenIgnored(activity.getClass())) {
+            SALog.i(TAG, "isActivityAutoTrackAppViewScreenIgnored is false, return");
             return false;
         }
 

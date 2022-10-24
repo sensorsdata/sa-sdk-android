@@ -28,7 +28,7 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.sensorsdata.analytics.android.SAHelper;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.ServerUrl;
+import com.sensorsdata.analytics.android.sdk.internal.beans.ServerUrl;
 
 import org.junit.Assert;
 import org.junit.Test;

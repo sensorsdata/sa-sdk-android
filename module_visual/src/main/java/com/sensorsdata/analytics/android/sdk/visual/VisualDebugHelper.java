@@ -19,12 +19,12 @@ package com.sensorsdata.analytics.android.sdk.visual;
 
 import android.text.TextUtils;
 
-import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.ThreadUtils;
+import com.sensorsdata.analytics.android.sdk.visual.constant.VisualConstants;
 import com.sensorsdata.analytics.android.sdk.visual.model.VisualConfig;
 import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
 
@@ -84,7 +84,7 @@ public class VisualDebugHelper {
             }
 
             String eventName = jsonObject.optString("event");
-            if (!TextUtils.equals(AopConstants.APP_CLICK_EVENT_NAME, eventName) && !TextUtils.equals(AopConstants.WEB_CLICK_EVENT_NAME, eventName)) {
+            if (!TextUtils.equals(VisualConstants.APP_CLICK_EVENT_NAME, eventName) && !TextUtils.equals(VisualConstants.WEB_CLICK_EVENT_NAME, eventName)) {
                 SALog.i(TAG, "eventName is " + eventName + " filter");
                 return;
             }
@@ -109,7 +109,7 @@ public class VisualDebugHelper {
                 return;
             }
 
-            if (TextUtils.equals(AopConstants.APP_CLICK_EVENT_NAME, eventName)) {
+            if (TextUtils.equals(VisualConstants.APP_CLICK_EVENT_NAME, eventName)) {
                 String screenName = propertyObject.optString("$screen_name");
                 if (TextUtils.isEmpty(screenName)) {
                     SALog.i(TAG, "screenName is empty ");
@@ -138,7 +138,7 @@ public class VisualDebugHelper {
                         }
                     }
                 }
-            } else if (TextUtils.equals(AopConstants.WEB_CLICK_EVENT_NAME, eventName)) {
+            } else if (TextUtils.equals(VisualConstants.WEB_CLICK_EVENT_NAME, eventName)) {
                 try {
                     JSONArray array = propertyObject.optJSONArray("sensorsdata_web_visual_eventName");
                     if (array == null) {

@@ -38,22 +38,21 @@ import android.view.Window;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.sensorsdata.analytics.android.sdk.AopConstants;
-import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.DeviceUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
 import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
+import com.sensorsdata.analytics.android.sdk.util.SAPageInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
 import com.sensorsdata.analytics.android.sdk.util.SnapCache;
 import com.sensorsdata.analytics.android.sdk.util.WebUtils;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
 import com.sensorsdata.analytics.android.sdk.util.visual.ViewNode;
+import com.sensorsdata.analytics.android.sdk.util.visual.ViewUtil;
 import com.sensorsdata.analytics.android.sdk.visual.model.SnapInfo;
 import com.sensorsdata.analytics.android.sdk.visual.model.WebNode;
 import com.sensorsdata.analytics.android.sdk.visual.model.WebNodeInfo;
@@ -61,7 +60,6 @@ import com.sensorsdata.analytics.android.sdk.visual.snap.PropertyDescription;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceIds;
 import com.sensorsdata.analytics.android.sdk.visual.snap.SoftWareCanvas;
 import com.sensorsdata.analytics.android.sdk.visual.utils.Dispatcher;
-import com.sensorsdata.analytics.android.sdk.util.visual.ViewUtil;
 import com.sensorsdata.analytics.android.sdk.visual.utils.VisualUtil;
 
 import org.json.JSONArray;
@@ -303,8 +301,8 @@ public class ViewSnapshot {
 
             JSONObject object = VisualUtil.getScreenNameAndTitle(view, mSnapInfo);
             if (object != null) {
-                String screenName = object.optString(AopConstants.SCREEN_NAME);
-                String title = object.optString(AopConstants.TITLE);
+                String screenName = object.optString("$screen_name");
+                String title = object.optString("$title");
                 if (!TextUtils.isEmpty(screenName)) {
                     jsonSnapObject.put("screen_name", screenName);
                 }
@@ -570,14 +568,11 @@ public class ViewSnapshot {
             try {
                 Activity activity = AppStateTools.getInstance().getForegroundActivity();
                 if (activity != null) {
-                    JSONObject object = SAModuleManager.getInstance().invokeAutoTrackFunction("getActivityPageInfo", activity);
-                    JSONObject rnJson = SAModuleManager.getInstance().invokeAutoTrackFunction("getRNPageInfo");
-                    if (object == null) {
-                        object = new JSONObject();
-                    }
-                    JSONUtils.mergeJSONObject(rnJson, object);
-                    String screenName = object.optString(AopConstants.SCREEN_NAME);
-                    String activityTitle = object.optString(AopConstants.TITLE);
+                    JSONObject object = SAPageInfoUtils.getActivityPageInfo(activity);
+                    JSONObject rnJson = SAPageInfoUtils.getRNPageInfo();
+                    JSONUtils.mergeDuplicateProperty(rnJson, object);
+                    String screenName = object.optString("$screen_name");
+                    String activityTitle = object.optString("$title");
                     View rootView = null;
                     final Window window = activity.getWindow();
                     if (window != null && window.isActive()) {

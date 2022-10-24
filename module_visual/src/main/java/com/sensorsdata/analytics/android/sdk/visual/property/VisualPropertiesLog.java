@@ -19,10 +19,10 @@ package com.sensorsdata.analytics.android.sdk.visual.property;
 
 import android.content.Context;
 
-import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
+import com.sensorsdata.analytics.android.sdk.visual.R;
 import com.sensorsdata.analytics.android.sdk.util.visual.ViewNode;
 import com.sensorsdata.analytics.android.sdk.visual.model.VisualConfig;
 

@@ -31,9 +31,10 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.ThreadNameConstants;
+import com.sensorsdata.analytics.android.sdk.core.tasks.ThreadNameConstants;
 import com.sensorsdata.analytics.android.sdk.aop.push.PushAutoTrackHelper;
-import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
+import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
+import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
 import com.sensorsdata.analytics.android.sdk.util.FileUtils;
 
 import org.json.JSONException;
@@ -228,7 +229,7 @@ public class PushProcess {
                 toFile.delete();
             }
             String content = push.toJson();
-            String secretContent = SAModuleManager.getInstance().invokeEncryptModuleFunction("encryptAES", content);
+            String secretContent = SAModuleManager.getInstance().invokeModuleFunction(Modules.Encrypt.MODULE_NAME, Modules.Encrypt.METHOD_ENCRYPT_AES, content);
             if (TextUtils.isEmpty(secretContent)) {
                 secretContent = content;
             }
@@ -284,7 +285,7 @@ public class PushProcess {
             if (TextUtils.isEmpty(json)) {
                 return null;
             }
-            String decryptJson = SAModuleManager.getInstance().invokeEncryptModuleFunction("decryptAES", json);
+            String decryptJson = SAModuleManager.getInstance().invokeModuleFunction(Modules.Encrypt.MODULE_NAME, Modules.Encrypt.METHOD_DECRYPT_AES, json);
             if (TextUtils.isEmpty(decryptJson)) {
                 decryptJson = json;
             }

@@ -27,10 +27,10 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.advert.oaid.SAOaidHelper;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.advert.SAAdvertConstants;
-import com.sensorsdata.analytics.android.sdk.SAEventManager;
+import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.ServerUrl;
+import com.sensorsdata.analytics.android.sdk.internal.beans.ServerUrl;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.core.eventbus.SAEventBus;
 import com.sensorsdata.analytics.android.sdk.core.eventbus.SAEventBusConstants;
@@ -146,7 +146,7 @@ public class DeepLinkManager {
         }
         JSONUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), properties);
         JSONUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
-        SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+        SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
             @Override
             public void run() {
                 if (isDeepLinkInstallSource) {
@@ -157,7 +157,7 @@ public class DeepLinkManager {
                         SALog.printStackTrace(e);
                     }
                 }
-                SAEventManager.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK)
+                SACoreHelper.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK)
                         .setEventName("$AppDeeplinkLaunch").setProperties(properties));
             }
         });

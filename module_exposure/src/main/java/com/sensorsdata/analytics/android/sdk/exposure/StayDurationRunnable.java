@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.text.TextUtils;
 import android.view.View;
 
-import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
@@ -51,17 +50,17 @@ public class StayDurationRunnable implements Runnable {
             ViewNode viewNode = ViewTreeStatusObservable.getInstance().getViewNode(view);
             if (viewNode != null) {
                 if (!TextUtils.isEmpty(viewNode.getViewPath())) {
-                    jsonObject.put(AopConstants.ELEMENT_PATH, viewNode.getViewPath());
+                    jsonObject.put("$element_path", viewNode.getViewPath());
                 }
                 if (!TextUtils.isEmpty(viewNode.getViewPosition())) {
-                    jsonObject.put(AopConstants.ELEMENT_POSITION, viewNode.getViewPosition());
+                    jsonObject.put("$element_position", viewNode.getViewPosition());
                 }
             }
             String viewText = SAViewUtils.getViewContent(view);
             if (!TextUtils.isEmpty(viewText)) {
-                jsonObject.put(AopConstants.ELEMENT_CONTENT, viewText);
+                jsonObject.put("$element_content", viewText);
             }
-            jsonObject.put(AopConstants.ELEMENT_TYPE, SAViewUtils.getViewType(view));
+            jsonObject.put("$element_type", SAViewUtils.getViewType(view));
             String eventName = mExposureView.getExposureData().getEvent();
             //曝光事件发送
             SensorsDataAPI.sharedInstance().track(eventName, jsonObject);

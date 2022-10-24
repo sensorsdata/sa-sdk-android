@@ -1,0 +1,26 @@
+/*
+ * Created by dengshiwei on 2022/09/13.
+ * Copyright 2015－2022 Sensors Data Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.sensorsdata.analytics.android.sdk.core.tasks;
+
+public interface ThreadNameConstants {
+    String THREAD_TASK_QUEUE = "SA.TaskQueueThread";
+    String THREAD_TASK_EXECUTE = "SA.TaskExecuteThread";
+    String THREAD_SEND_DISTINCT_ID = "SA.SendDistinctIDThread";
+    String THREAD_DEEP_LINK_REQUEST = "SA.DeepLinkRequest";
+    String THREAD_PUSH_HANDLER = "SA.PushThread";
+}

@@ -23,16 +23,17 @@ import android.text.TextUtils;
 import android.view.View;
 
 import com.sensorsdata.analytics.android.autotrack.core.autotrack.SAFragmentLifecycleCallbacks;
+import com.sensorsdata.analytics.android.autotrack.core.business.SAPageTools;
 import com.sensorsdata.analytics.android.autotrack.utils.AppPageLeaveUtils;
-import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.SensorsDataExceptionHandler;
-import com.sensorsdata.analytics.android.autotrack.core.business.SAPageTools;
+import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
+import com.sensorsdata.analytics.android.sdk.exceptions.SensorsDataExceptionHandler;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
+import com.sensorsdata.analytics.android.sdk.util.SAPageInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
 import org.json.JSONException;
@@ -129,7 +130,7 @@ public class FragmentPageLeaveCallbacks implements SAFragmentLifecycleCallbacks,
                 JSONObject properties = mResumedFragments.get(hashCode);
                 long startTime = properties == null ? 0 : properties.optLong(START_TIME);
                 String referrer = properties == null ? "" : properties.optString("$referrer");
-                properties = SAPageTools.getFragmentPageInfo( null, object);
+                properties = SAPageInfoUtils.getFragmentPageInfo( null, object);
                 properties.put(START_TIME, startTime);
                 String url = SAPageTools.getScreenUrl(object);
                 properties.put("$url", url);
@@ -155,7 +156,7 @@ public class FragmentPageLeaveCallbacks implements SAFragmentLifecycleCallbacks,
                 properties.put("$referrer", referrer);
             }
 
-            JSONUtils.mergeJSONObject(SAPageTools.getFragmentPageInfo(null, object), properties);
+            JSONUtils.mergeJSONObject(SAPageInfoUtils.getFragmentPageInfo(null, object), properties);
             mResumedFragments.put(object.hashCode(), properties);
             AppPageLeaveUtils.setLastScreenUrl(url);
         } catch (JSONException e) {
@@ -190,7 +191,7 @@ public class FragmentPageLeaveCallbacks implements SAFragmentLifecycleCallbacks,
                 return;
             }
             properties.put("event_duration", duration);
-            SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+            SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
                 @Override
                 public void run() {
                     SensorsDataAPI.sharedInstance().getSAContextManager().

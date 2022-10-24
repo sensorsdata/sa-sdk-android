@@ -25,7 +25,6 @@ import android.view.ViewGroup;
 import android.widget.TabHost;
 
 import com.sensorsdata.analytics.android.autotrack.core.beans.ViewContext;
-import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
@@ -33,7 +32,6 @@ import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 
 public class AutoTrackViewUtils {
 

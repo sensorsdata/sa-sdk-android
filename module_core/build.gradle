@@ -1,5 +1,5 @@
 /*
- * Created by chenru on 2022/3/9 上午10:06.
+ * Created by dengshiwei on 2022/09/13.
  * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,11 +17,12 @@
 
 apply plugin: 'com.android.library'
 apply from: "../script_config/maven.gradle"
+if (rootProject.ext.publish.isEmbedCoreAAR) { //用于打本地包
+    apply plugin: 'com.kezong.fat-aar'
+}
 
 android {
     compileSdkVersion rootProject.ext.buildConfig.compileSdkVersion
-
-    resourcePrefix "sensors_analytics_"
 
     defaultConfig {
         minSdkVersion rootProject.ext.buildConfig.minSdkVersion
@@ -29,60 +30,34 @@ android {
         versionCode rootProject.ext.buildConfig.versionCode
         versionName rootProject.ext.buildConfig.versionName
         consumerProguardFiles 'proguard-rules.pro'
-        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
+
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            buildConfigField("String", "SDK_VERSION", "\"${rootProject.ext.versions.sdk_version}\"")
-            buildConfigField("String", "MIN_PLUGIN_VERSION", "\"${rootProject.ext.versions.min_plugin_version}\"")
-            manifestPlaceholders = ["SENSORSDATA_SDK_VERSION": "${version}"]
-        }
-
-        debug {
-            buildConfigField("String", "SDK_VERSION", "\"${rootProject.ext.versions.sdk_version}\"")
-            buildConfigField("String", "MIN_PLUGIN_VERSION", "\"${rootProject.ext.versions.min_plugin_version}\"")
-            manifestPlaceholders = ["SENSORSDATA_SDK_VERSION": "${rootProject.ext.versions.sdk_version}"]
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-
-    testOptions {
-        unitTests.all {
-            systemProperty 'robolectric.dependency.repo.url', 'https://maven.aliyun.com/nexus/content/groups/public/'
-            systemProperty 'robolectric.dependency.repo.id', 'alimaven'
-            testLogging {
-                events 'passed', 'skipped', 'failed', 'standardOut', 'standardError'
-                outputs.upToDateWhen { false }
-                showStandardStreams = true
-            }
-            maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 2
-        }
-        unitTests.includeAndroidResources = true
+    compileOptions {
+        sourceCompatibility rootProject.ext.buildConfig.sourceJavaVersion
+        targetCompatibility rootProject.ext.buildConfig.targetJavaVersion
     }
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
     testImplementation rootProject.ext.test.junit
     testImplementation rootProject.ext.test.androidx_core
     testImplementation rootProject.ext.test.androidx_runner
     testImplementation rootProject.ext.test.androidx_rules
     testImplementation rootProject.ext.test.androidx_junit
-    // Espresso dependencies
-    testImplementation rootProject.ext.test.espresso_core
-    testImplementation rootProject.ext.test.espresso_web
-    //Robolectric & JVM test
-    testImplementation rootProject.ext.test.robolectric
-    testImplementation rootProject.ext.test.powermock_core
-    //mock
-    testImplementation rootProject.ext.test.mockito_core
-    testImplementation rootProject.ext.test.mockito_android
-    testImplementation rootProject.ext.test.powermock_module_junit4
-    testImplementation rootProject.ext.test.powermock_api_mockito2
-    testImplementation rootProject.ext.test.powermock_core
-    // module
-    testImplementation project(':module_advert')
-    testImplementation project(':module_visual')
-    testImplementation project(':module_autoTrack')
+    testImplementation rootProject.ext.androidx.google_material
+    testImplementation rootProject.ext.androidx.appcompat
+    if (rootProject.ext.publish.isEmbedCoreAAR) { //用于打本地包
+        embed project(':module_webview')
+        embed project(':module_common')
+    } else {
+        api project(':module_webview')
+        api project(':module_common')
+    }
 }

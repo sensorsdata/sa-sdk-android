@@ -18,10 +18,10 @@
 package com.sensorsdata.analytics.android.sdk.encrypt.impl;
 
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
-import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
-import com.sensorsdata.analytics.android.sdk.core.mediator.encrypt.SAEncryptProtocol;
+import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
+import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAModuleProtocol;
 
-public class SAEncryptProtocolImpl implements SAEncryptProtocol {
+public class SAEncryptProtocolImpl implements SAModuleProtocol {
     private SAEncryptAPIImpl mEncryptAPIImpl;
     private boolean mEnable = false;
 
@@ -42,7 +42,7 @@ public class SAEncryptProtocolImpl implements SAEncryptProtocol {
 
     @Override
     public String getModuleName() {
-        return ModuleConstants.ModuleName.ENCRYPT_NAME;
+        return Modules.Encrypt.MODULE_NAME;
     }
 
     @Override

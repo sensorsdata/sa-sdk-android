@@ -31,8 +31,9 @@ import com.sensorsdata.analytics.android.autotrack.core.pageleave.FragmentPageLe
 import com.sensorsdata.analytics.android.autotrack.core.plugins.AutoTrackEventPlugin;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.SensorsDataExceptionHandler;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
+import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
+import com.sensorsdata.analytics.android.sdk.exceptions.SensorsDataExceptionHandler;
 import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
 import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataLifecycleMonitorManager;
 
@@ -52,8 +53,12 @@ public class AutoTrackContextHelper {
         mProtocolImp = new AutoTrackProtocolIml(contextManager);
         registerListener();
         mSAContextManager.getPluginManager().registerPropertyPlugin(new AutoTrackEventPlugin());
-        if (contextManager.getContext() instanceof Activity) {
-            delayExecution((Activity) contextManager.getContext());
+        try {
+            if (contextManager.getInternalConfigs().context instanceof Activity) {
+                delayExecution((Activity) contextManager.getInternalConfigs().context);
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
     }
 
@@ -93,57 +98,57 @@ public class AutoTrackContextHelper {
 
     public <T> T invokeModuleFunction(String methodName, Object... argv) {
         switch (methodName) {
-            case "enableAutoTrack":
+            case Modules.AutoTrack.METHOD_ENABLE_AUTO_TRACK:
                 mProtocolImp.enableAutoTrack((List<SensorsDataAPI.AutoTrackEventType>) argv[0]);
                 break;
-            case "disableAutoTrack":
+            case Modules.AutoTrack.METHOD_DISABLE_AUTO_TRACK:
                 if (argv[0] instanceof SensorsDataAPI.AutoTrackEventType) {
                     mProtocolImp.disableAutoTrack((SensorsDataAPI.AutoTrackEventType) argv[0]);
                 } else {
                     mProtocolImp.disableAutoTrack((List<SensorsDataAPI.AutoTrackEventType>) argv[0]);
                 }
                 break;
-            case "isAutoTrackEnabled":
+            case Modules.AutoTrack.METHOD_IS_AUTOTRACK_ENABLED:
                 return (T) Boolean.valueOf(mProtocolImp.isAutoTrackEnabled());
-            case "ignoreAutoTrackActivities":
+            case Modules.AutoTrack.METHOD_IGNORE_AUTOTRACK_ACTIVITIES:
                 mProtocolImp.ignoreAutoTrackActivities((List<Class<?>>) argv[0]);
                 break;
-            case "resumeAutoTrackActivities":
+            case Modules.AutoTrack.METHOD_RESUME_AUTOTRACK_ACTIVITIES:
                 mProtocolImp.resumeAutoTrackActivities((List<Class<?>>) argv[0]);
                 break;
-            case "ignoreAutoTrackActivity":
+            case Modules.AutoTrack.METHOD_IGNORE_AUTOTRACK_ACTIVITY:
                 mProtocolImp.ignoreAutoTrackActivity((Class<?>) argv[0]);
                 break;
-            case "resumeAutoTrackActivity":
+            case Modules.AutoTrack.METHOD_RESUME_AUTOTRACK_ACTIVITY:
                 mProtocolImp.resumeAutoTrackActivity((Class<?>) argv[0]);
                 break;
-            case "ignoreAutoTrackFragments":
+            case Modules.AutoTrack.METHOD_IGNORE_AUTOTRACK_FRAGMENTS:
                 mProtocolImp.ignoreAutoTrackFragments((List<Class<?>>) argv[0]);
                 break;
-            case "ignoreAutoTrackFragment":
+            case Modules.AutoTrack.METHOD_IGNORE_AUTOTRACK_FRAGMENT:
                 mProtocolImp.ignoreAutoTrackFragment((Class<?>) argv[0]);
                 break;
-            case "resumeIgnoredAutoTrackFragments":
+            case Modules.AutoTrack.METHOD_RESUME_IGNORED_AUTOTRACK_FRAGMENTS:
                 mProtocolImp.resumeIgnoredAutoTrackFragments((List<Class<?>>) argv[0]);
                 break;
-            case "resumeIgnoredAutoTrackFragment":
+            case Modules.AutoTrack.METHOD_RESUME_IGNORED_AUTOTRACK_FRAGMENT:
                 mProtocolImp.resumeIgnoredAutoTrackFragment((Class<?>) argv[0]);
                 break;
-            case "isActivityAutoTrackAppViewScreenIgnored":
+            case Modules.AutoTrack.METHOD_IS_ACTIVITY_AUTOTRACK_APPVIEWSCREEN_IGNORED:
                 return (T) Boolean.valueOf(mProtocolImp.isActivityAutoTrackAppViewScreenIgnored((Class<?>) argv[0]));
-            case "isActivityAutoTrackAppClickIgnored":
+            case Modules.AutoTrack.METHOD_IS_ACTIVITY_AUTOTRACK_APPCLICK_IGNORED:
                 return (T) Boolean.valueOf(mProtocolImp.isActivityAutoTrackAppClickIgnored((Class<?>) argv[0]));
-            case "isTrackFragmentAppViewScreenEnabled":
+            case Modules.AutoTrack.METHOD_IS_TRACK_FRAGMENT_APPVIEWSCREEN_ENABLED:
                 return (T) Boolean.valueOf(mProtocolImp.isTrackFragmentAppViewScreenEnabled());
-            case "isFragmentAutoTrackAppViewScreen":
+            case Modules.AutoTrack.METHOD_IS_FRAGMENT_AUTOTRACK_APPVIEWSCREEN:
                 return (T) Boolean.valueOf(mProtocolImp.isFragmentAutoTrackAppViewScreen((Class<?>) argv[0]));
-            case "isAutoTrackEventTypeIgnored":
+            case Modules.AutoTrack.METHOD_IS_AUTOTRACK_EVENT_TYPE_IGNORED:
                 if (argv[0] instanceof Integer) {
                     return (T) Boolean.valueOf(mProtocolImp.isAutoTrackEventTypeIgnored((Integer) argv[0]));
                 } else {
                     return (T) Boolean.valueOf(mProtocolImp.isAutoTrackEventTypeIgnored((SensorsDataAPI.AutoTrackEventType) argv[0]));
                 }
-            case "setViewID":
+            case Modules.AutoTrack.METHOD_SET_VIEW_ID:
                 if (argv[0] instanceof View) {
                     mProtocolImp.setViewID((View) argv[0], (String)argv[1]);
                 } else if (argv[0] instanceof Dialog) {
@@ -152,47 +157,47 @@ public class AutoTrackContextHelper {
                     mProtocolImp.setViewID(argv[0], (String)argv[1]);
                 }
                 break;
-            case "setViewActivity":
+            case Modules.AutoTrack.METHOD_SET_VIEW_ACTIVITY:
                 mProtocolImp.setViewActivity((View) argv[0], (Activity) argv[1]);
                 break;
-            case "setViewFragmentName":
+            case Modules.AutoTrack.METHOD_SET_VIEW_FRAGMENT_NAME:
                 mProtocolImp.setViewFragmentName((View) argv[0], (String) argv[1]);
                 break;
-            case "trackFragmentAppViewScreen":
+            case Modules.AutoTrack.METHOD_TRACK_FRAGMENT_APPVIEWSCREEN:
                 mProtocolImp.trackFragmentAppViewScreen();
                 break;
-            case "enableAutoTrackFragment":
+            case Modules.AutoTrack.METHOD_ENABLE_AUTOTRACK_FRAGMENT:
                 mProtocolImp.enableAutoTrackFragment((Class<?>) argv[0]);
                 break;
-            case "enableAutoTrackFragments":
+            case Modules.AutoTrack.METHOD_ENABLE_AUTOTRACK_FRAGMENTS:
                 mProtocolImp.enableAutoTrackFragments((List<Class<?>>) argv[0]);
                 break;
-            case "ignoreView":
+            case Modules.AutoTrack.METHOD_IGNORE_VIEW:
                 if (argv.length == 1) {
                     mProtocolImp.ignoreView((View) argv[0]);
                 } else {
                     mProtocolImp.ignoreView((View) argv[0], (Boolean) argv[1]);
                 }
                 break;
-            case "setViewProperties":
+            case Modules.AutoTrack.METHOD_SET_VIEW_PROPERTIES:
                 mProtocolImp.setViewProperties((View) argv[0], (JSONObject) argv[1]);
                 break;
-            case "getIgnoredViewTypeList":
+            case Modules.AutoTrack.METHOD_GET_IGNORED_VIEW_TYPE_LIST:
                 return (T) mProtocolImp.getIgnoredViewTypeList();
-            case "ignoreViewType":
+            case Modules.AutoTrack.METHOD_IGNORE_VIEW_TYPE:
                 mProtocolImp.ignoreViewType((Class<?>) argv[0]);
                 break;
-            case "getLastScreenUrl":
+            case Modules.AutoTrack.METHOD_GET_LAST_SCREENURL:
                 return (T) mProtocolImp.getLastScreenUrl();
-            case "clearReferrerWhenAppEnd":
+            case Modules.AutoTrack.METHOD_CLEAR_REFERRER_WHEN_APPEND:
                 mProtocolImp.clearReferrerWhenAppEnd();
                 break;
-            case "getLastScreenTrackProperties":
+            case Modules.AutoTrack.METHOD_GET_LAST_SCREEN_TRACK_PROPERTIES:
                 return (T) mProtocolImp.getLastScreenTrackProperties();
-            case "clearLastScreenUrl":
+            case Modules.AutoTrack.METHOD_CLEAR_LAST_SCREENURL:
                 mProtocolImp.clearLastScreenUrl();
                 break;
-            case "trackViewScreen":
+            case Modules.AutoTrack.METHOD_TRACK_VIEW_SCREEN:
                 if (argv.length == 1) {
                     if (argv[0] instanceof Activity) {
                         mProtocolImp.trackViewScreen((Activity) argv[0]);
@@ -203,20 +208,14 @@ public class AutoTrackContextHelper {
                     mProtocolImp.trackViewScreen((String)argv[0], (JSONObject) argv[1]);
                 }
                 break;
-            case "trackViewAppClick":
+            case Modules.AutoTrack.METHOD_TRACK_VIEW_APPCLICK:
                 if (argv.length == 1) {
                     mProtocolImp.trackViewAppClick((View) argv[0]);
                 } else {
                     mProtocolImp.trackViewAppClick((View) argv[0], (JSONObject) argv[1]);
                 }
                 break;
-            case "getRNPageInfo":
-                return (T) SAPageTools.getRNPageInfo();
-            case "getActivityPageInfo":
-                return (T) SAPageTools.getActivityPageInfo((Activity) argv[0]);
-            case "getFragmentPageInfo":
-                return (T) SAPageTools.getFragmentPageInfo((Activity) argv[0], argv[1]);
-            case "getReferrerScreenTitle":
+            case Modules.AutoTrack.METHOD_GET_REFERRER_SCREEN_TITLE:
                 return (T) SAPageTools.getReferrerScreenTitle();
         }
         return null;

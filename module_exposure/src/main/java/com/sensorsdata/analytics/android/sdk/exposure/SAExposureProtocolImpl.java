@@ -5,10 +5,10 @@ import android.view.View;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureConfig;
 import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureData;
-import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
-import com.sensorsdata.analytics.android.sdk.core.mediator.exposure.SAExposureProtocol;
+import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
+import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAModuleProtocol;
 
-public class SAExposureProtocolImpl implements SAExposureProtocol {
+public class SAExposureProtocolImpl implements SAModuleProtocol {
     private boolean mEnable = false;
     private SAExposedProcess mExposedProcess;
 
@@ -29,7 +29,7 @@ public class SAExposureProtocolImpl implements SAExposureProtocol {
 
     @Override
     public String getModuleName() {
-        return ModuleConstants.ModuleName.EXPOSURE_NAME;
+        return Modules.Exposure.MODULE_NAME;
     }
 
     @Override
@@ -39,7 +39,27 @@ public class SAExposureProtocolImpl implements SAExposureProtocol {
 
     @Override
     public int getPriority() {
-        return 0;
+        return 5;
+    }
+
+    @Override
+    public <T> T invokeModuleFunction(String methodName, Object... argv) {
+        switch (methodName) {
+            case Modules.Exposure.METHOD_ADD_EXPOSURE_VIEW:
+                addExposureView((View) argv[0], (SAExposureData) argv[1]);
+                break;
+            case Modules.Exposure.METHOD_SET_EXPOSURE_IDENTIFIER:
+                setExposureIdentifier((View) argv[0], (String) argv[1]);
+                break;
+            case Modules.Exposure.METHOD_REMOVE_EXPOSURE_VIEW:
+                if (argv.length == 2) {
+                    removeExposureView((View) argv[0], (String) argv[1]);
+                } else {
+                    removeExposureView((View) argv[0], null);
+                }
+                break;
+        }
+        return null;
     }
 
     private void init(SAExposureConfig exposureConfig) {
@@ -50,29 +70,21 @@ public class SAExposureProtocolImpl implements SAExposureProtocol {
         mExposedProcess = new SAExposedProcess(exposureConfig);
     }
 
-    @Override
-    public void setExposureIdentifier(View view, String exposureIdentifier) {
+    private void setExposureIdentifier(View view, String exposureIdentifier) {
         if (mExposedProcess != null) {
             mExposedProcess.setExposureIdentifier(view, exposureIdentifier);
         }
     }
 
-    @Override
-    public void addExposureView(View view, SAExposureData exposureData) {
+    private void addExposureView(View view, SAExposureData exposureData) {
         if (mExposedProcess != null) {
             mExposedProcess.addExposureView(view, exposureData);
         }
     }
 
-    @Override
-    public void removeExposureView(View view, String identifier) {
+    private void removeExposureView(View view, String identifier) {
         if (mExposedProcess != null) {
             mExposedProcess.removeExposureView(view, identifier);
         }
-    }
-
-    @Override
-    public void removeExposureView(View view) {
-        removeExposureView(view, null);
     }
 }

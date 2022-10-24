@@ -26,12 +26,11 @@ public class MyApplication extends Application {
     /**
      * Sensors Analytics 采集数据的地址
      */
-    private final static String SA_SERVER_URL = "";
+    private final static String SA_SERVER_URL = "https://sdkdebugtest.datasink.sensorsdata.cn/sa?project=default&token=cfb8b60e42e0ae9b";
 
     @Override
     public void onCreate() {
         super.onCreate();
-        //建议用户同意隐私协议后再初始化 SDK，详细使用说明参阅：https://manual.sensorsdata.cn/sa/latest/%E5%90%88%E8%A7%84%E8%AF%B4%E6%98%8E-22252692.html#id-%E5%90%88%E8%A7%84%E8%AF%B4%E6%98%8E-Android%E5%90%88%E8%A7%84%E6%AD%A5%E9%AA%A4
         initSensorsDataAPI();
     }
 

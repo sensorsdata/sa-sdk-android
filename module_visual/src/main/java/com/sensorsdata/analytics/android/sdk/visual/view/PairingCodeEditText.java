@@ -36,7 +36,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 
-class PairingCodeEditText extends EditText implements IPairingCodeInterface, TextWatcher {
+public class PairingCodeEditText extends EditText implements IPairingCodeInterface, TextWatcher {
 
     private static final int DEFAULT_CURSOR_DURATION = 400;
     //需要输入的位数

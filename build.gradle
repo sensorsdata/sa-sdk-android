@@ -9,7 +9,7 @@ buildscript {
             url 'https://maven.google.com'
         }
         maven {
-            url '../repo'
+            url './repo'
         }
     }
     dependencies {
@@ -19,6 +19,9 @@ buildscript {
         //添加 Sensors Analytics android-gradle-plugin 依赖
         classpath 'com.sensorsdata.analytics.android:android-gradle-plugin2:3.5.0'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$rootProject.ext.kotlins.kotlin_version"
+        if (rootProject.ext.publish.isEmbedCoreAAR || rootProject.ext.publish.isEmbedSensorsSDKAAR) { //用于打本地包
+            classpath 'com.github.kezong:fat-aar:1.3.8'
+        }
     }
 }
 
@@ -31,7 +34,7 @@ allprojects {
             url 'https://maven.google.com'
         }
         maven {
-            url '../repo'
+            url './repo'
         }
     }
 }

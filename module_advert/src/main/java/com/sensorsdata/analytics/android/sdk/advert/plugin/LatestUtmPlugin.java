@@ -17,9 +17,7 @@
 
 package com.sensorsdata.analytics.android.sdk.advert.plugin;
 
-import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
-import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
-import com.sensorsdata.analytics.android.sdk.core.mediator.advert.SAAdvertModuleProtocol;
+import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertiesFetcher;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertyFilter;
@@ -30,16 +28,12 @@ public class LatestUtmPlugin extends SAPropertyPlugin {
     @Override
     public boolean isMatchedWithFilter(SAPropertyFilter filter) {
         return filter.getType().isTrack()
-                && SAModuleManager.getInstance().hasModuleByName(ModuleConstants.ModuleName.ADVERT_NAME)
                 && !"$AppEnd".equals(filter.getEvent())
                 && !"$AppDeeplinkLaunch".equals(filter.getEvent());
     }
 
     @Override
     public void properties(SAPropertiesFetcher fetcher) {
-        SAAdvertModuleProtocol adProtocol = SAModuleManager.getInstance().getAdvertModuleService();
-        if (adProtocol != null) {
-            JSONUtils.mergeJSONObject(adProtocol.getLatestUtmProperties(), fetcher.getProperties());
-        }
+        JSONUtils.mergeJSONObject(ChannelUtils.getLatestUtmProperties(), fetcher.getProperties());
     }
 }

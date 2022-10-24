@@ -25,12 +25,12 @@ import android.text.TextUtils;
 import android.view.View;
 import android.view.Window;
 
+import com.sensorsdata.analytics.android.autotrack.R;
+import com.sensorsdata.analytics.android.autotrack.core.beans.AutoTrackConstants;
 import com.sensorsdata.analytics.android.autotrack.core.beans.ViewContext;
 import com.sensorsdata.analytics.android.autotrack.core.business.SAPageTools;
 import com.sensorsdata.analytics.android.autotrack.utils.AopUtil;
-import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
-import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
@@ -39,13 +39,16 @@ import com.sensorsdata.analytics.android.sdk.SensorsDataIgnoreTrackAppClick;
 import com.sensorsdata.analytics.android.sdk.SensorsDataIgnoreTrackAppViewScreen;
 import com.sensorsdata.analytics.android.sdk.SensorsDataIgnoreTrackAppViewScreenAndAppClick;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
-import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
+import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
+import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
+import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.core.mediator.autotrack.AutoTrackProtocol;
 import com.sensorsdata.analytics.android.sdk.core.mediator.autotrack.IFragmentAPI;
-import com.sensorsdata.analytics.android.sdk.core.mediator.visual.SAVisual;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
+import com.sensorsdata.analytics.android.sdk.util.SAPageInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
@@ -417,7 +420,7 @@ public class AutoTrackProtocolIml implements AutoTrackProtocol {
             return;
         }
 
-        view.setTag(com.sensorsdata.analytics.android.sdk.R.id.sensors_analytics_tag_view_properties, properties);
+        view.setTag(R.id.sensors_analytics_tag_view_properties, properties);
     }
 
     @Override
@@ -470,7 +473,7 @@ public class AutoTrackProtocolIml implements AutoTrackProtocol {
     public void trackViewScreen(final String url, JSONObject properties) {
         try {
             final JSONObject cloneProperties = JSONUtils.cloneJsonObject(properties);
-            SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+            SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -497,7 +500,7 @@ public class AutoTrackProtocolIml implements AutoTrackProtocol {
                             if (cloneProperties != null) {
                                 JSONUtils.mergeJSONObject(cloneProperties, trackProperties);
                             }
-                            SAEventManager.getInstance().trackEvent(new InputData().setEventName("$AppViewScreen").setEventType(EventType.TRACK).setProperties(trackProperties));
+                            SACoreHelper.getInstance().trackEvent(new InputData().setEventName("$AppViewScreen").setEventType(EventType.TRACK).setProperties(trackProperties));
                         }
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
@@ -516,7 +519,7 @@ public class AutoTrackProtocolIml implements AutoTrackProtocol {
             if (activity == null) {
                 return;
             }
-            JSONObject properties = SAPageTools.getActivityPageInfo(activity);
+            JSONObject properties = SAPageInfoUtils.getActivityPageInfo(activity);
             trackViewScreen(SAPageTools.getScreenUrl(activity), properties);
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -593,7 +596,7 @@ public class AutoTrackProtocolIml implements AutoTrackProtocol {
             }
 
             if (!TextUtils.isEmpty(title)) {
-                properties.put(AopConstants.TITLE, title);
+                properties.put(AutoTrackConstants.TITLE, title);
             }
             properties.put("$screen_name", screenName);
             if (fragment instanceof ScreenAutoTracker) {
@@ -624,12 +627,12 @@ public class AutoTrackProtocolIml implements AutoTrackProtocol {
             JSONObject cloneProperties = properties != null ? JSONUtils.cloneJsonObject(properties) : new JSONObject();
             final JSONObject propertyJson = AopUtil.injectClickInfo(new ViewContext(view), cloneProperties, true);
             if (propertyJson != null) {
-                SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+                SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
                     @Override
                     public void run() {
                         try {
-                            SAVisual.mergeVisualProperties(propertyJson, view);
-                            SAEventManager.getInstance().trackEvent(new InputData().setEventName(AopConstants.APP_CLICK_EVENT_NAME).setEventType(EventType.TRACK).setProperties(propertyJson));
+                            SAModuleManager.getInstance().invokeModuleFunction(Modules.Visual.MODULE_NAME, Modules.Visual.METHOD_MERGE_VISUAL_PROPERTIES, propertyJson, view);
+                            SACoreHelper.getInstance().trackEvent(new InputData().setEventName(AutoTrackConstants.APP_CLICK_EVENT_NAME).setEventType(EventType.TRACK).setProperties(propertyJson));
                         } catch (Exception e) {
                             SALog.printStackTrace(e);
                         }

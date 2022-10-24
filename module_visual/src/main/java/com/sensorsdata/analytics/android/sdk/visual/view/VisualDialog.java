@@ -28,6 +28,7 @@ import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 import com.sensorsdata.analytics.android.sdk.visual.HeatMapService;
+import com.sensorsdata.analytics.android.sdk.visual.R;
 import com.sensorsdata.analytics.android.sdk.visual.VisualizedAutoTrackService;
 
 public class VisualDialog {
@@ -46,9 +47,9 @@ public class VisualDialog {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_common_title));
         if (isWifi) {
-            builder.setMessage(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_heatmap_wifi_name));
+            builder.setMessage(SADisplayUtil.getStringResource(context, R.string.sensors_analytics_heatmap_wifi_name));
         } else {
-            builder.setMessage(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_heatmap_mobile_name));
+            builder.setMessage(SADisplayUtil.getStringResource(context, R.string.sensors_analytics_heatmap_mobile_name));
         }
         builder.setCancelable(false);
         builder.setNegativeButton(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_common_cancel), new DialogInterface.OnClickListener() {
@@ -65,7 +66,7 @@ public class VisualDialog {
             }
         });
         AlertDialog dialog = builder.create();
-        SensorsDataDialogUtils.dialogShowDismissOld(dialog);
+        SensorsDataDialogUtils.getInstance().dialogShowDismissOld(dialog);
         try {
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.BLACK);
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundColor(Color.WHITE);
@@ -97,9 +98,9 @@ public class VisualDialog {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_common_title));
         if (isWifi) {
-            builder.setMessage(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_visual_wifi_name));
+            builder.setMessage(SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_wifi_name));
         } else {
-            builder.setMessage(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_visual_mobile_name));
+            builder.setMessage(SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_mobile_name));
         }
         builder.setCancelable(false);
         builder.setNegativeButton(SADisplayUtil.getStringResource(context, com.sensorsdata.analytics.android.sdk.R.string.sensors_analytics_common_cancel), new DialogInterface.OnClickListener() {
@@ -116,7 +117,7 @@ public class VisualDialog {
             }
         });
         AlertDialog dialog = builder.create();
-        SensorsDataDialogUtils.dialogShowDismissOld(dialog);
+        SensorsDataDialogUtils.getInstance().dialogShowDismissOld(dialog);
         try {
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.BLACK);
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundColor(Color.WHITE);

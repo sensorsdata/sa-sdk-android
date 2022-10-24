@@ -23,8 +23,6 @@ import android.net.Uri;
 import android.text.TextUtils;
 import android.view.View;
 
-import com.sensorsdata.analytics.android.sdk.AopConstants;
-import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
@@ -32,6 +30,8 @@ import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
 import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
+import com.sensorsdata.analytics.android.sdk.visual.R;
+import com.sensorsdata.analytics.android.sdk.visual.constant.VisualConstants;
 import com.sensorsdata.analytics.android.sdk.util.visual.ViewNode;
 import com.sensorsdata.analytics.android.sdk.util.visual.ViewTreeStatusObservable;
 import com.sensorsdata.analytics.android.sdk.visual.model.VisualConfig;
@@ -76,12 +76,16 @@ public class VisualPropertiesManager {
     }
 
     public void requestVisualConfig(SAContextManager contextManager) {
-        SALog.i(TAG, "requestVisualConfig");
         try {
             if (contextManager == null || !contextManager.getSensorsDataAPI().isNetworkRequestEnable() || SensorsDataAPI.isSDKDisabled()) {
                 SALog.i(TAG, "Close network request");
                 return;
             }
+
+            if (!contextManager.getInternalConfigs().saConfigOptions.isVisualizedPropertiesEnabled()) {
+                return;
+            }
+            SALog.i(TAG, "requestVisualConfig");
             mRequestHelper.requestVisualConfig(contextManager.getContext(), getVisualConfigVersion(), new VisualConfigRequestHelper.IApiCallback() {
                 @Override
                 public void onSuccess(String message) {
@@ -168,7 +172,7 @@ public class VisualPropertiesManager {
 
     public void mergeVisualProperties(VisualEventType eventType, JSONObject srcObject, ViewNode viewNode) {
         try {
-            String screenName = srcObject.optString(AopConstants.SCREEN_NAME);
+            String screenName = srcObject.optString(VisualConstants.SCREEN_NAME);
             if (mCollectLogListener != null) {
                 mCollectLogListener.onStart(eventType.visualEventType, screenName, viewNode);
             }

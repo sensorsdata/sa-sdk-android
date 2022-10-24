@@ -30,6 +30,7 @@ import android.widget.Button;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.sensorsdata.analytics.android.autotrack.R;
 import com.sensorsdata.analytics.android.autotrack.SAHelper;
 import com.sensorsdata.analytics.android.autotrack.core.autotrack.ActivityLifecycleCallbacks;
 import com.sensorsdata.analytics.android.autotrack.core.autotrack.ActivityLifecycleCallbacksTest;
@@ -273,7 +274,7 @@ public class AutoTrackProtocolImlTest {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("name", "view");
         mAutoTrackImp.setViewProperties(view, jsonObject);
-        Object tag = view.getTag(com.sensorsdata.analytics.android.sdk.R.id.sensors_analytics_tag_view_properties);
+        Object tag = view.getTag(R.id.sensors_analytics_tag_view_properties);
         Assert.assertNotNull(tag);
         Assert.assertEquals(jsonObject, tag);
     }

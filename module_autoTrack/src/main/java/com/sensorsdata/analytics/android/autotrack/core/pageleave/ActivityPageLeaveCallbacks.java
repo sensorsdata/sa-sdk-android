@@ -23,15 +23,16 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.autotrack.core.business.SAPageTools;
 import com.sensorsdata.analytics.android.autotrack.utils.AppPageLeaveUtils;
-import com.sensorsdata.analytics.android.sdk.SAEventManager;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataActivityLifecycleCallbacks;
-import com.sensorsdata.analytics.android.sdk.SensorsDataExceptionHandler;
-import com.sensorsdata.analytics.android.autotrack.core.business.SAPageTools;
+import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
+import com.sensorsdata.analytics.android.sdk.exceptions.SensorsDataExceptionHandler;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
+import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataActivityLifecycleCallbacks;
+import com.sensorsdata.analytics.android.sdk.util.SAPageInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
 import org.json.JSONException;
@@ -86,7 +87,7 @@ public class ActivityPageLeaveCallbacks implements SensorsDataActivityLifecycleC
                 JSONObject properties = mResumedActivities.get(hashCode);
                 String referrer = properties == null ? "" : properties.optString("$referrer");
                 long startTime = properties == null ? 0 : properties.optLong(START_TIME);
-                properties = SAPageTools.getActivityPageInfo(activity);
+                properties = SAPageInfoUtils.getActivityPageInfo(activity);
                 properties.put(START_TIME, startTime);
                 String url = SAPageTools.getScreenUrl(activity);
                 properties.put("$url", url);
@@ -144,7 +145,7 @@ public class ActivityPageLeaveCallbacks implements SensorsDataActivityLifecycleC
             if (DIALOG_ACTIVITY.equals(activity.getClass().getCanonicalName())) {
                 return;
             }
-            JSONObject properties = SAPageTools.getActivityPageInfo(activity);
+            JSONObject properties = SAPageInfoUtils.getActivityPageInfo(activity);
             String url = SAPageTools.getScreenUrl(activity);
             properties.put("$url", url);
             String referrer = AppPageLeaveUtils.getLastScreenUrl();
@@ -168,7 +169,7 @@ public class ActivityPageLeaveCallbacks implements SensorsDataActivityLifecycleC
                 return;
             }
             properties.put("event_duration", duration);
-            SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+            SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
                 @Override
                 public void run() {
                     SensorsDataAPI.sharedInstance().getSAContextManager().

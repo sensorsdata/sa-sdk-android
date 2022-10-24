@@ -27,14 +27,14 @@ import android.widget.RadioButton;
 import android.widget.RatingBar;
 import android.widget.ToggleButton;
 
+import com.sensorsdata.analytics.android.autotrack.R;
+import com.sensorsdata.analytics.android.autotrack.core.beans.AutoTrackConstants;
 import com.sensorsdata.analytics.android.autotrack.core.beans.ViewContext;
-import com.sensorsdata.analytics.android.sdk.AopConstants;
-import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
-import com.sensorsdata.analytics.android.autotrack.core.business.SAPageTools;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
+import com.sensorsdata.analytics.android.sdk.util.SAPageInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
 
 import org.json.JSONException;
@@ -57,11 +57,11 @@ public class AopUtil {
                 ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
                 JSONObject trackProperties = screenAutoTracker.getTrackProperties();
                 if (trackProperties != null) {
-                    if (trackProperties.has(AopConstants.SCREEN_NAME)) {
-                        propertyJSON.put(AopConstants.SCREEN_NAME, trackProperties.optString(AopConstants.SCREEN_NAME));
+                    if (trackProperties.has(AutoTrackConstants.SCREEN_NAME)) {
+                        propertyJSON.put(AutoTrackConstants.SCREEN_NAME, trackProperties.optString(AutoTrackConstants.SCREEN_NAME));
                     }
-                    if (trackProperties.has(AopConstants.TITLE)) {
-                        propertyJSON.put(AopConstants.TITLE, trackProperties.optString(AopConstants.TITLE));
+                    if (trackProperties.has(AutoTrackConstants.TITLE)) {
+                        propertyJSON.put(AutoTrackConstants.TITLE, trackProperties.optString(AutoTrackConstants.TITLE));
                     }
                 }
             }
@@ -95,27 +95,27 @@ public class AopUtil {
             String idString = SAViewUtils.getViewId(viewContext.view);
             if (!TextUtils.isEmpty(idString)) {
                 //ViewId
-                eventJson.put(AopConstants.ELEMENT_ID, idString);
+                eventJson.put(AutoTrackConstants.ELEMENT_ID, idString);
             }
 
             String viewText = SAViewUtils.getViewContent(viewContext.view);
             //$element_content
             if (!TextUtils.isEmpty(viewText)) {
-                eventJson.put(AopConstants.ELEMENT_CONTENT, viewText);
+                eventJson.put(AutoTrackConstants.ELEMENT_CONTENT, viewText);
             }
             //$element_type
-            eventJson.put(AopConstants.ELEMENT_TYPE, SAViewUtils.getViewType(viewContext.view));
+            eventJson.put(AutoTrackConstants.ELEMENT_TYPE, SAViewUtils.getViewType(viewContext.view));
 
             Activity activity = viewContext.activity != null ? viewContext.activity : SAViewUtils.getActivityOfView(context, viewContext.view);
             //2.获取 Activity 页面信息及 ScreenAutoTracker 定义的属性
             if (activity != null) {
-                JSONUtils.mergeJSONObject(SAPageTools.getActivityPageInfo(activity), eventJson);
+                JSONUtils.mergeJSONObject(SAPageInfoUtils.getActivityPageInfo(activity), eventJson);
             }
 
             //fragmentName
             Object fragment = viewContext.fragment != null ? viewContext.fragment : SAFragmentUtils.getFragmentFromView(viewContext.view, activity);
             if (fragment != null) {
-                JSONUtils.mergeJSONObject(SAPageTools.getFragmentPageInfo(activity, fragment), eventJson);
+                JSONUtils.mergeJSONObject(SAPageInfoUtils.getFragmentPageInfo(activity, fragment), eventJson);
             }
             //3.获取 View 自定义属性
             JSONObject p = (JSONObject) viewContext.view.getTag(R.id.sensors_analytics_tag_view_properties);

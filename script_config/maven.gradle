@@ -89,6 +89,20 @@ if (project.name == "module_core") {
         artifactId_maven = "exposure"
     }
     version = rootProject.ext.versions.module_version
+} else if (project.name == "module_webview") {
+    if (isBeta) {
+        artifactId_maven = "webview-" + betaPrefix
+    } else {
+        artifactId_maven = "webview"
+    }
+    version = rootProject.ext.versions.module_version
+} else if (project.name == "module_common") {
+    if (isBeta) {
+        artifactId_maven = "common-" + betaPrefix
+    } else {
+        artifactId_maven = "common"
+    }
+    version = rootProject.ext.versions.module_version
 }
 
 publishing {

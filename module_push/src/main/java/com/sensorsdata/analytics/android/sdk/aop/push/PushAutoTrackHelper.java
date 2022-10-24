@@ -665,7 +665,7 @@ public class PushAutoTrackHelper {
         try {
             if ((SensorsDataAPI.sharedInstance() instanceof SensorsDataAPIEmptyImplementation) ||
                     SensorsDataAPI.getConfigOptions() == null ||
-                    !SensorsDataAPI.getConfigOptions().mEnableTrackPush) {
+                    !SensorsDataAPI.getConfigOptions().isEnableTrackPush()) {
                 SALog.i(TAG, "SDK or push disabled.");
                 return false;
             }

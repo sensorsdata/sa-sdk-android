@@ -34,8 +34,6 @@ import android.os.Message;
 import android.os.Process;
 import android.text.TextUtils;
 
-import com.sensorsdata.analytics.android.sdk.AopConstants;
-import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
@@ -43,6 +41,7 @@ import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
+import com.sensorsdata.analytics.android.sdk.visual.constant.VisualConstants;
 import com.sensorsdata.analytics.android.sdk.visual.model.SnapInfo;
 import com.sensorsdata.analytics.android.sdk.visual.model.WebNodeInfo;
 import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
@@ -50,7 +49,6 @@ import com.sensorsdata.analytics.android.sdk.visual.snap.EditProtocol;
 import com.sensorsdata.analytics.android.sdk.visual.snap.EditState;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceIds;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceReader;
-import com.sensorsdata.analytics.android.sdk.visual.utils.AppStateManager;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -75,7 +73,7 @@ public abstract class AbstractViewCrawler implements VTrack {
     private static final int MESSAGE_SEND_STATE_FOR_EDITING = 1;
     public static final String TYPE_HEAT_MAP = "heat_map";
     public static final String TYPE_VISUAL = "visual";
-    private final Activity mActivity;
+    private final Context mContext;
     private final LifecycleCallbacks mLifecycleCallbacks;
     private final EditState mEditState;
     private final ViewCrawlerHandler mMessageThreadHandler;
@@ -87,7 +85,7 @@ public abstract class AbstractViewCrawler implements VTrack {
     private String mType;
 
     AbstractViewCrawler(Activity activity, String resourcePackageName, String featureCode, String postUrl, String type) {
-        mActivity = activity;
+        mContext = activity.getApplicationContext();
         mFeatureCode = featureCode;
         mEditState = new EditState();
         mType = type;
@@ -98,7 +96,7 @@ public abstract class AbstractViewCrawler implements VTrack {
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
-        final Application app = (Application) mActivity.getApplicationContext();
+        final Application app = (Application) mContext.getApplicationContext();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
             app.registerActivityLifecycleCallbacks(mLifecycleCallbacks);
         }
@@ -115,7 +113,7 @@ public abstract class AbstractViewCrawler implements VTrack {
                 new HandlerThread(VisualizedAutoTrackViewCrawler.class.getCanonicalName(), Process.THREAD_PRIORITY_BACKGROUND);
         thread.start();
 
-        mMessageThreadHandler = new ViewCrawlerHandler(mActivity, thread.getLooper(), resourcePackageName);
+        mMessageThreadHandler = new ViewCrawlerHandler(mContext, thread.getLooper(), resourcePackageName);
         mMainThreadHandler = new Handler(Looper.getMainLooper());
     }
 
@@ -123,7 +121,7 @@ public abstract class AbstractViewCrawler implements VTrack {
     public void startUpdates() {
         try {
             if (!TextUtils.isEmpty(mFeatureCode) && !TextUtils.isEmpty(mPostUrl)) {
-                final Application app = (Application) mActivity.getApplicationContext();
+                final Application app = (Application) mContext.getApplicationContext();
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
                     app.registerActivityLifecycleCallbacks(mLifecycleCallbacks);
                 }
@@ -145,7 +143,7 @@ public abstract class AbstractViewCrawler implements VTrack {
                 mPostUrl = null;
             }
             mMessageThreadHandler.removeMessages(MESSAGE_SEND_STATE_FOR_EDITING);
-            final Application app = (Application) mActivity.getApplicationContext();
+            final Application app = (Application) mContext.getApplicationContext();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
                 app.unregisterActivityLifecycleCallbacks(mLifecycleCallbacks);
             }
@@ -268,7 +266,7 @@ public abstract class AbstractViewCrawler implements VTrack {
                 try {
                     JSONArray array = new JSONArray();
                     if (!SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_CLICK)) {
-                        array.put(AopConstants.APP_CLICK_EVENT_NAME);
+                        array.put(VisualConstants.APP_CLICK_EVENT_NAME);
                     }
                     if (!SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
                         array.put("$AppViewScreen");
@@ -384,8 +382,8 @@ public abstract class AbstractViewCrawler implements VTrack {
                             WebNodeInfo.AlertInfo alertInfo = list.get(i);
                             if (alertInfo != null) {
                                 if (TextUtils.equals(TYPE_HEAT_MAP, mType)) {
-                                    alertInfo.title = alertInfo.title.replace(SADisplayUtil.getStringResource(mActivity, R.string.sensors_analytics_visual),
-                                            SADisplayUtil.getStringResource(mActivity, R.string.sensors_analytics_heatmap));
+                                    alertInfo.title = alertInfo.title.replace(SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_visual),
+                                            SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_heatmap));
                                 }
                                 writer.write("{".getBytes());
                                 writer.write(("\"title\":").getBytes());
@@ -468,9 +466,9 @@ public abstract class AbstractViewCrawler implements VTrack {
                         return;
                     }
 
-                    if (configOptions.mSSLSocketFactory != null
+                    if (configOptions.getSSLSocketFactory() != null
                             && connection instanceof HttpsURLConnection) {
-                        ((HttpsURLConnection) connection).setSSLSocketFactory(configOptions.mSSLSocketFactory);
+                        ((HttpsURLConnection) connection).setSSLSocketFactory(configOptions.getSSLSocketFactory());
                     }
                 }
                 connection.setDoOutput(true);

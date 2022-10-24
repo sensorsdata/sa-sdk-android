@@ -17,21 +17,9 @@
 
 package com.sensorsdata.analytics.android.autotrack.core.business;
 
-import android.app.Activity;
-import android.text.TextUtils;
-import android.view.View;
-
-import com.sensorsdata.analytics.android.sdk.AopConstants;
-import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.ScreenAutoTracker;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAutoTrackAppViewScreenUrl;
-import com.sensorsdata.analytics.android.sdk.SensorsDataFragmentTitle;
-import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
-import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
-import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
-import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
 import org.json.JSONObject;
 
@@ -83,135 +71,6 @@ public class SAPageTools {
 
     public static JSONObject getCurrentScreenTrackProperties() {
         return mCurrentScreenTrackProperties;
-    }
-
-    /**
-     * 尝试读取页面 title
-     *
-     * @param fragment Fragment
-     * @param activity Activity
-     */
-    public static JSONObject getFragmentPageInfo(Activity activity, Object fragment) {
-        JSONObject properties = new JSONObject();
-        try {
-            String screenName = null;
-            String title = null;
-            if (fragment instanceof ScreenAutoTracker) {
-                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) fragment;
-                JSONObject trackProperties = screenAutoTracker.getTrackProperties();
-                if (trackProperties != null) {
-                    if (trackProperties.has(AopConstants.SCREEN_NAME)) {
-                        screenName = trackProperties.optString(AopConstants.SCREEN_NAME);
-                    }
-
-                    if (trackProperties.has(AopConstants.TITLE)) {
-                        title = trackProperties.optString(AopConstants.TITLE);
-                    }
-                    JSONUtils.mergeJSONObject(trackProperties, properties);
-                }
-            }
-            boolean isTitleNull = TextUtils.isEmpty(title);
-            boolean isScreenNameNull = TextUtils.isEmpty(screenName);
-            if (isTitleNull && fragment.getClass().isAnnotationPresent(SensorsDataFragmentTitle.class)) {
-                SensorsDataFragmentTitle sensorsDataFragmentTitle = fragment.getClass().getAnnotation(SensorsDataFragmentTitle.class);
-                if (sensorsDataFragmentTitle != null) {
-                    title = sensorsDataFragmentTitle.title();
-                }
-            }
-            isTitleNull = TextUtils.isEmpty(title);
-            if (isTitleNull || isScreenNameNull) {
-                if (activity == null) {
-                    activity = SAFragmentUtils.getActivityFromFragment(fragment);
-                }
-                if (activity != null) {
-                    if (isTitleNull) {
-                        title = SensorsDataUtils.getActivityTitle(activity);
-                    }
-
-                    if (isScreenNameNull) {
-                        screenName = fragment.getClass().getCanonicalName();
-                        screenName = String.format(TimeUtils.SDK_LOCALE, "%s|%s", activity.getClass().getCanonicalName(), screenName);
-                    }
-                }
-            }
-
-            if (!TextUtils.isEmpty(title)) {
-                properties.put(AopConstants.TITLE, title);
-            }
-
-            if (TextUtils.isEmpty(screenName)) {
-                screenName = fragment.getClass().getCanonicalName();
-            }
-            properties.put("$screen_name", screenName);
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
-        }
-        return properties;
-    }
-
-    /**
-     * 构建 Title 和 Screen 的名称
-     *
-     * @param activity 页面
-     * @return JSONObject
-     */
-    public static JSONObject getActivityPageInfo(Activity activity) {
-        JSONObject propertyJSON = new JSONObject();
-        try {
-            propertyJSON.put(AopConstants.SCREEN_NAME, activity.getClass().getCanonicalName());
-            String activityTitle = SensorsDataUtils.getActivityTitle(activity);
-            if (!TextUtils.isEmpty(activityTitle)) {
-                propertyJSON.put(AopConstants.TITLE, activityTitle);
-            }
-
-            if (activity instanceof ScreenAutoTracker) {
-                ScreenAutoTracker screenAutoTracker = (ScreenAutoTracker) activity;
-                JSONUtils.mergeJSONObject(screenAutoTracker.getTrackProperties(), propertyJSON);
-            }
-        } catch (Exception ex) {
-            SALog.printStackTrace(ex);
-            return new JSONObject();
-        }
-        return propertyJSON;
-    }
-
-    public static JSONObject getRNPageInfo() {
-        return getRNPageInfo(null);
-    }
-
-    /**
-     * 如果存在 RN 页面，优先获取 RN 的 screen_name
-     *
-     * @param view View
-     * @return JSONObject
-     */
-    public static JSONObject getRNPageInfo(View view) {
-        try {
-            Class<?> rnViewUtils = ReflectUtil.getCurrentClass(new String[]{"com.sensorsdata.analytics.utils.RNViewUtils"});
-            String properties = ReflectUtil.callStaticMethod(rnViewUtils, "getVisualizeProperties");
-            if (!TextUtils.isEmpty(properties)) {
-                JSONObject object = new JSONObject(properties);
-                if (view != null && object.optBoolean("isSetRNViewTag", false)) {
-                    Object isRNView = view.getTag(R.id.sensors_analytics_tag_view_rn_key);
-                    if (isRNView == null || !(Boolean) isRNView) {
-                        return null;
-                    }
-                }
-                String rnScreenName = object.optString("$screen_name");
-                String rnActivityTitle = object.optString("$title");
-                JSONObject jsonObject = new JSONObject();
-                if (jsonObject.has(AopConstants.SCREEN_NAME)) {
-                    jsonObject.put(AopConstants.SCREEN_NAME, rnScreenName);
-                }
-                if (jsonObject.has(AopConstants.TITLE)) {
-                    jsonObject.put(AopConstants.TITLE, rnActivityTitle);
-                }
-                return jsonObject;
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-        return null;
     }
 
     /**

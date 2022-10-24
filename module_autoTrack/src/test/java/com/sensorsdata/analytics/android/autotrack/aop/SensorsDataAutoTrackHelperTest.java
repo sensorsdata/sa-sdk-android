@@ -45,7 +45,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.sensorsdata.analytics.android.autotrack.SAHelper;
-import com.sensorsdata.analytics.android.sdk.AopConstants;
+import com.sensorsdata.analytics.android.autotrack.core.beans.AutoTrackConstants;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsDataTrackEventCallBack;
 
@@ -124,9 +124,9 @@ public class SensorsDataAutoTrackHelperTest {
                 System.out.println(eventProperties);
                 assertTrue(SAHelper.checkPresetProperty(eventProperties));
                 assertEquals("$AppClick", eventName);
-                assertEquals("ExpandableListView", eventProperties.optString(AopConstants.ELEMENT_TYPE));
-                assertEquals(activity.getClass().getCanonicalName(), eventProperties.optString(AopConstants.SCREEN_NAME));
-                assertEquals(getActivityTitle(activity), eventProperties.optString(AopConstants.TITLE));
+                assertEquals("ExpandableListView", eventProperties.optString(AutoTrackConstants.ELEMENT_TYPE));
+                assertEquals(activity.getClass().getCanonicalName(), eventProperties.optString(AutoTrackConstants.SCREEN_NAME));
+                assertEquals(getActivityTitle(activity), eventProperties.optString(AutoTrackConstants.TITLE));
                 return true;
             }
         });
@@ -153,9 +153,9 @@ public class SensorsDataAutoTrackHelperTest {
                 System.out.println(eventProperties);
                 assertTrue(SAHelper.checkPresetProperty(eventProperties));
                 assertEquals("$AppClick", eventName);
-                assertEquals("ExpandableListView", eventProperties.optString(AopConstants.ELEMENT_TYPE));
-                assertEquals(activity.getClass().getCanonicalName(), eventProperties.optString(AopConstants.SCREEN_NAME));
-                assertEquals(getActivityTitle(activity), eventProperties.optString(AopConstants.TITLE));
+                assertEquals("ExpandableListView", eventProperties.optString(AutoTrackConstants.ELEMENT_TYPE));
+                assertEquals(activity.getClass().getCanonicalName(), eventProperties.optString(AutoTrackConstants.SCREEN_NAME));
+                assertEquals(getActivityTitle(activity), eventProperties.optString(AutoTrackConstants.TITLE));
                 return true;
             }
         });
@@ -184,10 +184,10 @@ public class SensorsDataAutoTrackHelperTest {
                 System.out.println(eventProperties);
                 assertTrue(SAHelper.checkPresetProperty(eventProperties));
                 assertEquals("$AppClick", eventName);
-                assertEquals("TabHost", eventProperties.optString(AopConstants.ELEMENT_TYPE));
-                assertEquals(activity.getClass().getCanonicalName(), eventProperties.optString(AopConstants.SCREEN_NAME));
-                assertEquals(getActivityTitle(activity), eventProperties.optString(AopConstants.TITLE));
-                assertEquals("未接来电", eventProperties.optString(AopConstants.ELEMENT_CONTENT));
+                assertEquals("TabHost", eventProperties.optString(AutoTrackConstants.ELEMENT_TYPE));
+                assertEquals(activity.getClass().getCanonicalName(), eventProperties.optString(AutoTrackConstants.SCREEN_NAME));
+                assertEquals(getActivityTitle(activity), eventProperties.optString(AutoTrackConstants.TITLE));
+                assertEquals("未接来电", eventProperties.optString(AutoTrackConstants.ELEMENT_CONTENT));
                 return true;
             }
         });
@@ -281,10 +281,10 @@ public class SensorsDataAutoTrackHelperTest {
                 System.out.println(eventProperties);
                 assertTrue(SAHelper.checkPresetProperty(eventProperties));
                 assertEquals("$AppClick", eventName);
-                assertEquals("RadioButton", eventProperties.optString(AopConstants.ELEMENT_TYPE));
-                assertEquals(activity.getClass().getCanonicalName(), eventProperties.optString(AopConstants.SCREEN_NAME));
-                assertEquals(getActivityTitle(activity), eventProperties.optString(AopConstants.TITLE));
-                assertEquals("radioButton0", eventProperties.optString(AopConstants.ELEMENT_CONTENT));
+                assertEquals("RadioButton", eventProperties.optString(AutoTrackConstants.ELEMENT_TYPE));
+                assertEquals(activity.getClass().getCanonicalName(), eventProperties.optString(AutoTrackConstants.SCREEN_NAME));
+                assertEquals(getActivityTitle(activity), eventProperties.optString(AutoTrackConstants.TITLE));
+                assertEquals("radioButton0", eventProperties.optString(AutoTrackConstants.ELEMENT_CONTENT));
                 return true;
             }
         });
@@ -317,7 +317,7 @@ public class SensorsDataAutoTrackHelperTest {
                 assertTrue(SAHelper.checkPresetProperty(eventProperties));
                 assertEquals("$AppClick", eventName);
                 assertEquals("autoTrack", eventProperties.optString("$lib_method"));
-                assertEquals("Dialog", eventProperties.optString(AopConstants.ELEMENT_TYPE));
+                assertEquals("Dialog", eventProperties.optString(AutoTrackConstants.ELEMENT_TYPE));
                 return true;
             }
         });
@@ -350,8 +350,8 @@ public class SensorsDataAutoTrackHelperTest {
                 assertTrue(SAHelper.checkPresetProperty(eventProperties));
                 assertEquals("$AppClick", eventName);
                 assertEquals("autoTrack", eventProperties.optString("$lib_method"));
-                assertEquals("ListView", eventProperties.optString(AopConstants.ELEMENT_TYPE));
-                assertEquals("Item1", eventProperties.optString(AopConstants.ELEMENT_CONTENT));
+                assertEquals("ListView", eventProperties.optString(AutoTrackConstants.ELEMENT_TYPE));
+                assertEquals("Item1", eventProperties.optString(AutoTrackConstants.ELEMENT_CONTENT));
                 return true;
             }
         });
@@ -369,7 +369,7 @@ public class SensorsDataAutoTrackHelperTest {
                 assertTrue(SAHelper.checkPresetProperty(eventProperties));
                 assertEquals("$AppClick", eventName);
                 assertEquals("autoTrack", eventProperties.optString("$lib_method"));
-                assertEquals("Open", eventProperties.optString(AopConstants.ELEMENT_CONTENT));
+                assertEquals("Open", eventProperties.optString(AutoTrackConstants.ELEMENT_CONTENT));
                 return true;
             }
         });
@@ -389,7 +389,7 @@ public class SensorsDataAutoTrackHelperTest {
                 assertTrue(SAHelper.checkPresetProperty(eventProperties));
                 assertEquals("$AppClick", eventName);
                 assertEquals("autoTrack", eventProperties.optString("$lib_method"));
-                assertEquals("Close", eventProperties.optString(AopConstants.ELEMENT_CONTENT));
+                assertEquals("Close", eventProperties.optString(AutoTrackConstants.ELEMENT_CONTENT));
                 return true;
             }
         });
@@ -413,8 +413,8 @@ public class SensorsDataAutoTrackHelperTest {
                 assertTrue(SAHelper.checkPresetProperty(eventProperties));
                 assertEquals("$AppClick", eventName);
                 assertEquals("autoTrack", eventProperties.optString("$lib_method"));
-                assertEquals("Button", eventProperties.optString(AopConstants.ELEMENT_TYPE));
-                assertEquals("trackViewOnClick", eventProperties.optString(AopConstants.ELEMENT_CONTENT));
+                assertEquals("Button", eventProperties.optString(AutoTrackConstants.ELEMENT_TYPE));
+                assertEquals("trackViewOnClick", eventProperties.optString(AutoTrackConstants.ELEMENT_CONTENT));
                 return true;
             }
         });

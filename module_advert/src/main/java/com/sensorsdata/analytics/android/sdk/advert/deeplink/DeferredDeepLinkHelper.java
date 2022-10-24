@@ -21,7 +21,7 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.advert.R;
-import com.sensorsdata.analytics.android.sdk.SAEventManager;
+import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
@@ -130,10 +130,10 @@ public class DeferredDeepLinkHelper {
                                             properties.put("$ad_slink_type", adSlinkType);
                                         }
                                         JSONUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), jsonObject);
-                                        SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+                                        SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
                                             @Override
                                             public void run() {
-                                                SAEventManager.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK)
+                                                SACoreHelper.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK)
                                                         .setEventName("$AdAppDeferredDeepLinkJump").setProperties(jsonObject));
                                             }
                                         });
@@ -145,10 +145,10 @@ public class DeferredDeepLinkHelper {
                                 properties.put("$deeplink_match_fail_reason", SADisplayUtil.getStringResource(sensorsDataAPI.getSAContextManager().getContext(), R.string.sensors_analytics_ad_listener));
                             }
                             JSONUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
-                            SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+                            SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
                                 @Override
                                 public void run() {
-                                    SAEventManager.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK)
+                                    SACoreHelper.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK)
                                             .setEventName("$AppDeeplinkMatchedResult").setProperties(properties));
                                 }
                             });

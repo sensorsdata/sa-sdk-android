@@ -19,10 +19,10 @@ package com.sensorsdata.analytics.android.autotrack.core;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
-import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
-import com.sensorsdata.analytics.android.sdk.core.mediator.autotrack.AutoTrackModuleProtocol;
+import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
+import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAModuleProtocol;
 
-public class SensorsAutoTrackAPI implements AutoTrackModuleProtocol {
+public class SensorsAutoTrackAPI implements SAModuleProtocol {
     private AutoTrackContextHelper mAutoTrackHelper;
     private boolean mEnable = false;
 
@@ -45,7 +45,7 @@ public class SensorsAutoTrackAPI implements AutoTrackModuleProtocol {
 
     @Override
     public String getModuleName() {
-        return ModuleConstants.ModuleName.AUTO_TRACK_NAME;
+        return Modules.AutoTrack.MODULE_NAME;
     }
 
     @Override

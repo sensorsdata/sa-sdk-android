@@ -29,17 +29,17 @@ import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 
-import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
+import com.sensorsdata.analytics.android.sdk.util.SAPageInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
 import com.sensorsdata.analytics.android.sdk.util.visual.ViewNode;
 import com.sensorsdata.analytics.android.sdk.util.visual.ViewTreeStatusObservable;
 import com.sensorsdata.analytics.android.sdk.util.visual.ViewUtil;
+import com.sensorsdata.analytics.android.sdk.visual.constant.VisualConstants;
 import com.sensorsdata.analytics.android.sdk.visual.model.SnapInfo;
 
 import org.json.JSONException;
@@ -107,17 +107,14 @@ public class VisualUtil {
         if (activity != null && activity.getWindow() != null && activity.getWindow().isActive()) {
             Object fragment = SAFragmentUtils.getFragmentFromView(view, activity);
             if (fragment != null) {
-                object = SAModuleManager.getInstance().invokeAutoTrackFunction("getFragmentPageInfo", activity, fragment);
+                object = SAPageInfoUtils.getFragmentPageInfo(activity, fragment);
                 if (info != null && !info.hasFragment) {
                     info.hasFragment = true;
                 }
             } else {
-                object = SAModuleManager.getInstance().invokeAutoTrackFunction("getActivityPageInfo", activity);
-                JSONObject rnJson = SAModuleManager.getInstance().invokeAutoTrackFunction("getRNPageInfo");
-                if (object == null) {
-                    object = new JSONObject();
-                }
-                JSONUtils.mergeJSONObject(rnJson, object);
+                object = SAPageInfoUtils.getActivityPageInfo(activity);
+                JSONObject rnJson = SAPageInfoUtils.getRNPageInfo();
+                JSONUtils.mergeDuplicateProperty(rnJson, object);
             }
         }
         return object;
@@ -139,15 +136,15 @@ public class VisualUtil {
                     || (SensorsDataAPI.sharedInstance().isHeatMapEnabled() && SensorsDataAPI.sharedInstance().isHeatMapActivity(activity.getClass()))) {
                 String elementSelector = SAViewUtils.getElementSelector(view);
                 if (!TextUtils.isEmpty(elementSelector)) {
-                    properties.put(AopConstants.ELEMENT_SELECTOR, elementSelector);
+                    properties.put(VisualConstants.ELEMENT_SELECTOR, elementSelector);
                 }
                 if (viewNode != null && !TextUtils.isEmpty(viewNode.getViewPath())) {
-                    properties.put(AopConstants.ELEMENT_PATH, viewNode.getViewPath());
+                    properties.put(VisualConstants.ELEMENT_PATH, viewNode.getViewPath());
                 }
             }
 
             if (viewNode != null && !TextUtils.isEmpty(viewNode.getViewPosition())) {
-                properties.put(AopConstants.ELEMENT_POSITION, viewNode.getViewPosition());
+                properties.put(VisualConstants.ELEMENT_POSITION, viewNode.getViewPosition());
             }
             return viewNode;
         } catch (JSONException e) {

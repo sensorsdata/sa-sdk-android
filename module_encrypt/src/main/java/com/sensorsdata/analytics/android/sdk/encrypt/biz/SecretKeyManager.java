@@ -20,6 +20,7 @@ package com.sensorsdata.analytics.android.sdk.encrypt.biz;
 import android.content.Context;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.encrypt.IPersistentSecretKey;
@@ -42,12 +43,12 @@ public class SecretKeyManager {
     private static final String SP_SECRET_KEY = "secret_key";
     private static final int KEY_VERSION_DEFAULT = 0;
     private final IPersistentSecretKey mPersistentSecretKey;
-    private final SAContextManager mSAContextManager;
+    private final SAConfigOptions mSAConfigOptions;
     private final List<SAEncryptListener> mListeners;
     private static SecretKeyManager INSTANCE;
 
     private SecretKeyManager(SAContextManager contextManager) {
-        mSAContextManager = contextManager;
+        mSAConfigOptions = contextManager.getInternalConfigs().saConfigOptions;
         this.mPersistentSecretKey = contextManager.getInternalConfigs().saConfigOptions.getPersistentSecretKey();
         this.mListeners = contextManager.getInternalConfigs().saConfigOptions.getEncryptors();
         mListeners.add(new SARSAEncrypt());
@@ -69,7 +70,7 @@ public class SecretKeyManager {
             String configs = configObject.optString("configs");
             configObject = new JSONObject(configs);
             SecreteKey secreteKey = new SecreteKey("", -1, "", "");
-            List<SAEncryptListener> encryptListeners = mSAContextManager.getInternalConfigs().saConfigOptions.getEncryptors();
+            List<SAEncryptListener> encryptListeners = mSAConfigOptions.getEncryptors();
             if (encryptListeners != null && !encryptListeners.isEmpty()) {
                 JSONObject keyObject = configObject.optJSONObject("key_v2");
                 if (keyObject != null) {

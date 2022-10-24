@@ -26,7 +26,7 @@ import com.sensorsdata.analytics.android.sdk.advert.oaid.SAOaidHelper;
 import com.sensorsdata.analytics.android.sdk.advert.utils.SAAdvertUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.ServerUrl;
+import com.sensorsdata.analytics.android.sdk.internal.beans.ServerUrl;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.network.HttpMethod;

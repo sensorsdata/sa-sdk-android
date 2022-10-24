@@ -18,11 +18,11 @@
 package com.sensorsdata.analytics.android.sdk.push.core;
 
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
-import com.sensorsdata.analytics.android.sdk.core.mediator.ModuleConstants;
-import com.sensorsdata.analytics.android.sdk.core.mediator.push.SAPushProtocol;
+import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
+import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAModuleProtocol;
 import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataLifecycleMonitorManager;
 
-public class PushProtocolImp implements SAPushProtocol {
+public class PushProtocolImp implements SAModuleProtocol {
     private boolean mEnable = false;
 
     @Override
@@ -42,7 +42,7 @@ public class PushProtocolImp implements SAPushProtocol {
 
     @Override
     public String getModuleName() {
-        return ModuleConstants.ModuleName.PUSH_NAME;
+        return Modules.Push.MODULE_NAME;
     }
 
     @Override

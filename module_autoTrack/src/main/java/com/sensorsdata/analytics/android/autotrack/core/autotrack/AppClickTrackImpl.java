@@ -41,24 +41,26 @@ import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TabHost;
 
+import com.sensorsdata.analytics.android.autotrack.R;
+import com.sensorsdata.analytics.android.autotrack.core.beans.AutoTrackConstants;
 import com.sensorsdata.analytics.android.autotrack.core.beans.ViewContext;
-import com.sensorsdata.analytics.android.autotrack.core.business.SAPageTools;
 import com.sensorsdata.analytics.android.autotrack.utils.AopUtil;
 import com.sensorsdata.analytics.android.autotrack.utils.AutoTrackViewUtils;
-import com.sensorsdata.analytics.android.sdk.AopConstants;
-import com.sensorsdata.analytics.android.sdk.SAEventManager;
+import com.sensorsdata.analytics.android.autotrack.utils.KeyboardViewUtil;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsAdapterViewItemTrackProperties;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.SensorsExpandableListViewItemTrackProperties;
-import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
+import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
-import com.sensorsdata.analytics.android.sdk.core.mediator.visual.SAVisual;
+import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
+import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
-import com.sensorsdata.analytics.android.sdk.util.KeyboardViewUtil;
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
+import com.sensorsdata.analytics.android.sdk.util.SAPageInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
 
@@ -96,9 +98,9 @@ public class AppClickTrackImpl {
             // ViewId
             String idString = SAViewUtils.getViewId(expandableListView);
             if (!TextUtils.isEmpty(idString)) {
-                properties.put(AopConstants.ELEMENT_ID, idString);
+                properties.put(AutoTrackConstants.ELEMENT_ID, idString);
             }
-            properties.put(AopConstants.ELEMENT_TYPE, "ExpandableListView");
+            properties.put(AutoTrackConstants.ELEMENT_TYPE, "ExpandableListView");
 
             String viewText = null;
             if (view instanceof ViewGroup) {// child view is ViewGroup
@@ -116,13 +118,13 @@ public class AppClickTrackImpl {
             }
             //$element_content
             if (!TextUtils.isEmpty(viewText)) {
-                properties.put(AopConstants.ELEMENT_CONTENT, viewText);
+                properties.put(AutoTrackConstants.ELEMENT_CONTENT, viewText);
             }
 
             // assemble interface extend property
             JSONUtils.mergeJSONObject(getExpandListViewExtendProperty(expandableListView, groupPosition, -1), properties);
             // 获取 View 自定义属性
-            JSONUtils.mergeJSONObject((JSONObject) view.getTag(com.sensorsdata.analytics.android.sdk.R.id.sensors_analytics_tag_view_properties), properties);
+            JSONUtils.mergeJSONObject((JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties), properties);
             trackAutoEvent(sensorsDataAPI, properties, view);
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -153,9 +155,9 @@ public class AppClickTrackImpl {
             //ViewId
             String idString = SAViewUtils.getViewId(expandableListView);
             if (!TextUtils.isEmpty(idString)) {
-                properties.put(AopConstants.ELEMENT_ID, idString);
+                properties.put(AutoTrackConstants.ELEMENT_ID, idString);
             }
-            properties.put(AopConstants.ELEMENT_TYPE, "ExpandableListView");
+            properties.put(AutoTrackConstants.ELEMENT_TYPE, "ExpandableListView");
 
             String viewText = null;
             if (view instanceof ViewGroup) {
@@ -173,12 +175,12 @@ public class AppClickTrackImpl {
             }
             //$element_content
             if (!TextUtils.isEmpty(viewText)) {
-                properties.put(AopConstants.ELEMENT_CONTENT, viewText);
+                properties.put(AutoTrackConstants.ELEMENT_CONTENT, viewText);
             }
             // assemble interface extend property
             JSONUtils.mergeJSONObject(getExpandListViewExtendProperty(expandableListView, groupPosition, childPosition), properties);
             // 获取 View 自定义属性
-            JSONUtils.mergeJSONObject((JSONObject) view.getTag(com.sensorsdata.analytics.android.sdk.R.id.sensors_analytics_tag_view_properties), properties);
+            JSONUtils.mergeJSONObject((JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties), properties);
             trackAutoEvent(sensorsDataAPI, properties, view);
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -209,7 +211,7 @@ public class AppClickTrackImpl {
                 if (TextUtils.isEmpty(elementContent)) {
                     elementContent = tabName;
                 }
-                properties.put(AopConstants.ELEMENT_CONTENT, elementContent);
+                properties.put(AutoTrackConstants.ELEMENT_CONTENT, elementContent);
             } catch (Exception e) {
                 SALog.printStackTrace(e);
             }
@@ -217,7 +219,7 @@ public class AppClickTrackImpl {
             if (properties == null) {
                 properties = new JSONObject();
             }
-            properties.put(AopConstants.ELEMENT_TYPE, "TabHost");
+            properties.put(AutoTrackConstants.ELEMENT_TYPE, "TabHost");
             trackAutoEvent(sensorsDataAPI, properties, viewContext.view);
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -250,7 +252,7 @@ public class AppClickTrackImpl {
 
             JSONObject properties = buildPageProperty(viewContext.activity, viewContext.fragment);
             //Type
-            properties.put(AopConstants.ELEMENT_TYPE, "TabLayout");
+            properties.put(AutoTrackConstants.ELEMENT_TYPE, "TabLayout");
 
             Class<?> currentTabClass = null;
             try {
@@ -269,7 +271,7 @@ public class AppClickTrackImpl {
 
                 String text = AutoTrackViewUtils.getTabLayoutText(tabCustomView, tab);
                 if (text != null) {
-                    properties.put(AopConstants.ELEMENT_CONTENT, text);
+                    properties.put(AutoTrackConstants.ELEMENT_CONTENT, text);
                 }
 
                 if (tabCustomView == null || tabCustomView.getId() == View.NO_ID) {
@@ -280,11 +282,11 @@ public class AppClickTrackImpl {
                     if (tabCustomView.getId() != View.NO_ID && viewContext.activity != null) {
                         String resourceId = viewContext.activity.getResources().getResourceEntryName(tabCustomView.getId());
                         if (!TextUtils.isEmpty(resourceId)) {
-                            properties.put(AopConstants.ELEMENT_ID, resourceId);
+                            properties.put(AutoTrackConstants.ELEMENT_ID, resourceId);
                         }
                     }
                     // get Tab CustomView custom property
-                    JSONObject p = (JSONObject) tabCustomView.getTag(com.sensorsdata.analytics.android.sdk.R.id.sensors_analytics_tag_view_properties);
+                    JSONObject p = (JSONObject) tabCustomView.getTag(R.id.sensors_analytics_tag_view_properties);
                     JSONUtils.mergeJSONObject(p, properties);
                 }
                 // get TabView
@@ -324,7 +326,7 @@ public class AppClickTrackImpl {
                 if (viewContext.activity != null) {
                     String idString = viewContext.activity.getResources().getResourceEntryName(menuItem.getItemId());
                     if (!TextUtils.isEmpty(idString)) {
-                        properties.put(AopConstants.ELEMENT_ID, idString);
+                        properties.put(AutoTrackConstants.ELEMENT_ID, idString);
                     }
                 }
             } catch (Exception e) {
@@ -337,9 +339,9 @@ public class AppClickTrackImpl {
                 if (viewContext.view != null && TextUtils.isEmpty(elementContent)) {
                     elementContent = SAViewUtils.getViewContent(viewContext.view);
                 }
-                properties.put(AopConstants.ELEMENT_CONTENT, elementContent);
+                properties.put(AutoTrackConstants.ELEMENT_CONTENT, elementContent);
             }
-            properties.put(AopConstants.ELEMENT_TYPE, "MenuItem");
+            properties.put(AutoTrackConstants.ELEMENT_TYPE, "MenuItem");
 
             trackAutoEvent(sensorsDataAPI, properties, viewContext.view);
         } catch (Exception e) {
@@ -375,10 +377,10 @@ public class AppClickTrackImpl {
             //ViewId
             String idString = SAViewUtils.getViewId(view);
             if (!TextUtils.isEmpty(idString)) {
-                properties.put(AopConstants.ELEMENT_ID, idString);
+                properties.put(AutoTrackConstants.ELEMENT_ID, idString);
             }
 
-            properties.put(AopConstants.ELEMENT_TYPE, SAViewUtils.getViewType(childView));
+            properties.put(AutoTrackConstants.ELEMENT_TYPE, SAViewUtils.getViewType(childView));
 
             //获取变更后的选中项的ID
             RadioButton radioButton = null;
@@ -386,7 +388,7 @@ public class AppClickTrackImpl {
                 if (viewContext.activity != null) {
                     radioButton = viewContext.activity.findViewById(view.getCheckedRadioButtonId());
                     if (radioButton != null && !TextUtils.isEmpty(radioButton.getText())) {
-                        properties.put(AopConstants.ELEMENT_CONTENT, radioButton.getText().toString());
+                        properties.put(AutoTrackConstants.ELEMENT_CONTENT, radioButton.getText().toString());
                     }
                 }
             } catch (Exception e) {
@@ -394,7 +396,7 @@ public class AppClickTrackImpl {
             }
 
             //获取 View 自定义属性
-            JSONObject p = (JSONObject) view.getTag(com.sensorsdata.analytics.android.sdk.R.id.sensors_analytics_tag_view_properties);
+            JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
             JSONUtils.mergeJSONObject(p, properties);
 
             trackAutoEvent(sensorsDataAPI, properties, radioButton);
@@ -442,13 +444,13 @@ public class AppClickTrackImpl {
             }
 
             //$screen_name & $title
-            JSONUtils.mergeJSONObject(SAPageTools.getActivityPageInfo(activity), properties);
+            JSONUtils.mergeJSONObject(SAPageInfoUtils.getActivityPageInfo(activity), properties);
             try {
                 Window window = dialog.getWindow();
                 if (window != null && window.isActive()) {
                     String idString = (String) dialog.getWindow().getDecorView().getTag(com.sensorsdata.analytics.android.sdk.R.id.sensors_analytics_tag_view_id);
                     if (!TextUtils.isEmpty(idString)) {
-                        properties.put(AopConstants.ELEMENT_ID, idString);
+                        properties.put(AutoTrackConstants.ELEMENT_ID, idString);
                     }
                 }
             } catch (Exception e) {
@@ -456,9 +458,9 @@ public class AppClickTrackImpl {
             }
 
             //由于 RN 中 dialog 未屏蔽，直接走到原生，导致 dialog screen_name 取的是原生的。
-            JSONUtils.mergeJSONObject(SAPageTools.getRNPageInfo(), properties);
+            JSONUtils.mergeDuplicateProperty(SAPageInfoUtils.getRNPageInfo(), properties);
 
-            properties.put(AopConstants.ELEMENT_TYPE, "Dialog");
+            properties.put(AutoTrackConstants.ELEMENT_TYPE, "Dialog");
 
             Class<?> currentAlertDialogClass = null;
             try {
@@ -481,7 +483,7 @@ public class AppClickTrackImpl {
                 Button button = alertDialog.getButton(whichButton);
                 if (button != null) {
                     if (!TextUtils.isEmpty(button.getText())) {
-                        properties.put(AopConstants.ELEMENT_CONTENT, button.getText());
+                        properties.put(AutoTrackConstants.ELEMENT_CONTENT, button.getText());
                     }
                     view = button;
                 } else {
@@ -491,7 +493,7 @@ public class AppClickTrackImpl {
                         Object object = listAdapter.getItem(whichButton);
                         if (object != null) {
                             if (object instanceof String) {
-                                properties.put(AopConstants.ELEMENT_CONTENT, object);
+                                properties.put(AutoTrackConstants.ELEMENT_CONTENT, object);
                             }
                         }
                         view = listView.getChildAt(whichButton);
@@ -508,7 +510,7 @@ public class AppClickTrackImpl {
 
                 if (button != null) {
                     if (!TextUtils.isEmpty(button.getText())) {
-                        properties.put(AopConstants.ELEMENT_CONTENT, button.getText());
+                        properties.put(AutoTrackConstants.ELEMENT_CONTENT, button.getText());
                     }
                     view = button;
                 } else {
@@ -520,7 +522,7 @@ public class AppClickTrackImpl {
                             Object object = listAdapter.getItem(whichButton);
                             if (object != null) {
                                 if (object instanceof String) {
-                                    properties.put(AopConstants.ELEMENT_CONTENT, object);
+                                    properties.put(AutoTrackConstants.ELEMENT_CONTENT, object);
                                 }
                             }
                             view = listView.getChildAt(whichButton);
@@ -571,13 +573,13 @@ public class AppClickTrackImpl {
 
             JSONObject properties = buildPageProperty(viewContext.activity, viewContext.fragment);
             if (!TextUtils.isEmpty(element_type)) {
-                properties.put(AopConstants.ELEMENT_TYPE, element_type);
+                properties.put(AutoTrackConstants.ELEMENT_TYPE, element_type);
             }
 
             //ViewId
             String idString = SAViewUtils.getViewId(adapterView);
             if (!TextUtils.isEmpty(idString)) {
-                properties.put(AopConstants.ELEMENT_ID, idString);
+                properties.put(AutoTrackConstants.ELEMENT_ID, idString);
             }
 
             //扩展属性
@@ -599,11 +601,11 @@ public class AppClickTrackImpl {
             //$element_content
             String viewText = SAViewUtils.getViewContent(view);
             if (!TextUtils.isEmpty(viewText)) {
-                properties.put(AopConstants.ELEMENT_CONTENT, viewText);
+                properties.put(AutoTrackConstants.ELEMENT_CONTENT, viewText);
             }
 
             //获取 View 自定义属性
-            JSONObject p = (JSONObject) view.getTag(com.sensorsdata.analytics.android.sdk.R.id.sensors_analytics_tag_view_properties);
+            JSONObject p = (JSONObject) view.getTag(R.id.sensors_analytics_tag_view_properties);
             JSONUtils.mergeJSONObject(p, properties);
 
             trackAutoEvent(sensorsDataAPI, properties, view);
@@ -702,7 +704,7 @@ public class AppClickTrackImpl {
                 }
             }
             final JSONObject finalPro = pro;
-            SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+            SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
                 @Override
                 public void run() {
                     sensorsDataAPI.getSAContextManager().
@@ -717,14 +719,14 @@ public class AppClickTrackImpl {
     private static void trackAutoEvent(final SensorsDataAPI sensorsDataAPI, final JSONObject properties, final View view) {
         // add $lib_method = autoTrack
         final JSONObject eventProperties = SADataHelper.appendLibMethodAutoTrack(properties);
-        SAEventManager.getInstance().trackQueueEvent(new Runnable() {
+        SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
             @Override
             public void run() {
                 if (view != null) {
-                    SAVisual.mergeVisualProperties(properties, view);
+                    SAModuleManager.getInstance().invokeModuleFunction(Modules.Visual.MODULE_NAME, Modules.Visual.METHOD_MERGE_VISUAL_PROPERTIES, properties, view);
                 }
                 sensorsDataAPI.getSAContextManager().
-                        trackEvent(new InputData().setEventName(AopConstants.APP_CLICK_EVENT_NAME).setEventType(EventType.TRACK).setProperties(eventProperties));
+                        trackEvent(new InputData().setEventName(AutoTrackConstants.APP_CLICK_EVENT_NAME).setEventType(EventType.TRACK).setProperties(eventProperties));
             }
         });
     }
@@ -796,9 +798,9 @@ public class AppClickTrackImpl {
         JSONObject properties = new JSONObject();
         // fragmentName
         if (fragment != null) {
-            JSONUtils.mergeJSONObject(SAPageTools.getFragmentPageInfo(activity, fragment), properties);
+            JSONUtils.mergeJSONObject(SAPageInfoUtils.getFragmentPageInfo(activity, fragment), properties);
         } else if (activity != null) {
-            JSONUtils.mergeJSONObject(SAPageTools.getActivityPageInfo(activity), properties);
+            JSONUtils.mergeJSONObject(SAPageInfoUtils.getActivityPageInfo(activity), properties);
         }
 
         return properties;

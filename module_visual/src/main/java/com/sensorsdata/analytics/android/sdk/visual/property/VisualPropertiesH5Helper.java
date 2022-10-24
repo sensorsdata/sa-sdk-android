@@ -22,7 +22,6 @@ import android.util.Base64;
 import android.util.SparseArray;
 import android.view.View;
 
-import com.sensorsdata.analytics.android.sdk.AopConstants;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
@@ -32,6 +31,7 @@ import com.sensorsdata.analytics.android.sdk.util.visual.ViewTreeStatusObservabl
 import com.sensorsdata.analytics.android.sdk.visual.bridge.JSBridgeHelper;
 import com.sensorsdata.analytics.android.sdk.visual.bridge.OnBridgeCallback;
 import com.sensorsdata.analytics.android.sdk.visual.bridge.WebViewJavascriptBridge;
+import com.sensorsdata.analytics.android.sdk.visual.constant.VisualConstants;
 import com.sensorsdata.analytics.android.sdk.visual.model.VisualConfig;
 
 import org.json.JSONArray;
@@ -137,7 +137,7 @@ public class VisualPropertiesH5Helper implements WebViewJavascriptBridge {
                 public void trackEvent(JSONObject jsonObject) {
                     try {
                         String eventType = jsonObject.optString("event");
-                        if (!TextUtils.equals(AopConstants.WEB_CLICK_EVENT_NAME, eventType)) {
+                        if (!TextUtils.equals(VisualConstants.WEB_CLICK_EVENT_NAME, eventType)) {
                             return;
                         }
                         JSONObject propertiesObj = jsonObject.optJSONObject("properties");
