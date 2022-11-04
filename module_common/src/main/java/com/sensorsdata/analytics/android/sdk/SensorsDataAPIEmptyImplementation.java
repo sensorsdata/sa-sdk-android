@@ -766,4 +766,9 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     public void requestDeferredDeepLink(JSONObject params) {
 
     }
+
+    @Override
+    public void registerLimitKeys(Map<String, String> limitKeys) {
+
+    }
 }

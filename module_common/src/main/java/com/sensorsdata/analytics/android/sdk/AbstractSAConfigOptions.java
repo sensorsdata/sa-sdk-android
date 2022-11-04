@@ -18,6 +18,7 @@
 package com.sensorsdata.analytics.android.sdk;
 
 import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureConfig;
+import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.encrypt.IPersistentSecretKey;
 import com.sensorsdata.analytics.android.sdk.encrypt.SAEncryptListener;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.StorePlugin;
@@ -25,6 +26,7 @@ import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -125,7 +127,7 @@ abstract class AbstractSAConfigOptions {
     /**
      * 网络上传策略
      */
-    int mNetworkTypePolicy = SensorsNetworkType.TYPE_3G | SensorsNetworkType.TYPE_4G | SensorsNetworkType.TYPE_WIFI | SensorsNetworkType.TYPE_5G;
+    int mNetworkTypePolicy = SensorsNetworkType.TYPE_2G | SensorsNetworkType.TYPE_3G | SensorsNetworkType.TYPE_4G | SensorsNetworkType.TYPE_WIFI | SensorsNetworkType.TYPE_5G;
 
     /**
      * 是否使用上次启动时保存的 utm 属性.
@@ -218,9 +220,19 @@ abstract class AbstractSAConfigOptions {
     String mAnonymousId;
 
     /**
+     * Deeplink Callback
+     */
+    SensorsDataDeferredDeepLinkCallback mDeeplinkCallback;
+
+    /**
      * 曝光配置
      */
     public SAExposureConfig mExposureConfig;
+
+    /**
+     * 限制性属性 Keys
+     */
+    Map<String, String> mLimitKeys;
 
     /**
      * 是否开启 DeepLink
@@ -413,5 +425,12 @@ abstract class AbstractSAConfigOptions {
 
     public boolean isDisableDebugAssistant() {
         return mDisableDebugAssistant;
+    }
+
+    public SensorsDataDeferredDeepLinkCallback getDeeplinkCallback(){
+        return mDeeplinkCallback;
+    }
+    public Map<String, String> getLimitKeys() {
+        return mLimitKeys;
     }
 }

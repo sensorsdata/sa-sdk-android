@@ -40,9 +40,9 @@ import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.core.tasks.ThreadNameConstants;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
-import com.sensorsdata.analytics.android.sdk.util.ToastUtil;
 import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
+import com.sensorsdata.analytics.android.sdk.util.ToastUtil;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -56,16 +56,8 @@ import javax.net.ssl.HttpsURLConnection;
 
 public class SensorsDataDialogUtils {
     private static final String TAG = "SA.SensorsDataDialogUtils";
-    private Dialog sDialog;
+    private static Dialog sDialog;
     private static boolean isShowHttpErrorDialog = true;
-
-    private static class Holder {
-        public static SensorsDataDialogUtils INSTANCE = new SensorsDataDialogUtils();
-    }
-
-    public static SensorsDataDialogUtils getInstance() {
-        return Holder.INSTANCE;
-    }
 
     public static void showDialog(Activity activity, String title, String content,
                                   final String positiveLabel, final DialogInterface.OnClickListener positiveOnClickListener,
@@ -84,7 +76,7 @@ public class SensorsDataDialogUtils {
         builder.setNegativeButton(negativeLabel, negativeOnClickListener);
         builder.setPositiveButton(positiveLabel, positiveOnClickListener);
         AlertDialog dialog = builder.create();
-        SensorsDataDialogUtils.getInstance().dialogShowDismissOld(dialog);
+        dialogShowDismissOld(dialog);
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setAllCaps(false);
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setAllCaps(false);
     }
@@ -189,7 +181,7 @@ public class SensorsDataDialogUtils {
                     startLaunchActivity(activity);
                 }
             });
-            SensorsDataDialogUtils.getInstance().dialogShowDismissOld(dialog);
+            dialogShowDismissOld(dialog);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -217,7 +209,7 @@ public class SensorsDataDialogUtils {
                 }
             });
             AlertDialog dialog = builder.create();
-            SensorsDataDialogUtils.getInstance().dialogShowDismissOld(dialog);
+            dialogShowDismissOld(dialog);
             try {
                 dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.BLACK);
                 dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundColor(Color.WHITE);
@@ -267,7 +259,7 @@ public class SensorsDataDialogUtils {
                     }
                 });
         AlertDialog dialog = builder.create();
-        SensorsDataDialogUtils.getInstance().dialogShowDismissOld(dialog);
+        dialogShowDismissOld(dialog);
         try {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.RED);
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setBackgroundColor(Color.WHITE);
@@ -309,7 +301,7 @@ public class SensorsDataDialogUtils {
     }
 
 
-    public void dialogShowDismissOld(Dialog dialog) {
+    public static void dialogShowDismissOld(Dialog dialog) {
         try {
             if (sDialog != null && sDialog.isShowing()) {
                 try {
@@ -320,7 +312,15 @@ public class SensorsDataDialogUtils {
                 }
             }
             sDialog = dialog;
-            dialog.show();
+            if (dialog != null) {
+                dialog.show();
+                dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        sDialog = null;
+                    }
+                });
+            }
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }

@@ -33,7 +33,10 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.R;
+import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.core.business.SAPropertyManager;
+import com.sensorsdata.analytics.android.sdk.internal.beans.LimitKey;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 
 import org.json.JSONException;
@@ -83,6 +86,9 @@ public final class SensorsDataUtils {
      */
     public static String getOperator(Context context) {
         try {
+            if (SAPropertyManager.getInstance().isLimitKey(LimitKey.CARRIER)) {
+                return SAPropertyManager.getInstance().getLimitValue(LimitKey.CARRIER);
+            }
             if (TextUtils.isEmpty(mCurrentCarrier) && SensorsDataUtils.checkHasPermission(context, Manifest.permission.READ_PHONE_STATE)) {
                 try {
                     TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context
@@ -379,12 +385,16 @@ public final class SensorsDataUtils {
     public static String getInternationalIdentifier(Context context) {
         String imei = "";
         try {
+            if (SAPropertyManager.getInstance().isLimitKey(LimitKey.IMEI)) {
+                return SAPropertyManager.getInstance().getLimitValue(LimitKey.IMEI);
+            }
             if (deviceUniqueIdentifiersMap.containsKey("IMEI")) {
                 imei = deviceUniqueIdentifiersMap.get("IMEI");
             }
             if (TextUtils.isEmpty(imei) && hasReadPhoneStatePermission(context)) {
                 TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
                 if (tm != null) {
+                    SALog.i(TAG, "SensorsData getInternationalIdentifier");
                     if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
                         if (tm.hasCarrierPrivileges()) {
                             imei = tm.getImei();
@@ -410,6 +420,9 @@ public final class SensorsDataUtils {
      * @return 设备标识
      */
     public static String getInternationalIdOld(Context context) {
+        if (SAPropertyManager.getInstance().isLimitKey(LimitKey.IMEI)) {
+            return "";
+        }
         return getPhoneIdentifier(context, -1);
     }
 
@@ -421,6 +434,9 @@ public final class SensorsDataUtils {
      * @return 设备标识
      */
     public static String getSlot(Context context, int number) {
+        if (SAPropertyManager.getInstance().isLimitKey(LimitKey.IMEI)) {
+            return "";
+        }
         return getPhoneIdentifier(context, number);
     }
 
@@ -431,6 +447,9 @@ public final class SensorsDataUtils {
      * @return 设备标识
      */
     public static String getEquipmentIdentifier(Context context) {
+        if (SAPropertyManager.getInstance().isLimitKey(LimitKey.MEID)) {
+            return SAPropertyManager.getInstance().getLimitValue(LimitKey.MEID);
+        }
         return getPhoneIdentifier(context, -2);
     }
 
@@ -452,6 +471,7 @@ public final class SensorsDataUtils {
             if (TextUtils.isEmpty(deviceId) && hasReadPhoneStatePermission(context)) {
                 TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
                 if (tm != null) {
+                    SALog.i(TAG, "SensorsData getPhoneIdentifier");
                     if (number == -1) {
                         deviceId = tm.getDeviceId();
                     } else if (number == -2 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -492,7 +512,11 @@ public final class SensorsDataUtils {
     @SuppressLint("HardwareIds")
     public static String getIdentifier(Context context) {
         try {
+            if (SAPropertyManager.getInstance().isLimitKey(LimitKey.ANDROID_ID)) {
+                return SAPropertyManager.getInstance().getLimitValue(LimitKey.ANDROID_ID);
+            }
             if (TextUtils.isEmpty(androidID)) {
+                SALog.i(TAG, "SensorsData getIdentifier");
                 androidID = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
                 if (!isValidAndroidId(androidID)) {
                     androidID = "";
@@ -544,6 +568,9 @@ public final class SensorsDataUtils {
     public static String getMediaAddress(Context context) {
         String macAddress = "";
         try {
+            if (SAPropertyManager.getInstance().isLimitKey(LimitKey.MAC)) {
+                return SAPropertyManager.getInstance().getLimitValue(LimitKey.MAC);
+            }
             if (deviceUniqueIdentifiersMap.containsKey("macAddress")) {
                 macAddress = deviceUniqueIdentifiersMap.get("macAddress");
             }

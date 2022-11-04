@@ -714,4 +714,11 @@ public interface ISensorsDataAPI extends IUserIdentityAPI, SAAdvertAPIProtocol, 
      * @param oaid oaid
      */
     void trackDeepLinkLaunch(String deepLinkUrl, String oaid);
+
+    /**
+     * 注册限制性属性 key
+     *
+     * @param limitKeys 限制性属性 key
+     */
+    void registerLimitKeys(Map<String, String> limitKeys);
 }

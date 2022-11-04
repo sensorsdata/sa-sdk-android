@@ -80,6 +80,21 @@ public class SAAdvertProtocolImpl {
         }
     }
 
+    protected void delayExecution() {
+        try {
+            if (mOptions.getDeeplinkCallback() != null) {
+                DeepLinkManager.setDeferredDeepLinkCallback(mOptions.getDeeplinkCallback());
+                if (mSAContextManager.getInternalConfigs().context instanceof Activity) {
+                    if (mLifecycleCallback != null) {
+                        mLifecycleCallback.onActivityStarted((Activity) mSAContextManager.getInternalConfigs().context); //延迟初始化监听 onActivityStarted 处理
+                    }
+                }
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
     public <T> T invokeModuleFunction(String methodName, Object... argv) {
         switch (methodName) {
             case Modules.Advert.METHOD_TRACK_INSTALLATION:

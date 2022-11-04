@@ -153,7 +153,7 @@ public class ChannelDebugScanHelper implements IAdvertScanListener {
                             }
                             String deviceCode = ChannelUtils.getDeviceInfo(activity, androidId, oaid);
                             final SensorsDataLoadingDialog loadingDialog = new SensorsDataLoadingDialog(activity);
-                            SensorsDataDialogUtils.getInstance().dialogShowDismissOld(loadingDialog);
+                            SensorsDataDialogUtils.dialogShowDismissOld(loadingDialog);
                             requestActiveChannel(baseUrl,
                                     monitorId, projectId, accountId,
                                     deviceCode, isTrackInstallation,

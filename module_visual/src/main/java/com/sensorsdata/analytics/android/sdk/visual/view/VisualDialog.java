@@ -66,7 +66,7 @@ public class VisualDialog {
             }
         });
         AlertDialog dialog = builder.create();
-        SensorsDataDialogUtils.getInstance().dialogShowDismissOld(dialog);
+        SensorsDataDialogUtils.dialogShowDismissOld(dialog);
         try {
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.BLACK);
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundColor(Color.WHITE);
@@ -117,7 +117,7 @@ public class VisualDialog {
             }
         });
         AlertDialog dialog = builder.create();
-        SensorsDataDialogUtils.getInstance().dialogShowDismissOld(dialog);
+        SensorsDataDialogUtils.dialogShowDismissOld(dialog);
         try {
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.BLACK);
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setBackgroundColor(Color.WHITE);

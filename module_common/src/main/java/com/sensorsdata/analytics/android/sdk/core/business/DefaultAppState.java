@@ -19,9 +19,9 @@ package com.sensorsdata.analytics.android.sdk.core.business;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.core.business.timer.EventTimerManager;
 import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
+import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
 
 public class DefaultAppState implements AppStateTools.AppState {

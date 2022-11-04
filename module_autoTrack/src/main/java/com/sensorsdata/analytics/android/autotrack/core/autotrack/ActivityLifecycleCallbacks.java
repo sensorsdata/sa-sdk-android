@@ -60,8 +60,6 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
     private static final String TAG = "SA.ActivityLifecycleCallbacks";
     private static final String EVENT_TIME = "event_time";
     private static final String EVENT_DURATION = "event_duration";
-    private static final String LIB_VERSION = "$lib_version";
-    private static final String APP_VERSION = "$app_version";
     private final SensorsDataAPI mSensorsDataInstance;
     private final SAContextManager mContextManager;
     private boolean resumeFromBackground = false;
@@ -392,8 +390,12 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                 SessionRelatedManager.getInstance().refreshSessionByTimer(eventTime + TIME_INTERVAL);
                 endDataProperty.put(SessionRelatedManager.getInstance().EVENT_SESSION_ID, SessionRelatedManager.getInstance().getSessionID());
             }
-            endDataProperty.put(APP_VERSION, AppInfoUtils.getAppVersionName(mContextManager.getContext()));
-            endDataProperty.put(LIB_VERSION, SensorsDataAPI.sharedInstance().getSDKVersion());
+
+            endDataProperty.put("$app_version", AppInfoUtils.getAppVersionName(mContextManager.getContext()));
+            endDataProperty.put("$lib_version", SensorsDataAPI.sharedInstance().getSDKVersion());
+            if (!endDataProperty.has("$is_first_day")) {
+                endDataProperty.put("$is_first_day", mContextManager.isFirstDay(System.currentTimeMillis()));
+            }
             mDbAdapter.commitAppExitData(endDataProperty.toString());
         } catch (Throwable e) {
             SALog.i(TAG, e.getMessage());

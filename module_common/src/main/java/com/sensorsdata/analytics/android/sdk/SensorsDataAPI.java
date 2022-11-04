@@ -27,21 +27,22 @@ import android.text.TextUtils;
 import android.view.View;
 import android.webkit.WebView;
 
-import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
-import com.sensorsdata.analytics.android.sdk.core.tasks.TrackTaskManagerThread;
+import com.sensorsdata.analytics.android.sdk.core.business.SAPropertyManager;
 import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureData;
-import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.core.business.timer.EventTimer;
 import com.sensorsdata.analytics.android.sdk.core.business.timer.EventTimerManager;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
+import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.core.rpc.SensorsDataContentObserver;
+import com.sensorsdata.analytics.android.sdk.core.tasks.TrackTaskManagerThread;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProperties;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.plugin.property.impl.SAPresetPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
@@ -1768,6 +1769,12 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     public void removeExposureView(View view) {
         SAModuleManager.getInstance().invokeModuleFunction(Modules.Exposure.MODULE_NAME, Modules.Exposure.METHOD_REMOVE_EXPOSURE_VIEW, view);
     }
+
+    @Override
+    public void registerLimitKeys(Map<String, String> limitKeys) {
+        SAPropertyManager.getInstance().registerLimitKeys(limitKeys);
+    }
+
 
     /**
      * Debug 模式，用于检验数据导入是否正确。该模式下，事件会逐条实时发送到 Sensors Analytics，并根据返回值检查

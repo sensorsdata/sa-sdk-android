@@ -39,6 +39,7 @@ public class SensorsAdvertProtocolAPI implements SAModuleProtocol {
                 mAdvertProtocolImpl.delayInitTask();
                 mAdvertProtocolImpl.registerLifeCallback();
                 mAdvertProtocolImpl.registerPropertyPlugin();
+                mAdvertProtocolImpl.delayExecution();
             } else {
                 mAdvertProtocolImpl.unregisterLifecycleCallback();
                 mAdvertProtocolImpl.unregisterPropertyPlugin();

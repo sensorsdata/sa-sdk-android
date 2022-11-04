@@ -24,6 +24,8 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.advert.oaid.impl.OAIDFactory;
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.core.business.SAPropertyManager;
+import com.sensorsdata.analytics.android.sdk.internal.beans.LimitKey;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -37,7 +39,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 public class SAOaidHelper {
-    private static final String TAG = "SA.DeviceUtils";
+    private static final String TAG = "SA.SAOaidHelper";
     private static String mOAID = "";
     private static CountDownLatch mCountDownLatch;
     private static Class<?> mIdentifyListener;
@@ -74,6 +76,9 @@ public class SAOaidHelper {
      * @return OAID
      */
     public static synchronized String getOpenAdIdentifier(final Context context) {
+        if (SAPropertyManager.getInstance().isLimitKey(LimitKey.OAID)) {
+            return SAPropertyManager.getInstance().getLimitValue(LimitKey.OAID);
+        }
         if (Looper.getMainLooper() == Looper.myLooper()) {
             SALog.i(TAG, "function can not be called on main thread");
             return "";

@@ -24,14 +24,14 @@ import android.net.Uri;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.R;
-import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.internal.beans.ServerUrl;
+import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataLoadingDialog;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
+import com.sensorsdata.analytics.android.sdk.internal.beans.ServerUrl;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
@@ -107,7 +107,7 @@ public class SensorsDataRemoteManagerDebug extends BaseSensorsDataSDKRemoteManag
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             final SensorsDataLoadingDialog loadingDialog = new SensorsDataLoadingDialog(activity);
-                            SensorsDataDialogUtils.getInstance().dialogShowDismissOld(loadingDialog);
+                            SensorsDataDialogUtils.dialogShowDismissOld(loadingDialog);
                             // 发起请求
                             requestRemoteConfig(false, new HttpCallback.StringCallback() {
                                 @Override

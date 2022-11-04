@@ -25,9 +25,10 @@ import android.os.Bundle;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
-import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.core.business.DefaultAppState;
+import com.sensorsdata.analytics.android.sdk.core.business.SAPropertyManager;
 import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
+import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.core.rpc.SensorsDataContentObserver;
 import com.sensorsdata.analytics.android.sdk.core.tasks.ThreadNameConstants;
 import com.sensorsdata.analytics.android.sdk.core.tasks.TrackTaskManagerThread;
@@ -327,6 +328,10 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
 
         mInternalConfigs.isMainProcess = AppInfoUtils.isMainProcess(mInternalConfigs.context, configBundle);
         mInternalConfigs.isTrackDeviceId = configBundle.getBoolean("com.sensorsdata.analytics.android.DisableTrackDeviceId", false);
+
+        if (mSAConfigOptions.getLimitKeys() != null) {
+            SAPropertyManager.getInstance().registerLimitKeys(mSAConfigOptions.getLimitKeys());
+        }
     }
 
     protected void applySAConfigOptions() {

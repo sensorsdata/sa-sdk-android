@@ -20,13 +20,15 @@ package com.sensorsdata.analytics.android.sdk;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureConfig;
-import com.sensorsdata.analytics.android.sdk.plugin.encrypt.StorePlugin;
+import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.encrypt.IPersistentSecretKey;
 import com.sensorsdata.analytics.android.sdk.encrypt.SAEncryptListener;
+import com.sensorsdata.analytics.android.sdk.plugin.encrypt.StorePlugin;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -393,7 +395,6 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
      * 指定 Activity/Fragment 的格式为：****.class
      *
      * @param ignoreList activity/Fragment 列表
-     *
      * @return SAConfigOptions
      */
     public SAConfigOptions ignorePageLeave(List<Class<?>> ignoreList) {
@@ -523,6 +524,28 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
      */
     public SAConfigOptions setAnonymousId(String anonymousId) {
         this.mAnonymousId = anonymousId;
+        return this;
+    }
+
+    /**
+     * 设置 DeepLink 与 Deferred DeepLink接口回调
+     *
+     * @param callback DeepLink 与 Deferred DeepLink接口回调
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions setDeepLinkCompletion(SensorsDataDeferredDeepLinkCallback callback){
+        this.mDeeplinkCallback = callback;
+        return this;
+    }
+
+    /**
+     * 注册限制性属性 key
+     *
+     * @param limitKeys 限制性属性 key
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions registerLimitKeys(Map<String, String> limitKeys) {
+        this.mLimitKeys = limitKeys;
         return this;
     }
 }
