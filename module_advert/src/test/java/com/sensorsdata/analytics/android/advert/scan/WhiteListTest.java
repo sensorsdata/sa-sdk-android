@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.advert.scan;
+package com.sensorsdata.analytics.android.advert.scan;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -28,6 +28,7 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.sensorsdata.analytics.android.SAHelper;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.advert.scan.WhiteListScanHelper;
 import com.sensorsdata.analytics.android.sdk.internal.beans.ServerUrl;
 
 import org.junit.Assert;
@@ -61,7 +62,7 @@ public class WhiteListTest {
 
     @Test
     public void scanTest() {
-        initSensorsSDKTest();
+        SAHelper.initSensors(mApplication);
         WhiteListScanHelper scanHelper = new WhiteListScanHelper();
         TestActivity activity = Robolectric.setupActivity(TestActivity.class);
         Uri uri = Uri.parse("sa34312b30://adsScanDeviceInfo?apiurl=http%3A%2F%2F10.120.219.0%3A8107%2Fapi%2Fadvertising-management%2Fdebug%2Fscan%2Fupdate&device_type=2&info_id=9e7dc7114c0d2&project=production");

@@ -191,7 +191,7 @@ public class FragmentViewScreenCallbacks implements SAFragmentLifecycleCallbacks
         }
 
         Activity activity = SAFragmentUtils.getActivityFromFragment(fragment);
-        if (SensorsDataAPI.sharedInstance().isActivityAutoTrackAppViewScreenIgnored(activity.getClass())) {
+        if (activity != null && SensorsDataAPI.sharedInstance().isActivityAutoTrackAppViewScreenIgnored(activity.getClass())) {
             SALog.i(TAG, "isActivityAutoTrackAppViewScreenIgnored is false, return");
             return false;
         }

@@ -116,15 +116,15 @@ class TrackEventAssemble extends BaseEventAssemble {
             if (!TextUtils.isEmpty(eventName)) {
                 EventTimer eventTimer = EventTimerManager.getInstance().getEventTimer(eventName);
                 if (eventTimer != null) {
-                    if (eventName.endsWith("_SATimer") && eventName.length() > 45) {// Timer 计时交叉计算拼接的字符串长度 45
-                        eventName = eventName.substring(0, eventName.length() - 45);
-                        trackEvent.setEventName(eventName);
-                        SALog.i(TAG, "trigger event name = " + eventName);
-                    }
                     float duration = eventTimer.duration();
                     if (duration > 0) {
                         trackEvent.getProperties().put("event_duration", Float.valueOf(duration));
                     }
+                }
+                if (eventName.endsWith("_SATimer") && eventName.length() > 45) {// Timer 计时交叉计算拼接的字符串长度 45
+                    eventName = eventName.substring(0, eventName.length() - 45);
+                    trackEvent.setEventName(eventName);
+                    SALog.i(TAG, "trigger event name = " + eventName);
                 }
             }
         } catch (Exception e) {

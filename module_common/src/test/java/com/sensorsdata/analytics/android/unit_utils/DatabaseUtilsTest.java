@@ -36,15 +36,19 @@ public class DatabaseUtilsTest {
      * @return Data
      */
     public static String loadEventFromDb(Application application) {
-        final Uri uri = Uri.parse("content://" + application.getPackageName() + ".SensorsDataContentProvider/events");
-        ContentResolver resolver = application.getContentResolver();
-        Cursor cursor = resolver.query(uri, null, null, null, null);
-        assertNotNull(cursor);
-        assertEquals(1, cursor.getCount());
-        cursor.moveToFirst();
-        String data =  parseData(cursor.getString(cursor.getColumnIndexOrThrow(DbParams.KEY_DATA)));
-        cursor.close();
-        return data;
+        try {
+            final Uri uri = Uri.parse("content://" + application.getPackageName() + ".SensorsDataContentProvider/events");
+            ContentResolver resolver = application.getContentResolver();
+            Cursor cursor = resolver.query(uri, null, null, null, null);
+            assertNotNull(cursor);
+            assertEquals(1, cursor.getCount());
+            cursor.moveToFirst();
+            String data = parseData(cursor.getString(cursor.getColumnIndexOrThrow(DbParams.KEY_DATA)));
+            cursor.close();
+            return data;
+        } catch (Throwable throwable) {
+            return "";
+        }
     }
 
     static String parseData(String keyData) {

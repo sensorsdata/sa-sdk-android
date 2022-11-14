@@ -148,7 +148,6 @@ public class TrackEventProcessorTest {
                 assertEquals(eventProperties.opt("$carrier"), SensorsDataUtils.getOperator(mApplication));
                 assertEquals(eventProperties.opt("$timezone_offset"), TimeUtils.getZoneOffset());
                 assertEquals(eventProperties.opt("$app_id"), AppInfoUtils.getProcessName(mApplication));
-                Assert.assertTrue(eventProperties.optBoolean("$is_first_day"));
                 return true;
             }
         });

@@ -18,6 +18,7 @@
 package com.sensorsdata.analytics.android.sdk.core;
 
 import android.content.Context;
+import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.AnalyticsMessages;
 import com.sensorsdata.analytics.android.sdk.SALog;
@@ -69,13 +70,31 @@ public class SAContextManager {
         // 2. init store manager
         SAStoreManager.getInstance().registerPlugins(mInternalConfigs.saConfigOptions.getStorePlugins(), mContext);
         SAStoreManager.getInstance().upgrade();
-        // 3. init module service for encrypt sp
+        // 3. execute delay task
+        executeDelayTask();
+        // 4. init module service for encrypt sp
         SAModuleManager.getInstance().installService(this);
-        // 4. init RemoteManager, it use Identity、track、SAStoreManager
+        // 5. init RemoteManager, it use Identity、track、SAStoreManager
         mRemoteManager = new SensorsDataRemoteManager(sensorsDataAPI, this);
         mRemoteManager.applySDKConfigFromCache();
         // 5. reset context because of delay init
         internalConfigs.context = mContext;
+    }
+
+    /**
+     * execute delay task，before init module and track event 
+     */
+    private void executeDelayTask() {
+        SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
+            @Override
+            public void run() {
+                final String anonymousId = mInternalConfigs.saConfigOptions.getAnonymousId();
+                if (!TextUtils.isEmpty(anonymousId)) {
+                    getUserIdentityAPI().identify(anonymousId);
+                }
+            }
+        });
+
     }
 
     /**

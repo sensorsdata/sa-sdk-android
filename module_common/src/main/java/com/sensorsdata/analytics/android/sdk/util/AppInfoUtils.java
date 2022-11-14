@@ -33,7 +33,6 @@ import com.sensorsdata.analytics.android.sdk.core.tasks.ThreadNameConstants;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 
 public class AppInfoUtils {
     private static String mAppVersionName;
@@ -220,7 +219,7 @@ public class AppInfoUtils {
                 buffer[len++] = (byte) b;
             }
             if (len > 0) {
-                return new String(buffer, 0, len, StandardCharsets.UTF_8);
+                return new String(buffer, 0, len, Base64Coder.CHARSET_UTF8);
             }
         } catch (Throwable e) {
             // ignore

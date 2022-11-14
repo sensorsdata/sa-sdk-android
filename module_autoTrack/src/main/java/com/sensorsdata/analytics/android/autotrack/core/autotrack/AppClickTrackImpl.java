@@ -244,9 +244,10 @@ public class AppClickTrackImpl {
             if (viewContext == null) {
                 return;
             }
-
-            if (sensorsDataAPI.isActivityAutoTrackAppClickIgnored(viewContext.activity.getClass())
-                    || viewContext.fragment != null && sensorsDataAPI.isActivityAutoTrackAppClickIgnored(viewContext.fragment.getClass())) {
+            if (viewContext.activity != null && sensorsDataAPI.isActivityAutoTrackAppClickIgnored(viewContext.activity.getClass())) {
+                return;
+            }
+            if (viewContext.fragment != null && sensorsDataAPI.isActivityAutoTrackAppClickIgnored(viewContext.fragment.getClass())) {
                 return;
             }
 

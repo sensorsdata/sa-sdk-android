@@ -430,7 +430,12 @@ abstract class AbstractSAConfigOptions {
     public SensorsDataDeferredDeepLinkCallback getDeeplinkCallback(){
         return mDeeplinkCallback;
     }
+    
     public Map<String, String> getLimitKeys() {
         return mLimitKeys;
+    }
+
+    public String getAnonymousId(){
+        return mAnonymousId;
     }
 }

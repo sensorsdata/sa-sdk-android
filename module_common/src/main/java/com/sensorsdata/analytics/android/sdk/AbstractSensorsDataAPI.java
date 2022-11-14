@@ -101,9 +101,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                 delayInitTask(context);
             }
 
-            if (!TextUtils.isEmpty(mSAConfigOptions.mAnonymousId)) {
-                identify(mSAConfigOptions.mAnonymousId);
-            }
             enableTrackScreenOrientation(mSAConfigOptions.mTrackScreenOrientationEnabled);
             if (SALog.isLogEnabled()) {
                 SALog.i(TAG, String.format(TimeUtils.SDK_LOCALE, "Initialized the instance of Sensors Analytics SDK with server"

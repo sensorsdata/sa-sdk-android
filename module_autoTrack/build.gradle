@@ -17,6 +17,9 @@
 
 apply plugin: 'com.android.library'
 apply from: "../script_config/maven.gradle"
+if (rootProject.ext.publish.isUnitTest) {
+    apply from: "../script_config/jacoco.gradle"
+}
 
 android {
     compileSdkVersion rootProject.ext.buildConfig.compileSdkVersion
@@ -72,7 +75,7 @@ dependencies {
     testImplementation rootProject.ext.test.robolectric
     testImplementation rootProject.ext.test.powermock_core
     // test
-    testImplementation project(':module_core')
+    testImplementation project(':module_common')
 
     compileOnly project(':module_core')
 }
