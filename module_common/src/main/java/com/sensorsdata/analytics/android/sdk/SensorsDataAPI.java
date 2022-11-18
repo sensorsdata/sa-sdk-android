@@ -1575,6 +1575,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             mOriginServerUrl = serverUrl;
             if (TextUtils.isEmpty(serverUrl)) {
                 mServerUrl = serverUrl;
+                mSAConfigOptions.mServerUrl = mServerUrl;
                 SALog.i(TAG, "Server url is null or empty.");
                 return;
             }
@@ -1606,6 +1607,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             } else {
                 mServerUrl = serverUrl;
             }
+            mSAConfigOptions.mServerUrl = mServerUrl;
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }

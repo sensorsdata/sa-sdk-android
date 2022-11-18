@@ -24,6 +24,7 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.util.visual.ViewTreeStatusObservable;
 import com.sensorsdata.analytics.android.sdk.visual.model.VisualConfig;
+import com.sensorsdata.analytics.android.sdk.visual.utils.FlutterUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -47,6 +48,7 @@ public class VisualPropertiesCache {
         SALog.i(TAG, "save2Cache config is:" + config);
         PersistentLoader.getInstance().getVisualConfigPst().commit(config);
         doOnSaveCache(config);
+        FlutterUtils.visualizedPropertiesConfigChanged();
     }
 
     public String getVisualCache() {

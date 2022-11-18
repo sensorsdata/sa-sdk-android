@@ -23,6 +23,7 @@ import android.app.Application;
 import android.content.Context;
 import android.text.TextUtils;
 
+import androidx.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
@@ -39,19 +40,24 @@ public class SAHelper {
     static Application mApplication = ApplicationProvider.getApplicationContext();
     private final static String SA_SERVER_URL = "https://sdkdebugtest.datasink.sensorsdata.cn/sa?project=default&token=cfb8b60e42e0ae9b";
 
-    public static  SensorsDataAPI initSensors(Context context) {
+    public static SensorsDataAPI initSensors(Context context) {
         SAConfigOptions configOptions = new SAConfigOptions(SA_SERVER_URL);
         // 打开自动采集, 并指定追踪哪些 AutoTrack 事件
         configOptions.setAutoTrackEventType(SensorsAnalyticsAutoTrackEventType.APP_START |
                 SensorsAnalyticsAutoTrackEventType.APP_END |
                 SensorsAnalyticsAutoTrackEventType.APP_VIEW_SCREEN |
                 SensorsAnalyticsAutoTrackEventType.APP_CLICK)
-                .enableTrackAppCrash()
                 .enableJavaScriptBridge(true)
                 .enableHeatMap(true)
                 .enableVisualizedAutoTrack(true);
         SensorsDataAPI.startWithConfigOptions(context, configOptions);
         SensorsDataAPI.sharedInstance(context).trackFragmentAppViewScreen();
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(@NonNull Thread t, @NonNull Throwable e) {
+
+            }
+        });
         return SensorsDataAPI.sharedInstance();
     }
 

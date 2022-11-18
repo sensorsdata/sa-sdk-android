@@ -79,6 +79,14 @@ public class ViewUtil {
         return result;
     }
 
+    public static boolean instanceOfFlutterActivity(Object activity) {
+        return ReflectUtil.isInstance(activity, "io.flutter.embedding.android.FlutterActivity");
+    }
+
+    public static boolean instanceOfFlutterSurfaceView(Object view) {
+        return ReflectUtil.isInstance(view, "io.flutter.embedding.android.FlutterSurfaceView");
+    }
+
     /**
      * 获取 class name 和 刷新自定义 RecyclerView 状态
      *

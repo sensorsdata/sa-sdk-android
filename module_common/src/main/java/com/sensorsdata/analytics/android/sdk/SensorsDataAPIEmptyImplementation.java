@@ -21,8 +21,11 @@ import android.app.Activity;
 import android.view.View;
 import android.webkit.WebView;
 
+import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureData;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
+import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
+import com.sensorsdata.analytics.android.sdk.listener.SAFunctionListener;
 import com.sensorsdata.analytics.android.sdk.listener.SAJSListener;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 
@@ -733,6 +736,26 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     }
 
     @Override
+    public void addEventListener(SAEventListener eventListener) {
+
+    }
+
+    @Override
+    public void removeEventListener(SAEventListener eventListener) {
+
+    }
+
+    @Override
+    public void addFunctionListener(final SAFunctionListener functionListener) {
+
+    }
+
+    @Override
+    public void removeFunctionListener(final SAFunctionListener functionListener) {
+
+    }
+
+    @Override
     public void addSAJSListener(SAJSListener listener) {
 
     }
@@ -764,6 +787,26 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     @Override
     public void requestDeferredDeepLink(JSONObject params) {
+
+    }
+
+    @Override
+    public void setExposureIdentifier(View view, String exposureIdentifier) {
+
+    }
+
+    @Override
+    public void addExposureView(View view, SAExposureData exposureData) {
+
+    }
+
+    @Override
+    public void removeExposureView(View view, String identifier) {
+
+    }
+
+    @Override
+    public void removeExposureView(View view) {
 
     }
 

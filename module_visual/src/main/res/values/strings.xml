@@ -18,6 +18,7 @@
     <!-- visual second -->
     <string name="sensors_analytics_visual_sa_h5">当前页面无法进行可视化全埋点</string>
     <string name="sensors_analytics_visual_sa_h5_error">此页面未集成 Web JS SDK 或者 Web JS SDK 版本过低，请集成最新版 Web JS SDK</string>
+    <string name="sensors_analytics_visual_sa_flutter_error">此页面未集成 Flutter 全埋点 SDK 或 Flutter 全埋点 SDK 版本过低，请集成最新版 Flutter 全埋点 SDK</string>
     <string name="sensors_analytics_visual_sa_h5_error_link">配置文档</string>
     <string name="sensors_analytics_visual_property_error">%1$s 属性未找到属性元素，属性元素路径为 %2$s，属性元素位置为 %3$s </string>
     <string name="sensors_analytics_visual_regex_error">%1$s 属性正则解析失败，元素内容 %2$s，正则表达式为 %3$s，属性类型为 %4$s</string>

@@ -1,20 +1,20 @@
 ext {
     versions = [
             // 全量 SDK 版本号
-            sdk_version       : "6.5.5",
+            sdk_version       : "6.6.0",
             // 最小插件版本号依赖
             min_plugin_version: "3.5.2",
             // 子模块版本号
-            module_version    : "0.1.2"
+            module_version    : "0.1.3"
     ]
 
     publish = [
             // true 打包核心模块，
-            isEmbedCoreAAR : false,
+            isEmbedCoreAAR      : false,
             // true 打包全量包，此时 isEmbedCoreAAR 需为 false
-            isEmbedSensorsSDKAAR : false,
+            isEmbedSensorsSDKAAR: false,
             // 单元测试
-            isUnitTest : false
+            isUnitTest          : false
     ]
 
     buildConfig = [
@@ -36,9 +36,9 @@ ext {
 
             'espresso_core'          : 'androidx.test.espresso:espresso-core:3.1.1',
             'espresso_web'           : 'androidx.test.espresso:espresso-web:3.1.1',
-            'mockito_core'           : 'org.mockito:mockito-core:2.27.0',
-            'mockito_android'        : 'org.mockito:mockito-android:2.27.0',
-            'robolectric'            : "org.robolectric:robolectric:4.8.1",
+            'mockito_core'           : 'org.mockito:mockito-core:4.8.1',
+            'mockito_android'        : 'org.mockito:mockito-android:4.8.1',
+            'robolectric'            : "org.robolectric:robolectric:4.9",
             'powermock_core'         : 'org.powermock:powermock-core:2.0.9',
             'powermock_module_junit4': 'org.powermock:powermock-module-junit4:2.0.9',
             'powermock_api_mockito2' : 'org.powermock:powermock-api-mockito2:2.0.9',

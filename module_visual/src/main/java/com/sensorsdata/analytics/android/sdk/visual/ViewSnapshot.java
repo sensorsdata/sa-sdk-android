@@ -18,7 +18,6 @@ package com.sensorsdata.analytics.android.sdk.visual;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -45,20 +44,24 @@ import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.DeviceUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
-import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 import com.sensorsdata.analytics.android.sdk.util.SAPageInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
 import com.sensorsdata.analytics.android.sdk.util.SnapCache;
 import com.sensorsdata.analytics.android.sdk.util.WebUtils;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
+import com.sensorsdata.analytics.android.sdk.visual.model.FlutterNode;
+import com.sensorsdata.analytics.android.sdk.visual.model.FlutterNodeInfo;
+import com.sensorsdata.analytics.android.sdk.visual.model.NodeInfo;
+import com.sensorsdata.analytics.android.sdk.visual.model.SnapInfo;
+import com.sensorsdata.analytics.android.sdk.visual.model.CommonNode;
 import com.sensorsdata.analytics.android.sdk.util.visual.ViewNode;
 import com.sensorsdata.analytics.android.sdk.util.visual.ViewUtil;
-import com.sensorsdata.analytics.android.sdk.visual.model.SnapInfo;
 import com.sensorsdata.analytics.android.sdk.visual.model.WebNode;
 import com.sensorsdata.analytics.android.sdk.visual.model.WebNodeInfo;
 import com.sensorsdata.analytics.android.sdk.visual.snap.PropertyDescription;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceIds;
 import com.sensorsdata.analytics.android.sdk.visual.snap.SoftWareCanvas;
+import com.sensorsdata.analytics.android.sdk.visual.utils.AlertMessageUtils;
 import com.sensorsdata.analytics.android.sdk.visual.utils.Dispatcher;
 import com.sensorsdata.analytics.android.sdk.visual.utils.VisualUtil;
 
@@ -69,6 +72,7 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Method;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -89,7 +93,6 @@ public class ViewSnapshot {
     private final List<PropertyDescription> mProperties;
     private final ClassNameCache mClassnameCache;
     private final Handler mMainThreadHandler;
-    private AlertRunnable mAlertRunnable;
     private final ResourceIds mResourceIds;
     private SnapInfo mSnapInfo = new SnapInfo();
 
@@ -174,6 +177,11 @@ public class ViewSnapshot {
         writer.flush();
         mSnapInfo.screenName = screenName;
         mSnapInfo.activityTitle = activityTitle;
+        Activity activity = AppStateTools.getInstance().getForegroundActivity();
+        if (activity != null) {
+            mSnapInfo.isFlutter = ViewUtil.instanceOfFlutterActivity(activity);
+            mSnapInfo.activityName = SnapCache.getInstance().getCanonicalName(activity.getClass());
+        }
         return mSnapInfo;
     }
 
@@ -190,47 +198,39 @@ public class ViewSnapshot {
 
     private void snapshotViewHierarchy(JSONArray j, View rootView)
             throws Exception {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            reset();
-            snapshotView(j, rootView, 0);
-            WebNodesManager.getInstance().setHasWebView(mSnapInfo.isWebView);
-        }
+        reset();
+        snapshotView(j, rootView, 0);
+        NodesProcess.getInstance().getWebNodesManager().setHasThirdView(mSnapInfo.isWebView);
+        NodesProcess.getInstance().getFlutterNodesManager().setHasThirdView(mSnapInfo.isFlutter);
     }
 
     private void reset() {
         mSnapInfo = new SnapInfo();
     }
 
-    public static class AlertRunnable implements Runnable {
-
-        private final String url;
-
-        AlertRunnable(String url) {
-            this.url = url;
-        }
-
-        @Override
-        public void run() {
-            WebNodeInfo webNodeInfo = WebNodesManager.getInstance().getWebNodes(url);
-            if (webNodeInfo == null) {
-                SALog.i(TAG, "H5 page is not integrated Web JS SDK");
-                Context context = SensorsDataAPI.sharedInstance().getSAContextManager().getContext();
-                String title = SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_sa_h5);
-                String message = SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_sa_h5_error);
-                String link_text = SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_sa_h5_error_link);
-                String msg = "{\"callType\":\"app_alert\",\"data\":[{\"title\":\"" + title + "\",\"message\":\"" + message + "\",\"link_text\":\"" + link_text + "\",\"link_url\":\"https://manual.sensorsdata.cn/sa/latest/tech_sdk_client_web_use-7545346.html\"}]}";
-                WebNodesManager.getInstance().handlerFailure(url, msg);
-            }
-        }
-    }
-
     private void snapshotView(final JSONArray j, final View view, int viewIndex)
             throws Exception {
         // 处理内嵌 H5 页面
         if (SAViewUtils.isViewSelfVisible(view)) {
-            List<String> webNodeIds = null;
+            List<String> webNodeIds = new ArrayList<>();
             // webView 自身 level 需要小于所有的 H5 元素
             int webViewElementLevel = mSnapInfo.elementLevel;
+            if (ViewUtil.instanceOfFlutterSurfaceView(view)) {
+                mSnapInfo.isFlutter = true;
+                String activityName = mSnapInfo.activityName;
+                if (TextUtils.isEmpty(activityName)) {
+                    Activity activity = AppStateTools.getInstance().getForegroundActivity();
+                    if (activity != null) {
+                        activityName = SnapCache.getInstance().getCanonicalName(activity.getClass());
+                        mSnapInfo.activityName = activityName;
+                    }
+                }
+                FlutterNodeInfo flutterNodeInfo = (FlutterNodeInfo) NodesProcess.getInstance().getFlutterNodesManager().getPageInfo(mSnapInfo.activityName);
+                if (flutterNodeInfo != null) {
+                    mSnapInfo.flutterLibVersion = flutterNodeInfo.getFlutter_lib_version();
+                }
+                snapshotFlutterView(j, view, webNodeIds, mSnapInfo);
+            }
             if (ViewUtil.instanceOfWebView(view)) {
                 mSnapInfo.isWebView = true;
                 final CountDownLatch latch = new CountDownLatch(1);
@@ -263,14 +263,14 @@ public class ViewSnapshot {
                 }
                 SALog.i(TAG, "WebView url: " + mSnapInfo.webViewUrl);
                 if (!TextUtils.isEmpty(mSnapInfo.webViewUrl)) {
-                    WebNodeInfo webNodeInfo = WebNodesManager.getInstance().getWebNodes(mSnapInfo.webViewUrl);
+                    WebNodeInfo webNodeInfo = (WebNodeInfo) NodesProcess.getInstance().getWebNodesManager().getNodes(mSnapInfo.webViewUrl);
                     if (webNodeInfo != null) {
                         if (webNodeInfo.getStatus() == WebNodeInfo.Status.SUCCESS) {
-                            List<WebNode> webNodes = webNodeInfo.getWebNodes();
+                            List<WebNode> webNodes = (List<WebNode>) webNodeInfo.getNodes();
                             if (webNodes != null && webNodes.size() > 0) {
                                 webNodeIds = new ArrayList<>();
                                 for (WebNode webNode : webNodes) {
-                                    mergeWebViewNodes(j, webNode, view, mSnapInfo.webViewScale);
+                                    mergeThirdViewNodes(j, webNode, view, mSnapInfo.webViewScale);
                                     if (webNode.isRootView()) {
                                         webNodeIds.add(webNode.getId() + view.hashCode());
                                     }
@@ -280,10 +280,8 @@ public class ViewSnapshot {
                             mSnapInfo.alertInfos = webNodeInfo.getAlertInfos();
                         }
                     } else {
-                        if (mAlertRunnable == null) {
-                            mAlertRunnable = new AlertRunnable(mSnapInfo.webViewUrl);
-                        }
-                        Dispatcher.getInstance().postDelayed(mAlertRunnable, JS_NOT_INTEGRATED_ALERT_TIME_OUT);
+                        AlertMessageUtils.AlertRunnable alertRunnable = new AlertMessageUtils.AlertRunnable(AlertMessageUtils.AlertRunnable.AlertType.H5, mSnapInfo.webViewUrl);
+                        Dispatcher.getInstance().postDelayed(alertRunnable, JS_NOT_INTEGRATED_ALERT_TIME_OUT);
                     }
                 }
             }
@@ -292,11 +290,12 @@ public class ViewSnapshot {
             jsonSnapObject.put("hashCode", view.hashCode());
             jsonSnapObject.put("id", view.getId());
             jsonSnapObject.put("index", SAViewUtils.getChildIndex(view.getParent(), view));
-            if (ViewUtil.instanceOfWebView(view)) {
+            if (ViewUtil.instanceOfWebView(view) || ViewUtil.instanceOfFlutterSurfaceView(view)) {
                 jsonSnapObject.put("element_level", webViewElementLevel);
             } else {
                 jsonSnapObject.put("element_level", ++mSnapInfo.elementLevel);
             }
+
             jsonSnapObject.put("element_selector", SAViewUtils.getElementSelector(view));
 
             JSONObject object = VisualUtil.getScreenNameAndTitle(view, mSnapInfo);
@@ -324,6 +323,9 @@ public class ViewSnapshot {
                 }
                 jsonSnapObject.put("is_list_view", viewNode.isListView());
             }
+
+            //原生新增 element_platform = android 用来区别 H5、Flutter、原生三种类型的元素
+            jsonSnapObject.put("element_platform", "android");
 
             jsonSnapObject.put("sa_id_name", getResName(view));
             try {
@@ -390,21 +392,15 @@ public class ViewSnapshot {
                 jsonSnapObject.put("scrollY", view.getScrollY());
             }
             jsonSnapObject.put("visibility", VisualUtil.getVisibility(view));
-            float translationX = 0;
-            float translationY = 0;
-            if (Build.VERSION.SDK_INT >= 11) {
-                translationX = view.getTranslationX();
-                translationY = view.getTranslationY();
-            }
+            float translationX = view.getTranslationX();
+            float translationY = view.getTranslationY();
             jsonSnapObject.put("translationX", translationX);
             jsonSnapObject.put("translationY", translationY);
 
             JSONArray classesArray = new JSONArray();
             Class<?> klass = view.getClass();
             do {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
-                    classesArray.put(mClassnameCache.get(klass));
-                }
+                classesArray.put(mClassnameCache.get(klass));
                 klass = klass.getSuperclass();
             } while (klass != Object.class && klass != null);
             jsonSnapObject.put("classes", classesArray);
@@ -453,6 +449,33 @@ public class ViewSnapshot {
         }
     }
 
+    private void snapshotFlutterView(final JSONArray j, final View view, List<String> flutterNodeIds, SnapInfo info) {
+        String activityName = info.activityName;
+        if (TextUtils.isEmpty(activityName)) {
+            return;
+        }
+        FlutterNodeInfo flutterNodeInfo = (FlutterNodeInfo) NodesProcess.getInstance().getFlutterNodesManager().getNodes(activityName);
+        if (flutterNodeInfo != null) {
+            if (flutterNodeInfo.getStatus() == WebNodeInfo.Status.SUCCESS) {
+                List<FlutterNode> flutterNodes = (List<FlutterNode>) flutterNodeInfo.getNodes();
+                if (flutterNodes != null && flutterNodes.size() > 0) {
+                    for (FlutterNode flutterNode : flutterNodes) {
+                        float scaledDensity = SensorsDataAPI.sharedInstance().getSAContextManager().getContext().getResources().getDisplayMetrics().scaledDensity;
+                        mergeThirdViewNodes(j, flutterNode, view, scaledDensity);
+                        if (flutterNode.isRootView()) {
+                            flutterNodeIds.add(flutterNode.getId() + view.hashCode());
+                        }
+                    }
+                }
+            } else if (flutterNodeInfo.getStatus() == NodeInfo.Status.FAILURE) {
+                mSnapInfo.flutter_alertInfos = flutterNodeInfo.getAlertInfos();
+            }
+        } else {
+            AlertMessageUtils.AlertRunnable alertRunnable = new AlertMessageUtils.AlertRunnable(AlertMessageUtils.AlertRunnable.AlertType.FLUTTER, activityName);
+            Dispatcher.getInstance().postDelayed(alertRunnable, JS_NOT_INTEGRATED_ALERT_TIME_OUT);
+        }
+    }
+
     private void addProperties(JSONObject j, View v)
             throws Exception {
         j.put("importantForAccessibility", true);
@@ -496,9 +519,7 @@ public class ViewSnapshot {
                     json.put("dimensions", jsonDimensions);
                     if (drawable instanceof ColorDrawable) {
                         final ColorDrawable colorDrawable = (ColorDrawable) drawable;
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-                            json.put("color", colorDrawable.getColor());
-                        }
+                        json.put("color", colorDrawable.getColor());
                     }
                     j.put(desc.name, json);
                 } else {
@@ -522,7 +543,7 @@ public class ViewSnapshot {
             isUpdated = newImageHash.equals(lastImageHash.toString());
         }
 
-        isUpdated = !isUpdated || WebNodesManager.getInstance().hasH5AlertInfo();
+        isUpdated = !isUpdated || NodesProcess.getInstance().getWebNodesManager().hasAlertInfo() || NodesProcess.getInstance().getFlutterNodesManager().hasAlertInfo();
         if (lastImageHash != null) {
             lastImageHash.delete(0, lastImageHash.length()).append(newImageHash);
         }
@@ -570,9 +591,26 @@ public class ViewSnapshot {
                 if (activity != null) {
                     JSONObject object = SAPageInfoUtils.getActivityPageInfo(activity);
                     JSONObject rnJson = SAPageInfoUtils.getRNPageInfo();
+                    if (object == null) {
+                        object = new JSONObject();
+                    }
                     JSONUtils.mergeDuplicateProperty(rnJson, object);
                     String screenName = object.optString("$screen_name");
                     String activityTitle = object.optString("$title");
+                    boolean isFlutter = ViewUtil.instanceOfFlutterActivity(activity);
+                    if (isFlutter) {
+                        FlutterNodeInfo flutterNodeInfo = (FlutterNodeInfo) NodesProcess.getInstance().getFlutterNodesManager().getPageInfo(SnapCache.getInstance().getCanonicalName(activity.getClass()));
+                        if (flutterNodeInfo != null) {
+                            String flutter_screenName = flutterNodeInfo.getScreen_name();
+                            String flutter_title = flutterNodeInfo.getTitle();
+                            if (!TextUtils.isEmpty(screenName)) {
+                                screenName = flutter_screenName;
+                            }
+                            if (!TextUtils.isEmpty(flutter_title)) {
+                                activityTitle = flutter_title;
+                            }
+                        }
+                    }
                     View rootView = null;
                     final Window window = activity.getWindow();
                     if (window != null && window.isActive()) {
@@ -583,8 +621,12 @@ public class ViewSnapshot {
                     }
                     final RootViewInfo info = new RootViewInfo(screenName, activityTitle, rootView);
                     final View[] views = WindowHelper.getSortedWindowViews();
-                    Bitmap bitmap = null;
-                    if (views != null && views.length > 0) {
+                    Bitmap bitmap;
+                    if (isFlutter) {
+                        bitmap = getFlutterBitmap(activity);
+                        scaleBitmap(info, bitmap);
+                        mRootViews.add(info);
+                    } else if (views != null && views.length > 0) {
                         bitmap = mergeViewLayers(views, info);
                         for (View view : views) {
                             if (view.getWindowVisibility() != View.VISIBLE || view.getVisibility() != View.VISIBLE
@@ -599,16 +641,34 @@ public class ViewSnapshot {
                                 mRootViews.add(subInfo);
                             }
                         }
-                    }
-                    if (mRootViews.size() == 0) {
-                        scaleBitmap(info, bitmap);
-                        mRootViews.add(info);
+                        if (mRootViews.size() == 0) {
+                            scaleBitmap(info, bitmap);
+                            mRootViews.add(info);
+                        }
                     }
                 }
             } catch (Throwable e) {
                 SALog.d(TAG, "" + e);
             }
             return mRootViews;
+        }
+
+        private static Bitmap getFlutterBitmap(Activity activity) {
+            Bitmap bitmap = null;
+            try {
+                Method method_flutterEngine = Class.forName("io.flutter.embedding.android.FlutterActivity").getDeclaredMethod("getFlutterEngine");
+                method_flutterEngine.setAccessible(true);
+                Object flutterEngine = method_flutterEngine.invoke(activity);
+                Method method_getRender = Class.forName("io.flutter.embedding.engine.FlutterEngine").getMethod("getRenderer");
+                method_getRender.setAccessible(true);
+                Object flutterRenderer = method_getRender.invoke(flutterEngine);
+                Method method_bitmap = Class.forName("io.flutter.embedding.engine.renderer.FlutterRenderer").getMethod("getBitmap");
+                method_bitmap.setAccessible(true);
+                bitmap = (Bitmap) method_bitmap.invoke(flutterRenderer);
+            } catch (Exception e) {
+                SALog.printStackTrace(e);
+            }
+            return bitmap;
         }
 
         Bitmap mergeViewLayers(View[] views, RootViewInfo info) {
@@ -702,7 +762,15 @@ public class ViewSnapshot {
                     mCached.compress(Bitmap.CompressFormat.PNG, 100, imageByte);
                     byte[] array = imageByte.toByteArray();
 
-                    final String msg = WebNodesManager.getInstance().getLastWebNodeMsg();
+                    String msg = NodesProcess.getInstance().getWebNodesManager().getLastThirdMsg();
+                    if (!TextUtils.isEmpty(msg)) {
+                        byte[] webNodesArray = msg.getBytes();
+                        if (webNodesArray != null && webNodesArray.length > 0) {
+                            array = concat(array, webNodesArray);
+                        }
+                    }
+
+                    msg = NodesProcess.getInstance().getFlutterNodesManager().getLastThirdMsg();
                     if (!TextUtils.isEmpty(msg)) {
                         byte[] webNodesArray = msg.getBytes();
                         if (webNodesArray != null && webNodesArray.length > 0) {
@@ -781,19 +849,17 @@ public class ViewSnapshot {
         }
     }
 
-    private void mergeWebViewNodes(JSONArray j, WebNode view, View webView, float webViewScale) {
+    private void mergeThirdViewNodes(JSONArray j, CommonNode view, View webView, float webViewScale) {
         try {
             JSONObject jsonWebView = new JSONObject();
             jsonWebView.put("hashCode", view.getId() + webView.hashCode());
             jsonWebView.put("index", 0);
-            if (!TextUtils.isEmpty(view.get$element_selector())) {
-                jsonWebView.put("element_selector", view.get$element_selector());
-            }
+
             if (!TextUtils.isEmpty(view.get$element_content())) {
                 jsonWebView.put("element_content", view.get$element_content());
             }
             jsonWebView.put("element_level", ++mSnapInfo.elementLevel);
-            jsonWebView.put("h5_title", view.get$title());
+
             if (webViewScale == 0) {
                 webViewScale = view.getScale();
             }
@@ -803,25 +869,46 @@ public class ViewSnapshot {
             jsonWebView.put("top", top);
             jsonWebView.put("width", (int) (view.getWidth() * webViewScale));
             jsonWebView.put("height", (int) (view.getHeight() * webViewScale));
-            jsonWebView.put("scrollX", 0);
-            jsonWebView.put("scrollY", 0);
+
             boolean insideWebView = view.getOriginTop() * webViewScale <= webView.getHeight() && view.getOriginLeft() * webViewScale <= webView.getWidth();
             jsonWebView.put("visibility", view.isVisibility() && insideWebView ? View.VISIBLE : View.GONE);
-            jsonWebView.put("url", view.get$url());
+
             jsonWebView.put("clickable", view.isEnable_click());
             jsonWebView.put("importantForAccessibility", true);
-            jsonWebView.put("is_h5", true);
             jsonWebView.put("is_list_view", view.isIs_list_view());
             jsonWebView.put("element_path", view.get$element_path());
-            jsonWebView.put("tag_name", view.getTagName());
+
             if (!TextUtils.isEmpty(view.get$element_position())) {
                 jsonWebView.put("element_position", view.get$element_position());
             }
             // 通过 lib_version 字段用来区分是否可支持 App 内嵌 H5 自定义属性
             mSnapInfo.webLibVersion = view.getLib_version();
-            jsonWebView.put("list_selector", view.getList_selector());
+
+            jsonWebView.put("scrollX", 0);
+            jsonWebView.put("scrollY", 0);
+            if (view instanceof WebNode) {
+                WebNode webNode = (WebNode) view;
+                jsonWebView.put("h5_title", webNode.get$title());
+                jsonWebView.put("tag_name", webNode.getTagName());
+                jsonWebView.put("url", webNode.get$url());
+                if (!TextUtils.isEmpty(webNode.get$element_selector())) {
+                    jsonWebView.put("element_selector", webNode.get$element_selector());
+                }
+                jsonWebView.put("list_selector", webNode.getList_selector());
+                jsonWebView.put("is_h5", true);
+                jsonWebView.put("element_platform", "h5");
+            }
+            if (view instanceof FlutterNode) {
+                FlutterNode flutterNode = (FlutterNode) view;
+                jsonWebView.put("title", flutterNode.getTitle());
+                jsonWebView.put("screen_name", flutterNode.getScreen_name());
+                jsonWebView.put("element_platform", "flutter");
+            }
             JSONArray classesArray = new JSONArray();
-            classesArray.put(view.getTagName());
+            if (view instanceof WebNode) {
+                WebNode webNode = (WebNode) view;
+                classesArray.put(webNode.getTagName());
+            }
             Class<?> klass = webView.getClass();
             do {
                 String canonicalName = SnapCache.getInstance().getCanonicalName(klass);

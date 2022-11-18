@@ -22,9 +22,8 @@ import android.view.View;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.SensorsDataAPIEmptyImplementation;
-import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
+import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 
 import java.util.Map;
 
@@ -72,10 +71,8 @@ public class JSHookAop {
     }
 
     private static void setupH5Bridge(View webView) {
-        if (SensorsDataAPI.sharedInstance() instanceof SensorsDataAPIEmptyImplementation) {
-            return;
-        }
-        if (isSupportJellyBean() && SensorsDataAPI.sharedInstance().getConfigOptions() != null && SensorsDataAPI.sharedInstance().getConfigOptions().isAutoTrackWebView()) {
+        if (isSupportJellyBean() && SensorsDataAPI.getConfigOptions() != null &&
+                SensorsDataAPI.getConfigOptions().isAutoTrackWebView()) {
             setupWebView(webView);
         }
         if (isSupportJellyBean()) {
@@ -84,7 +81,9 @@ public class JSHookAop {
     }
 
     private static boolean isSupportJellyBean() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1 && !SensorsDataAPI.getConfigOptions().isWebViewSupportJellyBean()) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1 &&
+                (SensorsDataAPI.getConfigOptions() == null ||
+                !SensorsDataAPI.getConfigOptions().isWebViewSupportJellyBean())) {
             SALog.d(TAG, "For applications targeted to API level JELLY_BEAN or below, this feature NOT SUPPORTED");
             return false;
         }
@@ -94,7 +93,7 @@ public class JSHookAop {
     private static void setupWebView(View webView) {
         if (webView != null && webView.getTag(com.sensorsdata.analytics.android.sdk.R.id.sensors_analytics_tag_view_webview) == null) {
             webView.setTag(com.sensorsdata.analytics.android.sdk.R.id.sensors_analytics_tag_view_webview, new Object());
-            H5Helper.addJavascriptInterface(webView, new AppWebViewInterface(SensorsDataAPI.sharedInstance().getSAContextManager().getContext(), null, false, webView), "SensorsData_APP_New_H5_Bridge");
+            H5Helper.addJavascriptInterface(webView, new AppWebViewInterface(webView.getContext().getApplicationContext(), null, false, webView), "SensorsData_APP_New_H5_Bridge");
         }
     }
 }

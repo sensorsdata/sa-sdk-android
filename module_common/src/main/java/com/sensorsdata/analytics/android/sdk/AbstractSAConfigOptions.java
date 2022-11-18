@@ -399,6 +399,10 @@ abstract class AbstractSAConfigOptions {
         return isAutoTrackWebView;
     }
 
+    public String getServerUrl() {
+        return mServerUrl;
+    }
+
     public List<Class<?>> getIgnorePageLeave() {
         return mIgnorePageLeave;
     }

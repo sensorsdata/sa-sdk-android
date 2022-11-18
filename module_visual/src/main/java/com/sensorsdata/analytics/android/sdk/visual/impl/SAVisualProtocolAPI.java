@@ -20,7 +20,6 @@ package com.sensorsdata.analytics.android.sdk.visual.impl;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
 import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAModuleProtocol;
-import com.sensorsdata.analytics.android.sdk.visual.impl.VisualProtocolImpl;
 import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
 
 public class SAVisualProtocolAPI implements SAModuleProtocol {

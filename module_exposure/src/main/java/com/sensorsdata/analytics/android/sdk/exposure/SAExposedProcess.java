@@ -283,7 +283,10 @@ public class SAExposedProcess {
         if (activity == null) {
             return;
         }
-        ExposedPage exposedPage = mExposedPageWeakHashMap.get(activity);
+        ExposedPage exposedPage = null;
+        if (mExposedPageWeakHashMap != null) {
+            exposedPage = mExposedPageWeakHashMap.get(activity);
+        }
         if (exposedPage != null) {
             exposedPage.removeExposureView(view, identifier);
         }

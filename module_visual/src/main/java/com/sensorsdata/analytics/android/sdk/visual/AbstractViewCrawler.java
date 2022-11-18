@@ -19,7 +19,6 @@ package com.sensorsdata.analytics.android.sdk.visual;
 
 import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
@@ -40,15 +39,15 @@ import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
-import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 import com.sensorsdata.analytics.android.sdk.visual.constant.VisualConstants;
 import com.sensorsdata.analytics.android.sdk.visual.model.SnapInfo;
-import com.sensorsdata.analytics.android.sdk.visual.model.WebNodeInfo;
 import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
 import com.sensorsdata.analytics.android.sdk.visual.snap.EditProtocol;
 import com.sensorsdata.analytics.android.sdk.visual.snap.EditState;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceIds;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceReader;
+import com.sensorsdata.analytics.android.sdk.visual.utils.AlertMessageUtils;
+import com.sensorsdata.analytics.android.sdk.visual.utils.FlutterUtils;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -62,7 +61,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -100,7 +98,6 @@ public abstract class AbstractViewCrawler implements VTrack {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
             app.registerActivityLifecycleCallbacks(mLifecycleCallbacks);
         }
-
         try {
             final PackageManager manager = activity.getPackageManager();
             final PackageInfo info = manager.getPackageInfo(activity.getPackageName(), 0);
@@ -128,6 +125,9 @@ public abstract class AbstractViewCrawler implements VTrack {
                 mMessageThreadHandler.start();
                 mMessageThreadHandler
                         .sendMessage(mMessageThreadHandler.obtainMessage(MESSAGE_SEND_STATE_FOR_EDITING));
+                if (!mServiceRunning) {
+                    FlutterUtils.visualizedConnectionStatusChanged();
+                }
                 mServiceRunning = true;
             }
         } catch (Exception e) {
@@ -147,7 +147,10 @@ public abstract class AbstractViewCrawler implements VTrack {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
                 app.unregisterActivityLifecycleCallbacks(mLifecycleCallbacks);
             }
-            mServiceRunning = false;
+            if (mServiceRunning) {
+                FlutterUtils.visualizedConnectionStatusChanged();
+                mServiceRunning = false;
+            }
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -158,7 +161,6 @@ public abstract class AbstractViewCrawler implements VTrack {
         return mServiceRunning;
     }
 
-    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     private class LifecycleCallbacks
             implements Application.ActivityLifecycleCallbacks {
 
@@ -361,49 +363,17 @@ public abstract class AbstractViewCrawler implements VTrack {
                 }
 
                 if (info.isWebView && !TextUtils.isEmpty(info.webViewUrl)) {
-                    WebNodeInfo pageInfo = WebNodesManager.getInstance().getWebPageInfo(info.webViewUrl);
-                    if (pageInfo != null) {
-                        if (!TextUtils.isEmpty(pageInfo.getUrl())) {
-                            writer.write((",\"h5_url\": \"" + pageInfo.getUrl() + "\"").getBytes());
-                        }
-                        if (!TextUtils.isEmpty(pageInfo.getTitle())) {
-                            writer.write((",\"h5_title\": \"" + pageInfo.getTitle() + "\"").getBytes());
-                        }
-                    }
-                    List<WebNodeInfo.AlertInfo> list = info.alertInfos;
-                    if (list != null && list.size() > 0) {
-                        writer.write((",\"app_alert_infos\":").getBytes());
-                        writer.flush();
-                        writer.write("[".getBytes());
-                        for (int i = 0; i < list.size(); i++) {
-                            if (i > 0) {
-                                writer.write(",".getBytes());
-                            }
-                            WebNodeInfo.AlertInfo alertInfo = list.get(i);
-                            if (alertInfo != null) {
-                                if (TextUtils.equals(TYPE_HEAT_MAP, mType)) {
-                                    alertInfo.title = alertInfo.title.replace(SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_visual),
-                                            SADisplayUtil.getStringResource(mContext, R.string.sensors_analytics_heatmap));
-                                }
-                                writer.write("{".getBytes());
-                                writer.write(("\"title\":").getBytes());
-                                writer.write(("\"" + alertInfo.title + "\"").getBytes());
-                                writer.write(",".getBytes());
-                                writer.write(("\"message\":").getBytes());
-                                writer.write(("\"" + alertInfo.message + "\"").getBytes());
-                                writer.write(",".getBytes());
-                                writer.write(("\"link_text\":").getBytes());
-                                writer.write(("\"" + alertInfo.linkText + "\"").getBytes());
-                                writer.write(",".getBytes());
-                                writer.write(("\"link_url\":").getBytes());
-                                writer.write(("\"" + alertInfo.linkUrl + "\"").getBytes());
-                                writer.write("}".getBytes());
-                            }
-                        }
-                        writer.write("]".getBytes());
-                        writer.flush();
-                    }
+                    AlertMessageUtils.buildH5AlertInfo(writer, mType, info, mContext);
                 }
+
+                if (!TextUtils.isEmpty(info.flutterLibVersion)) {
+                    writer.write((",\"flutter_lib_version\": \"" + info.flutterLibVersion + "\"").getBytes());
+                }
+
+                if (info.isFlutter && !TextUtils.isEmpty(info.activityName)) {
+                    AlertMessageUtils.buildFlutterAlertInfo(writer, mType, info, mContext);
+                }
+
                 writer.write("}".getBytes());
                 writer.flush();
             } catch (final IOException e) {
@@ -442,8 +412,12 @@ public abstract class AbstractViewCrawler implements VTrack {
 
         private void onSnapFinished(SnapInfo info) {
             // 当从 H5 页面切换到原生页面时，需要清除 H5 内缓存的信息。
-            if (info != null && !WebNodesManager.getInstance().hasWebView()) {
-                WebNodesManager.getInstance().clear();
+            if (info != null && !NodesProcess.getInstance().getWebNodesManager().hasThirdView()) {
+                NodesProcess.getInstance().getWebNodesManager().clear();
+            }
+
+            if (info != null && !NodesProcess.getInstance().getFlutterNodesManager().hasThirdView()) {
+                NodesProcess.getInstance().getFlutterNodesManager().clear();
             }
         }
 

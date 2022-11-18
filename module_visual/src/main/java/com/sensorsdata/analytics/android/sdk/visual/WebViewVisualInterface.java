@@ -26,7 +26,7 @@ public class WebViewVisualInterface {
     @JavascriptInterface
     public void sensorsdata_hover_web_nodes(final String msg) {
         try {
-            WebNodesManager.getInstance().handlerMessage(msg);
+            NodesProcess.getInstance().getWebNodesManager().handlerMessage(msg);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -53,7 +53,7 @@ public class WebViewVisualInterface {
                         String url = ReflectUtil.callMethod(mWebView.get(), "getUrl");
                         if (!TextUtils.isEmpty(url)) {
                             SALog.i(TAG, "sensorsdata_visualized_alert_info url: " + url);
-                            WebNodesManager.getInstance().handlerFailure(url, msg);
+                            NodesProcess.getInstance().getWebNodesManager().handlerFailure(url, msg);
                         }
                     }
                 });

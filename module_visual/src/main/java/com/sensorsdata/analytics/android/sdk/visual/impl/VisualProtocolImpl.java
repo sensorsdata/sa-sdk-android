@@ -31,6 +31,7 @@ import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataLifecycleMonitor
 import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
 import com.sensorsdata.analytics.android.sdk.util.visual.ViewNode;
 import com.sensorsdata.analytics.android.sdk.visual.HeatMapService;
+import com.sensorsdata.analytics.android.sdk.visual.NodesProcess;
 import com.sensorsdata.analytics.android.sdk.visual.R;
 import com.sensorsdata.analytics.android.sdk.visual.VisualizedAutoTrackService;
 import com.sensorsdata.analytics.android.sdk.visual.WebViewVisualInterface;
@@ -63,8 +64,6 @@ public class VisualProtocolImpl {
                 case Modules.Visual.METHOD_MERGE_VISUAL_PROPERTIES:
                     mergeVisualProperties((JSONObject) argv[0], (View) argv[1]);
                     break;
-                case Modules.Visual.METHOD_GET_APP_VISUAL_CONFIG:
-                    return (T) getAppVisualConfig();
                 case Modules.Visual.METHOD_RESUME_VISUAL_SERVICE:
                     VisualizedAutoTrackService.getInstance().resume();
                     break;
@@ -85,6 +84,15 @@ public class VisualProtocolImpl {
                     break;
                 case Modules.Visual.METHOD_SHOW_OPEN_VISUALIZED_AUTOTRACK_DIALOG:
                     VisualDialog.showOpenVisualizedAutoTrackDialog((Activity) argv[0], (String) argv[1], (String) argv[2]);
+                    break;
+                case Modules.Visual.METHOD_H5_GET_APPVISUAL_CONFIG:
+                    return (T) h5GetAppVisualConfig();
+                case Modules.Visual.METHOD_FLUTTER_GET_APPVISUAL_CONFIG:
+                    return (T) flutterGetAppVisualConfig();
+                case Modules.Visual.METHOD_GET_VISUAL_STATE:
+                    return (T) getVisualState();
+                case Modules.Visual.METHOD_SEND_VISUALIZED_MESSAGE:
+                    sendVisualizedMessage((String) argv[0]);
                     break;
             }
         } catch (Exception e) {
@@ -110,18 +118,33 @@ public class VisualProtocolImpl {
         }
     }
 
-    private String getAppVisualConfig() {
+    public String h5GetAppVisualConfig() {
+        String visualCache = appVisualConfig();
+        if (!TextUtils.isEmpty(visualCache)) {
+            return Base64.encodeToString(visualCache.getBytes(), Base64.DEFAULT);
+        }
+        return null;
+    }
+
+    /**
+     * 获取可视化自定义配置信息
+     *
+     * @return 可视化自定义配置信息
+     */
+    private String appVisualConfig() {
         try {
+            if (mSAContextManager.getInternalConfigs().saConfigOptions == null || !mSAContextManager.getInternalConfigs().saConfigOptions.isVisualizedPropertiesEnabled()) {
+                return null;
+            }
             VisualPropertiesManager.getInstance().getVisualPropertiesH5Helper().registerListeners();
             String visualCache = VisualPropertiesManager.getInstance().getVisualPropertiesCache().getVisualCache();
-            if (!TextUtils.isEmpty(visualCache)) {
-                return Base64.encodeToString(visualCache.getBytes(), Base64.DEFAULT);
-            }
+            return visualCache;
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
         return null;
     }
+
 
     private void addVisualJavascriptInterface(View webView) {
         if (webView != null && webView.getTag(R.id.sensors_analytics_tag_view_webview_visual) == null) {
@@ -147,5 +170,22 @@ public class VisualProtocolImpl {
                 dialog.show();
             }
         });
+    }
+
+    // Flutter 可视化需要
+    public String flutterGetAppVisualConfig() {
+        String visualCache = appVisualConfig();
+        if (!TextUtils.isEmpty(visualCache)) {
+            return Base64.encodeToString(visualCache.getBytes(), Base64.NO_WRAP);
+        }
+        return null;
+    }
+
+    public Boolean getVisualState() {
+        return VisualizedAutoTrackService.getInstance().isServiceRunning() || HeatMapService.getInstance().isServiceRunning();
+    }
+
+    public void sendVisualizedMessage(String msg) {
+        NodesProcess.getInstance().getFlutterNodesManager().handlerMessage(msg);
     }
 }

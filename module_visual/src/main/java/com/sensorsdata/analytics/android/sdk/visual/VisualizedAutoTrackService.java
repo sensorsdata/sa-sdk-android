@@ -27,6 +27,7 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesLog;
 import com.sensorsdata.analytics.android.sdk.visual.property.VisualPropertiesManager;
+import com.sensorsdata.analytics.android.sdk.visual.utils.FlutterUtils;
 
 /**
  * Created by 任庆友 on 2019/04/13
@@ -162,4 +163,5 @@ public class VisualizedAutoTrackService {
             SALog.printStackTrace(e);
         }
     }
+
 }

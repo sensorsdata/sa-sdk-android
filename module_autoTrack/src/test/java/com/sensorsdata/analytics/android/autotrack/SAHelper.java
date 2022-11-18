@@ -19,6 +19,8 @@ package com.sensorsdata.analytics.android.autotrack;
 
 import android.content.Context;
 
+import androidx.annotation.NonNull;
+
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SensorsAnalyticsAutoTrackEventType;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
@@ -43,6 +45,12 @@ public class SAHelper {
         SensorsDataAPI.startWithConfigOptions(context, configOptions);
         SensorsDataAPI.sharedInstance(context).trackFragmentAppViewScreen();
         SensorsDataAPI.sharedInstance(context).setTrackEventCallBack(null);
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(@NonNull Thread t, @NonNull Throwable e) {
+
+            }
+        });
         return SensorsDataAPI.sharedInstance();
     }
 
@@ -60,6 +68,12 @@ public class SAHelper {
         list.add(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN);
         list.add(SensorsDataAPI.AutoTrackEventType.APP_END);
         SensorsDataAPI.sharedInstance().disableAutoTrack(list);
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(@NonNull Thread t, @NonNull Throwable e) {
+
+            }
+        });
         return SensorsDataAPI.sharedInstance();
     }
 

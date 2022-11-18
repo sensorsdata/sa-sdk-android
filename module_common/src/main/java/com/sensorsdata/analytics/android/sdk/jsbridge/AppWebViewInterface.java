@@ -103,7 +103,7 @@ public class AppWebViewInterface {
 
     @JavascriptInterface
     public String sensorsdata_get_server_url() {
-        return SensorsDataAPI.sharedInstance().getConfigOptions().isAutoTrackWebView() ? SensorsDataAPI.sharedInstance().getServerUrl() : "";
+        return SensorsDataAPI.getConfigOptions().isAutoTrackWebView() ? SensorsDataAPI.getConfigOptions().getServerUrl() : "";
     }
 
     /**
@@ -125,7 +125,7 @@ public class AppWebViewInterface {
             JSONObject eventObject = new JSONObject(event);
             String serverUrl = eventObject.optString("server_url");
             if (!TextUtils.isEmpty(serverUrl)) {
-                return new ServerUrl(serverUrl).check(new ServerUrl(SensorsDataAPI.sharedInstance().getServerUrl()));
+                return new ServerUrl(serverUrl).check(new ServerUrl(SensorsDataAPI.getConfigOptions().getServerUrl()));
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -175,6 +175,6 @@ public class AppWebViewInterface {
      */
     @JavascriptInterface
     public String sensorsdata_get_app_visual_config() {
-        return SAModuleManager.getInstance().invokeModuleFunction(Modules.Visual.MODULE_NAME, Modules.Visual.METHOD_GET_APP_VISUAL_CONFIG);
+        return SAModuleManager.getInstance().invokeModuleFunction(Modules.Visual.MODULE_NAME, Modules.Visual.METHOD_H5_GET_APPVISUAL_CONFIG);
     }
 }

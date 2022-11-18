@@ -16,6 +16,14 @@
 # debugging stack traces.
 #-keepattributes SourceFile,LineNumberTable
 
+# Annotation
+-keepattributes *Annotation*
+-keepattributes *JavascriptInterface*
+-keep class android.webkit.JavascriptInterface {*;}
+
+# Flutter
+-keep class io.flutter.embedding.engine.** {*;}
+-keep class io.flutter.embedding.android.** {*;}
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile

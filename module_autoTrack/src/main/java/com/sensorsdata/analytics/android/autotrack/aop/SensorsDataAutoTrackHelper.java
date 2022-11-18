@@ -43,7 +43,7 @@ public class SensorsDataAutoTrackHelper {
 
     public static void trackExpandableListViewOnChildClick(ExpandableListView expandableListView, View view,
                                                            int groupPosition, int childPosition) {
-       AppClickTrackImpl.trackExpandableListViewOnChildClick(SensorsDataAPI.sharedInstance(), expandableListView, view, groupPosition, childPosition);
+        AppClickTrackImpl.trackExpandableListViewOnChildClick(SensorsDataAPI.sharedInstance(), expandableListView, view, groupPosition, childPosition);
     }
 
     public static void trackTabHost(final String tabName) {
@@ -60,7 +60,7 @@ public class SensorsDataAutoTrackHelper {
     }
 
     public static void trackTabLayoutSelected(Object object, Object tab) {
-       AppClickTrackImpl.trackTabLayoutSelected(SensorsDataAPI.sharedInstance(), object, tab);
+        AppClickTrackImpl.trackTabLayoutSelected(SensorsDataAPI.sharedInstance(), object, tab);
     }
 
     public static void trackMenuItem(MenuItem menuItem) {
@@ -81,15 +81,15 @@ public class SensorsDataAutoTrackHelper {
     }
 
     public static void trackRadioGroup(RadioGroup view, int checkedId) {
-       AppClickTrackImpl.trackRadioGroup(SensorsDataAPI.sharedInstance(), view, checkedId);
+        AppClickTrackImpl.trackRadioGroup(SensorsDataAPI.sharedInstance(), view, checkedId);
     }
 
     public static void trackDialog(DialogInterface dialogInterface, int whichButton) {
-       AppClickTrackImpl.trackDialog(SensorsDataAPI.sharedInstance(), dialogInterface, whichButton);
+        AppClickTrackImpl.trackDialog(SensorsDataAPI.sharedInstance(), dialogInterface, whichButton);
     }
 
     public static void trackListView(AdapterView<?> adapterView, View view, int position) {
-       AppClickTrackImpl.trackListView(SensorsDataAPI.sharedInstance(), adapterView, view, position);
+        AppClickTrackImpl.trackListView(SensorsDataAPI.sharedInstance(), adapterView, view, position);
     }
 
     public static void trackDrawerOpened(View view) {
@@ -101,6 +101,9 @@ public class SensorsDataAutoTrackHelper {
     }
 
     public static void trackViewOnClick(View view) {
+        if (view == null) {
+            return;
+        }
         trackViewOnClick(view, view.isPressed());
     }
 

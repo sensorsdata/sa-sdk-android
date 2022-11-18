@@ -38,7 +38,6 @@ public interface Modules {
         String MODULE_NAME = "sensors_analytics_module_visual";
         String METHOD_REQUEST_VISUAL_CONFIG = "requestVisualConfig";
         String METHOD_MERGE_VISUAL_PROPERTIES = "mergeVisualProperties";
-        String METHOD_GET_APP_VISUAL_CONFIG = "getAppVisualConfig";
         String METHOD_RESUME_VISUAL_SERVICE = "resumeVisualService";
         String METHOD_STOP_VISUAL_SERVICE = "stopVisualService";
         String METHOD_ADD_VISUAL_JAVASCRIPTINTERFACE = "addVisualJavascriptInterface";
@@ -47,6 +46,10 @@ public interface Modules {
         String METHOD_SHOW_PAIRING_CODE_INPUTDIALOG = "showPairingCodeInputDialog";
         String METHOD_SHOW_OPEN_HEATMAP_DIALOG = "showOpenHeatMapDialog";
         String METHOD_SHOW_OPEN_VISUALIZED_AUTOTRACK_DIALOG = "showOpenVisualizedAutoTrackDialog";
+        String METHOD_H5_GET_APPVISUAL_CONFIG = "h5GetAppVisualConfig";
+        String METHOD_FLUTTER_GET_APPVISUAL_CONFIG = "flutterGetAppVisualConfig";
+        String METHOD_GET_VISUAL_STATE = "getVisualState";
+        String METHOD_SEND_VISUALIZED_MESSAGE = "sendVisualizedMessage";
     }
 
     interface Push {

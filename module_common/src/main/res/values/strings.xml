@@ -21,8 +21,14 @@
     <!-- popwindow fail -->
     <string name="sensors_analytics_popwindow_fail">测试弹窗加载失败，请确认网络或项目环境是否正常！</string>
 
-    <!-- visual fail -->
+    <!-- heat map -->
+    <string name="sensors_analytics_heatmap_dialog_error">App 集成的项目与电脑浏览器打开的项目不同，无法进行点击分析</string>
+
+    <!-- visual -->
     <string name="sensors_analytics_visual_dialog_error">App 集成的项目与电脑浏览器打开的项目不同，无法进行可视化全埋点。</string>
+
+    <!-- verification code-->
+    <string name="sensors_analytics_visual_code_title">请输入神策分析页面上的配对码</string>
     <string name="sensors_analytics_visual_code_loading">开启中</string>
 
     <!-- common dialog-->

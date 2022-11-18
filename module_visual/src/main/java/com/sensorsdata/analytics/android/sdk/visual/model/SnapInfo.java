@@ -20,13 +20,21 @@ package com.sensorsdata.analytics.android.sdk.visual.model;
 import java.util.List;
 
 public class SnapInfo {
-    public String screenName;
     public boolean hasFragment;
+    public String screenName;
     public String activityTitle;
     public int elementLevel = -1;
+    public float webViewScale;
+
+    //H5 使用
     public boolean isWebView = false;
     public List<WebNodeInfo.AlertInfo> alertInfos;
     public String webViewUrl;
-    public float webViewScale;
     public String webLibVersion;
+    
+    //Flutter 使用
+    public boolean isFlutter = false;
+    public List<NodeInfo.AlertInfo> flutter_alertInfos;
+    public String activityName;
+    public String flutterLibVersion;
 }

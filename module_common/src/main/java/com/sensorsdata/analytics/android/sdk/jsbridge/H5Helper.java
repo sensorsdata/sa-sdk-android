@@ -22,9 +22,10 @@ import android.view.View;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.internal.beans.ServerUrl;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAPIEmptyImplementation;
 import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
+import com.sensorsdata.analytics.android.sdk.internal.beans.ServerUrl;
 import com.sensorsdata.analytics.android.sdk.listener.SAJSListener;
 
 import org.json.JSONObject;
@@ -65,7 +66,7 @@ public class H5Helper {
 
             String serverUrl = eventObject.optString("server_url");
             if (!TextUtils.isEmpty(serverUrl)) {
-                if (!(new ServerUrl(serverUrl).check(new ServerUrl(SensorsDataAPI.sharedInstance().getServerUrl())))) {
+                if (!(new ServerUrl(serverUrl).check(new ServerUrl(SensorsDataAPI.getConfigOptions().getServerUrl())))) {
                     return false;
                 }
                 trackEvent(eventInfo);
@@ -142,7 +143,11 @@ public class H5Helper {
             }
         }
     }
+
     private static void trackEvent(final String eventInfo) {
+        if (SensorsDataAPI.sharedInstance() instanceof SensorsDataAPIEmptyImplementation) {
+            return;
+        }
         SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
             @Override
             public void run() {

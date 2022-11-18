@@ -31,9 +31,10 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.core.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureConfig;
 import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureData;
+import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
+import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
 
@@ -44,6 +45,7 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
+import java.lang.reflect.Method;
 import java.util.WeakHashMap;
 
 
@@ -116,7 +118,7 @@ public class SensorsDataExposureTest {
     }
 
     private ExposureView getExposureView() {
-        SAExposureProtocolImpl exposureProtocol = (SAExposureProtocolImpl) SAModuleManager.getInstance().getExposureModuleService();
+        SAExposureProtocolImpl exposureProtocol = getSAExposureProtocolImpl();
         SAExposedProcess exposedProcess = ReflectUtil.findField(new String[]{exposureProtocol.getClass().getName()}, exposureProtocol, "mExposedProcess");
         WeakHashMap<Activity, ExposedPage> exposedPageWeakHashMap = ReflectUtil.findField(new String[]{exposedProcess.getClass().getName()}, exposedProcess, "mExposedPageWeakHashMap");
         ExposedPage exposedPage = exposedPageWeakHashMap.get(mActivity);
@@ -130,5 +132,18 @@ public class SensorsDataExposureTest {
             super.onCreate(savedInstanceState);
             setTheme(android.R.style.Theme_Material);
         }
+    }
+
+    private SAExposureProtocolImpl getSAExposureProtocolImpl() {
+        Class cls = SAModuleManager.getInstance().getClass();
+        SAExposureProtocolImpl saExposureProtocol = null;
+        try {
+            Method method = cls.getDeclaredMethod("getService", new Class[]{String.class});
+            method.setAccessible(true);
+            saExposureProtocol = (SAExposureProtocolImpl) method.invoke(SAModuleManager.getInstance(), Modules.Exposure.MODULE_NAME);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return saExposureProtocol;
     }
 }

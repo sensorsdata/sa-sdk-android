@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNotNull;
 import android.app.Application;
 import android.text.TextUtils;
 
+import androidx.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
@@ -167,7 +168,6 @@ public class TrackEventProcessorTest {
                 SensorsAnalyticsAutoTrackEventType.APP_END |
                 SensorsAnalyticsAutoTrackEventType.APP_VIEW_SCREEN |
                 SensorsAnalyticsAutoTrackEventType.APP_CLICK)
-                .enableTrackAppCrash()
                 .enableSession(true)
                 .enableJavaScriptBridge(true)
                 .enableHeatMap(true)
@@ -175,6 +175,12 @@ public class TrackEventProcessorTest {
                 .enableVisualizedAutoTrack(true);
         SensorsDataAPI.startWithConfigOptions(mApplication, configOptions);
         SensorsDataAPI.sharedInstance(mApplication).trackFragmentAppViewScreen();
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(@NonNull Thread t, @NonNull Throwable e) {
+
+            }
+        });
         return SensorsDataAPI.sharedInstance();
     }
 }
