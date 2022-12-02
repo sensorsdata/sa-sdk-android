@@ -7,7 +7,6 @@
     <string name="sensors_analytics_heatmap_sdk_fail">SDK 没有被正确集成，请联系贵方技术人员开启点击分析。</string>
     <string name="sensors_analytics_heatmap_wifi_name">正在连接 App 点击分析…</string>
     <string name="sensors_analytics_heatmap_mobile_name">正在连接 App 点击分析，建议在 WiFi 环境下使用。</string>
-    <string name="sensors_analytics_heatmap_dialog_error">App 集成的项目与电脑浏览器打开的项目不同，无法进行点击分析</string>
 
     <!-- visual -->
     <string name="sensors_analytics_visual">可视化全埋点</string>

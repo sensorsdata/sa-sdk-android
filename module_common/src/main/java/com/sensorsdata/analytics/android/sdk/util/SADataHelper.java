@@ -68,31 +68,27 @@ public class SADataHelper {
                     int size = list.size();
                     JSONArray array = new JSONArray();
                     for (int i = 0; i < size; i++) {
-                        array.put(list.get(i));
+                        array.put(formatString(list.get(i)));
                     }
-                    value = array;
-                    properties.put(key, value);
+                    properties.put(key, array);
+                    continue;
                 }
 
                 if (!(value instanceof CharSequence || value instanceof Number || value instanceof JSONArray ||
                         value instanceof Boolean || value instanceof Date)) {
-                    throw new InvalidDataException("The property value must be an instance of "
+                    SALog.i(TAG, "The property value must be an instance of "
                             + "CharSequence/Number/Boolean/JSONArray/Date/List<String>. [key='" + key
                             + "', value='" + value.toString()
                             + "', class='" + value.getClass().getCanonicalName()
                             + "']");
+                    iterator.remove();
+                    continue;
                 }
 
                 if (value instanceof JSONArray) {
                     JSONArray array = (JSONArray) value;
-                    int size = array.length();
-                    for (int i = 0; i < size; i++) {
-                        if (!(array.get(i) instanceof CharSequence)) {
-                            throw new InvalidDataException("The array property value must be an instance of "
-                                    + "List<String> or JSONArray only contains String. [key='" + key
-                                    + "', value='" + value.toString()
-                                    + "']");
-                        }
+                    for (int i = 0; i < array.length(); i++) {
+                        array.put(i, formatString(array.opt(i)));
                     }
                     continue;
                 }
@@ -218,5 +214,15 @@ public class SADataHelper {
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
+    }
+
+    public static String formatString(Object value) {
+        if (value == null) {
+            return "";
+        }
+        if (value instanceof Date) {
+            return TimeUtils.formatDate((Date) value);
+        }
+        return value.toString();
     }
 }

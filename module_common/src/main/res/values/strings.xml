@@ -28,7 +28,6 @@
     <string name="sensors_analytics_visual_dialog_error">App 集成的项目与电脑浏览器打开的项目不同，无法进行可视化全埋点。</string>
 
     <!-- verification code-->
-    <string name="sensors_analytics_visual_code_title">请输入神策分析页面上的配对码</string>
     <string name="sensors_analytics_visual_code_loading">开启中</string>
 
     <!-- common dialog-->

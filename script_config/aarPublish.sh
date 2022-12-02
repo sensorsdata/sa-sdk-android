@@ -66,6 +66,7 @@ else
   assembleAAR "module_encrypt" "sa_encrypt" $module_version
   assembleAAR "module_push" "sa_push" $module_version
   assembleAAR "module_visual" "sa_visual" $module_version
+  assembleAAR "module_exposure" "sa_exposure" $module_version
 fi
 
 echo "end ====== publish AAR"

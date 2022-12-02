@@ -67,5 +67,13 @@ dependencies {
     testImplementation rootProject.ext.test.androidx_junit
     testImplementation rootProject.ext.androidx.google_material
     testImplementation rootProject.ext.androidx.appcompat
+    //Robolectric & JVM test
+    testImplementation rootProject.ext.test.robolectric
+    testImplementation rootProject.ext.test.powermock_core
+    //mock
+    testImplementation rootProject.ext.test.mockito_core
+    testImplementation rootProject.ext.test.mockito_android
+    testImplementation project(':module_common')
+    testImplementation project(path: ':module_autoTrack')
     compileOnly project(':module_core')
 }

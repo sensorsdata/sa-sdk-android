@@ -98,7 +98,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             mSAContextManager = new SAContextManager((SensorsDataAPI) this, mInternalConfigs);
             registerLifecycleCallbacks((SensorsDataAPI) this, context);
             if (!mSAConfigOptions.isDisableSDK()) {
-                delayInitTask(context);
+                delayInitTask(context.getApplicationContext());
             }
 
             enableTrackScreenOrientation(mSAConfigOptions.mTrackScreenOrientationEnabled);

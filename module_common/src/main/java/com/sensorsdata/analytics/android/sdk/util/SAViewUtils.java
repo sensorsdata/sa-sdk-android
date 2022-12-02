@@ -293,7 +293,7 @@ public class SAViewUtils {
                     }
                 } else if (view instanceof ImageView) { // ImageView
                     ImageView imageView = (ImageView) view;
-                    if (!TextUtils.isEmpty(imageView.getContentDescription())) {
+                    if (!TextUtils.isEmpty(imageView.getContentDescription()) && !isWeexView(view)) {
                         viewText = imageView.getContentDescription().toString();
                     }
                 } else if (view instanceof RatingBar) {
@@ -328,7 +328,9 @@ public class SAViewUtils {
                 } else if (instanceOfNavigationView(view)) {
                     viewText = isViewSelfVisible(view) ? "Open" : "Close";
                 } else if (view instanceof ViewGroup) {
-                    viewText = view.getContentDescription();
+                    if (!isWeexView(view)) {
+                        viewText = view.getContentDescription();
+                    }
                     if (TextUtils.isEmpty(viewText)) {
                         try {
                             StringBuilder stringBuilder = new StringBuilder();
@@ -347,7 +349,9 @@ public class SAViewUtils {
                 }
 
                 if (TextUtils.isEmpty(viewText)) {
-                    viewText = view.getContentDescription();
+                    if (!isWeexView(view) || isWeexTextView(view)) {
+                        viewText = view.getContentDescription();
+                    }
                 }
 
                 if (viewText == null) {
@@ -747,5 +751,15 @@ public class SAViewUtils {
             return new JSONObject();
         }
         return propertyJSON;
+    }
+
+    public static boolean isWeexView(View view) {
+        String className = view.getClass().getName();
+        return className.startsWith("com.taobao.weex.ui.view") || className.startsWith("org.apache.weex.ui.view");
+    }
+
+    public static boolean isWeexTextView(View view) {
+        String className = view.getClass().getName();
+        return className.equals("com.taobao.weex.ui.view.WXTextView") || className.equals("org.apache.weex.ui.view.WXTextView");
     }
 }
