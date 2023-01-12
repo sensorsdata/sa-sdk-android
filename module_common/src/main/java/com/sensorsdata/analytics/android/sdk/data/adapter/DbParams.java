@@ -29,7 +29,7 @@ public class DbParams {
     /* 数据库名称 */
     public static final String DATABASE_NAME = "sensorsdata";
     /* 数据库版本号 */
-    public static final int DATABASE_VERSION = 5;
+    public static final int DATABASE_VERSION = 6;
     public static final String TABLE_ACTIVITY_START_COUNT = "activity_started_count";
     public static final String TABLE_APP_START_TIME = "app_start_time";
     public static final String TABLE_FIRST_PROCESS_START = "first_process_start";
@@ -42,6 +42,7 @@ public class DbParams {
     /* Event 表字段 */
     public static final String KEY_DATA = "data";
     public static final String KEY_CREATED_AT = "created_at";
+    public static final String KEY_IS_INSTANT_EVENT = "is_instant_event";
     /* 数据库状态 */
     static final int DB_UPDATE_ERROR = -1;
     static final String VALUE = "value";

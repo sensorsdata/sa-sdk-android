@@ -17,6 +17,8 @@
 
 package com.sensorsdata.analytics.android.sdk.deeplink;
 
+import org.json.JSONObject;
+
 import java.io.Serializable;
 
 public class SADeepLinkObject implements Serializable {
@@ -24,6 +26,10 @@ public class SADeepLinkObject implements Serializable {
      * 链接设置的 App 内参数
      */
     private String mParams;
+    /**
+     * 链接设置的自定义参数
+     */
+    private JSONObject mCustomParams;
     /**
      * 链接设置的 归因数据
      */
@@ -37,10 +43,11 @@ public class SADeepLinkObject implements Serializable {
      */
     private long mAppAwakePassedTime;
 
-    public SADeepLinkObject(String params, String channels, boolean success, long appAwakePassedTime) {
+    public SADeepLinkObject(String params, JSONObject customParams, String channels, boolean success, long appAwakePassedTime) {
         this.mParams = params;
         this.mChannels = channels;
         this.success = success;
+        this.mCustomParams = customParams;
         this.mAppAwakePassedTime = appAwakePassedTime;
     }
 
@@ -54,6 +61,10 @@ public class SADeepLinkObject implements Serializable {
 
     public boolean isSuccess() {
         return success;
+    }
+
+    public JSONObject getCustomParams() {
+        return mCustomParams;
     }
 
     public long getAppAwakePassedTime() {

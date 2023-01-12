@@ -50,7 +50,6 @@ public class H5UserIdentityStrategy {
 
     private void specialIDProcess(JSONObject identityJson) {
         identityJson.remove(Identities.ANDROID_ID);
-        identityJson.remove(Identities.ANONYMOUS_ID);
         identityJson.remove(Identities.ANDROID_UUID);
     }
 }

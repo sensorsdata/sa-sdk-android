@@ -39,6 +39,11 @@ class PersistentDataOperation extends DataOperation {
     }
 
     @Override
+    String[] queryData(Uri uri, boolean is_instant_event, int limit) {
+        return handleQueryUri(uri);
+    }
+
+    @Override
     int insertData(Uri uri, JSONObject jsonObject) {
         return handleInsertUri(uri, jsonObject);
     }

@@ -21,12 +21,13 @@ import android.content.Intent;
 import android.net.Uri;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.advert.SAAdvertConstants;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
-import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.internal.beans.ServerUrl;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
+import com.sensorsdata.analytics.android.sdk.internal.beans.ServerUrl;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.network.HttpMethod;
 import com.sensorsdata.analytics.android.sdk.network.RequestHelper;
@@ -51,6 +52,7 @@ class SensorsDataDeepLink extends AbsDeepLink {
     private String adSlinkId;
     private String adSlinkTemplateId;
     private String adSlinkType;
+    private JSONObject customParams;
 
     public SensorsDataDeepLink(Intent intent, String serverUrl, String customADChannelUrl) {
         super(intent);
@@ -96,6 +98,7 @@ class SensorsDataDeepLink extends AbsDeepLink {
                                 adSlinkId = response.optString("ad_slink_id");
                                 adSlinkTemplateId = response.optString("slink_template_id");
                                 adSlinkType = response.optString("slink_type");
+                                customParams = response.optJSONObject("custom_params");
                                 if (!TextUtils.isEmpty(errorMsg)) {
                                     success = false;
                                 }
@@ -110,35 +113,38 @@ class SensorsDataDeepLink extends AbsDeepLink {
                             final JSONObject properties = new JSONObject();
                             try {
                                 if (!TextUtils.isEmpty(pageParams)) {
-                                    properties.put("$deeplink_options", pageParams);
+                                    properties.put(SAAdvertConstants.Properties.DEEPLINK_OPTIONS, pageParams);
                                 }
                                 if (!TextUtils.isEmpty(errorMsg)) {
-                                    properties.put("$deeplink_match_fail_reason", errorMsg);
+                                    properties.put(SAAdvertConstants.Properties.MATCH_FAIL_REASON, errorMsg);
                                 }
                                 if (!TextUtils.isEmpty(adSlinkId)) {
-                                    properties.put("$ad_slink_id", adSlinkId);
+                                    properties.put(SAAdvertConstants.Properties.SLINK_ID, adSlinkId);
                                 }
-                                properties.put("$deeplink_url", getDeepLinkUrl());
+                                properties.put(SAAdvertConstants.Properties.DEEPLINK_URL, getDeepLinkUrl());
                                 properties.put("$event_duration", TimeUtils.duration(duration));
                                 if (!TextUtils.isEmpty(adSlinkTemplateId)) {
-                                    properties.put("$ad_slink_template_id", adSlinkTemplateId);
+                                    properties.put(SAAdvertConstants.Properties.SLINK_TEMPLATE_ID, adSlinkTemplateId);
                                 }
                                 if (!TextUtils.isEmpty(adSlinkType)) {
-                                    properties.put("$ad_slink_type", adSlinkType);
+                                    properties.put(SAAdvertConstants.Properties.SLINK_TYPE, adSlinkType);
+                                }
+                                if (customParams != null && customParams.length() > 0) {
+                                    properties.put(SAAdvertConstants.Properties.SLINK_CUSTOM_PARAMS, customParams.toString());
                                 }
                             } catch (JSONException e) {
                                 SALog.printStackTrace(e);
                             }
                             JSONUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
                             if (mCallBack != null) {
-                                mCallBack.onFinish(DeepLinkManager.DeepLinkType.SENSORSDATA, pageParams, success, duration);
+                                mCallBack.onFinish(DeepLinkManager.DeepLinkType.SENSORSDATA, pageParams, customParams, success, duration);
                             }
 
                             SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
                                 @Override
                                 public void run() {
                                     SACoreHelper.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK)
-                                            .setEventName("$AppDeeplinkMatchedResult").setProperties(properties));
+                                            .setEventName(SAAdvertConstants.EventName.MATCH_RESULT).setProperties(properties));
                                 }
                             });
                         }
@@ -149,7 +155,7 @@ class SensorsDataDeepLink extends AbsDeepLink {
     @Override
     public void mergeDeepLinkProperty(JSONObject properties) {
         try {
-            properties.put("$deeplink_url", getDeepLinkUrl());
+            properties.put(SAAdvertConstants.Properties.DEEPLINK_URL, getDeepLinkUrl());
         } catch (JSONException e) {
             SALog.printStackTrace(e);
         }

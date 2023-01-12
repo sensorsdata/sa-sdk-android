@@ -24,6 +24,7 @@ import android.net.Uri;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.core.business.instantevent.InstantEventUtils;
 import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
 
@@ -45,7 +46,7 @@ class EncryptDataOperation extends DataOperation {
             if (deleteDataLowMemory(uri) != 0) {
                 return DbParams.DB_OUT_OF_MEMORY_ERROR;
             }
-
+            int instant_event = InstantEventUtils.isInstantEvent(jsonObject);
             JSONObject jsonEncrypt = SAModuleManager.getInstance().invokeModuleFunction(Modules.Encrypt.MODULE_NAME, Modules.Encrypt.METHOD_ENCRYPT_EVENT_DATA, jsonObject);
             if (jsonEncrypt != null) {
                 jsonObject = jsonEncrypt;
@@ -53,6 +54,7 @@ class EncryptDataOperation extends DataOperation {
             ContentValues cv = new ContentValues();
             cv.put(DbParams.KEY_DATA, jsonObject.toString() + "\t" + jsonObject.toString().hashCode());
             cv.put(DbParams.KEY_CREATED_AT, System.currentTimeMillis());
+            cv.put(DbParams.KEY_IS_INSTANT_EVENT, instant_event);
             contentResolver.insert(uri, cv);
         } catch (Throwable e) {
             SALog.i(TAG, e.getMessage());
@@ -75,14 +77,26 @@ class EncryptDataOperation extends DataOperation {
 
     @Override
     String[] queryData(Uri uri, int limit) {
+        return queryData(uri, false, limit);
+    }
+
+    @Override
+    String[] queryData(Uri uri, boolean is_instant_event, int limit) {
         Cursor cursor = null;
         String data = null;
-        String last_id = null;
+        String eventIds = null;
+        JSONArray idEncryptArray = new JSONArray();
+        JSONArray idArray = new JSONArray();
         String gzipType = DbParams.GZIP_DATA_ENCRYPT;
         try {
             Map<String, JSONArray> dataEncryptMap = new HashMap<>();
             JSONArray dataJsonArray = new JSONArray();
-            cursor = contentResolver.query(uri, null, null, null, DbParams.KEY_CREATED_AT + " ASC LIMIT " + limit);
+
+            String instant_event = "0";
+            if (is_instant_event) {
+                instant_event = "1";
+            }
+            cursor = contentResolver.query(uri, null, DbParams.KEY_IS_INSTANT_EVENT + "=?", new String[]{instant_event}, DbParams.KEY_CREATED_AT + " ASC LIMIT " + limit);
             if (cursor != null) {
                 String keyData;
                 JSONObject jsonObject;
@@ -90,9 +104,7 @@ class EncryptDataOperation extends DataOperation {
                 final String KEY_VER = "pkv";
                 final String PAYLOADS = "payloads";
                 while (cursor.moveToNext()) {
-                    if (cursor.isLast()) {
-                        last_id = cursor.getString(cursor.getColumnIndexOrThrow("_id"));
-                    }
+                    String eventId = cursor.getString(cursor.getColumnIndexOrThrow("_id"));
                     try {
                         keyData = cursor.getString(cursor.getColumnIndexOrThrow(DbParams.KEY_DATA));
                         keyData = parseData(keyData);
@@ -118,9 +130,11 @@ class EncryptDataOperation extends DataOperation {
                                 jsonArray.put(jsonObject.getString(PAYLOADS));
                                 dataEncryptMap.put(key, jsonArray);
                             }
+                            idEncryptArray.put(eventId);
                         } else {
                             jsonObject.put("_flush_time", System.currentTimeMillis());
                             dataJsonArray.put(jsonObject);
+                            idArray.put(eventId);
                         }
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
@@ -137,8 +151,12 @@ class EncryptDataOperation extends DataOperation {
                 }
                 if (dataEncryptJsonArray.length() > 0) {
                     data = dataEncryptJsonArray.toString();
+                    eventIds = idEncryptArray.toString();
                 } else {
                     data = dataJsonArray.toString();
+                    if (idArray.length() > 0) {
+                        eventIds = idArray.toString();
+                    }
                     gzipType = DbParams.GZIP_DATA_EVENT;
                 }
             }
@@ -149,8 +167,8 @@ class EncryptDataOperation extends DataOperation {
                 cursor.close();
             }
         }
-        if (last_id != null) {
-            return new String[]{last_id, data, gzipType};
+        if (eventIds != null) {
+            return new String[]{eventIds, data, gzipType};
         }
         return null;
     }

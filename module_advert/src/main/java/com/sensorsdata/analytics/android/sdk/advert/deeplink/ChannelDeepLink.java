@@ -21,6 +21,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.advert.SAAdvertConstants;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
@@ -61,7 +62,7 @@ class ChannelDeepLink extends AbsDeepLink {
             }
             ChannelUtils.parseParams(uriParams);
             if (mCallBack != null) {
-                mCallBack.onFinish(DeepLinkManager.DeepLinkType.CHANNEL, null, true, 0);
+                mCallBack.onFinish(DeepLinkManager.DeepLinkType.CHANNEL, null, null, true, 0);
             }
         }
     }
@@ -69,7 +70,7 @@ class ChannelDeepLink extends AbsDeepLink {
     @Override
     public void mergeDeepLinkProperty(JSONObject properties) {
         try {
-            properties.put("$deeplink_url", getDeepLinkUrl());
+            properties.put(SAAdvertConstants.Properties.DEEPLINK_URL, getDeepLinkUrl());
         } catch (JSONException e) {
             SALog.printStackTrace(e);
         }

@@ -23,10 +23,13 @@ import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SensorsAnalyticsAutoTrackEventType;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
+import org.junit.Before;
+
 public class SAHelper {
 
     private final static String SA_SERVER_URL = "https://sdkdebugtest.datasink.sensorsdata.cn/sa?project=production&token=cfb8b60e42e0ae9b";
 
+    @Before
     public static SensorsDataAPI initSensors(Context context) {
         SAConfigOptions configOptions = new SAConfigOptions(SA_SERVER_URL);
         // 打开自动采集, 并指定追踪哪些 AutoTrack 事件
@@ -35,9 +38,12 @@ public class SAHelper {
                 SensorsAnalyticsAutoTrackEventType.APP_VIEW_SCREEN |
                 SensorsAnalyticsAutoTrackEventType.APP_CLICK)
                 .enableJavaScriptBridge(true)
+                .enableLog(true)
                 .enableHeatMap(true)
-                .enableVisualizedAutoTrack(true);
+                .enableAutoAddChannelCallbackEvent(true)
+                .enableVisualizedAutoTrack(true).setCustomAdChannelUrl("https://calendar1.slinking.cn");
         SensorsDataAPI.startWithConfigOptions(context, configOptions);
+        SensorsDataAPI.sharedInstance().enableDeepLinkInstallSource(true);
         SensorsDataAPI.sharedInstance(context).trackFragmentAppViewScreen();
         return SensorsDataAPI.sharedInstance();
     }

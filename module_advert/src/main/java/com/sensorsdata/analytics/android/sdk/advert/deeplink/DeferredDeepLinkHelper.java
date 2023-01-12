@@ -19,6 +19,7 @@ package com.sensorsdata.analytics.android.sdk.advert.deeplink;
 
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.advert.SAAdvertConstants;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.advert.R;
 import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
@@ -58,6 +59,7 @@ public class DeferredDeepLinkHelper {
                     private String adSlinkId;
                     private String adSlinkTemplateId;
                     private String adSlinkType;
+                    private JSONObject customParams;
 
                     @Override
                     public void onFailure(int code, String errorMessage) {
@@ -78,6 +80,7 @@ public class DeferredDeepLinkHelper {
                                 adSlinkId = response.optString("ad_slink_id");
                                 adSlinkTemplateId = response.optString("slink_template_id");
                                 adSlinkType = response.optString("slink_type");
+                                customParams = response.optJSONObject("custom_params");
                             } else {
                                 errorMsg = response.optString("msg");
                             }
@@ -95,46 +98,52 @@ public class DeferredDeepLinkHelper {
                         final JSONObject properties = new JSONObject();
                         try {
                             if (!TextUtils.isEmpty(parameter)) {
-                                properties.put("$deeplink_options", parameter);
+                                properties.put(SAAdvertConstants.Properties.DEEPLINK_OPTIONS, parameter);
                             }
                             if (!TextUtils.isEmpty(errorMsg)) {
-                                properties.put("$deeplink_match_fail_reason", errorMsg);
+                                properties.put(SAAdvertConstants.Properties.MATCH_FAIL_REASON, errorMsg);
                             }
                             if (!TextUtils.isEmpty(adChannel)) {
-                                properties.put("$ad_deeplink_channel_info", adChannel);
+                                properties.put(SAAdvertConstants.Properties.CHANNEL_INFO, adChannel);
                             }
                             if (!TextUtils.isEmpty(adSlinkId)) {
-                                properties.put("$ad_slink_id", adSlinkId);
+                                properties.put(SAAdvertConstants.Properties.SLINK_ID, adSlinkId);
                             }
-                            properties.put("$ad_app_match_type", "deferred deeplink");
+                            properties.put(SAAdvertConstants.Properties.MATCH_TYPE, "deferred deeplink");
                             properties.put("$event_duration", TimeUtils.duration(duration));
-                            properties.put("$ad_device_info", jsonData.get("ids"));
+                            properties.put(SAAdvertConstants.Properties.DEVICE_INFO, jsonData.get("ids"));
                             if (!TextUtils.isEmpty(adSlinkTemplateId)) {
-                                properties.put("$ad_slink_template_id", adSlinkTemplateId);
+                                properties.put(SAAdvertConstants.Properties.SLINK_TEMPLATE_ID, adSlinkTemplateId);
                             }
                             if (!TextUtils.isEmpty(adSlinkType)) {
-                                properties.put("$ad_slink_type", adSlinkType);
+                                properties.put(SAAdvertConstants.Properties.SLINK_TYPE, adSlinkType);
+                            }
+                            if (customParams != null && customParams.length() > 0) {
+                                properties.put(SAAdvertConstants.Properties.SLINK_CUSTOM_PARAMS, customParams.toString());
                             }
                             if (callBack != null) {
                                 try {
-                                    if (callBack.onReceive(new SADeepLinkObject(parameter, adChannel, isSuccess, duration)) && isSuccess) {
+                                    if (callBack.onReceive(new SADeepLinkObject(parameter, customParams, adChannel, isSuccess, duration)) && isSuccess) {
                                         final JSONObject jsonObject = new JSONObject();
-                                        jsonObject.put("$deeplink_options", parameter);
+                                        jsonObject.put(SAAdvertConstants.Properties.DEEPLINK_OPTIONS, parameter);
                                         if (!TextUtils.isEmpty(adSlinkId)) {
-                                            jsonObject.put("$ad_slink_id", adSlinkId);
+                                            jsonObject.put(SAAdvertConstants.Properties.SLINK_ID, adSlinkId);
+                                        }
+                                        if (customParams != null && customParams.length() > 0) {
+                                            jsonObject.put(SAAdvertConstants.Properties.SLINK_CUSTOM_PARAMS, customParams.toString());
                                         }
                                         if (!TextUtils.isEmpty(adSlinkTemplateId)) {
-                                            properties.put("$ad_slink_template_id", adSlinkTemplateId);
+                                            properties.put(SAAdvertConstants.Properties.SLINK_TEMPLATE_ID, adSlinkTemplateId);
                                         }
                                         if (!TextUtils.isEmpty(adSlinkType)) {
-                                            properties.put("$ad_slink_type", adSlinkType);
+                                            properties.put(SAAdvertConstants.Properties.SLINK_TYPE, adSlinkType);
                                         }
                                         JSONUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), jsonObject);
                                         SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
                                             @Override
                                             public void run() {
                                                 SACoreHelper.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK)
-                                                        .setEventName("$AdAppDeferredDeepLinkJump").setProperties(jsonObject));
+                                                        .setEventName(SAAdvertConstants.EventName.DEFERRED_DEEPLINK_JUMP).setProperties(jsonObject));
                                             }
                                         });
                                     }
@@ -142,14 +151,14 @@ public class DeferredDeepLinkHelper {
                                     SALog.printStackTrace(e);
                                 }
                             } else if (isSuccess) {
-                                properties.put("$deeplink_match_fail_reason", SADisplayUtil.getStringResource(sensorsDataAPI.getSAContextManager().getContext(), R.string.sensors_analytics_ad_listener));
+                                properties.put(SAAdvertConstants.Properties.MATCH_FAIL_REASON, SADisplayUtil.getStringResource(sensorsDataAPI.getSAContextManager().getContext(), R.string.sensors_analytics_ad_listener));
                             }
                             JSONUtils.mergeJSONObject(ChannelUtils.getUtmProperties(), properties);
                             SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
                                 @Override
                                 public void run() {
                                     SACoreHelper.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK)
-                                            .setEventName("$AppDeeplinkMatchedResult").setProperties(properties));
+                                            .setEventName(SAAdvertConstants.EventName.MATCH_RESULT).setProperties(properties));
                                 }
                             });
                         } catch (Exception e) {

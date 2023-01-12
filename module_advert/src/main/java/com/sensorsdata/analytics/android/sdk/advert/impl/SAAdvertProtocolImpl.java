@@ -24,6 +24,7 @@ import android.content.Context;
 import android.net.Uri;
 
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
+import com.sensorsdata.analytics.android.sdk.advert.SAAdvertConstants;
 import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
@@ -194,7 +195,7 @@ public class SAAdvertProtocolImpl {
     private void trackDeepLinkLaunch(String deepLinkUrl, final String oaid) {
         final JSONObject properties = new JSONObject();
         try {
-            properties.put("$deeplink_url", deepLinkUrl);
+            properties.put(SAAdvertConstants.Properties.DEEPLINK_URL, deepLinkUrl);
             properties.put("$time", new Date(System.currentTimeMillis()));
         } catch (Exception e) {
             SALog.printStackTrace(e);

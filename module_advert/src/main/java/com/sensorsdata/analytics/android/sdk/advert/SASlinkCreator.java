@@ -54,7 +54,8 @@ public class SASlinkCreator {
     private String mUtmTerm = "";
     private String mUtmContent = "";
     private SATLandingPageType mLandingPageType;
-    private JSONObject mCustomProperties = new JSONObject();
+    private JSONObject mCustomParams = new JSONObject();
+    private JSONObject mSystemParams = new JSONObject();
     private String mRouteParam;
     private Map<String, String> mLandingPage = new HashMap<>();
 
@@ -73,8 +74,14 @@ public class SASlinkCreator {
         this.mToken = accessToken;
     }
 
-    public SASlinkCreator setCustomParams(JSONObject properties) {
-        mCustomProperties = properties;
+    /**
+     * set custom params
+     *
+     * @param params custom params
+     * @return SALinkCreator
+     */
+    public SASlinkCreator setCustomParams(JSONObject params) {
+        mCustomParams = params;
         return this;
     }
 
@@ -168,19 +175,8 @@ public class SASlinkCreator {
         return this;
     }
 
-    public JSONObject getCustomProperties() {
-        return mCustomProperties;
-    }
-
-    /**
-     * set custom params
-     *
-     * @param customProperties custom params
-     * @return SALinkCreator
-     */
-    public SASlinkCreator setCustomProperties(JSONObject customProperties) {
-        this.mCustomProperties = customProperties;
-        return this;
+    public JSONObject getCustomParams() {
+        return mCustomParams;
     }
 
     public String getUtmSource() {
@@ -274,6 +270,21 @@ public class SASlinkCreator {
     }
 
     /**
+     * set system params
+     *
+     * @param systemParams system params
+     * @return SASlinkCreator
+     */
+    public SASlinkCreator setSystemParams(JSONObject systemParams) {
+        this.mSystemParams = systemParams;
+        return this;
+    }
+
+    public JSONObject getSystemParams() {
+        return mSystemParams;
+    }
+
+    /**
      * create share link
      *
      * @param context context
@@ -295,7 +306,8 @@ public class SASlinkCreator {
                 paramObj.put("name", getName());
                 paramObj.put("channel_type", "app_share");
                 paramObj.put("channel_name", mChannelName);
-                paramObj.put("custom_param", getCustomProperties());
+                paramObj.put("custom_param", getCustomParams());
+                paramObj.put("system_param", getSystemParams());
                 paramObj.put("route_param", getRouteParam());
                 paramObj.put("fixed_param", new JSONObject()
                         .put("channel_utm_campaign", getUtmCampaign())
@@ -399,20 +411,20 @@ public class SASlinkCreator {
         response.commonRedirectURI = mCommonRedirectURI;
         JSONObject params = new JSONObject();
         try {
-            params.put("$ad_dynamic_slink_channel_type", "app_share")
-                    .put("$ad_dynamic_slink_source", "Android")
-                    .put("$ad_dynamic_slink_channel_name", mChannelName)
-                    .put("$ad_dynamic_slink_data", "")
-                    .put("$ad_dynamic_slink_short_url", shareLink)
-                    .put("$ad_dynamic_slink_status", responseCode)
-                    .put("$ad_dynamic_slink_msg", responseMsg.length() <= 200 ? responseMsg : responseMsg.substring(0, 200))
-                    .put("$ad_slink_id", slinkId)
-                    .put("$ad_slink_template_id", mTemplateID)
-                    .put("$ad_slink_type", "dynamic");
+            params.put(SAAdvertConstants.Properties.DYNAMIC_SLINK_CHANNEL_TYPE, "app_share")
+                    .put(SAAdvertConstants.Properties.DYNAMIC_SLINK_SOURCE, "Android")
+                    .put(SAAdvertConstants.Properties.DYNAMIC_SLINK_CHANNEL_NAME, mChannelName)
+                    .put(SAAdvertConstants.Properties.DYNAMIC_SLINK_DATA, "")
+                    .put(SAAdvertConstants.Properties.DYNAMIC_SLINK_SHORT_URL, shareLink)
+                    .put(SAAdvertConstants.Properties.DYNAMIC_SLINK_STATUS, responseCode)
+                    .put(SAAdvertConstants.Properties.DYNAMIC_SLINK_MSG, responseMsg.length() <= 200 ? responseMsg : responseMsg.substring(0, 200))
+                    .put(SAAdvertConstants.Properties.SLINK_ID, slinkId)
+                    .put(SAAdvertConstants.Properties.SLINK_TEMPLATE_ID, mTemplateID)
+                    .put(SAAdvertConstants.Properties.SLINK_TYPE, "dynamic");
         } catch (JSONException e) {
             SALog.printStackTrace(e);
         }
-        SensorsDataAPI.sharedInstance().track("$AdDynamicSlinkCreate", params);
+        SensorsDataAPI.sharedInstance().track(SAAdvertConstants.EventName.DYNAMIC_SLINK_CREATE, params);
         if (callback != null) {
             callback.onReceive(response);
         }

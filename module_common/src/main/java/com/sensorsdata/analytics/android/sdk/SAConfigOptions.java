@@ -533,7 +533,7 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
      * @param callback DeepLink 与 Deferred DeepLink接口回调
      * @return SAConfigOptions
      */
-    public SAConfigOptions setDeepLinkCompletion(SensorsDataDeferredDeepLinkCallback callback){
+    public SAConfigOptions setDeepLinkCompletion(SensorsDataDeferredDeepLinkCallback callback) {
         this.mDeeplinkCallback = callback;
         return this;
     }
@@ -546,6 +546,17 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
      */
     public SAConfigOptions registerLimitKeys(Map<String, String> limitKeys) {
         this.mLimitKeys = limitKeys;
+        return this;
+    }
+
+    /**
+     * 实时数据发送事件列表
+     *
+     * @param listInstantEvents 实时事件列表
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions setInstantEvents(List<String> listInstantEvents) {
+        mListInstantEvents = listInstantEvents;
         return this;
     }
 }

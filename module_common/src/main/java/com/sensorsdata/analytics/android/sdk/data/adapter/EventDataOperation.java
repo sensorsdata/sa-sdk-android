@@ -25,8 +25,11 @@ import android.net.Uri;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.core.business.instantevent.InstantEventUtils;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
+
 
 class EventDataOperation extends DataOperation {
 
@@ -41,10 +44,12 @@ class EventDataOperation extends DataOperation {
             if (deleteDataLowMemory(uri) != 0) {
                 return DbParams.DB_OUT_OF_MEMORY_ERROR;
             }
+            int instant_event = InstantEventUtils.isInstantEvent(jsonObject);
             ContentValues cv = new ContentValues();
             String eventJson = jsonObject.toString();
             cv.put(DbParams.KEY_DATA, eventJson + "\t" + eventJson.hashCode());
             cv.put(DbParams.KEY_CREATED_AT, System.currentTimeMillis());
+            cv.put(DbParams.KEY_IS_INSTANT_EVENT, instant_event);
             contentResolver.insert(uri, cv);
         } catch (Throwable e) {
             SALog.i(TAG, e.getMessage());
@@ -67,11 +72,21 @@ class EventDataOperation extends DataOperation {
 
     @Override
     String[] queryData(Uri uri, int limit) {
+        return queryData(uri, false, limit);
+    }
+
+    @Override
+    String[] queryData(Uri uri, boolean is_instant_event, int limit) {
         Cursor cursor = null;
         String data = null;
-        String last_id = null;
+        String eventIds = null;
+        JSONArray idArray = new JSONArray();
         try {
-            cursor = contentResolver.query(uri, null, null, null, DbParams.KEY_CREATED_AT + " ASC LIMIT " + limit);
+            String instant_event = "0";
+            if (is_instant_event) {
+                instant_event = "1";
+            }
+            cursor = contentResolver.query(uri, null, DbParams.KEY_IS_INSTANT_EVENT + "=?", new String[]{instant_event}, DbParams.KEY_CREATED_AT + " ASC LIMIT " + limit);
             if (cursor != null) {
                 StringBuilder dataBuilder = new StringBuilder();
                 final String flush_time = ",\"_flush_time\":";
@@ -81,8 +96,9 @@ class EventDataOperation extends DataOperation {
                 while (cursor.moveToNext()) {
                     if (cursor.isLast()) {
                         suffix = "]";
-                        last_id = cursor.getString(cursor.getColumnIndexOrThrow("_id"));
                     }
+                    String eventId = cursor.getString(cursor.getColumnIndexOrThrow("_id"));
+                    idArray.put(eventId);
                     try {
                         keyData = cursor.getString(cursor.getColumnIndexOrThrow(DbParams.KEY_DATA));
                         keyData = parseData(keyData);
@@ -97,10 +113,13 @@ class EventDataOperation extends DataOperation {
                     }
                 }
                 data = dataBuilder.toString();
+                if (idArray.length() > 0) {
+                    eventIds = idArray.toString();
+                }
             }
         } catch (final SQLiteException e) {
             SALog.i(TAG, "Could not pull records for SensorsData out of database events. Waiting to send.", e);
-            last_id = null;
+            eventIds = null;
             data = null;
         } finally {
             if (cursor != null) {
@@ -108,8 +127,8 @@ class EventDataOperation extends DataOperation {
             }
         }
 
-        if (last_id != null) {
-            return new String[]{last_id, data, DbParams.GZIP_DATA_EVENT};
+        if (eventIds != null) {
+            return new String[]{eventIds, data, DbParams.GZIP_DATA_EVENT};
         }
         return null;
     }

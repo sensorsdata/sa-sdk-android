@@ -124,7 +124,10 @@ public class AutoTrackViewUtils {
         }
 
         if (TextUtils.isEmpty(viewText)) {
-            viewText = ReflectUtil.callMethod(tab, "getText");
+            Object obj_text = ReflectUtil.callMethod(tab, "getText");
+            if (obj_text != null) {
+                viewText = obj_text.toString();
+            }
         }
         return viewText;
     }

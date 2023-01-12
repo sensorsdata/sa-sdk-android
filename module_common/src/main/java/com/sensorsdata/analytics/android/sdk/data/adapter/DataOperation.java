@@ -27,6 +27,8 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -61,13 +63,30 @@ abstract class DataOperation {
      */
     abstract String[] queryData(Uri uri, int limit);
 
+    abstract String[] queryData(Uri uri, boolean is_instant_event, int limit);
+
     /**
-     * query data count
+     * 查收数据库数据
      *
-     * @param uri Uri
-     * @return data count
+     * @param uri 查询的 uri
+     * @param select 0 代表查询非实时数据，1 代表查询实时数据，2代表查询总数据
+     * @return 返回查询的数据条数
      */
-    int queryDataCount(Uri uri) {
+    int queryDataCount(Uri uri, int select) {
+        String[] selectionArgs = null;
+        switch (select) {
+            case 0:
+                selectionArgs = new String[]{"0"};
+                break;
+            case 1:
+                selectionArgs = new String[]{"1"};
+                break;
+            default:
+                break;
+        }
+        if (selectionArgs != null) {
+            return queryDataCount(uri, null, DbParams.KEY_IS_INSTANT_EVENT + "=?", selectionArgs, null);
+        }
         return queryDataCount(uri, null, null, null, null);
     }
 
@@ -107,6 +126,21 @@ abstract class DataOperation {
         }
     }
 
+    /**
+     * 删除指定 id 的 event 数据
+     *
+     * @param uri Uri
+     * @param ids 指定的 id 集合
+     * @return 数据库中遗留数据条数
+     */
+    public void deleteData(Uri uri, JSONArray ids) {
+        try {
+            mContext.getContentResolver().delete(uri, "_id in " + buildIds(ids), null);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
     String parseData(String keyData) {
         try {
             if (TextUtils.isEmpty(keyData)) return "";
@@ -125,7 +159,6 @@ abstract class DataOperation {
         return keyData;
     }
 
-
     /**
      * delete data when db is full
      *
@@ -142,7 +175,7 @@ abstract class DataOperation {
 
             final String lastId = eventsData[0];
             deleteData(uri, lastId);
-            if (queryDataCount(uri) <= 0) {
+            if (queryDataCount(uri, 2) <= 0) {
                 return DbParams.DB_OUT_OF_MEMORY_ERROR;
             }
         }
@@ -166,5 +199,24 @@ abstract class DataOperation {
             return mDatabaseFile.length() >= getMaxCacheSize(mContext);
         }
         return false;
+    }
+
+    /**
+     * 构造 SQL 中的 id 集合
+     *
+     * @param idArray id 集合
+     * @return SQL 中 id 语句
+     */
+    private String buildIds(JSONArray idArray) throws JSONException {
+        StringBuilder idArgs = new StringBuilder();
+        idArgs.append("(");
+        if (idArray != null && idArray.length() > 0) {
+            for (int index = 0; index < idArray.length(); index++) {
+                idArgs.append(idArray.get(index)).append(",");
+            }
+            idArgs.replace(idArgs.length() - 1, idArgs.length(), "");
+        }
+        idArgs.append(")");
+        return idArgs.toString();
     }
 }

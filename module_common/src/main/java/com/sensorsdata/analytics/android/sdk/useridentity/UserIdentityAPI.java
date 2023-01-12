@@ -49,11 +49,7 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
         this.mAnonymousId = PersistentLoader.getInstance().getAnonymousIdPst();
         mIdentitiesInstance = new Identities();
         try {
-            String mayEmpty_anonymousId = null;
-            if (this.mAnonymousId != null && this.mAnonymousId.isExists()) {
-                mayEmpty_anonymousId = mAnonymousId.get();
-            }
-            mIdentitiesInstance.init(mayEmpty_anonymousId, SensorsDataUtils.getIdentifier(contextManager.getContext()), mAnonymousId.get());
+            mIdentitiesInstance.init(SensorsDataUtils.getIdentifier(contextManager.getContext()), mAnonymousId.get());
             mLoginIdValue = mIdentitiesInstance.getJointLoginID();
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -103,9 +99,6 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
                     newDistinctId = UUID.randomUUID().toString();
                 }
                 mAnonymousId.commit(newDistinctId);
-                if (mIdentitiesInstance.getIdentities(Identities.State.DEFAULT).has(Identities.ANONYMOUS_ID)) {
-                    mIdentitiesInstance.updateSpecialIDKeyAndValue(Identities.SpecialID.ANONYMOUS_ID, mAnonymousId.get());
-                }
                 // 通知调用 resetAnonymousId 接口
                 if (mSAContextManager.getEventListenerList() != null) {
                     for (SAEventListener eventListener : mSAContextManager.getEventListenerList()) {

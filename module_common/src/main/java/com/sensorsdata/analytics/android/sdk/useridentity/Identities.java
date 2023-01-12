@@ -50,19 +50,18 @@ public class Identities {
     /**
      * 主要是 SDK 初始化的时候进行初始化 Identities
      *
-     * @param mayEmpty_anonymousId 进行判断本地是否存储 anonymousId，有存储获取，未存储则是 null
      * @param androidId android_id
      * @param anonymousId 获取本地的 anonymousId，未存储的会创建文件
      * @throws JSONException 抛出 JSONException 异常
      */
-    public void init(String mayEmpty_anonymousId, String androidId, String anonymousId) throws JSONException {
+    public void init(String androidId, String anonymousId) throws JSONException {
         String oldLoginIDKey = Local.getLoginIdKeyFromLocal();
         String oldLoginID = Local.getLoginIdFromLocal();
         mLoginIDAndKey.init(oldLoginIDKey);
         //1. SP 文件缓存读取
         JSONObject identities = getInitIdentities();
         //2.构建 identities：主要针对特殊 ID 处理
-        identities = createIdentities(identities, mayEmpty_anonymousId, androidId, anonymousId);
+        identities = createIdentities(identities, androidId, anonymousId);
         //3.针对 loginIDKey、loginID 处理
         initLoginIDAndKeyIdentities(oldLoginIDKey, oldLoginID, identities);
         //4.本地保存 identities
@@ -73,7 +72,7 @@ public class Identities {
     private void initLoginIDAndKeyIdentities(String oldLoginIDKey, String oldLoginID, JSONObject identities) throws JSONException {
         if (TextUtils.isEmpty(oldLoginID)) {
             if (identities.has(oldLoginIDKey)) {
-                clearIdentities(Arrays.asList(ANDROID_ID, ANDROID_UUID, ANONYMOUS_ID), identities);
+                clearIdentities(Arrays.asList(ANDROID_ID, ANDROID_UUID), identities);
                 mLoginIDAndKey.setLoginIDKey("");
             }
         } else {
@@ -90,22 +89,14 @@ public class Identities {
         }
     }
 
-    private JSONObject createIdentities(JSONObject identities, String mayEmpty_anonymousId, String androidId, String anonymousId) throws JSONException {
+    private JSONObject createIdentities(JSONObject identities, String androidId, String anonymousId) throws JSONException {
         JSONObject tmp_identities = identities;
         if (tmp_identities == null) {
             tmp_identities = new JSONObject();
-            // 判断匿名 ID 是否存在
-            if (mayEmpty_anonymousId != null) {
-                tmp_identities.put(ANONYMOUS_ID, mayEmpty_anonymousId);
-            }
             if (SensorsDataUtils.isValidAndroidId(androidId)) {
                 tmp_identities.put(ANDROID_ID, androidId);
             } else {
                 tmp_identities.put(ANDROID_UUID, anonymousId);
-            }
-        } else {
-            if (tmp_identities.has(ANONYMOUS_ID)) {
-                tmp_identities.put(ANONYMOUS_ID, anonymousId);
             }
         }
         return tmp_identities;
@@ -205,9 +196,6 @@ public class Identities {
      */
     public void updateSpecialIDKeyAndValue(SpecialID specialID, String value) throws JSONException {
         switch (specialID) {
-            case ANONYMOUS_ID:
-                mIdentities.put(ANONYMOUS_ID, value);
-                break;
             case ANDROID_ID:
                 mIdentities.put(ANDROID_ID, value);
                 break;

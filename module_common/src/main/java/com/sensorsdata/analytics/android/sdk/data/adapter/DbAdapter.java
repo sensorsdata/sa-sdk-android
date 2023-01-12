@@ -25,6 +25,7 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentRemoteSDKConfig;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -69,7 +70,7 @@ public class DbAdapter {
     public int addJSON(JSONObject j) {
         int code = mTrackEventOperation.insertData(mDbParams.getEventUri(), j);
         if (code == 0) {
-            return mTrackEventOperation.queryDataCount(mDbParams.getEventUri());
+            return mTrackEventOperation.queryDataCount(mDbParams.getEventUri(), 2);
         }
         return code;
     }
@@ -81,15 +82,9 @@ public class DbAdapter {
         mTrackEventOperation.deleteData(mDbParams.getEventUri(), DbParams.DB_DELETE_ALL);
     }
 
-    /**
-     * Removes events with an _id &lt;= last_id from table
-     *
-     * @param last_id the last id to delete
-     * @return the number of rows in the table
-     */
-    public int cleanupEvents(String last_id) {
-        mTrackEventOperation.deleteData(mDbParams.getEventUri(), last_id);
-        return mTrackEventOperation.queryDataCount(mDbParams.getEventUri());
+    public int cleanupEvents(JSONArray ids, boolean is_instant_event) {
+        mTrackEventOperation.deleteData(mDbParams.getEventUri(), ids);
+        return mTrackEventOperation.queryDataCount(mDbParams.getEventUri(), is_instant_event ? 1 : 0);
     }
 
     /**
@@ -434,7 +429,6 @@ public class DbAdapter {
         return "";
     }
 
-
     public void removePushId(String key) {
         mPersistentOperation.deleteData(mDbParams.getPushIdUri(), key);
     }
@@ -444,11 +438,12 @@ public class DbAdapter {
      *
      * @param tableName 表名
      * @param limit 条数限制
+     * @param is_instant_event 是否实时数据
      * @return 数据
      */
-    public String[] generateDataString(String tableName, int limit) {
+    public String[] generateDataString(String tableName, int limit, boolean is_instant_event) {
         try {
-            return mTrackEventOperation.queryData(mDbParams.getEventUri(), limit);
+            return mTrackEventOperation.queryData(mDbParams.getEventUri(), is_instant_event, limit);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }

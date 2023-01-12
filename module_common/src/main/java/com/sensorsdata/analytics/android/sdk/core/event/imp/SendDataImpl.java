@@ -22,6 +22,7 @@ import android.content.Context;
 import com.sensorsdata.analytics.android.sdk.AnalyticsMessages;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
+import com.sensorsdata.analytics.android.sdk.core.business.instantevent.InstantEventUtils;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
 import com.sensorsdata.analytics.android.sdk.core.event.EventProcessor;
@@ -39,10 +40,15 @@ public class SendDataImpl implements EventProcessor.ISendData {
     @Override
     public void sendData(InputData inputData, int code) {
         try {
-            AnalyticsMessages.getInstance(mContext.getApplicationContext()).flushEventMessage(code < 0
-                    || code > mInternalConfigs.saConfigOptions.getFlushBulkSize()
-                    || mInternalConfigs.debugMode.isDebugMode()
-                    || inputData.getEventType() == EventType.TRACK_SIGNUP);
+            if (InstantEventUtils.isInstantEvent(inputData)) {
+                //实时数据发送
+                AnalyticsMessages.getInstance(mContext.getApplicationContext()).flushInstanceEvent();
+            } else {
+                AnalyticsMessages.getInstance(mContext.getApplicationContext()).flushEventMessage(code < 0
+                        || code > mInternalConfigs.saConfigOptions.getFlushBulkSize()
+                        || mInternalConfigs.debugMode.isDebugMode()
+                        || inputData.getEventType() == EventType.TRACK_SIGNUP);
+            }
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }

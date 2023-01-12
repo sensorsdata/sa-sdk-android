@@ -235,6 +235,11 @@ abstract class AbstractSAConfigOptions {
     Map<String, String> mLimitKeys;
 
     /**
+     * 实时事件列表 List
+     */
+    List<String> mListInstantEvents;
+
+    /**
      * 是否开启 DeepLink
      *
      * @return true 开启，false 未开启
@@ -431,15 +436,19 @@ abstract class AbstractSAConfigOptions {
         return mDisableDebugAssistant;
     }
 
-    public SensorsDataDeferredDeepLinkCallback getDeeplinkCallback(){
+    public SensorsDataDeferredDeepLinkCallback getDeeplinkCallback() {
         return mDeeplinkCallback;
     }
-    
+
     public Map<String, String> getLimitKeys() {
         return mLimitKeys;
     }
 
-    public String getAnonymousId(){
+    public List<String> getInstantEvents() {
+        return mListInstantEvents;
+    }
+
+    public String getAnonymousId() {
         return mAnonymousId;
     }
 }

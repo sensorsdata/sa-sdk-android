@@ -24,9 +24,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.advert.SAAdvertConstants;
 import com.sensorsdata.analytics.android.sdk.advert.oaid.SAOaidHelper;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
-import com.sensorsdata.analytics.android.sdk.advert.SAAdvertConstants;
 import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
@@ -139,7 +139,7 @@ public class DeepLinkManager {
         final JSONObject properties = new JSONObject();
         final boolean isDeepLinkInstallSource = deepLink instanceof SensorsDataDeepLink && mEnableDeepLinkInstallSource;
         try {
-            properties.put("$deeplink_url", deepLink.getDeepLinkUrl());
+            properties.put(SAAdvertConstants.Properties.DEEPLINK_URL, deepLink.getDeepLinkUrl());
             properties.put("$time", new Date(System.currentTimeMillis()));
         } catch (JSONException e) {
             SALog.printStackTrace(e);
@@ -158,13 +158,13 @@ public class DeepLinkManager {
                     }
                 }
                 SACoreHelper.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK)
-                        .setEventName("$AppDeeplinkLaunch").setProperties(properties));
+                        .setEventName(SAAdvertConstants.EventName.DEEPLINK_LAUNCH).setProperties(properties));
             }
         });
     }
 
     public interface OnDeepLinkParseFinishCallback {
-        void onFinish(DeepLinkType deepLinkStatus, String pageParams, boolean success, long duration);
+        void onFinish(DeepLinkType deepLinkStatus, String pageParams, JSONObject customParams, boolean success, long duration);
     }
 
 
@@ -212,7 +212,7 @@ public class DeepLinkManager {
             // 注册 DeepLink 解析完成 callback.
             mDeepLinkProcessor.setDeepLinkParseFinishCallback(new OnDeepLinkParseFinishCallback() {
                 @Override
-                public void onFinish(DeepLinkType deepLinkStatus, String params, boolean success, long duration) {
+                public void onFinish(DeepLinkType deepLinkStatus, String params, JSONObject customParams, boolean success, long duration) {
                     if (isSaveDeepLinkInfo) {
                         ChannelUtils.saveDeepLinkInfo();
                     }
@@ -221,7 +221,7 @@ public class DeepLinkManager {
                     if (deepLinkStatus == DeepLinkType.SENSORSDATA) {
                         try {
                             if (null != mDeferredDeepLinkCallback) {
-                                mDeferredDeepLinkCallback.onReceive(new SADeepLinkObject(params, "", success, duration));
+                                mDeferredDeepLinkCallback.onReceive(new SADeepLinkObject(params, customParams, "", success, duration));
                             } else if (null != mDeepLinkCallback) {
                                 mDeepLinkCallback.onReceive(params, success, duration);
                             }

@@ -40,6 +40,8 @@ import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
+import org.json.JSONArray;
+
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
@@ -65,6 +67,7 @@ public class AnalyticsMessages {
     private static final int FLUSH_QUEUE = 3;
     private static final int DELETE_ALL = 4;
     private static final int FLUSH_SCHEDULE = 5;
+    private static final int FLUSH_INSTANT_EVENT = 7;
     private static final Map<Context, AnalyticsMessages> S_INSTANCES = new HashMap<>();
     private final Worker mWorker;
     private final Context mContext;
@@ -135,6 +138,17 @@ public class AnalyticsMessages {
         }
     }
 
+    public void flushInstanceEvent() {
+        try {
+            final Message m = Message.obtain();
+            m.what = FLUSH_INSTANT_EVENT;
+
+            mWorker.runMessage(m);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
     public void flush() {
         try {
             final Message m = Message.obtain();
@@ -168,42 +182,49 @@ public class AnalyticsMessages {
         }
     }
 
-    private void sendData() {
+    private boolean sendCheck() {
         try {
             if (!mSensorsDataAPI.isNetworkRequestEnable()) {
                 SALog.i(TAG, "NetworkRequest is disabled");
-                return;
+                return false;
             }
 
             if (TextUtils.isEmpty(mSensorsDataAPI.getServerUrl())) {
                 SALog.i(TAG, "Server url is null or empty.");
-                return;
+                return false;
             }
 
             //无网络
             if (!NetworkUtils.isNetworkAvailable(mContext)) {
-                return;
+                return false;
             }
 
             //不符合同步数据的网络策略
             String networkType = NetworkUtils.networkType(mContext);
             if (!NetworkUtils.isShouldFlush(networkType, mSensorsDataAPI.getSAContextManager().getInternalConfigs().saConfigOptions.mNetworkTypePolicy)) {
                 SALog.i(TAG, String.format("Invalid NetworkType = %s", networkType));
-                return;
+                return false;
             }
 
             // 如果开启多进程上报
             if (mInternalConfigs.saConfigOptions.isMultiProcessFlush()) {
                 // 已经有进程在上报
                 if (DbAdapter.getInstance().isSubProcessFlushing()) {
-                    return;
+                    return false;
                 }
                 DbAdapter.getInstance().commitSubProcessFlushState(true);
             } else if (!mInternalConfigs.isMainProcess) {//不是主进程
-                return;
+                return false;
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
+            return false;
+        }
+        return true;
+    }
+
+    private void sendData(boolean is_instant_event) {
+        if (!sendCheck()) {
             return;
         }
         int count = 100;
@@ -213,9 +234,9 @@ public class AnalyticsMessages {
             synchronized (mDbAdapter) {
                 if (mSensorsDataAPI.isDebugMode()) {
                     /* debug 模式下服务器只允许接收 1 条数据 */
-                    eventsData = mDbAdapter.generateDataString(DbParams.TABLE_EVENTS, 1);
+                    eventsData = mDbAdapter.generateDataString(DbParams.TABLE_EVENTS, 1, is_instant_event);
                 } else {
-                    eventsData = mDbAdapter.generateDataString(DbParams.TABLE_EVENTS, 50);
+                    eventsData = mDbAdapter.generateDataString(DbParams.TABLE_EVENTS, 50, is_instant_event);
                 }
             }
 
@@ -224,7 +245,7 @@ public class AnalyticsMessages {
                 return;
             }
 
-            final String lastId = eventsData[0];
+            final String eventIds = eventsData[0];
             final String rawMessage = eventsData[1];
             final String gzip = eventsData[2];
             String errorMessage = null;
@@ -236,7 +257,7 @@ public class AnalyticsMessages {
                 }
 
                 if (!TextUtils.isEmpty(data)) {
-                    sendHttpRequest(mSensorsDataAPI.getServerUrl(), data, gzip, rawMessage, false);
+                    sendHttpRequest(mSensorsDataAPI.getServerUrl(), data, gzip, rawMessage, false, is_instant_event);
                 }
             } catch (ConnectErrorException e) {
                 deleteEvents = false;
@@ -260,12 +281,15 @@ public class AnalyticsMessages {
                     }
                 }
                 if (deleteEvents || isDebugMode) {
-                    count = mDbAdapter.cleanupEvents(lastId);
+                    try {
+                        count = mDbAdapter.cleanupEvents(new JSONArray(eventIds), is_instant_event);
+                    } catch (Exception e) {
+                        SALog.printStackTrace(e);
+                    }
                     SALog.i(TAG, String.format(TimeUtils.SDK_LOCALE, "Events flushed. [left = %d]", count));
                 } else {
                     count = 0;
                 }
-
             }
         }
         if (mInternalConfigs.saConfigOptions.isMultiProcessFlush()) {
@@ -273,7 +297,7 @@ public class AnalyticsMessages {
         }
     }
 
-    private void sendHttpRequest(String path, String data, String gzip, String rawMessage, boolean isRedirects) throws ConnectErrorException, ResponseErrorException {
+    private void sendHttpRequest(String path, String data, String gzip, String rawMessage, boolean isRedirects, boolean is_instant_event) throws ConnectErrorException, ResponseErrorException {
         HttpURLConnection connection = null;
         InputStream in = null;
         OutputStream out = null;
@@ -309,6 +333,9 @@ public class AnalyticsMessages {
 
             builder.appendQueryParameter("gzip", gzip);
             builder.appendQueryParameter("data_list", data);
+            if (is_instant_event) {
+                builder.appendQueryParameter("instant_event", "true");
+            }
 
             String query = builder.build().getEncodedQuery();
             if (TextUtils.isEmpty(query)) {
@@ -333,7 +360,7 @@ public class AnalyticsMessages {
                 String location = NetworkUtils.getLocation(connection, path);
                 if (!TextUtils.isEmpty(location)) {
                     closeStream(bout, out, null, connection);
-                    sendHttpRequest(location, data, gzip, rawMessage, true);
+                    sendHttpRequest(location, data, gzip, rawMessage, true, is_instant_event);
                     return;
                 }
             }
@@ -493,7 +520,8 @@ public class AnalyticsMessages {
             public void handleMessage(Message msg) {
                 try {
                     if (msg.what == FLUSH_QUEUE) {
-                        sendData();
+                        sendData(true);
+                        sendData(false);
                     } else if (msg.what == DELETE_ALL) {
                         try {
                             mDbAdapter.deleteAllEvents();
@@ -502,7 +530,9 @@ public class AnalyticsMessages {
                         }
                     } else if (msg.what == FLUSH_SCHEDULE) {
                         flushScheduled();
-                        sendData();
+                        sendData(false);
+                    } else if (msg.what == FLUSH_INSTANT_EVENT) {
+                        sendData(true);
                     } else {
                         SALog.i(TAG, "Unexpected message received by SensorsData worker: " + msg);
                     }

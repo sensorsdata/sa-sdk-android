@@ -1,11 +1,11 @@
 ext {
     versions = [
             // 全量 SDK 版本号
-            sdk_version       : "6.6.1",
+            sdk_version       : "6.6.2",
             // 最小插件版本号依赖
             min_plugin_version: "3.5.2",
             // 子模块版本号
-            module_version    : "0.1.4"
+            module_version    : "0.1.5"
     ]
 
     publish = [
@@ -18,9 +18,9 @@ ext {
     ]
 
     buildConfig = [
-            compileSdkVersion: 31,
+            compileSdkVersion: 33,
             minSdkVersion    : 14,
-            targetSdkVersion : 31,
+            targetSdkVersion : 33,
             sourceJavaVersion: JavaVersion.VERSION_1_7,
             targetJavaVersion: JavaVersion.VERSION_1_7,
             versionCode      : 1,
