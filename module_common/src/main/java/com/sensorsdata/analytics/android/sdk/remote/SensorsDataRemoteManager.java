@@ -18,6 +18,7 @@
 package com.sensorsdata.analytics.android.sdk.remote;
 
 import android.os.CountDownTimer;
+import android.os.Handler;
 import android.os.SystemClock;
 import android.text.TextUtils;
 
@@ -33,6 +34,7 @@ import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.network.HttpCallback;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
+import com.sensorsdata.analytics.android.sdk.util.Dispatcher;
 
 import org.json.JSONObject;
 
@@ -154,6 +156,15 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
                 break;
         }
 
+        Dispatcher.getInstance().post(new Runnable() {
+            @Override
+            public void run() {
+                pullSDKConfigCount(enableConfigV);
+            }
+        });
+    }
+
+    private void pullSDKConfigCount(final boolean enableConfigV) {
         if (mPullSDKConfigCountDownTimer != null) {
             mPullSDKConfigCountDownTimer.cancel();
             mPullSDKConfigCountDownTimer = null;

@@ -42,6 +42,7 @@ import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.DeviceUtils;
+import com.sensorsdata.analytics.android.sdk.util.Dispatcher;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.ReflectUtil;
 import com.sensorsdata.analytics.android.sdk.util.SAPageInfoUtils;
@@ -62,7 +63,6 @@ import com.sensorsdata.analytics.android.sdk.visual.snap.PropertyDescription;
 import com.sensorsdata.analytics.android.sdk.visual.snap.ResourceIds;
 import com.sensorsdata.analytics.android.sdk.visual.snap.SoftWareCanvas;
 import com.sensorsdata.analytics.android.sdk.visual.utils.AlertMessageUtils;
-import com.sensorsdata.analytics.android.sdk.visual.utils.Dispatcher;
 import com.sensorsdata.analytics.android.sdk.visual.utils.VisualUtil;
 
 import org.json.JSONArray;

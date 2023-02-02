@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.visual.utils;
+package com.sensorsdata.analytics.android.sdk.util;
 
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -23,8 +23,8 @@ import android.os.HandlerThread;
 
 public class Dispatcher {
 
-    private static String TAG = Dispatcher.class.getSimpleName();
-    private Handler mHandler;
+    private final static String TAG = Dispatcher.class.getSimpleName();
+    private final Handler mHandler;
 
     public static Dispatcher getInstance() {
         return DispatchHolder.INSTANCE;

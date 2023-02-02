@@ -1,6 +1,6 @@
 /*
- * Created by dengshiwei on 2022/08/09.
- * Copyright 2015－2021 Sensors Data Inc.
+ * Created by dengshiwei on 2023/01/28.
+ * Copyright 2015－2022 Sensors Data Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.sensorsdata.analytics.android.sdk.encrypt;
+package com.sensorsdata.analytics.android.sdk.track;
 
 import org.junit.Test;
 

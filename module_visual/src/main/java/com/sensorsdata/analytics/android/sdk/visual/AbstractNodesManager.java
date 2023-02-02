@@ -4,9 +4,9 @@ import android.text.TextUtils;
 import android.util.LruCache;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.util.Dispatcher;
 import com.sensorsdata.analytics.android.sdk.visual.model.NodeInfo;
 import com.sensorsdata.analytics.android.sdk.visual.model.CommonNode;
-import com.sensorsdata.analytics.android.sdk.visual.utils.Dispatcher;
 
 import org.json.JSONArray;
 import org.json.JSONException;
