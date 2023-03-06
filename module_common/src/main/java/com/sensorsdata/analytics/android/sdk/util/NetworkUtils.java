@@ -74,7 +74,7 @@ public class NetworkUtils {
             }
 
             // 检测权限
-            if (!SensorsDataUtils.checkHasPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
+            if (!PermissionUtils.checkSelfPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
                 networkType = "NULL";
                 return networkType;
             }
@@ -113,7 +113,7 @@ public class NetworkUtils {
     @SuppressLint("WrongConstant")
     public static boolean isNetworkAvailable(Context context) {
         // 检测权限
-        if (!SensorsDataUtils.checkHasPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
+        if (!PermissionUtils.checkSelfPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
             return false;
         }
         try {
@@ -204,6 +204,10 @@ public class NetworkUtils {
                 context.registerReceiver(mReceiver, intentFilter);
                 SALog.i(TAG, "Register BroadcastReceiver");
             } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                        !PermissionUtils.checkSelfPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
+                    return;
+                }
                 if (networkCallback == null) {
                     networkCallback = new SANetworkCallbackImpl();
                 }
@@ -306,14 +310,12 @@ public class NetworkUtils {
         // Mobile network
         int networkType = TelephonyManager.NETWORK_TYPE_UNKNOWN;
         if (telephonyManager != null) {
-            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
-                    && (SensorsDataUtils.checkHasPermission(context, Manifest.permission.READ_PHONE_STATE) || telephonyManager.hasCarrierPrivileges())) {
-                networkType = telephonyManager.getDataNetworkType();
+            if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                networkType = telephonyManager.getNetworkType();
             } else {
-                try {
-                    networkType = telephonyManager.getNetworkType();
-                } catch (Exception ex) {
-                    SALog.printStackTrace(ex);
+                if (PermissionUtils.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) ||
+                        telephonyManager.hasCarrierPrivileges()) {
+                    networkType = telephonyManager.getDataNetworkType();
                 }
             }
         }

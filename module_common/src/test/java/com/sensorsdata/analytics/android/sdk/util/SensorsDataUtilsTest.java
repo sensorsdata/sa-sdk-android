@@ -96,8 +96,8 @@ public class SensorsDataUtilsTest {
 
     @Test
     public void checkHasPermission() {
-        Assert.assertTrue(SensorsDataUtils.checkHasPermission(mApplication, Manifest.permission.READ_PHONE_STATE));
-        Assert.assertTrue(SensorsDataUtils.checkHasPermission(mApplication, Manifest.permission.ACCESS_WIFI_STATE));
+        Assert.assertTrue(PermissionUtils.checkSelfPermission(mApplication, Manifest.permission.READ_PHONE_STATE));
+        Assert.assertTrue(PermissionUtils.checkSelfPermission(mApplication, Manifest.permission.ACCESS_WIFI_STATE));
     }
 
     @Test

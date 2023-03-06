@@ -315,7 +315,6 @@ public abstract class AbstractViewCrawler implements VTrack {
                     gos.close();
                     byte[] compressed = os.toByteArray();
                     os.close();
-
                     writer.write(("\"gzip_payload\": \"" + new String(Base64Coder.encode(compressed)) + "\"").getBytes());
                 } else {
                     writer.write(("\"payload\": {").getBytes());
@@ -406,6 +405,7 @@ public abstract class AbstractViewCrawler implements VTrack {
                     SALog.i(TAG, "Can't close writer.", e);
                 }
             }
+            SALog.i(TAG, "sendSnapshot = " + out);
             onSnapFinished(info);
             postSnapshot(out);
         }

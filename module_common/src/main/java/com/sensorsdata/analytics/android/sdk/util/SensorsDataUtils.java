@@ -33,7 +33,6 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.R;
-import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.business.SAPropertyManager;
 import com.sensorsdata.analytics.android.sdk.internal.beans.LimitKey;
@@ -47,11 +46,9 @@ import java.net.NetworkInterface;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 public final class SensorsDataUtils {
 
@@ -59,7 +56,6 @@ public final class SensorsDataUtils {
     private static final String SHARED_PREF_APP_VERSION = "sensorsdata.app.version";
     public static final String COMMAND_HARMONYOS_VERSION = "getprop hw_sc.build.platform.version";
 
-    private static final Set<String> mPermissionGrantedSet = new HashSet<>();
     private static final Map<String, String> deviceUniqueIdentifiersMap = new HashMap<>();
 
     private static boolean isUniApp = false;
@@ -89,7 +85,7 @@ public final class SensorsDataUtils {
             if (SAPropertyManager.getInstance().isLimitKey(LimitKey.CARRIER)) {
                 return SAPropertyManager.getInstance().getLimitValue(LimitKey.CARRIER);
             }
-            if (TextUtils.isEmpty(mCurrentCarrier) && SensorsDataUtils.checkHasPermission(context, Manifest.permission.READ_PHONE_STATE)) {
+            if (TextUtils.isEmpty(mCurrentCarrier)) {
                 try {
                     TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context
                             .TELEPHONY_SERVICE);
@@ -327,53 +323,6 @@ public final class SensorsDataUtils {
     }
 
     /**
-     * 检测权限
-     *
-     * @param context Context
-     * @param permission 权限名称
-     * @return true:已允许该权限; false:没有允许该权限
-     */
-    public static boolean checkHasPermission(Context context, String permission) {
-        try {
-            if (mPermissionGrantedSet.contains(permission)) {
-                return true;
-            }
-            Class<?> contextCompat = null;
-            try {
-                contextCompat = Class.forName("android.support.v4.content.ContextCompat");
-            } catch (Exception e) {
-                //ignored
-            }
-
-            if (contextCompat == null) {
-                try {
-                    contextCompat = Class.forName("androidx.core.content.ContextCompat");
-                } catch (Exception e) {
-                    //ignored
-                }
-            }
-
-            if (contextCompat == null) {
-                mPermissionGrantedSet.add(permission);
-                return true;
-            }
-
-            Method checkSelfPermissionMethod = contextCompat.getMethod("checkSelfPermission", Context.class, String.class);
-            int result = (int) checkSelfPermissionMethod.invoke(null, new Object[]{context, permission});
-            if (result != PackageManager.PERMISSION_GRANTED) {
-                SALog.i(TAG, "You can fix this by adding the following to your AndroidManifest.xml file:\n"
-                        + "<uses-permission android:name=\"" + permission + "\" />");
-                return false;
-            }
-            mPermissionGrantedSet.add(permission);
-            return true;
-        } catch (Exception e) {
-            SALog.i(TAG, e.toString());
-            return true;
-        }
-    }
-
-    /**
      * 此方法谨慎修改
      * 插件配置 disableIMEI 会修改此方法
      * 获取IMEI
@@ -391,7 +340,7 @@ public final class SensorsDataUtils {
             if (deviceUniqueIdentifiersMap.containsKey("IMEI")) {
                 imei = deviceUniqueIdentifiersMap.get("IMEI");
             }
-            if (TextUtils.isEmpty(imei) && hasReadPhoneStatePermission(context)) {
+            if (TextUtils.isEmpty(imei) && PermissionUtils.hasReadPhoneStatePermission(context)) {
                 TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
                 if (tm != null) {
                     SALog.i(TAG, "SensorsData getInternationalIdentifier");
@@ -468,7 +417,7 @@ public final class SensorsDataUtils {
             if (deviceUniqueIdentifiersMap.containsKey(deviceIDKey)) {
                 deviceId = deviceUniqueIdentifiersMap.get(deviceIDKey);
             }
-            if (TextUtils.isEmpty(deviceId) && hasReadPhoneStatePermission(context)) {
+            if (TextUtils.isEmpty(deviceId) && PermissionUtils.hasReadPhoneStatePermission(context)) {
                 TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
                 if (tm != null) {
                     SALog.i(TAG, "SensorsData getPhoneIdentifier");
@@ -486,19 +435,6 @@ public final class SensorsDataUtils {
             SALog.printStackTrace(e);
         }
         return deviceId;
-    }
-
-    private static boolean hasReadPhoneStatePermission(Context context) {
-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-            if (!SensorsDataUtils.checkHasPermission(context, Manifest.permission.READ_PRECISE_PHONE_STATE)) {
-                SALog.i(TAG, "Don't have permission android.permission.READ_PRECISE_PHONE_STATE,getDeviceID failed");
-                return false;
-            }
-        } else if (!SensorsDataUtils.checkHasPermission(context, Manifest.permission.READ_PHONE_STATE)) {
-            SALog.i(TAG, "Don't have permission android.permission.READ_PHONE_STATE,getDeviceID failed");
-            return false;
-        }
-        return true;
     }
 
     /**
@@ -574,7 +510,7 @@ public final class SensorsDataUtils {
             if (deviceUniqueIdentifiersMap.containsKey("macAddress")) {
                 macAddress = deviceUniqueIdentifiersMap.get("macAddress");
             }
-            if (TextUtils.isEmpty(macAddress) && checkHasPermission(context, Manifest.permission.ACCESS_WIFI_STATE)) {
+            if (TextUtils.isEmpty(macAddress) && PermissionUtils.checkSelfPermission(context, Manifest.permission.ACCESS_WIFI_STATE)) {
                 WifiManager wifiMan = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
                 if (wifiMan != null) {
                     SALog.i(TAG, "SensorsData getMacAddress");

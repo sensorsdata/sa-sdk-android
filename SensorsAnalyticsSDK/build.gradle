@@ -1,5 +1,8 @@
 apply plugin: 'com.android.library'
 apply from: "../script_config/maven.gradle"
+if (rootProject.ext.publish.isEmbedSensorsSDKAAR) { //用于打本地包
+    apply plugin: 'com.kezong.fat-aar'
+}
 version = rootProject.ext.versions.sdk_version
 
 android {
@@ -33,11 +36,22 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    api project(':module_core')
-    api project(':module_advert')
-    api project(':module_visual')
-    api project(':module_autoTrack')
-    api project(':module_push')
-    api project(':module_encrypt')
-    api project(':module_exposure')
+    if (rootProject.ext.publish.isEmbedSensorsSDKAAR) { //用于打本地包
+        embed project(':module_common')
+        embed project(':module_webview')
+        embed project(':module_advert')
+        embed project(':module_visual')
+        embed project(':module_autoTrack')
+        embed project(':module_push')
+        embed project(':module_encrypt')
+        embed project(':module_exposure')
+    } else {
+        api project(':module_core')
+        api project(':module_advert')
+        api project(':module_visual')
+        api project(':module_autoTrack')
+        api project(':module_push')
+        api project(':module_encrypt')
+        api project(':module_exposure')
+    }
 }

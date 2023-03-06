@@ -58,7 +58,7 @@ if [ $isEmbedCore == true ]; then
   assembleAAR "module_core" "sa_core" $module_version
 elif [ $isEmbedSDK == true ]; then
     # 打包 SDK 全量包
-  assembleAAR "SensorsAnalyticsSDK-AAR" "SensorsAnalyticsSDK" $sdk_version
+  assembleAAR "SensorsAnalyticsSDK" "SensorsAnalyticsSDK" $sdk_version
 else
   # 打包其它模块
   assembleAAR "module_advert" "sa_advert" $module_version

@@ -44,41 +44,45 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SAContextManager {
-    private final Context mContext;
+    private Context mContext;
     private List<SAEventListener> mEventListenerList;
     private SensorsDataScreenOrientationDetector mOrientationDetector;
-    private final SensorsDataAPI mSensorsDataAPI;
-    private final PersistentFirstDay mFirstDay;
-    private final PropertyPluginManager mPluginManager;
-    private final EventProcessor mTrackEventProcessor;
-    private final InternalConfigOptions mInternalConfigs;
-    private final AnalyticsMessages mMessages;
+    private SensorsDataAPI mSensorsDataAPI;
+    private PersistentFirstDay mFirstDay;
+    private PropertyPluginManager mPluginManager;
+    private EventProcessor mTrackEventProcessor;
+    private InternalConfigOptions mInternalConfigs;
+    private AnalyticsMessages mMessages;
     /* 远程配置管理 */
     BaseSensorsDataSDKRemoteManager mRemoteManager;
     UserIdentityAPI mUserIdentityAPI;
 
     public SAContextManager(SensorsDataAPI sensorsDataAPI, InternalConfigOptions internalConfigs) {
-        this.mSensorsDataAPI = sensorsDataAPI;
-        mInternalConfigs = internalConfigs;
-        this.mContext = internalConfigs.context.getApplicationContext();
-        DbAdapter.getInstance(this);
-        mMessages = AnalyticsMessages.getInstance(mContext, sensorsDataAPI, mInternalConfigs);
-        mTrackEventProcessor = new TrackEventProcessor(this);
-        this.mFirstDay = PersistentLoader.getInstance().getFirstDayPst();
-        // 1. init plugin manager for advert module
-        mPluginManager = new PropertyPluginManager(sensorsDataAPI, this);
-        // 2. init store manager
-        SAStoreManager.getInstance().registerPlugins(mInternalConfigs.saConfigOptions.getStorePlugins(), mContext);
-        SAStoreManager.getInstance().upgrade();
-        // 3. execute delay task
-        executeDelayTask();
-        // 4. init module service for encrypt sp
-        SAModuleManager.getInstance().installService(this);
-        // 5. init RemoteManager, it use Identity、track、SAStoreManager
-        mRemoteManager = new SensorsDataRemoteManager(sensorsDataAPI, this);
-        mRemoteManager.applySDKConfigFromCache();
-        // 5. reset context because of delay init
-        internalConfigs.context = mContext;
+        try {
+            this.mSensorsDataAPI = sensorsDataAPI;
+            mInternalConfigs = internalConfigs;
+            this.mContext = internalConfigs.context.getApplicationContext();
+            DbAdapter.getInstance(this);
+            mMessages = AnalyticsMessages.getInstance(mContext, sensorsDataAPI, mInternalConfigs);
+            mTrackEventProcessor = new TrackEventProcessor(this);
+            this.mFirstDay = PersistentLoader.getInstance().getFirstDayPst();
+            // 1. init plugin manager for advert module
+            mPluginManager = new PropertyPluginManager(sensorsDataAPI, this);
+            // 2. init store manager
+            SAStoreManager.getInstance().registerPlugins(mInternalConfigs.saConfigOptions.getStorePlugins(), mContext);
+            SAStoreManager.getInstance().upgrade();
+            // 3. execute delay task
+            executeDelayTask();
+            // 4. init module service for encrypt sp
+            SAModuleManager.getInstance().installService(this);
+            // 5. init RemoteManager, it use Identity、track、SAStoreManager
+            mRemoteManager = new SensorsDataRemoteManager(sensorsDataAPI, this);
+            mRemoteManager.applySDKConfigFromCache();
+            // 5. reset context because of delay init
+            internalConfigs.context = mContext;
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     /**
@@ -94,7 +98,6 @@ public class SAContextManager {
                 }
             }
         });
-
     }
 
     /**

@@ -200,6 +200,10 @@ public abstract class BaseSensorsDataSDKRemoteManager {
         if (configV && (SensorsDataUtils.checkVersionIsNew(mContextManager.getContext(), mSensorsDataAPI.getSDKVersion()) || !isSecretKeyValid())) {
             configV = false;
         }
+        if (TextUtils.isEmpty(remoteUrl)) {
+            SALog.i(TAG, "remote request url is empty");
+            return "";
+        }
         Uri configUri = Uri.parse(remoteUrl);
         Uri.Builder builder = configUri.buildUpon();
         if (!TextUtils.isEmpty(remoteUrl) && configV) {

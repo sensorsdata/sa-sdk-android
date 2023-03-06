@@ -17,22 +17,29 @@
 
 package com.sensorsdata.analytics.android.sdk.core.mediator;
 
+import android.content.Context;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAModuleProtocol;
 
+import java.io.File;
+import java.io.FileFilter;
+import java.net.URL;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.ServiceLoader;
+
+import dalvik.system.DexFile;
 
 public class SAModuleManager {
-
+    private static final String TAG = "SA.ModuleManager";
     private final Map<String, SAModuleProtocol> mServiceMap = new HashMap<>();
 
     private volatile static SAModuleManager mSingleton = null;
@@ -58,13 +65,18 @@ public class SAModuleManager {
      */
     public void installService(SAContextManager contextManager) {
         try {
-            ServiceLoader<SAModuleProtocol> serviceLoader = ServiceLoader.load(SAModuleProtocol.class);
-            List<SAModuleProtocol> protocolList = new ArrayList<>();
-            for (SAModuleProtocol saModuleProtocol : serviceLoader) {
-                if (saModuleProtocol != null) {
-                    protocolList.add(saModuleProtocol);
+            List<String> moduleNames = new ArrayList<String>() {
+                {
+                    add("com.sensorsdata.analytics.android.autotrack.core.SensorsAutoTrackAPI");  //全埋点模块
+                    add("com.sensorsdata.analytics.android.webview.impl.SensorsWebViewAPI");    //webview 模块
+                    add("com.sensorsdata.analytics.android.sdk.encrypt.impl.SAEncryptProtocolImpl");     //加密模块
+                    add("com.sensorsdata.analytics.android.sdk.push.core.PushProtocolImp");  //推送模块
+                    add("com.sensorsdata.analytics.android.sdk.visual.impl.SAVisualProtocolAPI");    //可视化模块
+                    add("com.sensorsdata.analytics.android.sdk.exposure.SAExposureProtocolImpl");   //曝光模块
+                    add("com.sensorsdata.analytics.android.sdk.advert.impl.SensorsAdvertProtocolAPI");  //广告模块
                 }
-            }
+            };
+            List<SAModuleProtocol> protocolList = loadModule(moduleNames);
             Collections.sort(protocolList, new Comparator<SAModuleProtocol>() {
                 @Override
                 public int compare(SAModuleProtocol o1, SAModuleProtocol o2) {
@@ -82,6 +94,20 @@ public class SAModuleManager {
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
+    }
+
+    private List<SAModuleProtocol> loadModule(List<String> moduleNames) {
+        List<SAModuleProtocol> protocolList = new ArrayList<>();
+        for (String moduleName : moduleNames) {
+            try {
+                Class<?> cls = Class.forName(moduleName);
+                protocolList.add((SAModuleProtocol) cls.newInstance());
+                SALog.i(TAG, "loadModule name: " + moduleName);
+            } catch (Throwable e) {
+                SALog.i(TAG, "loadModule name: " + moduleName + " error \n" + e);
+            }
+        }
+        return protocolList;
     }
 
     /**

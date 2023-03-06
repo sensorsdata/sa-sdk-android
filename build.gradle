@@ -34,7 +34,7 @@ allprojects {
             url 'https://maven.google.com'
         }
         maven {
-            url './repo'
+            url '../repo'
         }
     }
 }

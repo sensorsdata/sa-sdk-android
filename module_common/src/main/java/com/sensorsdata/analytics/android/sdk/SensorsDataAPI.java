@@ -1027,12 +1027,16 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             mTrackTaskManager.addTrackEventTask(new Runnable() {
                 @Override
                 public void run() {
-                    JSONObject _properties = SAModuleManager.getInstance().invokeModuleFunction(Modules.Advert.MODULE_NAME,
-                            Modules.Advert.METHOD_MERGE_CHANNEL_EVENT_PROPERTIES, eventName, cloneProperties);
-                    if (_properties == null) {
-                        _properties = cloneProperties;
+                    try {
+                        JSONObject _properties = SAModuleManager.getInstance().invokeModuleFunction(Modules.Advert.MODULE_NAME,
+                                Modules.Advert.METHOD_MERGE_CHANNEL_EVENT_PROPERTIES, eventName, cloneProperties);
+                        if (_properties == null) {
+                            _properties = cloneProperties;
+                        }
+                        mSAContextManager.trackEvent(new InputData().setEventName(eventName).setEventType(EventType.TRACK).setProperties(_properties));
+                    } catch (Exception e) {
+                        SALog.printStackTrace(e);
                     }
-                    mSAContextManager.trackEvent(new InputData().setEventName(eventName).setEventType(EventType.TRACK).setProperties(_properties));
                 }
             });
         } catch (Exception e) {
