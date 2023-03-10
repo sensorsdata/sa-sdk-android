@@ -1,7 +1,0 @@
-com.sensorsdata.analytics.android.sdk.push.core.PushProtocolImp
-com.sensorsdata.analytics.android.sdk.exposure.SAExposureProtocolImpl
-com.sensorsdata.analytics.android.sdk.encrypt.impl.SAEncryptProtocolImpl
-com.sensorsdata.analytics.android.autotrack.core.SensorsAutoTrackAPI
-com.sensorsdata.analytics.android.sdk.advert.impl.SensorsAdvertProtocolAPI
-com.sensorsdata.analytics.android.sdk.visual.impl.SAVisualProtocolAPI
-com.sensorsdata.analytics.android.webview.impl.SensorsWebViewAPI
