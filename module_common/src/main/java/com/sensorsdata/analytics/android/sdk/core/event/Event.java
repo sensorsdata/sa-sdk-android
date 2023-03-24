@@ -40,7 +40,7 @@ public abstract class Event {
     public abstract JSONObject toJSONObject();
 
     public long getTime() {
-        return mTime;
+        return mTime == 0 ? System.currentTimeMillis() : mTime;
     }
 
     public void setTime(long time) {

@@ -140,7 +140,7 @@ class H5TrackAssemble extends BaseEventAssemble {
         SADataHelper.addCarrier(contextManager.getContext(), trackEvent.getProperties());
         if (eventType.isTrack()) {
             //是否首日访问
-            trackEvent.getProperties().put("$is_first_day", contextManager.isFirstDay(trackEvent.getTime()));
+            trackEvent.getProperties().put("$is_first_day", contextManager.isFirstDay(trackEvent.getExtras().optLong("time")));
         }
     }
 

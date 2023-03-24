@@ -29,10 +29,14 @@ public class PushUtilsTest {
 
     @Test
     public void getJPushSDKName() {
+        Assert.assertEquals("Jpush", PushUtils.getJPushSDKName((byte) 0));
         Assert.assertEquals("Xiaomi", PushUtils.getJPushSDKName((byte) 1));
         Assert.assertEquals("HUAWEI", PushUtils.getJPushSDKName((byte) 2));
         Assert.assertEquals("Meizu", PushUtils.getJPushSDKName((byte) 3));
         Assert.assertEquals("OPPO", PushUtils.getJPushSDKName((byte) 4));
         Assert.assertEquals("vivo", PushUtils.getJPushSDKName((byte) 5));
+        Assert.assertEquals("Asus", PushUtils.getJPushSDKName((byte) 6));
+        Assert.assertEquals("fcm", PushUtils.getJPushSDKName((byte) 8));
+        Assert.assertEquals("Jpush", PushUtils.getJPushSDKName((byte) 100));
     }
 }

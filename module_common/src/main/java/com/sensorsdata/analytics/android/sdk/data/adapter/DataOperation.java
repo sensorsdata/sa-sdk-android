@@ -85,9 +85,9 @@ abstract class DataOperation {
                 break;
         }
         if (selectionArgs != null) {
-            return queryDataCount(uri, null, DbParams.KEY_IS_INSTANT_EVENT + "=?", selectionArgs, null);
+            return queryDataCount(uri, new String[]{"_id"}, DbParams.KEY_IS_INSTANT_EVENT + "=?", selectionArgs, null);
         }
-        return queryDataCount(uri, null, null, null, null);
+        return queryDataCount(uri, new String[]{"_id"}, null, null, null);
     }
 
     /**
@@ -111,12 +111,30 @@ abstract class DataOperation {
         return 0;
     }
 
+    String getFirstRowId(Uri uri, String instant_event) {
+        Cursor cursor = null;
+        try {
+            cursor = contentResolver.query(uri, new String[]{"_id"},  DbParams.KEY_IS_INSTANT_EVENT + "=?", new String[]{instant_event}, DbParams.KEY_CREATED_AT + " ASC LIMIT " + 1);
+            if (cursor != null) {
+                return cursor.getString(cursor.getColumnIndexOrThrow("_id"));
+            }
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        return "";
+    }
+
     /**
      * delete data
      */
     void deleteData(Uri uri, String id) {
         try {
             if (DbParams.DB_DELETE_ALL.equals(id)) {
+                SALog.i(TAG, "deleteData DB_DELETE_ALL");
                 contentResolver.delete(uri, null, null);
             } else {
                 contentResolver.delete(uri, "_id <= ?", new String[]{id});
@@ -131,10 +149,10 @@ abstract class DataOperation {
      *
      * @param uri Uri
      * @param ids 指定的 id 集合
-     * @return 数据库中遗留数据条数
      */
     public void deleteData(Uri uri, JSONArray ids) {
         try {
+            SALog.i(TAG, "deleteData ids = " + ids);
             mContext.getContentResolver().delete(uri, "_id in " + buildIds(ids), null);
         } catch (Exception e) {
             SALog.printStackTrace(e);

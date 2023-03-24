@@ -20,6 +20,7 @@ package com.sensorsdata.analytics.android.sdk.data.adapter;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteBlobTooBigException;
 import android.database.sqlite.SQLiteException;
 import android.net.Uri;
 import android.text.TextUtils;
@@ -77,6 +78,23 @@ class EventDataOperation extends DataOperation {
 
     @Override
     String[] queryData(Uri uri, boolean is_instant_event, int limit) {
+        try {
+            return queryDataInner(uri, is_instant_event, limit);
+        } catch (SQLiteBlobTooBigException bigException) {
+            SALog.i(TAG, "Could not pull records for SensorsData out of database events. SQLiteBlobTooBigException ", bigException);
+            return handleBigException(uri, is_instant_event);
+        } catch (final SQLiteException e) {
+            SALog.i(TAG, "Could not pull records for SensorsData out of database events. Waiting to send.", e);
+        }
+        return null;
+    }
+
+    @Override
+    void deleteData(Uri uri, String id) {
+        super.deleteData(uri, id);
+    }
+
+    private String[] queryDataInner(Uri uri, boolean is_instant_event, int limit) {
         Cursor cursor = null;
         String data = null;
         String eventIds = null;
@@ -117,10 +135,6 @@ class EventDataOperation extends DataOperation {
                     eventIds = idArray.toString();
                 }
             }
-        } catch (final SQLiteException e) {
-            SALog.i(TAG, "Could not pull records for SensorsData out of database events. Waiting to send.", e);
-            eventIds = null;
-            data = null;
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -133,8 +147,18 @@ class EventDataOperation extends DataOperation {
         return null;
     }
 
-    @Override
-    void deleteData(Uri uri, String id) {
-        super.deleteData(uri, id);
+    /*
+     用于处理 SQLiteBlobTooBigException 的场景，出现此类情况时，只读取一条数据上报
+     */
+    private String[] handleBigException(Uri uri, boolean is_instant_event) {
+        try {
+            return queryDataInner(uri, is_instant_event, 1);
+        } catch (SQLiteBlobTooBigException bigException) {//说明第一条数据就是 SQLiteBlobTooBigException，该条数据一直无法上报，所以删除处理
+            deleteData(uri, getFirstRowId(uri, is_instant_event ? "1" : "0"));
+            SALog.printStackTrace(bigException);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return null;
     }
 }

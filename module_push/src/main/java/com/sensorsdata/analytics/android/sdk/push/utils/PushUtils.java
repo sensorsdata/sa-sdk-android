@@ -28,6 +28,9 @@ public class PushUtils {
     public static String getJPushSDKName(byte whichPushSDK) {
         String name;
         switch (whichPushSDK) {
+            case 0:
+                name = "Jpush";
+                break;
             case 1:
                 name = "Xiaomi";
                 break;
@@ -43,8 +46,14 @@ public class PushUtils {
             case 5:
                 name = "vivo";
                 break;
+            case 6:
+                name = "Asus";
+                break;
+            case 8:
+                name = "fcm";
+                break;
             default:
-                name = null;
+                name = "Jpush";
         }
         return name;
     }

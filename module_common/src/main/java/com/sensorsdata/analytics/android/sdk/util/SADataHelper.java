@@ -51,7 +51,7 @@ public class SADataHelper {
             String key = iterator.next();
             try {
                 // Check Keys
-                if (!assertPropertyKey(key)){
+                if (!assertPropertyKey(key)) {
                     iterator.remove();
                     continue;
                 }
@@ -93,8 +93,15 @@ public class SADataHelper {
                     continue;
                 }
 
-                if (value instanceof String && ((String) value).length() > MAX_LENGTH_1024) {
-                    SALog.i(TAG, value + " length is longer than " + MAX_LENGTH_1024);
+                if ("app_crashed_reason".equals(key) && value instanceof String && ((String) value).length() > 8191 * 2) {
+                    SALog.d(TAG, "The property value is too long. [key='" + key
+                            + "', value='" + value + "']");
+                    value = ((String) value).substring(0, 8191 * 2) + "$";
+                    properties.put(key, value);
+                } else if (value instanceof String && ((String) value).length() > 8191) {
+                    properties.put(key, ((String) value).substring(0, 8191) + "$");
+                    SALog.d(TAG, "The property value is too long. [key='" + key
+                            + "', value='" + value + "']");
                 }
             } catch (JSONException e) {
                 throw new InvalidDataException("Unexpected property key. [key='" + key + "']");
@@ -106,7 +113,7 @@ public class SADataHelper {
 
     public static void assertEventName(String key) {
         if (TextUtils.isEmpty(key)) {
-            SALog.i(TAG,"EventName is empty or null");
+            SALog.i(TAG, "EventName is empty or null");
             return;
         }
         int length = key.length();
@@ -121,6 +128,7 @@ public class SADataHelper {
 
     /**
      * 校验属性 key、item_type
+     *
      * @param key key、item_type
      * @return true 为不删除该属性，false 需要移除属性
      */
@@ -143,6 +151,7 @@ public class SADataHelper {
 
     /**
      * 校验 item_id
+     *
      * @param key key、item_type
      */
     public static void assertItemId(String key) {
@@ -167,6 +176,7 @@ public class SADataHelper {
 
     /**
      * 校验属性
+     *
      * @param property 属性
      * @return String
      */
@@ -203,6 +213,7 @@ public class SADataHelper {
             }
         }
     }
+
     public static void addCarrier(Context context, JSONObject property) {
         try {
             if (TextUtils.isEmpty(property.optString("$carrier"))) {

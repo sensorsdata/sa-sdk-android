@@ -1,5 +1,6 @@
 package com.sensorsdata.analytics.android.sdk.exposure;
 
+import android.os.Build;
 import android.view.View;
 
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
@@ -14,6 +15,10 @@ public class SAExposureProtocolImpl implements SAModuleProtocol {
 
     @Override
     public void install(SAContextManager contextManager) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
+            setModuleState(false);
+            return;
+        }
         if (!contextManager.getInternalConfigs().saConfigOptions.isDisableSDK()) {
             setModuleState(true);
         }
