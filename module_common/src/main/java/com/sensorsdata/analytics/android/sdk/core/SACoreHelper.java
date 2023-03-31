@@ -17,6 +17,7 @@
 
 package com.sensorsdata.analytics.android.sdk.core;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.TrackTaskManager;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
@@ -40,10 +41,18 @@ public class SACoreHelper {
     }
 
     public void trackEvent(InputData inputData) {
-        SensorsDataAPI.sharedInstance().getSAContextManager().trackEvent(inputData);
+        try {
+            SensorsDataAPI.sharedInstance().getSAContextManager().trackEvent(inputData);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     public void trackQueueEvent(Runnable runnable) {
-        TrackTaskManager.getInstance().addTrackEventTask(runnable);
+        try {
+            TrackTaskManager.getInstance().addTrackEventTask(runnable);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 }

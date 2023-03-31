@@ -179,7 +179,11 @@ public class SAContextManager {
     }
 
     public void trackEvent(InputData inputData) {
-        mTrackEventProcessor.trackEvent(inputData);
+        try {
+            mTrackEventProcessor.trackEvent(inputData);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     public Context getContext() {

@@ -21,7 +21,9 @@ import android.app.Activity;
 import android.view.View;
 import android.webkit.WebView;
 
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureData;
+import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
@@ -39,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 
 public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     SensorsDataAPIEmptyImplementation() {
+        mSAContextManager = new EmptySAContext();
     }
 
     @Override
@@ -813,5 +816,17 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     @Override
     public void registerLimitKeys(Map<String, String> limitKeys) {
 
+    }
+
+    static class EmptySAContext extends SAContextManager {
+
+        public EmptySAContext() {
+            super(null, null);
+        }
+
+        @Override
+        public void trackEvent(InputData inputData) {
+
+        }
     }
 }

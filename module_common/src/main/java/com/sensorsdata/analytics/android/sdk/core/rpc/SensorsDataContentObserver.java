@@ -25,6 +25,7 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAPIEmptyImplementation;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
@@ -70,7 +71,11 @@ public class SensorsDataContentObserver extends ContentObserver {
                     SensorsDataAPI.enableSDK();
                 }
             } else if (DbParams.getInstance().getUserIdentities().equals(uri)) {
-                SAContextManager saContextManager = SensorsDataAPI.sharedInstance().getSAContextManager();
+                SensorsDataAPI sensorsDataAPI = SensorsDataAPI.sharedInstance();
+                if (sensorsDataAPI instanceof SensorsDataAPIEmptyImplementation) {
+                    return;
+                }
+                SAContextManager saContextManager = sensorsDataAPI.getSAContextManager();
                 if (saContextManager != null) {
                     saContextManager.getUserIdentityAPI().getIdentitiesInstance().updateIdentities();
                 }
