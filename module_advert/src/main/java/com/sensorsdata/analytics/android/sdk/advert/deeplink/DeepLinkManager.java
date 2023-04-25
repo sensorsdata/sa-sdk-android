@@ -151,8 +151,11 @@ public class DeepLinkManager {
             public void run() {
                 if (isDeepLinkInstallSource) {
                     try {
-                        properties.put("$ios_install_source", ChannelUtils.getDeviceInfo(context,
-                                SensorsDataUtils.getIdentifier(context), SAOaidHelper.getOpenAdIdentifier(context)));
+                        properties.put("$ios_install_source",
+                                ChannelUtils.getDeviceInfo(context,
+                                        SensorsDataUtils.getIdentifier(context),
+                                        SAOaidHelper.getOpenAdIdentifier(context),
+                                        SAOaidHelper.getOpenAdIdentifierByReflection(context)));
                     } catch (JSONException e) {
                         SALog.printStackTrace(e);
                     }
@@ -309,12 +312,14 @@ public class DeepLinkManager {
         try {
             JSONObject jsonObject = new JSONObject();
             String ids;
+            String reflectionOAID = SAOaidHelper.getOpenAdIdentifierByReflection(context);
             if (params != null) {
                 if (params.has("$oaid")) {
                     oaid = params.optString("$oaid");
+                    reflectionOAID = "";
                     params.remove("$oaid");
                 }
-                ids = ChannelUtils.getDeviceInfo(context, androidId, oaid);
+                ids = ChannelUtils.getDeviceInfo(context, androidId, oaid, reflectionOAID);
                 if (params.has("$gaid")) {
                     String gaid = params.optString("$gaid");
                     ids = String.format("%s##gaid=%s", ids, gaid);
@@ -326,7 +331,7 @@ public class DeepLinkManager {
                 }
                 jsonObject.put("app_parameter", params.toString());
             } else {
-                ids = ChannelUtils.getDeviceInfo(context, androidId, oaid);
+                ids = ChannelUtils.getDeviceInfo(context, androidId, oaid, reflectionOAID);
             }
             jsonObject.put("ids", Base64Coder.encodeString(ids));
             jsonObject.put("model", presetProperties.optString("$model"));

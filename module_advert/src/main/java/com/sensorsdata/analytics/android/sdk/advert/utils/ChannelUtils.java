@@ -154,10 +154,11 @@ public class ChannelUtils {
      * @param mContext Context
      * @param androidId androidId
      * @param oaid OAID
+     * @param reflectionOAID 反射获取的 OAID
      * @return 拼接的渠道追踪设置信息
      */
-    public static String getDeviceInfo(Context mContext, String androidId, String oaid) {
-        return String.format("android_id=%s##imei=%s##imei_old=%s##imei_slot1=%s##imei_slot2=%s##imei_meid=%s##mac=%s##oaid=%s",
+    public static String getDeviceInfo(Context mContext, String androidId, String oaid, String reflectionOAID) {
+        return String.format("android_id=%s##imei=%s##imei_old=%s##imei_slot1=%s##imei_slot2=%s##imei_meid=%s##mac=%s##oaid=%s##oaid_reflection=%s",
                 androidId,
                 SensorsDataUtils.getInternationalIdentifier(mContext),
                 SensorsDataUtils.getInternationalIdOld(mContext),
@@ -165,7 +166,7 @@ public class ChannelUtils {
                 SensorsDataUtils.getSlot(mContext, 1),
                 SensorsDataUtils.getEquipmentIdentifier(mContext),
                 SensorsDataUtils.getMediaAddress(mContext),
-                oaid);
+                oaid, reflectionOAID);
     }
 
     public static void mergeUtmByMetaData(Context context, JSONObject properties) throws JSONException {

@@ -9,6 +9,7 @@ import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureCo
 import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureData;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -64,6 +65,10 @@ public class ExposedPage {
                 }
             }
         }
+    }
+
+    public Collection<ExposureView> getExposureViews() {
+        return mViewWeakHashMap.values();
     }
 
     public synchronized ExposureView getExposureView(View view) {
@@ -149,7 +154,7 @@ public class ExposedPage {
             }
         } else {
             if (isExposed) {
-                if (!exposureView.isExposed()) {
+                if (!exposureView.isExposed() || exposureView.isActivityChange()) {
                     return true;
                 }
             }

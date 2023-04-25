@@ -13,6 +13,7 @@ import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataLifecycleMonitor
 import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
 import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.WeakHashMap;
@@ -26,6 +27,8 @@ public class SAExposedProcess {
     private CallBack mCallBack;
     private Handler mHandler;
     private ExposureRunnable mExposureRunnable;
+    private String mLastActivityUrl = "";
+    private boolean isActivityChange;
     private WeakHashMap<View, StayDurationRunnable> mStayDurationRunnableWeakHashMap;
     private ExposedTransform mExposedTransform;//页面监听
 
@@ -54,6 +57,10 @@ public class SAExposedProcess {
             try {
                 List<ExposureView> exposureViewList = mExposedPage.getExposureViewList(mView);
                 for (ExposureView exposureView : exposureViewList) {
+                    if (isActivityChange) {
+                        exposureView.setActivityChange(true);
+                        isActivityChange = false;
+                    }
                     View view = exposureView.getView();
                     if (view != null) {
                         synchronized (mStayDurationRunnableWeakHashMap) {
@@ -80,62 +87,93 @@ public class SAExposedProcess {
     }
 
     private synchronized void init() {
-        if (mExposedPageWeakHashMap == null) {
-            mExposedPageWeakHashMap = new WeakHashMap<>();
-            mStayDurationRunnableWeakHashMap = new WeakHashMap<>();
-            HandlerThread handlerThread = new HandlerThread("SA.Exposured");
-            handlerThread.start();
-            mHandler = new Handler(handlerThread.getLooper());
-            mCallBack = new CallBack() {
-                @Override
-                public void viewLayoutChange(Activity activity) {
-                    if (mExposureRunnable != null) {
-                        mHandler.removeCallbacks(mExposureRunnable);
-                    }
-                    removeStayDurationRunnable();
-                    ExposedPage exposedPage = mExposedPageWeakHashMap.get(activity);
-                    if (exposedPage != null) {
-                        mExposureRunnable = new ExposureRunnable(exposedPage, null);
-                        if (mExposureConfig != null) {
-                            SALog.i(TAG, "delayTime:" + mExposureConfig.getDelayTime());
-                            mHandler.postDelayed(mExposureRunnable, mExposureConfig.getDelayTime());
-                        } else {
-                            SALog.i(TAG, "delayTime->500ms");
-                            mHandler.postDelayed(mExposureRunnable, DELAY_TIME);
+        try {
+            if (mExposedPageWeakHashMap == null) {
+                mExposedPageWeakHashMap = new WeakHashMap<>();
+                mStayDurationRunnableWeakHashMap = new WeakHashMap<>();
+                HandlerThread handlerThread = new HandlerThread("SA.Exposured");
+                handlerThread.start();
+                mHandler = new Handler(handlerThread.getLooper());
+                mCallBack = new CallBack() {
+                    @Override
+                    public void viewLayoutChange(Activity activity) {
+                        if (mExposureRunnable != null) {
+                            mHandler.removeCallbacks(mExposureRunnable);
                         }
-                    }
-                }
-
-                @Override
-                public void onActivityResumed(Activity activity) {
-                    viewLayoutChange(activity);
-                }
-
-                @Override
-                public void onActivityPaused(Activity activity) {
-                    if (mExposedPageWeakHashMap == null) {
-                        return;
-                    }
-                    ExposedPage exposedPage = mExposedPageWeakHashMap.get(activity);
-                    if (exposedPage != null) {
-                        exposedPage.invisibleElement();
-                    }
-                    removeStayDurationRunnable();
-                }
-
-                @Override
-                public int getExposureViewSize(Activity activity) {
-                    if (mExposedPageWeakHashMap != null) {
+                        removeStayDurationRunnable();
                         ExposedPage exposedPage = mExposedPageWeakHashMap.get(activity);
                         if (exposedPage != null) {
-                            return exposedPage.getExposureViewSize();
+                            mExposureRunnable = new ExposureRunnable(exposedPage, null);
+                            if (mExposureConfig != null) {
+                                SALog.i(TAG, "delayTime:" + mExposureConfig.getDelayTime());
+                                mHandler.postDelayed(mExposureRunnable, mExposureConfig.getDelayTime());
+                            } else {
+                                SALog.i(TAG, "delayTime->500ms");
+                                mHandler.postDelayed(mExposureRunnable, DELAY_TIME);
+                            }
                         }
                     }
-                    return 0;
-                }
-            };
-            mExposedTransform = new ExposedTransform(mCallBack);
-            SensorsDataLifecycleMonitorManager.getInstance().addActivityLifeCallback(mExposedTransform);
+
+                    @Override
+                    public void onActivityResumed(Activity activity) {
+                        try {
+                            String currentUrl = activity.getClass().getCanonicalName();
+                            isActivityChange = !mLastActivityUrl.equals(currentUrl);
+                            mLastActivityUrl = currentUrl;
+                            if (isActivityChange) {
+                                ExposedPage exposedPage = mExposedPageWeakHashMap.get(activity);
+                                if (exposedPage != null) {
+                                    Collection<ExposureView> exposureViews = exposedPage.getExposureViews();
+                                    for (ExposureView exposureView : exposureViews) {
+                                        if (exposureView != null) {
+                                            exposureView.setActivityChange(true);
+                                        }
+                                    }
+                                }
+                            }
+
+                            viewLayoutChange(activity);
+                        } catch (Exception exception) {
+                            SALog.printStackTrace(exception);
+                        }
+                    }
+
+                    @Override
+                    public void onActivityPaused(Activity activity) {
+                        try {
+                            if (mExposedPageWeakHashMap == null) {
+                                return;
+                            }
+                            ExposedPage exposedPage = mExposedPageWeakHashMap.get(activity);
+                            if (exposedPage != null) {
+                                exposedPage.invisibleElement();
+                            }
+                            removeStayDurationRunnable();
+                        } catch (Exception e) {
+                            SALog.printStackTrace(e);
+                        }
+                    }
+
+                    @Override
+                    public int getExposureViewSize(Activity activity) {
+                        try {
+                            if (mExposedPageWeakHashMap != null) {
+                                ExposedPage exposedPage = mExposedPageWeakHashMap.get(activity);
+                                if (exposedPage != null) {
+                                    return exposedPage.getExposureViewSize();
+                                }
+                            }
+                        } catch (Exception e) {
+                            SALog.printStackTrace(e);
+                        }
+                        return 0;
+                    }
+                };
+                mExposedTransform = new ExposedTransform(mCallBack);
+                SensorsDataLifecycleMonitorManager.getInstance().addActivityLifeCallback(mExposedTransform);
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
     }
 

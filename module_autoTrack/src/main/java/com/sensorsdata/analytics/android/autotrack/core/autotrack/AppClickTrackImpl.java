@@ -268,7 +268,7 @@ public class AppClickTrackImpl {
 
             View tabView = null;
             if (currentTabClass != null) {
-                View tabCustomView = ReflectUtil.findField(currentTabClass, tab, "getCustomView");
+                View tabCustomView = ReflectUtil.findField(currentTabClass, tab, new String[]{"mCustomView", "customView"});
 
                 String text = AutoTrackViewUtils.getTabLayoutText(tabCustomView, tab);
                 if (text != null) {

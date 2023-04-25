@@ -90,9 +90,7 @@ public class ExposedTransform implements SensorsDataActivityLifecycleCallbacks.S
     @Override
     public void onActivityResumed(Activity activity) {
         //避免在 onCreate 中操作可见性这里 activityWeakReference 为空无法监控到
-        if (mActivityWeakReference == null) {
-            mActivityWeakReference = new WeakReference<>(activity);
-        }
+        mActivityWeakReference = new WeakReference<>(activity);
         SALog.i(TAG, "onActivityResumed:" + activity);
         synchronized (this) {
             viewsAddTreeObserver(activity);

@@ -85,7 +85,7 @@ public class ChannelUtilsTest {
 
     @Test
     public void getDeviceInfo() {
-        String str = ChannelUtils.getDeviceInfo(mApplication, "", "abdd12312838_oaid");
+        String str = ChannelUtils.getDeviceInfo(mApplication, "", "abdd12312838_oaid","abdd12312838_oaid");
         Assert.assertNotNull(str);
     }
 

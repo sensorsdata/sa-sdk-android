@@ -463,6 +463,7 @@ public abstract class AbstractViewCrawler implements VTrack {
                 byte[] responseBody = slurp(in);
 
                 String response = new String(responseBody, CHARSET_UTF8);
+                SALog.i(TAG, "request url =" + mPostUrl);
                 SALog.i(TAG, "responseCode=" + responseCode);
                 SALog.i(TAG, "response=" + response);
                 JSONObject responseJson = new JSONObject(response);

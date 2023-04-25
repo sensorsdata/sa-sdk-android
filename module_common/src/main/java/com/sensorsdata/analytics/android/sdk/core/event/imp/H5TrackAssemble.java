@@ -136,9 +136,9 @@ class H5TrackAssemble extends BaseEventAssemble {
             trackEvent.setLib(libObject);
         }
 
-        //之前可能会因为没有权限无法获取运营商信息，检测再次获取
-        SADataHelper.addCarrier(contextManager.getContext(), trackEvent.getProperties());
         if (eventType.isTrack()) {
+            //之前可能会因为没有权限无法获取运营商信息，检测再次获取
+            SADataHelper.addCarrier(contextManager.getContext(), trackEvent.getProperties());
             //是否首日访问
             trackEvent.getProperties().put("$is_first_day", contextManager.isFirstDay(trackEvent.getExtras().optLong("time")));
         }

@@ -33,7 +33,6 @@ import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 
 public class SensorsDataContentProvider extends ContentProvider {
     private static final UriMatcher uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
-    private SensorsDataDBHelper dbHelper;
     private SAProviderHelper mProviderHelper;
 
     @Override
@@ -48,11 +47,8 @@ public class SensorsDataContentProvider extends ContentProvider {
                 } catch (UnsupportedOperationException e) {
                     packageName = "com.sensorsdata.analytics.android.sdk.test";
                 }
-                dbHelper = new SensorsDataDBHelper(context);
-                mProviderHelper = new SAProviderHelper(context, dbHelper);
+                mProviderHelper = SAProviderHelper.getInstance(context);
                 mProviderHelper.appendUri(uriMatcher, packageName + ".SensorsDataContentProvider");
-                /* 迁移数据，并删除老的数据库 */
-                mProviderHelper.migratingDB(context, packageName);
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -106,27 +102,12 @@ public class SensorsDataContentProvider extends ContentProvider {
 
     @Override
     public int bulkInsert(Uri uri, ContentValues[] values) {
-        int numValues;
-        SQLiteDatabase database = null;
         try {
-            try {
-                database = dbHelper.getWritableDatabase();
-            } catch (SQLiteException e) {
-                SALog.printStackTrace(e);
-                return 0;
-            }
-            database.beginTransaction();
-            numValues = values.length;
-            for (int i = 0; i < numValues; i++) {
-                insert(uri, values[i]);
-            }
-            database.setTransactionSuccessful();
-        } finally {
-            if (database != null) {
-                database.endTransaction();
-            }
+            return mProviderHelper.bulkInsert(uri, values);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
-        return numValues;
+        return 0;
     }
 
     @Override

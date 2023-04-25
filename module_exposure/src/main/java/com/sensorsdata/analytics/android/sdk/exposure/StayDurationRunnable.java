@@ -69,5 +69,6 @@ public class StayDurationRunnable implements Runnable {
         }
         mExposureView.setLastVisible(true);
         mExposureView.setExposed(true);
+        mExposureView.setActivityChange(false);
     }
 }

@@ -22,6 +22,7 @@ import static com.sensorsdata.analytics.android.sdk.advert.SAAdvertConstants.TAG
 import android.app.Activity;
 import android.content.Context;
 import android.net.Uri;
+import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.advert.SAAdvertConstants;
@@ -205,8 +206,14 @@ public class SAAdvertProtocolImpl {
             public void run() {
                 if (mEnableDeepLinkInstallSource) {
                     try {
+                        String realOAID = oaid;
+                        String reflectionOAID = "";
+                        if (TextUtils.isEmpty(realOAID)) {
+                            realOAID = SAOaidHelper.getOpenAdIdentifier(mContext);
+                            reflectionOAID = SAOaidHelper.getOpenAdIdentifierByReflection(mContext);
+                        }
                         properties.put("$ios_install_source", ChannelUtils.getDeviceInfo(mContext,
-                                SAAdvertUtils.getIdentifier(mContext), oaid == null ? SAOaidHelper.getOpenAdIdentifier(mContext) : oaid));
+                                SAAdvertUtils.getIdentifier(mContext), realOAID, reflectionOAID));
                     } catch (JSONException e) {
                         SALog.printStackTrace(e);
                     }
@@ -243,11 +250,11 @@ public class SAAdvertProtocolImpl {
                                     String oaid;
                                     if (eventProperties.has("$oaid")) {
                                         oaid = eventProperties.optString("$oaid");
-                                        installSource = ChannelUtils.getDeviceInfo(mContext, androidId, oaid);
+                                        installSource = ChannelUtils.getDeviceInfo(mContext, androidId, oaid, "");
                                         SALog.i(TAG, "properties has oaid " + oaid);
                                     } else {
                                         oaid = SAOaidHelper.getOpenAdIdentifier(mContext);
-                                        installSource = ChannelUtils.getDeviceInfo(mContext, androidId, oaid);
+                                        installSource = ChannelUtils.getDeviceInfo(mContext, androidId, oaid, SAOaidHelper.getOpenAdIdentifierByReflection(mContext));
                                     }
 
                                     if (eventProperties.has("$gaid")) {
@@ -315,11 +322,14 @@ public class SAAdvertProtocolImpl {
                             if (eventProperties.has("$oaid")) {
                                 String oaid = eventProperties.optString("$oaid");
                                 eventProperties.put("$channel_device_info",
-                                        ChannelUtils.getDeviceInfo(mContext, SAAdvertUtils.getIdentifier(mContext), oaid));
+                                        ChannelUtils.getDeviceInfo(mContext, SAAdvertUtils.getIdentifier(mContext), oaid, ""));
                                 SALog.i(TAG, "properties has oaid " + oaid);
                             } else {
                                 eventProperties.put("$channel_device_info",
-                                        ChannelUtils.getDeviceInfo(mContext, SAAdvertUtils.getIdentifier(mContext), SAOaidHelper.getOpenAdIdentifier(mContext)));
+                                        ChannelUtils.getDeviceInfo(mContext,
+                                                SAAdvertUtils.getIdentifier(mContext),
+                                                SAOaidHelper.getOpenAdIdentifier(mContext),
+                                                SAOaidHelper.getOpenAdIdentifierByReflection(mContext)));
                             }
                         }
                         if (eventProperties.has("$oaid")) {

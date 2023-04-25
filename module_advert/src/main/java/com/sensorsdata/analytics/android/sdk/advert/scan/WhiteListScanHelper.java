@@ -72,6 +72,7 @@ public class WhiteListScanHelper implements IAdvertScanListener {
                 try {
                     JSONObject json = new JSONObject();
                     json.put("android_oaid", SAOaidHelper.getOpenAdIdentifier(activity));
+                    json.put("android_oaid_reflection", SAOaidHelper.getOpenAdIdentifierByReflection(activity));
                     json.put("android_id", SAAdvertUtils.getIdentifier(activity));
                     json.put("android_imei", SAAdvertUtils.getInstallSource(activity));
                     json.put("info_id", info_id);

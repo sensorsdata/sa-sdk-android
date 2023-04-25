@@ -32,6 +32,7 @@ import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.core.rpc.SensorsDataContentObserver;
 import com.sensorsdata.analytics.android.sdk.core.tasks.ThreadNameConstants;
 import com.sensorsdata.analytics.android.sdk.core.tasks.TrackTaskManagerThread;
+import com.sensorsdata.analytics.android.sdk.data.SAProviderHelper;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.exceptions.SensorsDataExceptionHandler;
@@ -100,7 +101,8 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             if (!mSAConfigOptions.isDisableSDK()) {
                 delayInitTask(context.getApplicationContext());
             }
-
+            /* 迁移数据，并删除老的数据库 */
+            SAProviderHelper.getInstance(context).migratingDB(context.getApplicationContext());
             enableTrackScreenOrientation(mSAConfigOptions.mTrackScreenOrientationEnabled);
             if (SALog.isLogEnabled()) {
                 SALog.i(TAG, String.format(TimeUtils.SDK_LOCALE, "Initialized the instance of Sensors Analytics SDK with server"

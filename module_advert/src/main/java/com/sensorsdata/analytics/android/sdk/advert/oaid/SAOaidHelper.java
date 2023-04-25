@@ -41,6 +41,7 @@ import java.util.concurrent.CountDownLatch;
 public class SAOaidHelper {
     private static final String TAG = "SA.SAOaidHelper";
     private static String mOAID = "";
+    private static String mReflectionOAID = "";
     private static CountDownLatch mCountDownLatch;
     private static Class<?> mIdentifyListener;
     private static Class<?> mIdSupplier;
@@ -76,6 +77,7 @@ public class SAOaidHelper {
      * @return OAID
      */
     public static synchronized String getOpenAdIdentifier(final Context context) {
+        // 默认使用客户注册的限制性属性
         if (SAPropertyManager.getInstance().isLimitKey(LimitKey.OAID)) {
             return SAPropertyManager.getInstance().getLimitValue(LimitKey.OAID);
         }
@@ -86,16 +88,33 @@ public class SAOaidHelper {
         if (!TextUtils.isEmpty(mOAID)) {
             return mOAID;
         }
+        //获取 MSA OAID
         mOAID = getMSAOAID(context);
         SALog.i(TAG, "MSA OAID is " + mOAID);
-        if (TextUtils.isEmpty(mOAID)) {
-            mOAID = getROMOAID(context);
+        //校验 OAID 合法性
+        if (TextUtils.isEmpty(mOAID) || mBlackOAIDs.contains(mOAID)) {
+            //通过反射获取 OAID
+            mReflectionOAID = getROMOAID(context);
+            //校验反射获取 OAID 的合法性
+            if (TextUtils.isEmpty(mReflectionOAID) || mBlackOAIDs.contains(mReflectionOAID)) {
+                mReflectionOAID = "";
+            }
+            mOAID = mReflectionOAID;
             SALog.i(TAG, "Rom OAID is" + mOAID);
         }
-        if (TextUtils.isEmpty(mOAID) || mBlackOAIDs.contains(mOAID)) {
-            mOAID = "";
-        }
         return mOAID;
+    }
+
+    /**
+     * 返回反射法获取的 OAID 值
+     * @param context context
+     * @return 反射获取的 OAID 值
+     */
+    public static String getOpenAdIdentifierByReflection(Context context){
+        if (TextUtils.isEmpty(mOAID)) {
+            getOpenAdIdentifier(context);
+        }
+        return mReflectionOAID;
     }
 
     private static String getROMOAID(Context context) {

@@ -38,7 +38,9 @@ import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 
 import java.io.File;
 
-class SAProviderHelper {
+public class SAProviderHelper {
+    private static final String TAG = "SA.ProviderHelper";
+    private static SAProviderHelper INSTANCE;
     private ContentResolver contentResolver;
     private SQLiteOpenHelper mDbHelper;
     private Context mContext;
@@ -48,34 +50,43 @@ class SAProviderHelper {
     private long mAppStartTime = 0;
     private int mSessionTime = 30 * 1000;
 
-    public SAProviderHelper(Context context, SQLiteOpenHelper dbHelper) {
+    private SAProviderHelper(Context context) {
         try {
-            this.mDbHelper = dbHelper;
-            this.mContext = context;
+            this.mDbHelper = new SensorsDataDBHelper(context);
+            this.mContext = context.getApplicationContext();
             contentResolver = context.getContentResolver();
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
     }
 
+    public static synchronized SAProviderHelper getInstance(Context context) {
+        if (INSTANCE == null) {
+            INSTANCE = new SAProviderHelper(context);
+        }
+        return INSTANCE;
+    }
+
     /**
      * 迁移数据，并删除老的数据库
      *
      * @param context Context
-     * @param packageName 包名
      */
-    public void migratingDB(final Context context, final String packageName) {
+    public void migratingDB(final Context context) {
         try {
             boolean isMigrating = AppInfoUtils.getAppInfoBundle(context).getBoolean("com.sensorsdata.analytics.android.EnableMigratingDB", true);
             if (!isMigrating) {
+                SALog.i(TAG, "The migrating DB operation is false");
                 return;
             }
             new Thread(new Runnable() {
                 @Override
                 public void run() {
                     try {
+                        String packageName = context.getPackageName();
                         File oldDatabase = context.getDatabasePath(packageName);
                         if (oldDatabase.exists()) {
+                            SALog.i(TAG, "start migratingDB");
                             final OldBDatabaseHelper oldBDatabaseHelper = new OldBDatabaseHelper(context, packageName);
                             final SQLiteDatabase database = getWritableDatabase();
                             if (database != null) {
@@ -178,6 +189,30 @@ class SAProviderHelper {
             SALog.printStackTrace(e);
         }
         return 0;
+    }
+
+    public int bulkInsert(Uri uri, ContentValues[] values) {
+        int numValues;
+        SQLiteDatabase database = null;
+        try {
+            try {
+                database = mDbHelper.getWritableDatabase();
+            } catch (SQLiteException e) {
+                SALog.printStackTrace(e);
+                return 0;
+            }
+            database.beginTransaction();
+            numValues = values.length;
+            for (int i = 0; i < numValues; i++) {
+                insertEvent(uri, values[i]);
+            }
+            database.setTransactionSuccessful();
+        } finally {
+            if (database != null) {
+                database.endTransaction();
+            }
+        }
+        return numValues;
     }
 
     /**

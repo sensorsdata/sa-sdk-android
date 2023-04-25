@@ -21,26 +21,35 @@ import static org.junit.Assert.assertEquals;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
-import androidx.test.core.app.ApplicationProvider;
 
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SensorsAnalyticsAutoTrackEventType;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.DeviceUtils;
+import com.sensorsdata.analytics.android.sdk.util.SASpUtils;
 import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
 import org.json.JSONObject;
+import org.robolectric.RuntimeEnvironment;
 
 public class SAHelper {
-    static Application mApplication = ApplicationProvider.getApplicationContext();
+    static Application mApplication = RuntimeEnvironment.getApplication();
     private final static String SA_SERVER_URL = "https://sdkdebugtest.datasink.sensorsdata.cn/sa?project=default&token=cfb8b60e42e0ae9b";
 
     public static SensorsDataAPI initSensors(Context context) {
+        SASpUtils.setSharedPreferencesProvider(new SASpUtils.ISharedPreferencesProvider() {
+            @Override
+            public SharedPreferences createSharedPreferences(Context context, String name, int mode) {
+                //ShadowPreferenceManager.getDefaultSharedPreferences(Robolectric.application.getApplicationContext());
+                return RuntimeEnvironment.getApplication().getSharedPreferences(name, mode);
+            }
+        });
         SAConfigOptions configOptions = new SAConfigOptions(SA_SERVER_URL);
         // 打开自动采集, 并指定追踪哪些 AutoTrack 事件
         configOptions.setAutoTrackEventType(SensorsAnalyticsAutoTrackEventType.APP_START |
