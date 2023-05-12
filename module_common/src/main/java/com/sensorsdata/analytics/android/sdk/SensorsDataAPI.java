@@ -95,15 +95,15 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
      * @return SensorsDataAPI 单例
      */
     public static SensorsDataAPI sharedInstance(Context context) {
-        if (isSDKDisabled()) {
-            return new SensorsDataAPIEmptyImplementation();
-        }
+        try {
+            if (isSDKDisabled()) {
+                return new SensorsDataAPIEmptyImplementation();
+            }
 
-        if (null == context) {
-            return new SensorsDataAPIEmptyImplementation();
-        }
+            if (null == context) {
+                return new SensorsDataAPIEmptyImplementation();
+            }
 
-        synchronized (sInstanceMap) {
             final Context appContext = context.getApplicationContext();
             SensorsDataAPI instance = sInstanceMap.get(appContext);
 
@@ -112,6 +112,9 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 return new SensorsDataAPIEmptyImplementation();
             }
             return instance;
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+            return new SensorsDataAPIEmptyImplementation();
         }
     }
 
@@ -122,50 +125,55 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
      * @param saConfigOptions SDK 的配置项
      */
     public static void startWithConfigOptions(Context context, SAConfigOptions saConfigOptions) {
-        if (context == null || saConfigOptions == null) {
-            throw new NullPointerException("Context、SAConfigOptions can not be null");
-        }
-        SensorsDataAPI sensorsDataAPI = getInstance(context, DebugMode.DEBUG_OFF, saConfigOptions);
-        if (!sensorsDataAPI.mSDKConfigInit) {
-            sensorsDataAPI.applySAConfigOptions();
+        try {
+            if (context == null || saConfigOptions == null) {
+                throw new NullPointerException("Context、SAConfigOptions can not be null");
+            }
+            SensorsDataAPI sensorsDataAPI = getInstance(context, DebugMode.DEBUG_OFF, saConfigOptions);
+            if (!sensorsDataAPI.mSDKConfigInit) {
+                sensorsDataAPI.applySAConfigOptions();
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
     }
 
-    private static SensorsDataAPI getInstance(Context context, DebugMode debugMode,
+    private synchronized static SensorsDataAPI getInstance(Context context, DebugMode debugMode,
                                               SAConfigOptions saConfigOptions) {
         if (null == context) {
             return new SensorsDataAPIEmptyImplementation();
         }
 
-        synchronized (sInstanceMap) {
-            final Context appContext = context.getApplicationContext();
-            SensorsDataAPI instance = sInstanceMap.get(appContext);
-            if (null == instance) {
-                instance = new SensorsDataAPI(context, saConfigOptions, debugMode);
-                sInstanceMap.put(appContext, instance);
-            }
-            return instance;
+        final Context appContext = context.getApplicationContext();
+        SensorsDataAPI instance = sInstanceMap.get(appContext);
+        if (null == instance) {
+            instance = new SensorsDataAPI(context, saConfigOptions, debugMode);
+            sInstanceMap.put(appContext, instance);
         }
+        return instance;
     }
 
     private static SensorsDataAPI getSDKInstance() {
-        synchronized (sInstanceMap) {
-            if (sInstanceMap.size() > 0) {
-                Iterator<SensorsDataAPI> iterator = sInstanceMap.values().iterator();
-                if (iterator.hasNext()) {
-                    return iterator.next();
-                }
+        if (sInstanceMap.size() > 0) {
+            Iterator<SensorsDataAPI> iterator = sInstanceMap.values().iterator();
+            if (iterator.hasNext()) {
+                return iterator.next();
             }
-            return new SensorsDataAPIEmptyImplementation();
         }
+        return new SensorsDataAPIEmptyImplementation();
     }
 
     public static SensorsDataAPI sharedInstance() {
-        if (isSDKDisabled()) {
+        try {
+            if (isSDKDisabled()) {
+                return new SensorsDataAPIEmptyImplementation();
+            }
+
+            return getSDKInstance();
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
             return new SensorsDataAPIEmptyImplementation();
         }
-
-        return getSDKInstance();
     }
 
     /**

@@ -216,7 +216,7 @@ public class AutoTrackContextHelper {
                 }
                 break;
             case Modules.AutoTrack.METHOD_GET_REFERRER_SCREEN_TITLE:
-                return (T) SAPageTools.getReferrerScreenTitle();
+                return (T) SAPageTools.getReferrerTitle();
         }
         return null;
     }

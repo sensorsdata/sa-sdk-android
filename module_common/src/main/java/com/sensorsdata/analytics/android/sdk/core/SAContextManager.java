@@ -57,6 +57,9 @@ public class SAContextManager {
     BaseSensorsDataSDKRemoteManager mRemoteManager;
     UserIdentityAPI mUserIdentityAPI;
 
+    public SAContextManager() {
+    }
+
     public SAContextManager(SensorsDataAPI sensorsDataAPI, InternalConfigOptions internalConfigs) {
         try {
             this.mSensorsDataAPI = sensorsDataAPI;

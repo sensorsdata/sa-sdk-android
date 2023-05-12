@@ -46,7 +46,7 @@ public class SAEncryptAPIImpl implements SAEncryptAPI {
         try {
             this.mSAContextManager = contextManager;
             SAConfigOptions configOptions = contextManager.getInternalConfigs().saConfigOptions;
-            if (configOptions.isEnableEncrypt()) {
+            if (configOptions.isEnableEncrypt() || configOptions.isTransportEncrypt()) {
                 mSensorsDataEncrypt = new SAEventEncryptTools(contextManager);
                 mSecretKeyManager = SecretKeyManager.getInstance(contextManager);
             }
@@ -67,11 +67,13 @@ public class SAEncryptAPIImpl implements SAEncryptAPI {
             } else if (Modules.Encrypt.METHOD_VERIFY_SECRET_KEY.equals(methodName)) {
                 return (T) verifySecretKey((Uri) argv[0]);
             } else if (Modules.Encrypt.METHOD_ENCRYPT_EVENT_DATA.equals(methodName)) {
-                return (T) encryptEventData((JSONObject) argv[0]);
+                return (T) encryptEventData(argv[0]);
             } else if (Modules.Encrypt.METHOD_STORE_SECRET_KEY.equals(methodName)) {
                 storeSecretKey((String) argv[0]);
             } else if (Modules.Encrypt.METHOD_LOAD_SECRET_KEY.equals(methodName)) {
                 return (T) loadSecretKey();
+            } else if (Modules.Encrypt.METHOD_VERIFY_SUPPORT_TRANSPORT.equals(methodName)) {
+                return (T) mSecretKeyManager.isSupportTransportEncrypt();
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
@@ -90,7 +92,7 @@ public class SAEncryptAPIImpl implements SAEncryptAPI {
     }
 
     @Override
-    public JSONObject encryptEventData(JSONObject jsonObject) {
+    public <T> T encryptEventData(T jsonObject) {
         return mSensorsDataEncrypt.encryptTrackData(jsonObject);
     }
 
@@ -117,22 +119,18 @@ public class SAEncryptAPIImpl implements SAEncryptAPI {
 
     @Override
     public void storeSecretKey(String secretKeyJson) {
-        if (mSAContextManager.getInternalConfigs().saConfigOptions.isEnableEncrypt()) {
-            SecretKeyManager.getInstance(mSAContextManager).storeSecretKey(secretKeyJson);
-        }
+        SecretKeyManager.getInstance(mSAContextManager).storeSecretKey(secretKeyJson);
     }
 
     @Override
     public String loadSecretKey() {
         try {
-            if (mSAContextManager.getInternalConfigs().saConfigOptions.isEnableEncrypt()) {
-                SecreteKey secreteKey = mSecretKeyManager.loadSecretKey();
-                SAEncryptListener mEncryptListener = mSecretKeyManager.getEncryptListener(secreteKey);
-                if (mEncryptListener == null) {
-                    return "";
-                }
-                return secreteKey.toString();
+            SecreteKey secreteKey = mSecretKeyManager.loadSecretKey();
+            SAEncryptListener mEncryptListener = mSecretKeyManager.getEncryptListener(secreteKey);
+            if (mEncryptListener == null) {
+                return "";
             }
+            return secreteKey.toString();
         } catch (JSONException e) {
             SALog.printStackTrace(e);
         }

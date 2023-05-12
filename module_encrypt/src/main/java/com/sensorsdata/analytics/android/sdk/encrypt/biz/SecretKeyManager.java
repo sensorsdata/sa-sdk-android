@@ -41,6 +41,7 @@ import java.util.List;
 public class SecretKeyManager {
     private static final String TAG = "SA.SecretKeyManager";
     private static final String SP_SECRET_KEY = "secret_key";
+    private static final String SP_SUPPORT_TRANSPORT_ENCRYPT = "supportTransportEncrypt";
     private static final int KEY_VERSION_DEFAULT = 0;
     private final IPersistentSecretKey mPersistentSecretKey;
     private final SAConfigOptions mSAConfigOptions;
@@ -67,34 +68,43 @@ public class SecretKeyManager {
     public void storeSecretKey(String configJSON) {
         try {
             JSONObject configObject = new JSONObject(configJSON);
-            String configs = configObject.optString("configs");
-            configObject = new JSONObject(configs);
-            SecreteKey secreteKey = new SecreteKey("", -1, "", "");
-            List<SAEncryptListener> encryptListeners = mSAConfigOptions.getEncryptors();
-            if (encryptListeners != null && !encryptListeners.isEmpty()) {
-                JSONObject keyObject = configObject.optJSONObject("key_v2");
-                if (keyObject != null) {
-                    String[] types = keyObject.optString("type").split("\\+");
-                    if (types.length == 2) {
-                        String asymmetricType = types[0];
-                        String symmetricType = types[1];
-                        for (SAEncryptListener encryptListener : encryptListeners) {
-                            if (asymmetricType.equals(encryptListener.asymmetricEncryptType())
-                                    && symmetricType.equals(encryptListener.symmetricEncryptType())) {
-                                secreteKey.key = keyObject.optString("public_key");
-                                secreteKey.version = keyObject.optInt("pkv");
-                                secreteKey.asymmetricEncryptType = asymmetricType;
-                                secreteKey.symmetricEncryptType = symmetricType;
+            if (mSAConfigOptions.isEnableEncrypt() || mSAConfigOptions.isTransportEncrypt()) {
+                String configs = configObject.optString("configs");
+                configObject = new JSONObject(configs);
+                SecreteKey secreteKey = new SecreteKey("", -1, "", "");
+                List<SAEncryptListener> encryptListeners = mSAConfigOptions.getEncryptors();
+                if (encryptListeners != null && !encryptListeners.isEmpty()) {
+                    JSONObject keyObject = configObject.optJSONObject("key_v2");
+                    if (keyObject != null) {
+                        String[] types = keyObject.optString("type").split("\\+");
+                        if (types.length == 2) {
+                            String asymmetricType = types[0];
+                            String symmetricType = types[1];
+                            for (SAEncryptListener encryptListener : encryptListeners) {
+                                if (asymmetricType.equals(encryptListener.asymmetricEncryptType())
+                                        && symmetricType.equals(encryptListener.symmetricEncryptType())) {
+                                    secreteKey.key = keyObject.optString("public_key");
+                                    secreteKey.version = keyObject.optInt("pkv");
+                                    secreteKey.asymmetricEncryptType = asymmetricType;
+                                    secreteKey.symmetricEncryptType = symmetricType;
+                                }
                             }
                         }
                     }
+                    if (TextUtils.isEmpty(secreteKey.key)) {
+                        parseSecreteKey(configObject.optJSONObject("key"), secreteKey);
+                    }
                 }
-                if (TextUtils.isEmpty(secreteKey.key)) {
-                    parseSecreteKey(configObject.optJSONObject("key"), secreteKey);
-                }
+
+                // real store key
+                storeSecretKey(secreteKey);
             }
-            // real store key
-            storeSecretKey(secreteKey);
+            // 保存是否支持传输加密标记位
+            if (configObject.has(SP_SUPPORT_TRANSPORT_ENCRYPT)) {
+                SAStoreManager.getInstance().setBool(SP_SUPPORT_TRANSPORT_ENCRYPT, configObject.optBoolean(SP_SUPPORT_TRANSPORT_ENCRYPT));
+            } else {// 如果切换成不支持传输加密的环境
+                SAStoreManager.getInstance().setBool(SP_SUPPORT_TRANSPORT_ENCRYPT, false);
+            }
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -159,6 +169,10 @@ public class SecretKeyManager {
             SALog.printStackTrace(ex);
         }
         return "";
+    }
+
+    public Boolean isSupportTransportEncrypt() {
+        return SAStoreManager.getInstance().isExists(SP_SUPPORT_TRANSPORT_ENCRYPT) ? SAStoreManager.getInstance().getBool(SP_SUPPORT_TRANSPORT_ENCRYPT, false) : null;
     }
 
     /**

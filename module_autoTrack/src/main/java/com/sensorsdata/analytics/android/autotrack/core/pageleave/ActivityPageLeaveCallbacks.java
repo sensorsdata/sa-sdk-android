@@ -24,7 +24,6 @@ import android.os.SystemClock;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.autotrack.core.business.SAPageTools;
-import com.sensorsdata.analytics.android.autotrack.utils.AppPageLeaveUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
@@ -148,13 +147,15 @@ public class ActivityPageLeaveCallbacks implements SensorsDataActivityLifecycleC
             JSONObject properties = SAPageInfoUtils.getActivityPageInfo(activity);
             String url = SAPageTools.getScreenUrl(activity);
             properties.put("$url", url);
-            String referrer = AppPageLeaveUtils.getLastScreenUrl();
+            if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)) {
+                SAPageTools.setCurrentScreenUrl(url);
+            }
+            String referrer = SAPageTools.getReferrer();
             if (!properties.has("$referrer") && !TextUtils.isEmpty(referrer)) {
                 properties.put("$referrer", referrer);
             }
             properties.put(START_TIME, SystemClock.elapsedRealtime());
             mResumedActivities.put(activity.hashCode(), properties);
-            AppPageLeaveUtils.setLastScreenUrl(url);
         } catch (JSONException e) {
             SALog.printStackTrace(e);
         }

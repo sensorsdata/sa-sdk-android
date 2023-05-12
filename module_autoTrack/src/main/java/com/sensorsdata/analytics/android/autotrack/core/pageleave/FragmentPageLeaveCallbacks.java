@@ -24,13 +24,13 @@ import android.view.View;
 
 import com.sensorsdata.analytics.android.autotrack.core.autotrack.SAFragmentLifecycleCallbacks;
 import com.sensorsdata.analytics.android.autotrack.core.business.SAPageTools;
-import com.sensorsdata.analytics.android.autotrack.utils.AppPageLeaveUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.exceptions.SensorsDataExceptionHandler;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
+import com.sensorsdata.analytics.android.sdk.util.Dispatcher;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAPageInfoUtils;
@@ -48,7 +48,7 @@ import java.util.List;
  */
 public class FragmentPageLeaveCallbacks implements SAFragmentLifecycleCallbacks, SensorsDataExceptionHandler.SAExceptionListener {
     private final HashMap<Integer, JSONObject> mResumedFragments = new HashMap<>();
-    private List<Class<?>> mIgnoreList ;
+    private List<Class<?>> mIgnoreList;
     private final boolean mIsEmpty;
 
     private static final String START_TIME = "sa_start_time";
@@ -128,15 +128,6 @@ public class FragmentPageLeaveCallbacks implements SAFragmentLifecycleCallbacks,
             int hashCode = object.hashCode();
             if (mResumedFragments.containsKey(hashCode)) {
                 JSONObject properties = mResumedFragments.get(hashCode);
-                long startTime = properties == null ? 0 : properties.optLong(START_TIME);
-                String referrer = properties == null ? "" : properties.optString("$referrer");
-                properties = SAPageInfoUtils.getFragmentPageInfo( null, object);
-                properties.put(START_TIME, startTime);
-                String url = SAPageTools.getScreenUrl(object);
-                properties.put("$url", url);
-                if (!TextUtils.isEmpty(referrer)) {
-                    properties.put("$referrer", referrer);
-                }
                 mResumedFragments.remove(hashCode);
                 trackPageLeaveEvent(properties);
             }
@@ -145,23 +136,33 @@ public class FragmentPageLeaveCallbacks implements SAFragmentLifecycleCallbacks,
         }
     }
 
-    private void trackFragmentStart(Object object) {
-        try {
-            JSONObject properties = new JSONObject();
-            properties.put(START_TIME, SystemClock.elapsedRealtime());
-            String url = SAPageTools.getScreenUrl(object);
-            properties.put("$url", url);
-            String referrer = AppPageLeaveUtils.getLastScreenUrl();
-            if (!TextUtils.isEmpty(referrer)) {
-                properties.put("$referrer", referrer);
-            }
+    private void trackFragmentStart(final Object object) {
+        Dispatcher.getInstance().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    JSONObject properties = new JSONObject();
+                    properties.put(START_TIME, SystemClock.elapsedRealtime());
+                    String url = SAPageTools.getScreenUrl(object);
+                    properties.put("$url", url);
+                    if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)
+                            || !SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
+                        SAPageTools.setCurrentScreenUrl(url);
+                    }
+                    String referrer = SAPageTools.getReferrer();
+                    if (!TextUtils.isEmpty(referrer)) {
+                        properties.put("$referrer", referrer);
+                    }
+                    properties.put("$referrer_title", SAPageTools.getReferrerTitle());
 
-            JSONUtils.mergeJSONObject(SAPageInfoUtils.getFragmentPageInfo(null, object), properties);
-            mResumedFragments.put(object.hashCode(), properties);
-            AppPageLeaveUtils.setLastScreenUrl(url);
-        } catch (JSONException e) {
-            SALog.printStackTrace(e);
-        }
+                    JSONUtils.mergeJSONObject(SAPageInfoUtils.getFragmentPageInfo(null, object), properties);
+                    SALog.i("SA.FragmentPageLeave", "trackFragmentStart = " + properties);
+                    mResumedFragments.put(object.hashCode(), properties);
+                } catch (JSONException e) {
+                    SALog.printStackTrace(e);
+                }
+            }
+        }, 300);
     }
 
     @Override

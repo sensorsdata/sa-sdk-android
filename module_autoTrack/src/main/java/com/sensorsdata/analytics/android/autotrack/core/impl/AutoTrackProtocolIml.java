@@ -483,17 +483,17 @@ public class AutoTrackProtocolIml implements AutoTrackProtocol {
                             String currentUrl = url;
                             if (cloneProperties != null) {
                                 if (cloneProperties.has("$title")) {
-                                    SAPageTools.setCurrentScreenTitle(cloneProperties.getString("$title"));
+                                    SAPageTools.setCurrentTitle(cloneProperties.getString("$title"));
                                 } else {
-                                    SAPageTools.setCurrentScreenTitle(null);
+                                    SAPageTools.setCurrentTitle(null);
                                 }
                                 if (cloneProperties.has("$url")) {
                                     currentUrl = cloneProperties.optString("$url");
                                 }
                             }
                             SAPageTools.setCurrentScreenUrl(currentUrl);
-                            if (SAPageTools.getLastScreenUrl() != null) {
-                                trackProperties.put("$referrer", SAPageTools.getLastScreenUrl());
+                            if (SAPageTools.getReferrer() != null) {
+                                trackProperties.put("$referrer", SAPageTools.getReferrer());
                             }
 
                             trackProperties.put("$url", SAPageTools.getCurrentScreenUrl());

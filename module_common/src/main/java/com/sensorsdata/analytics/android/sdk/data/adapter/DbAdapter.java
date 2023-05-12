@@ -19,6 +19,7 @@ package com.sensorsdata.analytics.android.sdk.data.adapter;
 
 import android.content.ContentValues;
 
+import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
@@ -37,8 +38,11 @@ public class DbAdapter {
 
     private DbAdapter(SAContextManager saContextManager) {
         mDbParams = DbParams.getInstance(saContextManager.getContext().getPackageName());
-        if (saContextManager.getInternalConfigs().saConfigOptions.isEnableEncrypt()) {
+        SAConfigOptions saConfigOptions = saContextManager.getInternalConfigs().saConfigOptions;
+        if (saConfigOptions.isEnableEncrypt()) {
             mTrackEventOperation = new EncryptDataOperation(saContextManager.getContext().getApplicationContext());
+        } else if (saConfigOptions.isTransportEncrypt()) {
+            mTrackEventOperation = new TransportEncryption(saContextManager.getContext().getApplicationContext());
         } else {
             mTrackEventOperation = new EventDataOperation(saContextManager.getContext().getApplicationContext());
         }

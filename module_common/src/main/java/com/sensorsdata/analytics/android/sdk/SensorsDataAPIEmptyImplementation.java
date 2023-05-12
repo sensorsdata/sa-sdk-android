@@ -18,6 +18,7 @@ package com.sensorsdata.analytics.android.sdk;
 
 
 import android.app.Activity;
+import android.content.Context;
 import android.view.View;
 import android.webkit.WebView;
 
@@ -26,10 +27,14 @@ import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureDa
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
+import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.listener.SAFunctionListener;
 import com.sensorsdata.analytics.android.sdk.listener.SAJSListener;
+import com.sensorsdata.analytics.android.sdk.plugin.property.PropertyPluginManager;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
+import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
+import com.sensorsdata.analytics.android.sdk.useridentity.UserIdentityAPI;
 
 import org.json.JSONObject;
 
@@ -821,12 +826,79 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
     static class EmptySAContext extends SAContextManager {
 
         public EmptySAContext() {
-            super(null, null);
         }
 
         @Override
         public void trackEvent(InputData inputData) {
 
+        }
+
+        @Override
+        public List<SAEventListener> getEventListenerList() {
+            return new ArrayList<>();
+        }
+
+        @Override
+        public void addEventListener(SAEventListener eventListener) {
+
+        }
+
+        @Override
+        public void removeEventListener(SAEventListener eventListener) {
+
+        }
+
+        @Override
+        public BaseSensorsDataSDKRemoteManager getRemoteManager() {
+            return null;
+        }
+
+        @Override
+        public void setRemoteManager(BaseSensorsDataSDKRemoteManager mRemoteManager) {
+        }
+
+        @Override
+        public synchronized UserIdentityAPI getUserIdentityAPI() {
+            return new UserIdentityAPI(this);
+        }
+
+        @Override
+        public SensorsDataAPI getSensorsDataAPI() {
+            return new SensorsDataAPIEmptyImplementation();
+        }
+
+        @Override
+        public boolean isFirstDay(long eventTime) {
+            return false;
+        }
+
+        @Override
+        public PropertyPluginManager getPluginManager() {
+            return null;
+        }
+
+        @Override
+        public Context getContext() {
+            return null;
+        }
+
+        @Override
+        public InternalConfigOptions getInternalConfigs() {
+            return new InternalConfigOptions();
+        }
+
+        @Override
+        public AnalyticsMessages getAnalyticsMessages() {
+            return null;
+        }
+
+        @Override
+        public SensorsDataScreenOrientationDetector getOrientationDetector() {
+            return null;
+        }
+
+        @Override
+        public void setOrientationDetector(SensorsDataScreenOrientationDetector mOrientationDetector) {
         }
     }
 }

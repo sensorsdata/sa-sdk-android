@@ -302,13 +302,23 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
     }
 
     /**
-     * 是否开启加密
+     * 开启埋点开启加密，上报时已是密文。
      *
      * @param enableEncrypt 是否开启加密
      * @return SAConfigOptions
      */
     public SAConfigOptions enableEncrypt(boolean enableEncrypt) {
         this.mEnableEncrypt = enableEncrypt;
+        return this;
+    }
+
+    /**
+     * 开启传输加密
+     *
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions enableTransportEncrypt() {
+        this.mTransportEncrypt = true;
         return this;
     }
 

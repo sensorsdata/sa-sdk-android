@@ -48,6 +48,7 @@ public class DbParams {
     static final String VALUE = "value";
     public static final String GZIP_DATA_EVENT = "1";
     public static final String GZIP_DATA_ENCRYPT = "9";
+    public static final String GZIP_TRANSPORT_ENCRYPT = "13";
     /* 删除所有数据 */
     static final String DB_DELETE_ALL = "DB_DELETE_ALL";
     private static DbParams instance;

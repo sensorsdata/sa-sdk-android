@@ -17,6 +17,16 @@ SensorsAnalytics SDK 是国内第一家开源商用版用户行为采集 SDK，�
 ## 基本要求
 Android 4.0 及以上。
 
+## 推荐版本
+
+| 推荐版本 | 版本链接 |
+| ------  | ------ |
+| 最新版   | https://github.com/sensorsdata/sa-sdk-android/releases  |
+| v6.2.8  | https://github.com/sensorsdata/sa-sdk-android/releases/tag/v6.2.8  |
+| v5.4.4  | https://github.com/sensorsdata/sa-sdk-android/releases/tag/v5.4.4  |
+| v5.0.2  | https://github.com/sensorsdata/sa-sdk-android/releases/tag/v5.0.2  |
+| v4.0.9  | https://github.com/sensorsdata/sa-sdk-android/releases/tag/v4.0.9  |
+
 ## 集成文档
 
 请参考神策官网 [Android SDK 集成文档](http://www.sensorsdata.cn/manual/android_sdk.html)。

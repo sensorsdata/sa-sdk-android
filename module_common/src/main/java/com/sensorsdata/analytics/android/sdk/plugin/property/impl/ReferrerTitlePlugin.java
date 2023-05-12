@@ -39,11 +39,12 @@ public class ReferrerTitlePlugin extends SAPropertyPlugin {
 
     @Override
     public void properties(SAPropertiesFetcher fetcher) {
-
         String lastTitle = SAModuleManager.getInstance().invokeModuleFunction(Modules.AutoTrack.MODULE_NAME, Modules.AutoTrack.METHOD_GET_REFERRER_SCREEN_TITLE);
         if (lastTitle != null) {
             try {
-                fetcher.getProperties().put("$referrer_title", lastTitle);
+                if (!fetcher.getProperties().has("$referrer_title")) {
+                    fetcher.getProperties().put("$referrer_title", lastTitle);
+                }
             } catch (JSONException e) {
                 SALog.printStackTrace(e);
             }

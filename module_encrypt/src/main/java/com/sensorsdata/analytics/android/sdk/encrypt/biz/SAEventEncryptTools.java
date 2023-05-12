@@ -43,7 +43,7 @@ public class SAEventEncryptTools {
      * @param jsonObject，需要加密的数据
      * @return 加密后的数据
      */
-    public JSONObject encryptTrackData(JSONObject jsonObject) {
+    public <T> T encryptTrackData(T jsonObject) {
         try {
             if (mSecretKeyManager.isSecretKeyNull(mSecreteKey)) {
                 mSecreteKey = mSecretKeyManager.loadSecretKey();
@@ -77,7 +77,7 @@ public class SAEventEncryptTools {
             dataJson.put("ekey", encryptedKey);
             dataJson.put("pkv", mSecreteKey.version);
             dataJson.put("payloads", encryptData);
-            return dataJson;
+            return (T) (jsonObject instanceof String ? dataJson.toString() : dataJson);
         } catch (Exception ex) {
             SALog.printStackTrace(ex);
         }

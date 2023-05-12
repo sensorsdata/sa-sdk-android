@@ -25,8 +25,8 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.business.instantevent.InstantEventUtils;
-import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
+import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -35,9 +35,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 class EncryptDataOperation extends DataOperation {
-
+    protected boolean mDbEncrypt;
     EncryptDataOperation(Context context) {
         super(context);
+        mDbEncrypt = true;
     }
 
     @Override
@@ -114,7 +115,7 @@ class EncryptDataOperation extends DataOperation {
 
                         jsonObject = new JSONObject(keyData);
                         boolean isHasEkey = jsonObject.has(EKEY);
-                        if (!isHasEkey) { // 如果没有包含 Ekey 字段，则重新进行加密
+                        if (!isHasEkey && mDbEncrypt) { // 如果没有包含 Ekey 字段，则重新进行加密
                             JSONObject jsonEncrypt = SAModuleManager.getInstance().invokeModuleFunction(Modules.Encrypt.MODULE_NAME, Modules.Encrypt.METHOD_ENCRYPT_EVENT_DATA, jsonObject);
                             if (jsonEncrypt != null) {
                                 jsonObject = jsonEncrypt;

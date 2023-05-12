@@ -17,6 +17,7 @@
 
 package com.sensorsdata.analytics.android.sdk.core.event;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.core.event.imp.AssembleDataImpl;
 import com.sensorsdata.analytics.android.sdk.core.event.imp.SendDataImpl;
@@ -44,12 +45,16 @@ public abstract class EventProcessor {
      * @param input DataInput
      */
     protected synchronized void process(InputData input) {
-        // 1. assemble data
-        Event event = assembleData(input);
-        // 2. store data
-        int errorCode = storeData(event);
-        // 3. send data
-        sendData(input, errorCode);
+        try {
+            // 1. assemble data
+            Event event = assembleData(input);
+            // 2. store data
+            int errorCode = storeData(event);
+            // 3. send data
+            sendData(input, errorCode);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     /**

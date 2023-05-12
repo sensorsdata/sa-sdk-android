@@ -35,7 +35,7 @@ public interface SAEncryptAPI {
     /*
      * decrypt track event data
      */
-    JSONObject encryptEventData(JSONObject jsonObject);
+    <T> T encryptEventData(T jsonObject);
 
     /*
      * verify secret key from scan code

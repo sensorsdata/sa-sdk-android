@@ -213,24 +213,32 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
 
     @Override
     public void logout() {
-        //1、避免 SensorsDataContentObserver 跨进程数据不断进来
-        if (TextUtils.isEmpty(mIdentitiesInstance.getLoginId())) {
-            return;
-        }
-        SALog.i(TAG, "logout is called");
-        //2、进行登录 IDKey 和 ID 的重置、identities 的处理
-        mIdentitiesInstance.removeLoginKeyAndID();
-        // 3、进行通知调用 logout 接口
-        if (mSAContextManager.getEventListenerList() != null) {
-            for (SAEventListener eventListener : mSAContextManager.getEventListenerList()) {
-                try {
-                    eventListener.logout();
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
-                }
+        try {
+            //1、避免 SensorsDataContentObserver 跨进程数据不断进来
+            JSONObject identities = mIdentitiesInstance.getIdentities(Identities.State.DEFAULT);
+            boolean isLogin = !TextUtils.isEmpty(mIdentitiesInstance.getLoginId());
+            if (!isLogin && (identities == null || identities.length() == 1 && (identities.has(Identities.ANDROID_ID) || identities.has(Identities.ANDROID_UUID)))) {
+                return;
             }
+            SALog.i(TAG, "logout is called");
+            //2、进行登录 IDKey 和 ID 的重置、identities 的处理
+            mIdentitiesInstance.removeLoginKeyAndID();
+            // 3、进行通知调用 logout 接口
+            if (isLogin) {
+                if (mSAContextManager.getEventListenerList() != null) {
+                    for (SAEventListener eventListener : mSAContextManager.getEventListenerList()) {
+                        try {
+                            eventListener.logout();
+                        } catch (Exception e) {
+                            SALog.printStackTrace(e);
+                        }
+                    }
+                }
+                TrackMonitor.getInstance().callLogout();
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
-        TrackMonitor.getInstance().callLogout();
         SALog.i(TAG, "Clean loginId");
     }
 

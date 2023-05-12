@@ -22,6 +22,7 @@ import android.content.Context;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.widget.TabHost;
 
 import com.sensorsdata.analytics.android.autotrack.core.beans.ViewContext;
@@ -31,7 +32,9 @@ import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
 
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
+import java.util.List;
 
 public class AutoTrackViewUtils {
 
@@ -140,6 +143,19 @@ public class AutoTrackViewUtils {
         return view;
     }
 
+    public static boolean isBindViewPager(View tabLayout) {
+        if (tabLayout == null) {
+            return false;
+        }
+        View viewPager = ReflectUtil.findField(tabLayout.getClass(), tabLayout, "viewPager");
+        if (viewPager != null) {
+            return true;
+        } else {
+            View tempView = findTabLayout(tabLayout);
+            return tabLayout == tempView;
+        }
+    }
+
     private static View getSupportTabLayout(Object tab) {
         View view = null;
         try {
@@ -151,7 +167,7 @@ public class AutoTrackViewUtils {
 
             //反射获取 TabLayout，进行 view 忽略判断。
             if (ReflectUtil.isInstance(tab, "android.support.design.widget.TabLayout$Tab")) {
-                view = ReflectUtil.findField(new String[]{"android.support.design.widget.TabLayout$Tab"}, tab, "mParent");
+                view = ReflectUtil.findField(new String[]{"android.support.design.widget.TabLayout$Tab"}, tab, "mParent", "parent");
                 if (null != view && ReflectUtil.isInstance(view, "android.support.design.widget.TabLayout")
                         && SAViewUtils.isViewIgnored(view)) {
                     return null;
@@ -183,5 +199,38 @@ public class AutoTrackViewUtils {
         }
 
         return view;
+    }
+
+    private static View findTabLayout(View view) {
+        ViewParent parentView = view.getParent();
+        if (parentView instanceof ViewGroup) {
+            for (int count = 0; count < ((ViewGroup) parentView).getChildCount(); count++) {
+                View v = ((ViewGroup) parentView).getChildAt(count);
+                if ("ViewPager".equals(v.getClass().getSimpleName())) {
+                    View tempTabLayout = findTabLayoutView(v);
+                    if (tempTabLayout != null) {
+                        return tempTabLayout;
+                    }
+                    break;
+                }
+            }
+        }
+        if (parentView.getParent() == null) {
+            return null;
+        }
+        return findTabLayout((View) parentView);
+    }
+
+    private static View findTabLayoutView(View view) {
+        List<?> pageChangeListeners = ReflectUtil.findField(view.getClass(), view, "mOnPageChangeListeners");
+        if (pageChangeListeners != null && pageChangeListeners.size() > 0) {
+            for (Object listener : pageChangeListeners) {
+                WeakReference<View> weakReference = ReflectUtil.findField(listener.getClass(), listener, "tabLayoutRef");
+                if (weakReference != null && weakReference.get() != null) {
+                    return weakReference.get();
+                }
+            }
+        }
+        return null;
     }
 }

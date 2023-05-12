@@ -36,6 +36,7 @@ import com.sensorsdata.analytics.android.sdk.plugin.property.impl.InternalCustom
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
+import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -76,6 +77,7 @@ class TrackEventAssemble extends BaseEventAssemble {
                 return null;
             }
             appendPluginVersion(eventType, trackEvent);
+            overrideDeviceId(eventType, trackEvent);
             SADataHelper.assertPropertyTypes(trackEvent.getProperties());
             handleEventListener(eventType, trackEvent, mContextManager);
             if (SALog.isLogEnabled()) {

@@ -155,9 +155,14 @@ abstract class AbstractSAConfigOptions {
     boolean isSubProcessFlushData = false;
 
     /**
-     * 是否开启加密
+     * 是否开启埋点加密
      */
     boolean mEnableEncrypt = false;
+
+    /**
+     * 是否传输加密
+     */
+    boolean mTransportEncrypt = false;
 
     /**
      * 密钥存储相关接口
@@ -376,6 +381,10 @@ abstract class AbstractSAConfigOptions {
 
     public boolean isEnableEncrypt() {
         return mEnableEncrypt;
+    }
+
+    public boolean isTransportEncrypt() {
+        return mTransportEncrypt;
     }
 
     /**

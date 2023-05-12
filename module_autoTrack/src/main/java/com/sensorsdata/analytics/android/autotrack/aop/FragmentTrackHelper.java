@@ -20,16 +20,16 @@ package com.sensorsdata.analytics.android.autotrack.aop;
 import android.os.Bundle;
 import android.view.View;
 
-import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.autotrack.core.autotrack.SAFragmentLifecycleCallbacks;
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 public class FragmentTrackHelper {
     // Fragment 的回调监听
-    private static final Set<SAFragmentLifecycleCallbacks> FRAGMENT_CALLBACKS = new HashSet<>();
+    private static final List<SAFragmentLifecycleCallbacks> FRAGMENT_CALLBACKS = new ArrayList<>();
 
     /**
      * 插件 Hook 处理 Fragment 的 onViewCreated 生命周期

@@ -18,6 +18,7 @@
 package com.sensorsdata.analytics.android.sdk.core.event.imp;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.core.business.SAPluginVersion;
 import com.sensorsdata.analytics.android.sdk.core.business.session.SessionRelatedManager;
 import com.sensorsdata.analytics.android.sdk.core.event.EventProcessor;
@@ -26,7 +27,7 @@ import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.monitor.TrackMonitor;
-import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
+import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
 import org.json.JSONException;
@@ -133,6 +134,16 @@ public abstract class BaseEventAssemble implements EventProcessor.IAssembleData 
                 SALog.printStackTrace(ex);
             }
             trackEvent.getProperties().remove("$time");
+        }
+    }
+
+    protected void overrideDeviceId(EventType eventType, TrackEvent trackEvent) {
+        try {
+            if (eventType.isTrack() && trackEvent != null) {
+                trackEvent.getProperties().put("$device_id", SensorsDataUtils.getIdentifier(mInternalConfigs.context));
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
     }
 

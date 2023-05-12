@@ -83,6 +83,7 @@ class H5TrackAssemble extends BaseEventAssemble {
             }
             appendPluginVersion(eventType, trackEvent);
             removeH5Property(trackEvent);
+            overrideDeviceId(eventType, trackEvent);
             if (updateIdentities(eventType, trackEvent, sensorsDataAPI, contextManager)) {
                 // update lib、property
                 SADataHelper.assertPropertyTypes(trackEvent.getProperties());

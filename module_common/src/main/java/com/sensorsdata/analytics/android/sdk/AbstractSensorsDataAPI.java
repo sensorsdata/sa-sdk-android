@@ -54,16 +54,16 @@ import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
     protected static final String TAG = "SA.SensorsDataAPI";
     // SDK版本
     static final String VERSION = BuildConfig.SDK_VERSION;
     // Maps each token to a singleton SensorsDataAPI instance
-    protected static final Map<Context, SensorsDataAPI> sInstanceMap = new HashMap<>();
+    protected static final Map<Context, SensorsDataAPI> sInstanceMap = new ConcurrentHashMap<>();
     /* 远程配置 */
     protected static SAConfigOptions mSAConfigOptions;
     protected InternalConfigOptions mInternalConfigs;

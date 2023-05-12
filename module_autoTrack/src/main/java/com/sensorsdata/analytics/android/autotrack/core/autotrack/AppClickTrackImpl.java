@@ -44,6 +44,7 @@ import android.widget.TabHost;
 import com.sensorsdata.analytics.android.autotrack.R;
 import com.sensorsdata.analytics.android.autotrack.core.beans.AutoTrackConstants;
 import com.sensorsdata.analytics.android.autotrack.core.beans.ViewContext;
+import com.sensorsdata.analytics.android.autotrack.core.business.SAPageTools;
 import com.sensorsdata.analytics.android.autotrack.utils.AopUtil;
 import com.sensorsdata.analytics.android.autotrack.utils.AutoTrackViewUtils;
 import com.sensorsdata.analytics.android.autotrack.utils.KeyboardViewUtil;
@@ -294,6 +295,13 @@ public class AppClickTrackImpl {
                 tabView = ReflectUtil.findField(currentTabClass, tab, "view");
                 if (tabView == null) {
                     tabView = ReflectUtil.findField(currentTabClass, tab, "mView");
+                }
+
+                if (tabLayout != null && tabView != null) {
+                    boolean isBindViewPager = AutoTrackViewUtils.isBindViewPager(tabLayout);
+                    if (isBindViewPager && !tabView.isPressed() || !isBindViewPager && tabView.isPressed()) {//include view pager scroll or only tabLayout press
+                        properties.put("$referrer_title", SAPageTools.getCurrentTitle());
+                    }
                 }
             }
             trackAutoEvent(sensorsDataAPI, properties, tabView);

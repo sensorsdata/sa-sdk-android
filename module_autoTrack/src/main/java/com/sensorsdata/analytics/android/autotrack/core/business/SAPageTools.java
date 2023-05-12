@@ -26,12 +26,16 @@ import org.json.JSONObject;
 public class SAPageTools {
     /* last page Url */
     private static String mLastScreenUrl;
+    /* 前向页面地址，与 mLastScreenUrl 在及时性上有区别 */
+    private static String sReferrer;
+    private static long sReferrerUrlTime;
     /*current page url */
     private static String mCurrentScreenUrl;
     /* last page Title */
-    private static String mReferrerScreenTitle;
+    private static String mReferrerTitle;
+    private static long sReferrerTitleTime;
     /* current page Title */
-    private static String mCurrentScreenTitle;
+    private static String mCurrentTitle;
     /* current page property */
     private static JSONObject mCurrentScreenTrackProperties;
 
@@ -43,17 +47,24 @@ public class SAPageTools {
         mLastScreenUrl = lastScreenUrl;
     }
 
-    public static String getReferrerScreenTitle() {
-        return mReferrerScreenTitle;
+    public static String getReferrer() {
+        return sReferrer;
     }
 
-    public static String getCurrentScreenTitle() {
-        return mCurrentScreenTitle;
+    public static String getReferrerTitle() {
+        return mReferrerTitle;
     }
 
-    public static void setCurrentScreenTitle(String currentScreenTitle) {
-        mReferrerScreenTitle = mCurrentScreenTitle;
-        mCurrentScreenTitle = currentScreenTitle;
+    public static String getCurrentTitle() {
+        return mCurrentTitle;
+    }
+
+    public static void setCurrentTitle(String currentScreenTitle) {
+        if (System.currentTimeMillis() - sReferrerTitleTime >= 400) {// update referrer
+            mReferrerTitle = mCurrentTitle;
+            sReferrerTitleTime = System.currentTimeMillis();
+        }
+        mCurrentTitle = currentScreenTitle;
     }
 
     public static void setCurrentScreenTrackProperties(JSONObject currentScreenTrackProperties) {
@@ -65,6 +76,10 @@ public class SAPageTools {
     }
 
     public static void setCurrentScreenUrl(String currentScreenUrl) {
+        if (System.currentTimeMillis() - sReferrerUrlTime >= 400) {// update referrer
+            sReferrer = mCurrentScreenUrl;
+            sReferrerUrlTime = System.currentTimeMillis();
+        }
         mLastScreenUrl = mCurrentScreenUrl;
         mCurrentScreenUrl = currentScreenUrl;
     }
