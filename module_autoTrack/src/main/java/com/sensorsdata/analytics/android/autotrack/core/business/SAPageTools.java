@@ -37,7 +37,9 @@ public class SAPageTools {
     /* current page Title */
     private static String mCurrentTitle;
     /* current page property */
-    private static JSONObject mCurrentScreenTrackProperties;
+    private static long sTrackPropertiesTime;
+    private static JSONObject sCurrentScreenTrackProperties;
+    private static JSONObject sLastTrackProperties;
 
     public static String getLastScreenUrl() {
         return mLastScreenUrl;
@@ -68,7 +70,11 @@ public class SAPageTools {
     }
 
     public static void setCurrentScreenTrackProperties(JSONObject currentScreenTrackProperties) {
-        mCurrentScreenTrackProperties = currentScreenTrackProperties;
+        if (System.currentTimeMillis() - sTrackPropertiesTime >= 400) {// update referrer
+            sLastTrackProperties = sCurrentScreenTrackProperties;
+            sTrackPropertiesTime = System.currentTimeMillis();
+        }
+        sCurrentScreenTrackProperties = currentScreenTrackProperties;
     }
 
     public static String getCurrentScreenUrl() {
@@ -84,8 +90,8 @@ public class SAPageTools {
         mCurrentScreenUrl = currentScreenUrl;
     }
 
-    public static JSONObject getCurrentScreenTrackProperties() {
-        return mCurrentScreenTrackProperties;
+    public static JSONObject getLastTrackProperties() {
+        return sLastTrackProperties;
     }
 
     /**

@@ -115,5 +115,6 @@ public interface Modules {
         String METHOD_SET_EXPOSURE_IDENTIFIER = "setExposureIdentifier";
         String METHOD_ADD_EXPOSURE_VIEW = "addExposureView";
         String METHOD_REMOVE_EXPOSURE_VIEW = "removeExposureView";
+        String METHOD_UPDATE_EXPOSURE_PROPERTIES = "updateExposureProperties";
     }
 }

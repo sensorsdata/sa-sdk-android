@@ -1,5 +1,8 @@
 package com.sensorsdata.analytics.android.sdk.core.business.exposure;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
+
 import org.json.JSONObject;
 
 public class SAExposureData {
@@ -7,6 +10,7 @@ public class SAExposureData {
     private JSONObject properties;  //自定义事件属性
     private String event;   //事件名称
     private final String exposureIdentifier;//view 的唯一标志
+    private SAExposureListener exposureListener; // 曝光监听回调
 
     public SAExposureData(String event) {
         this(event, null, null, null);
@@ -30,7 +34,11 @@ public class SAExposureData {
     
     public SAExposureData(String event, JSONObject properties, String exposureIdentifier, SAExposureConfig exposureConfig) {
         this.event = event;
-        this.properties = properties;
+        try {
+            this.properties = JSONUtils.cloneJsonObject(properties);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
         this.exposureIdentifier = exposureIdentifier;
         this.exposureConfig = exposureConfig;
     }
@@ -48,7 +56,11 @@ public class SAExposureData {
     }
 
     public void setProperties(JSONObject properties) {
-        this.properties = properties;
+        try {
+            this.properties = JSONUtils.cloneJsonObject(properties);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     public String getEvent() {
@@ -61,6 +73,14 @@ public class SAExposureData {
 
     public String getIdentifier() {
         return exposureIdentifier;
+    }
+
+    public SAExposureListener getExposureListener() {
+        return exposureListener;
+    }
+
+    public void setExposureListener(SAExposureListener saExposureListener) {
+        this.exposureListener = saExposureListener;
     }
 
     @Override

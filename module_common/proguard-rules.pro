@@ -20,15 +20,11 @@
 -keep class com.sensorsdata.analytics.android.** {
 *;
 }
--keep class **.R$* {
-    <fields>;
-}
 -keep public class * extends android.content.ContentProvider
 -keepnames class * extends android.view.View
 
 -dontwarn org.json.**
 -keep class org.json.**{*;}
-
 
 # AlertDialog
 -keep class android.app.AlertDialog {*;}

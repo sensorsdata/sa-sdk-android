@@ -63,7 +63,6 @@ class TrackEventAssemble extends BaseEventAssemble {
             if (isEventIgnore(input.getEventName(), eventType, mContextManager)) {
                 return null;
             }
-
             TrackEvent trackEvent = new TrackEvent();
             trackEvent.setProperties(properties);
             appendDefaultProperty(input, trackEvent);
@@ -77,7 +76,7 @@ class TrackEventAssemble extends BaseEventAssemble {
                 return null;
             }
             appendPluginVersion(eventType, trackEvent);
-            overrideDeviceId(eventType, trackEvent);
+            overrideDeviceId(eventType, trackEvent, mContextManager);
             SADataHelper.assertPropertyTypes(trackEvent.getProperties());
             handleEventListener(eventType, trackEvent, mContextManager);
             if (SALog.isLogEnabled()) {

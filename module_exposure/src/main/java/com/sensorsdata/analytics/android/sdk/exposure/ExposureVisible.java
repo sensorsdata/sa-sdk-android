@@ -27,19 +27,14 @@ public class ExposureVisible {
         if (!isParentVisible(view)) {
             return false;
         }
-        if (!view.isShown()) {
-            return false;
-        }
-        return true;
+        return view.isShown();
     }
 
     private boolean isViewSelfVisible(View view, Rect rect) {
         if (view == null || view.getWindowVisibility() == View.GONE) {
             return false;
         }
-        if (WindowHelper.isDecorView(view.getClass())) {
-            return true;
-        }
+
         Boolean localVisible = mVisible.get(view.hashCode() + "");
         boolean viewLocalVisible;
         if (localVisible == null) {
@@ -48,17 +43,16 @@ public class ExposureVisible {
         } else {
             viewLocalVisible = localVisible;
         }
+
+        if (WindowHelper.isDecorView(view.getClass())) {
+            return true;
+        }
+
         if (view.getWidth() <= 0 || view.getHeight() <= 0 || view.getAlpha() <= 0.0f || !viewLocalVisible) {
             return false;
         }
-        boolean flag = view.getVisibility() == View.VISIBLE || view.getAnimation() == null || !view.getAnimation().getFillAfter();
-        flag = flag && (view.getVisibility() != View.VISIBLE);
-        if (flag) {
-            return false;
-        }
-        return true;
+        return (view.getAnimation() != null && view.getAnimation().getFillAfter()) || view.getVisibility() == View.VISIBLE;
     }
-
 
     private boolean isParentVisible(View view) {
         if (view == null) {

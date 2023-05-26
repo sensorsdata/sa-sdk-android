@@ -76,7 +76,7 @@ dependencies {
     testImplementation rootProject.ext.test.robolectric
     testImplementation rootProject.ext.test.powermock_core
     // test
-    testImplementation project(':SensorsAnalyticsSDK')
+    testImplementation project(':module_common')
 
     compileOnly project(':module_core')
 

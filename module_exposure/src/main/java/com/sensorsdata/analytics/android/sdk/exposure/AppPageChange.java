@@ -8,7 +8,7 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 
 
 @SuppressLint("NewApi")
-public class AppPageChange implements ViewTreeObserver.OnGlobalLayoutListener, ViewTreeObserver.OnScrollChangedListener, ViewTreeObserver.OnGlobalFocusChangeListener, ViewTreeObserver.OnDrawListener, ViewTreeObserver.OnWindowFocusChangeListener {
+public class AppPageChange implements ViewTreeObserver.OnGlobalLayoutListener, ViewTreeObserver.OnScrollChangedListener, ViewTreeObserver.OnGlobalFocusChangeListener, ViewTreeObserver.OnWindowFocusChangeListener {
     private static final String TAG = "SA.AppPageChange";
     private final ExposedTransform.LayoutCallBack mLayoutCallBack;
 
@@ -31,12 +31,6 @@ public class AppPageChange implements ViewTreeObserver.OnGlobalLayoutListener, V
     @Override
     public void onScrollChanged() {
         SALog.i(TAG, "onScrollChanged");
-        mLayoutCallBack.viewLayoutChange();
-    }
-
-    @Override
-    public void onDraw() {
-        SALog.i(TAG, "onDraw");
         mLayoutCallBack.viewLayoutChange();
     }
 

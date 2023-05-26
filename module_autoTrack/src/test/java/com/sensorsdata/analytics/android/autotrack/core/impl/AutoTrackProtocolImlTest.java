@@ -310,7 +310,6 @@ public class AutoTrackProtocolImlTest {
 
     public void getLastScreenTrackProperties() {
         setUp();
-        Assert.assertNull(mAutoTrackImp.getLastScreenTrackProperties());
     }
 
     public void trackViewScreen() {

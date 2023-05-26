@@ -27,7 +27,8 @@ import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.monitor.TrackMonitor;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
+import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
+import com.sensorsdata.analytics.android.sdk.plugin.property.impl.SAPresetPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
 import org.json.JSONException;
@@ -137,10 +138,25 @@ public abstract class BaseEventAssemble implements EventProcessor.IAssembleData 
         }
     }
 
-    protected void overrideDeviceId(EventType eventType, TrackEvent trackEvent) {
+    protected void overrideDeviceId(EventType eventType, TrackEvent trackEvent, SAContextManager contextManager) {
         try {
             if (eventType.isTrack() && trackEvent != null) {
-                trackEvent.getProperties().put("$device_id", SensorsDataUtils.getIdentifier(mInternalConfigs.context));
+                SAPropertyPlugin presetPlugin = contextManager.getPluginManager().getPropertyPlugin(SAPresetPropertyPlugin.class.getName());
+                if (presetPlugin instanceof SAPresetPropertyPlugin) {
+                    JSONObject properties = ((SAPresetPropertyPlugin) presetPlugin).getPresetProperties();
+                    //防止用户自定义事件以及公共属性可能会加 $device_id 属性，导致覆盖 sdk 原始的 $device_id 属性值
+                    trackEvent.getProperties().remove("$device_id");
+                    trackEvent.getProperties().remove("$anonymization_id");
+                    if (mInternalConfigs.saConfigOptions.isDisableDeviceId()) {
+                        if (properties.has("$anonymization_id")) {
+                            trackEvent.getProperties().put("$anonymization_id", properties.optString("$anonymization_id"));
+                        }
+                    } else {
+                        if (properties.has("$device_id")) {
+                            trackEvent.getProperties().put("$device_id", properties.optString("$device_id"));
+                        }
+                    }
+                }
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);

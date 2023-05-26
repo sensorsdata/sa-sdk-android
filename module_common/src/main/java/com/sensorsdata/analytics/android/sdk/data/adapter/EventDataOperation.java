@@ -135,6 +135,8 @@ class EventDataOperation extends DataOperation {
                     eventIds = idArray.toString();
                 }
             }
+        } catch (Throwable error) {
+            SALog.i(TAG, error.getMessage());
         } finally {
             if (cursor != null) {
                 cursor.close();

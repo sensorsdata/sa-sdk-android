@@ -105,9 +105,6 @@ public class ExposedTransform implements SensorsDataActivityLifecycleCallbacks.S
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             viewTreeObserver.addOnWindowFocusChangeListener(mAppPageChange);
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            viewTreeObserver.addOnDrawListener(mAppPageChange);
-        }
         viewTreeObserver.addOnScrollChangedListener(mAppPageChange);
         viewTreeObserver.addOnGlobalFocusChangeListener(mAppPageChange);
     }
@@ -117,9 +114,6 @@ public class ExposedTransform implements SensorsDataActivityLifecycleCallbacks.S
         viewTreeObserver.removeGlobalOnLayoutListener(mAppPageChange);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             viewTreeObserver.removeOnWindowFocusChangeListener(mAppPageChange);
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            viewTreeObserver.removeOnDrawListener(mAppPageChange);
         }
         viewTreeObserver.removeOnScrollChangedListener(mAppPageChange);
         viewTreeObserver.removeOnGlobalFocusChangeListener(mAppPageChange);

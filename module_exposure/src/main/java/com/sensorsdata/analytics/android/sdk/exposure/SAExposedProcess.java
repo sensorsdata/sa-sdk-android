@@ -11,7 +11,10 @@ import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureCo
 import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureData;
 import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataLifecycleMonitorManager;
 import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SAViewUtils;
+
+import org.json.JSONObject;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -57,10 +60,6 @@ public class SAExposedProcess {
             try {
                 List<ExposureView> exposureViewList = mExposedPage.getExposureViewList(mView);
                 for (ExposureView exposureView : exposureViewList) {
-                    if (isActivityChange) {
-                        exposureView.setActivityChange(true);
-                        isActivityChange = false;
-                    }
                     View view = exposureView.getView();
                     if (view != null) {
                         synchronized (mStayDurationRunnableWeakHashMap) {
@@ -278,6 +277,19 @@ public class SAExposedProcess {
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
+        }
+    }
+
+    public synchronized void updateExposureView(View view, JSONObject properties) {
+        if (view == null) {
+            return;
+        }
+        ExposedPage exposedPage = mExposedPageWeakHashMap.get(SAViewUtils.getActivityOfView(view.getContext(), view));
+        if (exposedPage != null) {
+            ExposureView exposureView = exposedPage.getExposureView(view);
+            if (exposureView != null && exposureView.getExposureData() != null) {
+                JSONUtils.mergeJSONObject(properties, exposureView.getExposureData().getProperties());
+            }
         }
     }
 

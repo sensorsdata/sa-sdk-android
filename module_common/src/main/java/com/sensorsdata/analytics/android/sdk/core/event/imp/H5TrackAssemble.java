@@ -65,6 +65,7 @@ class H5TrackAssemble extends BaseEventAssemble {
             if (propertiesObject == null) {
                 propertiesObject = new JSONObject();
             }
+            boolean isOverrideDeviceId = propertiesObject.has("$device_id") || propertiesObject.has("$anonymization_id");
             trackEvent.setProperties(propertiesObject);
 
             String type = trackEvent.getExtras().getString("type");
@@ -83,7 +84,7 @@ class H5TrackAssemble extends BaseEventAssemble {
             }
             appendPluginVersion(eventType, trackEvent);
             removeH5Property(trackEvent);
-            overrideDeviceId(eventType, trackEvent);
+            overrideDeviceId(eventType, trackEvent, contextManager);
             if (updateIdentities(eventType, trackEvent, sensorsDataAPI, contextManager)) {
                 // update lib、property
                 SADataHelper.assertPropertyTypes(trackEvent.getProperties());

@@ -19,13 +19,16 @@ package com.sensorsdata.analytics.android.sdk.util;
 
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
+
+import com.sensorsdata.analytics.android.sdk.SALog;
 
 
 public class Dispatcher {
 
     private final static String TAG = Dispatcher.class.getSimpleName();
     private final Handler mHandler;
-
+    private Handler mUiThreadHandler;
     public static Dispatcher getInstance() {
         return DispatchHolder.INSTANCE;
     }
@@ -51,5 +54,17 @@ public class Dispatcher {
 
     public void removeCallbacksAndMessages() {
         mHandler.removeCallbacksAndMessages(null);
+    }
+
+    public synchronized Handler getUiThreadHandler() {
+        try {
+            if (mUiThreadHandler == null) {
+                mUiThreadHandler = new Handler(Looper.getMainLooper());
+            }
+            return mUiThreadHandler;
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return null;
     }
 }

@@ -9,6 +9,8 @@ import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureDa
 import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
 import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAModuleProtocol;
 
+import org.json.JSONObject;
+
 public class SAExposureProtocolImpl implements SAModuleProtocol {
     private boolean mEnable = false;
     private SAExposedProcess mExposedProcess;
@@ -62,6 +64,9 @@ public class SAExposureProtocolImpl implements SAModuleProtocol {
                 } else {
                     removeExposureView((View) argv[0], null);
                 }
+                break;
+            case Modules.Exposure.METHOD_UPDATE_EXPOSURE_PROPERTIES:
+                mExposedProcess.updateExposureView((View) argv[0], (JSONObject) argv[1]);
                 break;
         }
         return null;

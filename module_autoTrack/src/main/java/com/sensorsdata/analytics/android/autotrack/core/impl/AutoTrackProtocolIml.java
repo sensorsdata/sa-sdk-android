@@ -466,7 +466,16 @@ public class AutoTrackProtocolIml implements AutoTrackProtocol {
 
     @Override
     public JSONObject getLastScreenTrackProperties() {
-        return SAPageTools.getCurrentScreenTrackProperties();
+        try {
+            JSONObject jsonObject = JSONUtils.cloneJsonObject(SAPageTools.getLastTrackProperties());
+            if (jsonObject != null) {
+                jsonObject.remove("$lib_method");
+            }
+            return jsonObject;
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return new JSONObject();
     }
 
     @Override
@@ -479,7 +488,6 @@ public class AutoTrackProtocolIml implements AutoTrackProtocol {
                     try {
                         if (!TextUtils.isEmpty(url) || cloneProperties != null) {
                             JSONObject trackProperties = new JSONObject();
-                            SAPageTools.setCurrentScreenTrackProperties(cloneProperties);
                             String currentUrl = url;
                             if (cloneProperties != null) {
                                 if (cloneProperties.has("$title")) {
@@ -500,6 +508,8 @@ public class AutoTrackProtocolIml implements AutoTrackProtocol {
                             if (cloneProperties != null) {
                                 JSONUtils.mergeJSONObject(cloneProperties, trackProperties);
                             }
+
+                            SAPageTools.setCurrentScreenTrackProperties(trackProperties);
                             SACoreHelper.getInstance().trackEvent(new InputData().setEventName("$AppViewScreen").setEventType(EventType.TRACK).setProperties(trackProperties));
                         }
                     } catch (Exception e) {

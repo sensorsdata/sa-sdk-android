@@ -212,6 +212,9 @@ public class JSONUtils {
             if (source == null) {
                 return;
             }
+            if (dest == null) {
+                dest = new JSONObject();
+            }
             Iterator<String> superPropertiesIterator = source.keys();
             while (superPropertiesIterator.hasNext()) {
                 String key = superPropertiesIterator.next();

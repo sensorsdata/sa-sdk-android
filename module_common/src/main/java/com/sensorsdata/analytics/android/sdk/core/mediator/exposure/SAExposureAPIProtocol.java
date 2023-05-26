@@ -4,6 +4,8 @@ import android.view.View;
 
 import com.sensorsdata.analytics.android.sdk.core.business.exposure.SAExposureData;
 
+import org.json.JSONObject;
+
 public interface SAExposureAPIProtocol {
 
     /**
@@ -36,4 +38,12 @@ public interface SAExposureAPIProtocol {
      * @param view 被标记的 view
      */
     void removeExposureView(View view);
+
+    /**
+     * 更新曝光 View 绑定的属性
+     *
+     * @param view View
+     * @param properties 属性
+     */
+    void updateExposureProperties(View view, JSONObject properties);
 }

@@ -36,6 +36,7 @@ import android.widget.RadioButton;
 import android.widget.RatingBar;
 import android.widget.SeekBar;
 import android.widget.Spinner;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
@@ -271,14 +272,32 @@ public class SAViewUtils {
                         viewText = toggleButton.getTextOff();
                     }
                 } else if (view instanceof CompoundButton) {
-                    CompoundButton switchCompat = (CompoundButton) view;
-                    Method method;
-                    if (switchCompat.isChecked()) {
-                        method = view.getClass().getMethod("getTextOn");
-                    } else {
-                        method = view.getClass().getMethod("getTextOff");
+                    Class<?> switchCompatClass = null;
+                    try {
+                        switchCompatClass = ReflectUtil.getClassByName("android.support.v7.widget.SwitchCompat");
+                    } catch (Exception e) {
+                        //ignored
                     }
-                    viewText = (String) method.invoke(view);
+
+                    if (switchCompatClass == null) {
+                        try {
+                            switchCompatClass = ReflectUtil.getClassByName("androidx.appcompat.widget.SwitchCompat");
+                        } catch (Exception e) {
+                            //ignored
+                        }
+                    }
+                    CompoundButton switchCompat = (CompoundButton) view;
+                    if (switchCompatClass != null && switchCompatClass.isInstance(view) || view instanceof Switch) {
+                        Method method;
+                        if (switchCompat.isChecked()) {
+                            method = view.getClass().getMethod("getTextOn");
+                        } else {
+                            method = view.getClass().getMethod("getTextOff");
+                        }
+                        viewText = (String) method.invoke(view);
+                    } else {
+                        viewText = switchCompat.getText();
+                    }
                 } else if (view instanceof Button) { // Button
                     Button button = (Button) view;
                     viewText = button.getText();

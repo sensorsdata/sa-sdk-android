@@ -1320,8 +1320,8 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     public JSONObject getSuperProperties() {
         synchronized (PersistentSuperProperties.class) {
             try {
-                return new JSONObject(PersistentLoader.getInstance().getSuperPropertiesPst().get().toString());
-            } catch (JSONException e) {
+                return new JSONObject(JSONUtils.cloneJsonObject(PersistentLoader.getInstance().getSuperPropertiesPst().get()).toString());
+            } catch (Exception e) {
                 SALog.printStackTrace(e);
                 return new JSONObject();
             }
@@ -1339,8 +1339,8 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                         if (cloneSuperProperties == null) {
                             return;
                         }
-                        JSONObject properties = PersistentLoader.getInstance().getSuperPropertiesPst().get();
-                        PersistentLoader.getInstance().getSuperPropertiesPst().commit(JSONUtils.mergeSuperJSONObject(cloneSuperProperties, properties));
+                        PersistentLoader.getInstance().getSuperPropertiesPst().commit(JSONUtils.mergeSuperJSONObject(cloneSuperProperties,
+                                JSONUtils.cloneJsonObject(PersistentLoader.getInstance().getSuperPropertiesPst().get())));
                     } catch (Exception e) {
                         SALog.printStackTrace(e);
                     }
@@ -1357,7 +1357,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             @Override
             public void run() {
                 try {
-                    JSONObject superProperties = PersistentLoader.getInstance().getSuperPropertiesPst().get();
+                    JSONObject superProperties = JSONUtils.cloneJsonObject(PersistentLoader.getInstance().getSuperPropertiesPst().get());
                     superProperties.remove(superPropertyName);
                     PersistentLoader.getInstance().getSuperPropertiesPst().commit(superProperties);
                 } catch (Exception e) {
@@ -1782,6 +1782,11 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     @Override
     public void removeExposureView(View view) {
         SAModuleManager.getInstance().invokeModuleFunction(Modules.Exposure.MODULE_NAME, Modules.Exposure.METHOD_REMOVE_EXPOSURE_VIEW, view);
+    }
+
+    @Override
+    public void updateExposureProperties(View view, JSONObject properties) {
+        SAModuleManager.getInstance().invokeModuleFunction(Modules.Exposure.MODULE_NAME, Modules.Exposure.METHOD_UPDATE_EXPOSURE_PROPERTIES, view, properties);
     }
 
     @Override
