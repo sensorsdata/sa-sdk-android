@@ -22,13 +22,13 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
-import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.core.business.timer.EventTimer;
 import com.sensorsdata.analytics.android.sdk.core.business.timer.EventTimerManager;
 import com.sensorsdata.analytics.android.sdk.core.event.Event;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.core.event.TrackEvent;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertiesFetcher;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertyFilter;
@@ -36,7 +36,6 @@ import com.sensorsdata.analytics.android.sdk.plugin.property.impl.InternalCustom
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
-import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -46,6 +45,7 @@ import java.security.SecureRandom;
 class TrackEventAssemble extends BaseEventAssemble {
     private static final String TAG = "SA.TrackEventAssemble";
     private final SAContextManager mContextManager;
+
     public TrackEventAssemble(SAContextManager saContextManager) {
         super(saContextManager);
         mContextManager = saContextManager;
@@ -203,7 +203,9 @@ class TrackEventAssemble extends BaseEventAssemble {
         filter.setEvent(trackEvent.getEventName());
         filter.setTime(trackEvent.getTime());
         filter.setEventJson(SAPropertyFilter.LIB, trackEvent.getLib());
-        filter.setEventJson(SAPropertyFilter.IDENTITIES, new JSONObject(trackEvent.getIdentities().toString()));
+        if (trackEvent.getIdentities() != null) {
+            filter.setEventJson(SAPropertyFilter.IDENTITIES, new JSONObject(trackEvent.getIdentities().toString()));
+        }
         filter.setProperties(trackEvent.getProperties());
         filter.setType(eventType);
         // custom properties from user

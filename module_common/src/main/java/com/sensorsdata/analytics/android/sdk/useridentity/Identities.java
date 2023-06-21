@@ -5,6 +5,7 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.persistent.LoginIdKeyPersistent;
+import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentDistinctId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoginId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.UserIdentityPersistent;
@@ -32,6 +33,8 @@ public class Identities {
     public static final String ANDROID_UUID = "$identity_android_uuid";
     public static final String COOKIE_ID = "$identity_cookie_id";
     public static final String IDENTITIES_KEY = "identities";
+    private String mAndroidId;
+    private PersistentDistinctId mAnonymousId;
 
     //LOGINKEY 登录 ID 操作状态处理、REMOVEKEYID 业务 ID 操作状态处理
     public enum State {
@@ -58,10 +61,12 @@ public class Identities {
         String oldLoginIDKey = Local.getLoginIdKeyFromLocal();
         String oldLoginID = Local.getLoginIdFromLocal();
         mLoginIDAndKey.init(oldLoginIDKey);
+        mAndroidId = androidId;
+        mAnonymousId = PersistentLoader.getInstance().getAnonymousIdPst();
         //1. SP 文件缓存读取
         JSONObject identities = getInitIdentities();
         //2.构建 identities：主要针对特殊 ID 处理
-        identities = createIdentities(identities, androidId, anonymousId);
+        identities = createIdentities(identities, anonymousId);
         //3.针对 loginIDKey、loginID 处理
         initLoginIDAndKeyIdentities(oldLoginIDKey, oldLoginID, identities);
         //4.本地保存 identities
@@ -89,17 +94,33 @@ public class Identities {
         }
     }
 
-    private JSONObject createIdentities(JSONObject identities, String androidId, String anonymousId) throws JSONException {
+    private JSONObject createIdentities(JSONObject identities, String anonymousId) throws JSONException {
         JSONObject tmp_identities = identities;
-        if (tmp_identities == null) {
+        if (tmp_identities == null || tmp_identities.length() == 0) {
             tmp_identities = new JSONObject();
-            if (SensorsDataUtils.isValidAndroidId(androidId)) {
-                tmp_identities.put(ANDROID_ID, androidId);
+            if (SensorsDataUtils.isValidAndroidId(mAndroidId)) {
+                tmp_identities.put(ANDROID_ID, mAndroidId);
             } else {
                 tmp_identities.put(ANDROID_UUID, anonymousId);
             }
         }
         return tmp_identities;
+    }
+
+
+    private JSONObject resetIdentities(JSONObject identities) throws JSONException {
+        if (identities == null) {
+            identities = new JSONObject();
+        }
+        if (identities.has(ANDROID_UUID) || identities.has(ANDROID_ID)) {
+            return identities;
+        }
+        if (SensorsDataUtils.isValidAndroidId(mAndroidId)) {
+            identities.put(ANDROID_ID, mAndroidId);
+        } else {
+            identities.put(ANDROID_UUID, mAnonymousId.get());
+        }
+        return identities;
     }
 
     /**
@@ -210,6 +231,13 @@ public class Identities {
 
     //正常是不需要的，内部改变，自身是感知的；但是为了兼容以前的设计方案需要一个 saveIdentities 来保持逻辑的一致性
     private void saveIdentities() {
+        if (!isValidIdentities(mIdentities)) {
+            try {
+                mIdentities = resetIdentities(mIdentities);
+            } catch (JSONException e) {
+                SALog.i(TAG, "reset identities failed!");
+            }
+        }
         DbAdapter.getInstance().commitIdentities(mIdentities.toString());
     }
 
@@ -276,7 +304,7 @@ public class Identities {
                 }
                 break;
             case DEFAULT:
-                if (mIdentities == null) {
+                if (mIdentities == null || mIdentities.length() == 0) {
                     jsonObject = getDefaultIdentities();
                 } else {
                     jsonObject = mIdentities;
@@ -284,6 +312,10 @@ public class Identities {
                 break;
         }
         return jsonObject;
+    }
+
+    private boolean isValidIdentities(JSONObject jsonObject) {
+        return jsonObject != null && (jsonObject.has(ANDROID_ID) || jsonObject.has(ANDROID_UUID));
     }
 
     private JSONObject getDefaultIdentities() {
@@ -321,7 +353,7 @@ public class Identities {
 
     private JSONObject getInitIdentities() throws JSONException {
         String cacheIdentities = Local.getIdentitiesFromLocal();
-        if (cacheIdentities != null && !TextUtils.isEmpty(cacheIdentities)) {
+        if (!TextUtils.isEmpty(cacheIdentities)) {
             return new JSONObject(cacheIdentities);
         }
         return null;

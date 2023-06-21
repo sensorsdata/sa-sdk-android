@@ -51,7 +51,7 @@ public class TrackEvent extends Event {
             jsonObject.put("type", getType());
             jsonObject.put("distinct_id", getDistinctId());
             jsonObject.put("anonymous_id", getAnonymousId());
-            if (getIdentities() != null) {
+            if (getIdentities() != null && getIdentities().length() > 0) {
                 jsonObject.put("identities", getIdentities());
             }
             if (!TextUtils.isEmpty(getProject())) {

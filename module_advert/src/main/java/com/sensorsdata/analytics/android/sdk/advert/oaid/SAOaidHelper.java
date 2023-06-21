@@ -51,12 +51,7 @@ public class SAOaidHelper {
      * 自定义 oaid 证书文件在 assets 中的路径
      */
     private static String mOidCertFilePath;
-    private static final List<String> mBlackOAIDs = new LinkedList<String>() {
-        {
-            add("00000000-0000-0000-0000-000000000000");
-            add("00000000000000000000000000000000");
-        }
-    };
+
     private static final List<String> mLoadLibrary = new LinkedList<String>() {
         {
             add("msaoaidsec");                  // v1.0.30
@@ -92,11 +87,15 @@ public class SAOaidHelper {
         mOAID = getMSAOAID(context);
         SALog.i(TAG, "MSA OAID is " + mOAID);
         //校验 OAID 合法性
-        if (TextUtils.isEmpty(mOAID) || mBlackOAIDs.contains(mOAID)) {
+        //目前已知不合法 oaid 有
+        //华为(00000000-0000-0000-0000-000000000000)
+        //小米(00000000000000000000000000000000)
+        //OPPO(64 个 0)
+        if (TextUtils.isEmpty(mOAID) || allZero(mOAID)) {
             //通过反射获取 OAID
             mReflectionOAID = getROMOAID(context);
             //校验反射获取 OAID 的合法性
-            if (TextUtils.isEmpty(mReflectionOAID) || mBlackOAIDs.contains(mReflectionOAID)) {
+            if (TextUtils.isEmpty(mReflectionOAID) || allZero(mReflectionOAID)) {
                 mReflectionOAID = "";
             }
             mOAID = mReflectionOAID;
@@ -106,11 +105,29 @@ public class SAOaidHelper {
     }
 
     /**
+     * oaid 是否全部为 0
+     *
+     * @param id OAID
+     * @return 是否全部为 0
+     */
+    private static boolean allZero(String id) {
+        String replacedId = id.replace("-", "").replace("#", "").replace("_", "");
+        for (int i = 0; i < replacedId.length(); i++) {
+            char c = replacedId.charAt(i);
+            if (c != '0') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * 返回反射法获取的 OAID 值
+     *
      * @param context context
      * @return 反射获取的 OAID 值
      */
-    public static String getOpenAdIdentifierByReflection(Context context){
+    public static String getOpenAdIdentifierByReflection(Context context) {
         if (TextUtils.isEmpty(mOAID)) {
             getOpenAdIdentifier(context);
         }
