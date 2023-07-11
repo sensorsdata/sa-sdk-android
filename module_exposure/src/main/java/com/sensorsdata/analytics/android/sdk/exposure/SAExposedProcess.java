@@ -32,7 +32,7 @@ public class SAExposedProcess {
     private ExposureRunnable mExposureRunnable;
     private String mLastActivityUrl = "";
     private boolean isActivityChange;
-    private WeakHashMap<View, StayDurationRunnable> mStayDurationRunnableWeakHashMap;
+    private WeakHashMap<ExposureView, StayDurationRunnable> mStayDurationRunnableWeakHashMap;
     private ExposedTransform mExposedTransform;//页面监听
 
     interface CallBack {
@@ -43,6 +43,8 @@ public class SAExposedProcess {
         void onActivityPaused(Activity activity);
 
         int getExposureViewSize(Activity activity);
+
+        Collection<ExposureView> getExposureViews(Activity activity);
     }
 
 
@@ -60,21 +62,21 @@ public class SAExposedProcess {
             try {
                 List<ExposureView> exposureViewList = mExposedPage.getExposureViewList(mView);
                 for (ExposureView exposureView : exposureViewList) {
-                    View view = exposureView.getView();
-                    if (view != null) {
-                        synchronized (mStayDurationRunnableWeakHashMap) {
-                            StayDurationRunnable mStayDurationRunnable = mStayDurationRunnableWeakHashMap.get(view);
+                    if (exposureView.getView() != null && exposureView.isViewLayoutChange()) {
+                        synchronized (SAExposedProcess.class) {
+                            StayDurationRunnable mStayDurationRunnable = mStayDurationRunnableWeakHashMap.get(exposureView);
                             if (mStayDurationRunnable != null) {
                                 mHandler.removeCallbacks(mStayDurationRunnable);
-                                mStayDurationRunnableWeakHashMap.remove(view);
+                                mStayDurationRunnableWeakHashMap.remove(exposureView);
                             }
                             SALog.i(TAG, "ExposureRunnable->exposureView:" + exposureView);
                             SAExposureData exposureData = exposureView.getExposureData();
                             if (exposureData != null) {
                                 long delay = (long) (exposureData.getExposureConfig().getStayDuration() * 1000);
                                 mStayDurationRunnable = new StayDurationRunnable(exposureView);
-                                mStayDurationRunnableWeakHashMap.put(view, mStayDurationRunnable);
+                                mStayDurationRunnableWeakHashMap.put(exposureView, mStayDurationRunnable);
                                 mHandler.postDelayed(mStayDurationRunnable, delay);
+                                exposureView.setViewLayoutChange(false);
                             }
                         }
                     }
@@ -167,6 +169,21 @@ public class SAExposedProcess {
                         }
                         return 0;
                     }
+
+                    @Override
+                    public Collection<ExposureView> getExposureViews(Activity activity) {
+                        try {
+                            if (mExposedPageWeakHashMap != null) {
+                                ExposedPage exposedPage = mExposedPageWeakHashMap.get(activity);
+                                if (exposedPage != null) {
+                                    return exposedPage.getExposureViews();
+                                }
+                            }
+                        } catch (Exception e) {
+                            SALog.printStackTrace(e);
+                        }
+                        return null;
+                    }
                 };
                 mExposedTransform = new ExposedTransform(mCallBack);
                 SensorsDataLifecycleMonitorManager.getInstance().addActivityLifeCallback(mExposedTransform);
@@ -181,15 +198,16 @@ public class SAExposedProcess {
     }
 
     private void removeStayDurationRunnable() {
-        synchronized (mStayDurationRunnableWeakHashMap) {
+        synchronized (SAExposedProcess.class) {
             if (mStayDurationRunnableWeakHashMap == null) {
                 return;
             }
-            Iterator<View> iterator = mStayDurationRunnableWeakHashMap.keySet().iterator();
+            Iterator<ExposureView> iterator = mStayDurationRunnableWeakHashMap.keySet().iterator();
             while (iterator.hasNext()) {
-                View view = iterator.next();
-                if (view != null) {
-                    StayDurationRunnable stayDurationRunnable = mStayDurationRunnableWeakHashMap.get(view);
+                ExposureView exposureView = iterator.next();
+                if (exposureView != null && exposureView.isViewLayoutChange()) {
+                    SALog.i(TAG, "remove ExposureView = " + exposureView);
+                    StayDurationRunnable stayDurationRunnable = mStayDurationRunnableWeakHashMap.get(exposureView);
                     mHandler.removeCallbacks(stayDurationRunnable);
                     iterator.remove();
                 }

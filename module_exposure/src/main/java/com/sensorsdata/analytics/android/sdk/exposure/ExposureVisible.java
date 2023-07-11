@@ -4,6 +4,7 @@ import android.graphics.Rect;
 import android.view.View;
 import android.view.ViewParent;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
 
 import java.util.HashMap;
@@ -32,6 +33,7 @@ public class ExposureVisible {
 
     private boolean isViewSelfVisible(View view, Rect rect) {
         if (view == null || view.getWindowVisibility() == View.GONE) {
+            SALog.i("SA.ExposureVisible", "view.getWindowVisibility() == View.GONE");
             return false;
         }
 
@@ -47,8 +49,8 @@ public class ExposureVisible {
         if (WindowHelper.isDecorView(view.getClass())) {
             return true;
         }
-
         if (view.getWidth() <= 0 || view.getHeight() <= 0 || view.getAlpha() <= 0.0f || !viewLocalVisible) {
+            SALog.i("SA.ExposureVisible", "isViewSelfVisible，width = " + view.getWidth() + ",height = " + view.getHeight() + "，alpha = " + view.getAlpha());
             return false;
         }
         return (view.getAnimation() != null && view.getAnimation().getFillAfter()) || view.getVisibility() == View.VISIBLE;

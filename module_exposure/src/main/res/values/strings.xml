@@ -1,2 +1,3 @@
 <resources>
+    <item name="sensors_analytics_tag_view_exposure_key" type="id" />
 </resources>

@@ -13,6 +13,7 @@ public class ExposureView implements Cloneable {
     private final long addTime;//view 加入时间
     private boolean isAddExposureView = false;//是否调用 addExposureView 接口设置 view
     private boolean isActivityChange;
+    private boolean isViewLayoutChange;
     private WeakReference<View> viewWeakReference;
 
     public ExposureView(SAExposureData exposureData, boolean lastVisible, boolean exposed, View view) {
@@ -78,6 +79,14 @@ public class ExposureView implements Cloneable {
         isActivityChange = activityChange;
     }
 
+    public boolean isViewLayoutChange() {
+        return isViewLayoutChange;
+    }
+
+    public void setViewLayoutChange(boolean viewLayoutChange) {
+        isViewLayoutChange = viewLayoutChange;
+    }
+
     @Override
     protected ExposureView clone() throws CloneNotSupportedException {
         return (ExposureView) super.clone();
@@ -89,8 +98,9 @@ public class ExposureView implements Cloneable {
                 "exposureData=" + exposureData +
                 ", lastVisible=" + lastVisible +
                 ", exposed=" + exposed +
-                ", viewWeakReference=" + viewWeakReference +
+                ", viewWeakReference=" + viewWeakReference.get() +
                 ",isAddExposureView=" + isAddExposureView +
+                ",isViewLayoutChange=" + isViewLayoutChange +
                 '}';
     }
 }

@@ -11,8 +11,11 @@ import android.view.ViewTreeObserver;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataActivityLifecycleCallbacks;
 import com.sensorsdata.analytics.android.sdk.util.WindowHelper;
+import com.sensorsdata.analytics.android.sdk.util.visual.ViewUtil;
 
 import java.lang.ref.WeakReference;
+import java.util.Collection;
+import java.util.Iterator;
 
 public class ExposedTransform implements SensorsDataActivityLifecycleCallbacks.SAActivityLifecycleCallbacks {
 
@@ -21,6 +24,8 @@ public class ExposedTransform implements SensorsDataActivityLifecycleCallbacks.S
     private final SAExposedProcess.CallBack mCallBack;
     private WeakReference<Activity> mActivityWeakReference;
     private volatile boolean isMonitor = false;
+    // 标识 Activity Resume 引起的布局变化，会引起一次曝光计算
+    private boolean isResumedLayoutChanged;
     private volatile int windowCount = -1;
     private View[] views;
 
@@ -48,12 +53,16 @@ public class ExposedTransform implements SensorsDataActivityLifecycleCallbacks.S
     }
 
     private void processViews() {
-        WindowHelper.init();
-        views = WindowHelper.getSortedWindowViews();
-        if (views != null && views.length > 0) {
-            windowCount = views.length;
-        } else {
-            windowCount = 0;
+        try {
+            WindowHelper.init();
+            views = WindowHelper.getSortedWindowViews();
+            if (views != null && views.length > 0) {
+                windowCount = views.length;
+            } else {
+                windowCount = 0;
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
     }
 
@@ -69,7 +78,10 @@ public class ExposedTransform implements SensorsDataActivityLifecycleCallbacks.S
                 if (mActivityWeakReference != null) {
                     Activity activity = mActivityWeakReference.get();
                     if (activity != null) {
-                        callBack.viewLayoutChange(activity);
+                        if (isViewChanged(activity)) {
+                            isResumedLayoutChanged = false;
+                            callBack.viewLayoutChange(activity);
+                        }
                     }
                 }
             }
@@ -91,6 +103,7 @@ public class ExposedTransform implements SensorsDataActivityLifecycleCallbacks.S
     public void onActivityResumed(Activity activity) {
         //避免在 onCreate 中操作可见性这里 activityWeakReference 为空无法监控到
         mActivityWeakReference = new WeakReference<>(activity);
+        isResumedLayoutChanged = true;
         SALog.i(TAG, "onActivityResumed:" + activity);
         synchronized (this) {
             viewsAddTreeObserver(activity);
@@ -182,5 +195,39 @@ public class ExposedTransform implements SensorsDataActivityLifecycleCallbacks.S
     @Override
     public void onActivityDestroyed(Activity activity) {
 
+    }
+
+    private boolean isViewChanged(Activity activity) {
+        try {
+            Collection<ExposureView> exposureViews = mCallBack.getExposureViews(activity);
+            if (exposureViews == null || exposureViews.isEmpty()) {
+                return false;
+            }
+            Iterator<ExposureView> iterator = exposureViews.iterator();
+            ExposureView exposureView;
+            boolean isViewChanged = false;
+            while (iterator.hasNext()) {
+                try {
+                    exposureView = iterator.next();
+                    View view = exposureView.getView();
+                    int[] size = new int[2];
+                    view.getLocationOnScreen(size);
+                    String tempState = (String) view.getTag(R.id.sensors_analytics_tag_view_exposure_key);
+                    String newState = size[0] + "," + size[1] + "," + ViewUtil.viewVisibilityInParents(view);
+                    if (!newState.equals(tempState) || isResumedLayoutChanged) {
+                        SALog.i(TAG, tempState + ", newSize = " + newState + ",view = " + view);
+                        isViewChanged = true;
+                        exposureView.setViewLayoutChange(true);
+                    }
+                    view.setTag(R.id.sensors_analytics_tag_view_exposure_key, newState);
+                } catch (Exception exception) {
+                    SALog.printStackTrace(exception);
+                }
+            }
+            return isViewChanged;
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return true;
     }
 }

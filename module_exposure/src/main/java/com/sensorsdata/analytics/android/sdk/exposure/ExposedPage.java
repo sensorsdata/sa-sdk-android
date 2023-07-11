@@ -194,6 +194,7 @@ public class ExposedPage {
 
     private boolean visibleRect(View view, Rect rect, float areaRate) {
         if (view != null) {
+            SALog.i(TAG, "width = " + rect.width() + ", height = " + rect.height() + ", MeasuredHeight = " + view.getMeasuredHeight() + ", MeasuredWidth = " + view.getMeasuredWidth());
             return (rect.width() * rect.height()) >= ((view.getMeasuredHeight() * view.getMeasuredWidth()) * areaRate);
         }
         return false;

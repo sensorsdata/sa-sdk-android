@@ -85,7 +85,9 @@ public class JSBridgeHelper implements WebViewJavascriptBridge {
             }
             JSONObject object = null;
             if (data instanceof String) {
-                object = new JSONObject((String) data);
+                if (!TextUtils.isEmpty((String) data)) {
+                    object = new JSONObject((String) data);
+                }
             } else if (data instanceof JSONObject) {
                 object = new JSONObject();
                 object.put("message_id", request.messageId);

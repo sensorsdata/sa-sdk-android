@@ -231,7 +231,7 @@ public class ViewUtil {
         return (view instanceof AdapterView) || ViewUtil.instanceOfRecyclerView(view) || ViewUtil.instanceOfAndroidXViewPager(view) || ViewUtil.instanceOfSupportViewPager(view);
     }
 
-    private static boolean viewVisibilityInParents(View view) {
+    public static boolean viewVisibilityInParents(View view) {
         if (view == null) {
             return false;
         }
