@@ -18,7 +18,9 @@
 package com.sensorsdata.analytics.android.sdk.encrypt.encryptor;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.encrypt.AESSecretManager;
 import com.sensorsdata.analytics.android.sdk.encrypt.SAEncryptListener;
+import com.sensorsdata.analytics.android.sdk.encrypt.impl.AbsSAEncrypt;
 import com.sensorsdata.analytics.android.sdk.encrypt.utils.EncryptUtils;
 
 import java.security.NoSuchAlgorithmException;
@@ -26,7 +28,7 @@ import java.security.NoSuchAlgorithmException;
 /**
  * RSA + AES 加密
  */
-public class SARSAEncrypt implements SAEncryptListener {
+public class SARSAEncrypt extends AbsSAEncrypt {
     /**
      * 对称密钥
      */
@@ -64,5 +66,15 @@ public class SARSAEncrypt implements SAEncryptListener {
             }
         }
         return mEncryptKey;
+    }
+
+    @Override
+    public String encryptEventRecord(String eventJson) {
+        return AESSecretManager.getInstance().encryptAES(eventJson);
+    }
+
+    @Override
+    public String decryptEventRecord(String encryptEvent) {
+        return AESSecretManager.getInstance().decryptAES(encryptEvent);
     }
 }

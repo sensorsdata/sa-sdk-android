@@ -3,6 +3,7 @@ package com.sensorsdata.analytics.android.sdk.useridentity;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.core.rpc.SensorsDataContentObserver;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.data.persistent.LoginIdKeyPersistent;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentDistinctId;
@@ -160,13 +161,18 @@ public class Identities {
      * 移除 Identities 中的 key 和 value
      */
     public void removeLoginKeyAndID() {
-        //1、移除 loginIDKey 和 LoginID
-        mLoginIDAndKey.removeLoginKeyAndID();
-        //2、清除业务 ID，只保留 ANDROID_ID, ANDROID_UUID
+        // 清除业务 ID，只保留 ANDROID_ID, ANDROID_UUID
         mLoginIdentities = new JSONObject();
         clearIdentities(Arrays.asList(Identities.ANDROID_ID, Identities.ANDROID_UUID), mIdentities);
-        //3、保存 identities 到本地
+
+        if (!SensorsDataContentObserver.State.LOGOUT.isObserverCalled) {// 非多进程通知时需更新本地
+            // 移除 loginIDKey 和 LoginID
+            mLoginIDAndKey.removeLoginKeyAndID();
+        }
+
+        // 保存 identities 到本地
         saveIdentities();
+        SensorsDataContentObserver.State.LOGOUT.isObserverCalled = false;
     }
 
     public boolean update(String key, String value) throws JSONException {

@@ -35,10 +35,6 @@ import com.sensorsdata.analytics.android.sdk.useridentity.LoginIDAndKey;
  * 用于跨进程业务的数据通信
  */
 public class SensorsDataContentObserver extends ContentObserver {
-    public static boolean isEnableFromObserver = false;
-    public static boolean isDisableFromObserver = false;
-    public static boolean isLoginFromObserver = false;
-
     public SensorsDataContentObserver() {
         super(new Handler(Looper.getMainLooper()));
     }
@@ -55,21 +51,33 @@ public class SensorsDataContentObserver extends ContentObserver {
                 boolean flag = TextUtils.isEmpty(loginID) || loginIDKey.equals(LoginIDAndKey.LOGIN_ID_KEY_DEFAULT);
                 flag = flag && TextUtils.isEmpty(loginID);
                 if (flag) {
+                    if (State.LOGOUT.isDid) {
+                        State.LOGOUT.isDid = false;
+                        return;
+                    }
+                    State.LOGOUT.isObserverCalled = true;
                     SensorsDataAPI.sharedInstance().logout();
                 } else {
-                    isLoginFromObserver = true;
+                    if (State.LOGIN.isDid) {
+                        State.LOGIN.isDid = false;
+                        return;
+                    }
                     SensorsDataAPI.sharedInstance().loginWithKey(loginIDKey, loginID);
                 }
             } else if (DbParams.getInstance().getDisableSDKUri().equals(uri)) {
-                if (!SensorsDataAPI.getConfigOptions().isDisableSDK()) {
-                    isDisableFromObserver = true;
-                    SensorsDataAPI.disableSDK();
+                if (State.DISABLE_SDK.isDid) {
+                    State.DISABLE_SDK.isDid = false;
+                    return;
                 }
+                State.DISABLE_SDK.isObserverCalled = true;
+                SensorsDataAPI.disableSDK();
             } else if (DbParams.getInstance().getEnableSDKUri().equals(uri)) {
-                if (SensorsDataAPI.getConfigOptions().isDisableSDK()) {
-                    isEnableFromObserver = true;
-                    SensorsDataAPI.enableSDK();
+                if (State.ENABLE_SDK.isDid) {
+                    State.ENABLE_SDK.isDid = false;
+                    return;
                 }
+                State.ENABLE_SDK.isObserverCalled = true;
+                SensorsDataAPI.enableSDK();
             } else if (DbParams.getInstance().getUserIdentities().equals(uri)) {
                 SensorsDataAPI sensorsDataAPI = SensorsDataAPI.sharedInstance();
                 if (sensorsDataAPI instanceof SensorsDataAPIEmptyImplementation) {
@@ -82,6 +90,21 @@ public class SensorsDataContentObserver extends ContentObserver {
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
+        }
+    }
+
+    public enum State {
+        LOGOUT(false, false),
+        LOGIN(false, false),
+        ENABLE_SDK(false, false),
+        DISABLE_SDK(false, false),
+        ;
+        public boolean isDid;
+        public boolean isObserverCalled;
+
+        State(boolean isInterfaceDid, boolean isObserverCalled) {
+            this.isDid = isInterfaceDid;
+            this.isObserverCalled = isObserverCalled;
         }
     }
 }

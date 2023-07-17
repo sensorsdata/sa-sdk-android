@@ -27,6 +27,7 @@ import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.business.instantevent.InstantEventUtils;
 import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
 import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
+import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -36,6 +37,7 @@ import java.util.Map;
 
 class EncryptDataOperation extends DataOperation {
     protected boolean mDbEncrypt;
+
     EncryptDataOperation(Context context) {
         super(context);
         mDbEncrypt = true;
@@ -105,16 +107,25 @@ class EncryptDataOperation extends DataOperation {
                 final String KEY_VER = "pkv";
                 final String PAYLOADS = "payloads";
                 while (cursor.moveToNext()) {
-                    String eventId = cursor.getString(cursor.getColumnIndexOrThrow("_id"));
                     try {
+                        String eventId = cursor.getString(cursor.getColumnIndexOrThrow("_id"));
                         keyData = cursor.getString(cursor.getColumnIndexOrThrow(DbParams.KEY_DATA));
                         keyData = parseData(keyData);
                         if (TextUtils.isEmpty(keyData)) {
                             continue;
                         }
 
+                        if (!JSONUtils.isJson(keyData)) {
+                            SALog.i(TAG, "Error is not json data, v = " + keyData);
+                            continue;
+                        }
+
                         jsonObject = new JSONObject(keyData);
                         boolean isHasEkey = jsonObject.has(EKEY);
+                        if (jsonObject.has(PAYLOADS) && !isHasEkey) {// 传输加密
+                            jsonObject = new JSONObject(decryptValue(jsonObject.optString(PAYLOADS)));
+                        }
+
                         if (!isHasEkey && mDbEncrypt) { // 如果没有包含 Ekey 字段，则重新进行加密
                             JSONObject jsonEncrypt = SAModuleManager.getInstance().invokeModuleFunction(Modules.Encrypt.MODULE_NAME, Modules.Encrypt.METHOD_ENCRYPT_EVENT_DATA, jsonObject);
                             if (jsonEncrypt != null) {
@@ -125,10 +136,10 @@ class EncryptDataOperation extends DataOperation {
                         if (jsonObject.has(EKEY)) {
                             String key = jsonObject.getString(EKEY) + "$" + jsonObject.getInt(KEY_VER);
                             if (dataEncryptMap.containsKey(key)) {
-                                dataEncryptMap.get(key).put(jsonObject.getString(PAYLOADS));
+                                dataEncryptMap.get(key).put(jsonObject.optString(PAYLOADS));
                             } else {
                                 JSONArray jsonArray = new JSONArray();
-                                jsonArray.put(jsonObject.getString(PAYLOADS));
+                                jsonArray.put(jsonObject.optString(PAYLOADS));
                                 dataEncryptMap.put(key, jsonArray);
                             }
                             idEncryptArray.put(eventId);
@@ -141,23 +152,21 @@ class EncryptDataOperation extends DataOperation {
                         SALog.printStackTrace(e);
                     }
                 }
-                JSONArray dataEncryptJsonArray = new JSONArray();
-                for (String key : dataEncryptMap.keySet()) {
-                    jsonObject = new JSONObject();
-                    jsonObject.put(EKEY, key.substring(0, key.indexOf("$")));
-                    jsonObject.put(KEY_VER, Integer.valueOf(key.substring(key.indexOf("$") + 1)));
-                    jsonObject.put(PAYLOADS, dataEncryptMap.get(key));
-                    jsonObject.put("flush_time", System.currentTimeMillis());
-                    dataEncryptJsonArray.put(jsonObject);
-                }
-                if (dataEncryptJsonArray.length() > 0) {
+                if (dataEncryptMap.size() > 0) {// 埋点加密
+                    JSONArray dataEncryptJsonArray = new JSONArray();
+                    for (String key : dataEncryptMap.keySet()) {
+                        jsonObject = new JSONObject();
+                        jsonObject.put(EKEY, key.substring(0, key.indexOf("$")));
+                        jsonObject.put(KEY_VER, Integer.valueOf(key.substring(key.indexOf("$") + 1)));
+                        jsonObject.put(PAYLOADS, dataEncryptMap.get(key));
+                        jsonObject.put("flush_time", System.currentTimeMillis());
+                        dataEncryptJsonArray.put(jsonObject);
+                    }
                     data = dataEncryptJsonArray.toString();
                     eventIds = idEncryptArray.toString();
-                } else {
+                } else if (dataJsonArray.length() > 0) {// 明文数据
                     data = dataJsonArray.toString();
-                    if (idArray.length() > 0) {
-                        eventIds = idArray.toString();
-                    }
+                    eventIds = idArray.toString();
                     gzipType = DbParams.GZIP_DATA_EVENT;
                 }
             }
@@ -177,5 +186,11 @@ class EncryptDataOperation extends DataOperation {
     @Override
     void deleteData(Uri uri, String id) {
         super.deleteData(uri, id);
+    }
+
+
+    private String decryptValue(String value) {
+        String decryptValue = SAModuleManager.getInstance().invokeModuleFunction(Modules.Encrypt.MODULE_NAME, Modules.Encrypt.METHOD_LOAD_EVENT, value);
+        return TextUtils.isEmpty(decryptValue) ? value : decryptValue;
     }
 }

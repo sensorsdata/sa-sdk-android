@@ -264,4 +264,17 @@ public class JSONUtils {
         }
         return dest;
     }
+
+    public static boolean isJson(String str) {
+        boolean result = false;
+        if (!TextUtils.isEmpty(str)) {
+            str = str.trim();
+            if (str.startsWith("{") && str.endsWith("}")) {
+                result = true;
+            } else if (str.startsWith("[") && str.endsWith("]")) {
+                result = true;
+            }
+        }
+        return result;
+    }
 }

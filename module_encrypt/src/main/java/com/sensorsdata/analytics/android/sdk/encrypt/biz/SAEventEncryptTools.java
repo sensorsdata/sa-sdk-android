@@ -37,6 +37,22 @@ public class SAEventEncryptTools {
         this.mSecretKeyManager = SecretKeyManager.getInstance(contextManager);
     }
 
+    public SAEncryptListener getEncryptListener() {
+        try {
+            if (mSecretKeyManager.isSecretKeyNull(mSecreteKey)) {
+                mSecreteKey = mSecretKeyManager.loadSecretKey();
+                if (mSecretKeyManager.isSecretKeyNull(mSecreteKey)) {
+                    return null;
+                }
+            }
+
+            return mSecretKeyManager.getEncryptListener(mSecreteKey);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return null;
+    }
+
     /**
      * 针对数据进行加密
      *

@@ -182,14 +182,12 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     public static void disableSDK() {
         SALog.i(TAG, "call static function disableSDK");
         try {
-            final SensorsDataAPI sensorsDataAPI = sharedInstance();
+            final SensorsDataAPI sensorsDataAPI = getSDKInstance();
             if (sensorsDataAPI instanceof SensorsDataAPIEmptyImplementation ||
-                    getConfigOptions() == null ||
-                    getConfigOptions().isDisableSDK) {
+                    getConfigOptions() == null) {
                 return;
             }
-            final boolean isFromObserver = !SensorsDataContentObserver.isDisableFromObserver;
-            if (isFromObserver) {
+            if (!SensorsDataContentObserver.State.DISABLE_SDK.isObserverCalled) {
                 sensorsDataAPI.track("$AppDataTrackingClose");
                 sensorsDataAPI.flush();
             }
@@ -201,10 +199,12 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
             getConfigOptions().disableSDK(true);
             //关闭日志
             SALog.setDisableSDK(true);
-            if (!SensorsDataContentObserver.isDisableFromObserver) {
+            if (!SensorsDataContentObserver.State.DISABLE_SDK.isObserverCalled) {
                 sensorsDataAPI.getSAContextManager().getContext().getContentResolver().notifyChange(DbParams.getInstance().getDisableSDKUri(), null);
             }
-            SensorsDataContentObserver.isDisableFromObserver = false;
+            SensorsDataContentObserver.State.DISABLE_SDK.isObserverCalled = false;
+            SensorsDataContentObserver.State.DISABLE_SDK.isDid = true;
+            SensorsDataContentObserver.State.ENABLE_SDK.isDid = false;
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -218,8 +218,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         try {
             SensorsDataAPI sensorsDataAPI = getSDKInstance();
             if (sensorsDataAPI instanceof SensorsDataAPIEmptyImplementation ||
-                    getConfigOptions() == null ||
-                    !getConfigOptions().isDisableSDK) {
+                    getConfigOptions() == null) {
                 return;
             }
             getConfigOptions().disableSDK(false);
@@ -232,17 +231,18 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 if (PersistentLoader.getInstance().getFirstDayPst().get() == null) {
                     PersistentLoader.getInstance().getFirstDayPst().commit(TimeUtils.formatTime(System.currentTimeMillis(), TimeUtils.YYYY_MM_DD));
                 }
-                sensorsDataAPI.delayInitTask(sensorsDataAPI.getSAContextManager().getContext());
                 //重新请求采集控制
                 sensorsDataAPI.mSAContextManager.getRemoteManager().pullSDKConfigFromServer();
             } catch (Exception e) {
                 SALog.printStackTrace(e);
             }
 
-            if (!SensorsDataContentObserver.isEnableFromObserver) {
+            if (!SensorsDataContentObserver.State.ENABLE_SDK.isObserverCalled) {
                 sensorsDataAPI.getSAContextManager().getContext().getContentResolver().notifyChange(DbParams.getInstance().getEnableSDKUri(), null);
             }
-            SensorsDataContentObserver.isEnableFromObserver = false;
+            SensorsDataContentObserver.State.ENABLE_SDK.isObserverCalled = false;
+            SensorsDataContentObserver.State.ENABLE_SDK.isDid = true;
+            SensorsDataContentObserver.State.DISABLE_SDK.isDid = false;
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -901,10 +901,8 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     public void loginWithKey(final String loginIDKey, final String loginId, final JSONObject properties) {
         try {
             //区分是否由 Observer 发送过来
-            if (SensorsDataContentObserver.isLoginFromObserver) {
-                SensorsDataContentObserver.isLoginFromObserver = false;
-                return;
-            }
+            SensorsDataContentObserver.State.LOGIN.isDid = true;
+            SensorsDataContentObserver.State.LOGOUT.isDid = false;
             synchronized (mLoginIdLock) {
                 final JSONObject cloneProperties = JSONUtils.cloneJsonObject(properties);
                 //临时逻辑，保存同以前一致，避免主线程 getLoginID 不同步

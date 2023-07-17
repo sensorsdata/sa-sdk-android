@@ -1,11 +1,11 @@
 ext {
     versions = [
             // 全量 SDK 版本号
-            sdk_version       : "6.7.1",
+            sdk_version       : "6.7.2",
             // 最小插件版本号依赖
             min_plugin_version: "3.5.2",
             // 子模块版本号
-            module_version    : "0.2.4"
+            module_version    : "0.2.5"
     ]
 
     publish = [

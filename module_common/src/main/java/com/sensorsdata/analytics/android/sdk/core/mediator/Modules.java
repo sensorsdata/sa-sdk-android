@@ -101,6 +101,8 @@ public interface Modules {
         String METHOD_ENCRYPT_EVENT_DATA = "encryptEventData";
         String METHOD_STORE_SECRET_KEY = "storeSecretKey";
         String METHOD_LOAD_SECRET_KEY = "loadSecretKey";
+        String METHOD_STORE_EVENT = "storeEvent";
+        String METHOD_LOAD_EVENT = "loadEvent";
         String METHOD_VERIFY_SUPPORT_TRANSPORT = "supportTransportEncrypt";
     }
 

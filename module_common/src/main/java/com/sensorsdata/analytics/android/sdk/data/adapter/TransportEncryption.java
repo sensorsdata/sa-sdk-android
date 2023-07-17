@@ -47,7 +47,7 @@ public class TransportEncryption extends EncryptDataOperation {
             }
             int instant_event = InstantEventUtils.isInstantEvent(jsonObject);
             ContentValues cv = new ContentValues();
-            String eventJson = jsonObject.toString();
+            String eventJson = encryptValue(jsonObject.toString());
             cv.put(DbParams.KEY_DATA, eventJson + "\t" + eventJson.hashCode());
             cv.put(DbParams.KEY_CREATED_AT, System.currentTimeMillis());
             cv.put(DbParams.KEY_IS_INSTANT_EVENT, instant_event);
@@ -65,28 +65,33 @@ public class TransportEncryption extends EncryptDataOperation {
 
     @Override
     String[] queryData(Uri uri, boolean is_instant_event, int limit) {
-        String[] eventsData = super.queryData(uri, is_instant_event, limit);
-        if (eventsData != null && eventsData.length >= 3) {
-            String gzipType = eventsData[2];
+        try {
+            String[] eventsData = super.queryData(uri, is_instant_event, limit);
+            if (eventsData != null && eventsData.length >= 3) {
+                String gzipType = eventsData[2];
 
-            if (DbParams.GZIP_DATA_EVENT.equals(gzipType) && isSupportTransport()) {
-                String eventIds = eventsData[0];
-                String data = SAModuleManager.getInstance().invokeModuleFunction(Modules.Encrypt.MODULE_NAME, Modules.Encrypt.METHOD_ENCRYPT_EVENT_DATA, eventsData[1]);
-                gzipType = DbParams.GZIP_TRANSPORT_ENCRYPT;
-                try {
-                    if (!TextUtils.isEmpty(data) && data.contains("payloads")) {
-                        JSONArray jsonArray = new JSONArray();
-                        JSONObject dataJSON = new JSONObject(data);
-                        dataJSON.put("flush_time", System.currentTimeMillis());
-                        jsonArray.put(dataJSON);
-                        return new String[]{eventIds, jsonArray.toString(), gzipType};
+                if (DbParams.GZIP_DATA_EVENT.equals(gzipType) && isSupportTransport()) {
+                    String eventIds = eventsData[0];
+                    String data = SAModuleManager.getInstance().invokeModuleFunction(Modules.Encrypt.MODULE_NAME, Modules.Encrypt.METHOD_ENCRYPT_EVENT_DATA, eventsData[1]);
+                    gzipType = DbParams.GZIP_TRANSPORT_ENCRYPT;
+                    try {
+                        if (!TextUtils.isEmpty(data) && data.contains("payloads")) {
+                            JSONArray jsonArray = new JSONArray();
+                            JSONObject dataJSON = new JSONObject(data);
+                            dataJSON.put("flush_time", System.currentTimeMillis());
+                            jsonArray.put(dataJSON);
+                            return new String[]{eventIds, jsonArray.toString(), gzipType};
+                        }
+                    } catch (JSONException e) {
+                        SALog.printStackTrace(e);
                     }
-                } catch (JSONException e) {
-                    SALog.printStackTrace(e);
                 }
             }
+            return eventsData;
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
-        return eventsData;
+        return null;
     }
 
     private boolean isSupportTransport() {
@@ -94,5 +99,13 @@ public class TransportEncryption extends EncryptDataOperation {
             mSupportTransport = SAModuleManager.getInstance().invokeModuleFunction(Modules.Encrypt.MODULE_NAME, Modules.Encrypt.METHOD_VERIFY_SUPPORT_TRANSPORT);
         }
         return mSupportTransport != null && (boolean) mSupportTransport;
+    }
+
+    private String encryptValue(String value) {
+        String encryptValue = "";
+        if (isSupportTransport()) {
+            encryptValue = SAModuleManager.getInstance().invokeModuleFunction(Modules.Encrypt.MODULE_NAME, Modules.Encrypt.METHOD_STORE_EVENT, value);
+        }
+        return TextUtils.isEmpty(encryptValue) ? value : "{\"payloads\": \"" + encryptValue + "\"}";
     }
 }

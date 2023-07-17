@@ -98,9 +98,7 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
             // 2. init context manager
             mSAContextManager = new SAContextManager((SensorsDataAPI) this, mInternalConfigs);
             registerLifecycleCallbacks((SensorsDataAPI) this, context);
-            if (!mSAConfigOptions.isDisableSDK()) {
-                delayInitTask(context.getApplicationContext());
-            }
+            delayInitTask(context.getApplicationContext());
             /* 迁移数据，并删除老的数据库 */
             SAProviderHelper.getInstance(context).migratingDB(context.getApplicationContext());
             enableTrackScreenOrientation(mSAConfigOptions.mTrackScreenOrientationEnabled);

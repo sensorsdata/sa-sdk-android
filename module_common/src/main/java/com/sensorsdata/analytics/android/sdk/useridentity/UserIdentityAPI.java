@@ -21,9 +21,10 @@ import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
-import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
+import com.sensorsdata.analytics.android.sdk.core.rpc.SensorsDataContentObserver;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentDistinctId;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.monitor.TrackMonitor;
 import com.sensorsdata.analytics.android.sdk.useridentity.h5identity.H5UserIdentityStrategy;
@@ -215,6 +216,8 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
     public void logout() {
         try {
             //1、避免 SensorsDataContentObserver 跨进程数据不断进来
+            SensorsDataContentObserver.State.LOGOUT.isDid = true;
+            SensorsDataContentObserver.State.LOGIN.isDid = false;
             JSONObject identities = mIdentitiesInstance.getIdentities(Identities.State.DEFAULT);
             boolean isLogin = !TextUtils.isEmpty(mIdentitiesInstance.getLoginId());
             if (!isLogin && (identities == null || identities.length() == 1 && (identities.has(Identities.ANDROID_ID) || identities.has(Identities.ANDROID_UUID)))) {

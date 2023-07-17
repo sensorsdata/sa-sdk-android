@@ -33,7 +33,6 @@ import com.sensorsdata.analytics.android.sdk.encrypt.biz.SecretKeyManager;
 import com.sensorsdata.analytics.android.sdk.util.SADisplayUtil;
 
 import org.json.JSONException;
-import org.json.JSONObject;
 
 public class SAEncryptAPIImpl implements SAEncryptAPI {
 
@@ -49,6 +48,7 @@ public class SAEncryptAPIImpl implements SAEncryptAPI {
             if (configOptions.isEnableEncrypt() || configOptions.isTransportEncrypt()) {
                 mSensorsDataEncrypt = new SAEventEncryptTools(contextManager);
                 mSecretKeyManager = SecretKeyManager.getInstance(contextManager);
+                AESSecretManager.getInstance().initSecretKey(contextManager.getContext());
             }
             if (configOptions.getStorePlugins() != null && !configOptions.getStorePlugins().isEmpty()) {// 注册默认的 Plugin
                 AESSecretManager.getInstance().initSecretKey(contextManager.getContext());
@@ -74,6 +74,16 @@ public class SAEncryptAPIImpl implements SAEncryptAPI {
                 return (T) loadSecretKey();
             } else if (Modules.Encrypt.METHOD_VERIFY_SUPPORT_TRANSPORT.equals(methodName)) {
                 return (T) mSecretKeyManager.isSupportTransportEncrypt();
+            } else if (Modules.Encrypt.METHOD_STORE_EVENT.equals(methodName)) {
+                SAEncryptListener encryptListener = mSensorsDataEncrypt.getEncryptListener();
+                if (encryptListener instanceof AbsSAEncrypt) {
+                    return (T) ((AbsSAEncrypt)encryptListener).encryptEventRecord((String) argv[0]);
+                }
+            } else if (Modules.Encrypt.METHOD_LOAD_EVENT.equals(methodName)) {
+                SAEncryptListener encryptListener = mSensorsDataEncrypt.getEncryptListener();
+                if (encryptListener instanceof AbsSAEncrypt) {
+                    return (T) ((AbsSAEncrypt)encryptListener).decryptEventRecord((String) argv[0]);
+                }
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
