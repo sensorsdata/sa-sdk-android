@@ -25,8 +25,8 @@ import android.os.IBinder;
 import android.os.IInterface;
 import android.os.Parcel;
 
-import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 
 import java.lang.reflect.Constructor;
 
@@ -76,15 +76,7 @@ public class ZTEImpl implements IRomOAID {
 
     @Override
     public boolean isSupported() {
-        try {
-            if (Build.VERSION.SDK_INT <= 29) {
-                mContext.getPackageManager().getPackageInfo(ID_PACKAGE, 0);
-            }
-            return true;
-        } catch (Throwable t) {
-            SALog.i(TAG, t);
-        }
-        return false;
+        return true;
     }
 
     @Override

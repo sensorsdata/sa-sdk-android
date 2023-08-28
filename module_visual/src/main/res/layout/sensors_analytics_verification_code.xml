@@ -10,7 +10,6 @@
         android:layout_margin="10dp"
         android:textAllCaps="false"
         android:gravity="center_horizontal"
-        android:text="@string/sensors_analytics_visual_code_title"
         android:textColor="#000000"
         android:textSize="18sp" />
 

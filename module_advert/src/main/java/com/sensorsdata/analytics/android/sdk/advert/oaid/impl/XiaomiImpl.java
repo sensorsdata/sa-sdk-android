@@ -20,8 +20,8 @@ package com.sensorsdata.analytics.android.sdk.advert.oaid.impl;
 import android.annotation.SuppressLint;
 import android.content.Context;
 
-import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

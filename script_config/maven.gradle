@@ -103,6 +103,13 @@ if (project.name == "module_core") {
         artifactId_maven = "common"
     }
     version = rootProject.ext.versions.module_version
+} else if (project.name.startsWith("module_res")) {
+    if (isBeta) {
+        artifactId_maven = "common-" + betaPrefix
+    } else {
+        artifactId_maven = project.name.replace("module_","")
+    }
+    version = rootProject.ext.versions.module_version
 }
 
 publishing {

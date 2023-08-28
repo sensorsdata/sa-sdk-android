@@ -18,12 +18,11 @@
 package com.sensorsdata.analytics.android.sdk.advert.oaid.impl;
 
 import android.content.Context;
-import android.content.pm.ProviderInfo;
 import android.database.Cursor;
 import android.net.Uri;
 
-import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 
 /**
  * 魅族
@@ -38,13 +37,7 @@ class MeizuImpl implements IRomOAID {
 
     @Override
     public boolean isSupported() {
-        try {
-            ProviderInfo pi = mContext.getPackageManager().resolveContentProvider("com.meizu.flyme.openidsdk", 0);
-            return pi != null;
-        } catch (Throwable th) {
-            SALog.i(TAG, th);
-            return false;
-        }
+        return true;
     }
 
     @Override

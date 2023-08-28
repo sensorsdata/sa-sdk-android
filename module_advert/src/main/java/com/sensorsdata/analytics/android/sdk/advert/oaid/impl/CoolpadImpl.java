@@ -20,13 +20,12 @@ package com.sensorsdata.analytics.android.sdk.advert.oaid.impl;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageInfo;
 import android.os.IBinder;
 import android.os.IInterface;
 import android.os.Parcel;
 
-import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 
 public class CoolpadImpl implements IRomOAID {
     private final Context context;
@@ -40,21 +39,15 @@ public class CoolpadImpl implements IRomOAID {
 
     @Override
     public boolean isSupported() {
-        try {
-            PackageInfo pi = context.getPackageManager().getPackageInfo("com.coolpad.deviceidsupport", 0);
-            return pi != null;
-        } catch (Throwable throwable) {
-            SALog.i(TAG, throwable);
-            return false;
-        }
+        return true;
     }
 
     @Override
     public String getRomOAID() {
-        Intent intent = new Intent();
-        intent.setComponent(new ComponentName("com.coolpad.deviceidsupport", "com.coolpad.deviceidsupport.DeviceIdService"));
         String oaid = null;
         try {
+            Intent intent = new Intent();
+            intent.setComponent(new ComponentName("com.coolpad.deviceidsupport", "com.coolpad.deviceidsupport.DeviceIdService"));
             if (context.bindService(intent, service, Context.BIND_AUTO_CREATE)) {
                 CoolpadInterface anInterface = new CoolpadInterface(OAIDService.BINDER_QUEUE.take());
                 oaid = anInterface.getOAID(context.getPackageName());

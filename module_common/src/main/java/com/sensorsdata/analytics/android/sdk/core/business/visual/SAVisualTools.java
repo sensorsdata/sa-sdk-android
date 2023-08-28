@@ -33,15 +33,15 @@ public class SAVisualTools {
     public static void showOpenHeatMapDialog(final Activity activity, final String featureCode, final String postUrl) {
         if (checkProjectIsValid(postUrl)) {
             if (!SAModuleManager.getInstance().hasModuleByName(Modules.Visual.MODULE_NAME)) {
-                SensorsDataDialogUtils.showDialog(activity, "点击热图 SDK 没有被正确集成，请联系贵方技术人员正确集成。");
+                SensorsDataDialogUtils.showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_heatmap_sdk_fail));
                 return;
             }
             if (!SensorsDataAPI.sharedInstance().isNetworkRequestEnable()) {
-                SensorsDataDialogUtils.showDialog(activity, "已关闭网络请求（NetworkRequest），无法使用 App 点击分析，请开启后再试！");
+                SensorsDataDialogUtils.showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_heatmap_network_fail));
                 return;
             }
             if (!SensorsDataAPI.sharedInstance().isHeatMapEnabled()) {
-                SensorsDataDialogUtils.showDialog(activity, "SDK 没有被正确集成，请联系贵方技术人员开启点击分析。");
+                SensorsDataDialogUtils.showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_heatmap_sdk_fail));
                 return;
             }
             SAModuleManager.getInstance().invokeModuleFunction(Modules.Visual.MODULE_NAME, Modules.Visual.METHOD_SHOW_OPEN_HEATMAP_DIALOG, activity, featureCode, postUrl);
@@ -53,15 +53,15 @@ public class SAVisualTools {
     public static void showOpenVisualizedAutoTrackDialog(final Activity activity, final String featureCode, final String postUrl) {
         if (checkProjectIsValid(postUrl)) {
             if (!SAModuleManager.getInstance().hasModuleByName(Modules.Visual.MODULE_NAME)) {
-                SensorsDataDialogUtils.showDialog(activity, "点击可视化 SDK 没有被正确集成，请联系贵方技术人员正确集成。");
+                SensorsDataDialogUtils.showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_visual_sdk_fail));
                 return;
             }
             if (!SensorsDataAPI.sharedInstance().isNetworkRequestEnable()) {
-                SensorsDataDialogUtils.showDialog(activity, "已关闭网络请求（NetworkRequest），无法使用 App 可视化全埋点，请开启后再试！");
+                SensorsDataDialogUtils.showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_visual_network_fail));
                 return;
             }
             if (!SensorsDataAPI.sharedInstance().isVisualizedAutoTrackEnabled()) {
-                SensorsDataDialogUtils.showDialog(activity, "SDK 没有被正确集成，请联系贵方技术人员开启可视化全埋点。");
+                SensorsDataDialogUtils.showDialog(activity, SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_visual_sdk_fail));
                 return;
             }
             SAModuleManager.getInstance().invokeModuleFunction(Modules.Visual.MODULE_NAME, Modules.Visual.METHOD_SHOW_OPEN_VISUALIZED_AUTOTRACK_DIALOG, activity, featureCode, postUrl);
@@ -74,7 +74,7 @@ public class SAVisualTools {
         if (SAModuleManager.getInstance().hasModuleByName(Modules.Visual.MODULE_NAME)) {
             SAModuleManager.getInstance().invokeModuleFunction(Modules.Visual.MODULE_NAME, Modules.Visual.METHOD_SHOW_PAIRING_CODE_INPUTDIALOG, context);
         } else {
-            SensorsDataDialogUtils.showDialog(context, "点击热图/可视化模块 SDK 没有被正确集成，请联系贵方技术人员正确集成。");
+            SensorsDataDialogUtils.showDialog(context, SADisplayUtil.getStringResource(context, R.string.sensors_analytics_visual_heatmap_sdk_fail));
         }
     }
 

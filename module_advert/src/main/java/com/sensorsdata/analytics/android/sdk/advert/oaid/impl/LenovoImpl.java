@@ -19,13 +19,12 @@ package com.sensorsdata.analytics.android.sdk.advert.oaid.impl;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageInfo;
 import android.os.IBinder;
 import android.os.IInterface;
 import android.os.Parcel;
 
-import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 
 /**
  * 联想、乐檬、摩托罗拉
@@ -42,21 +41,15 @@ class LenovoImpl implements IRomOAID {
 
     @Override
     public boolean isSupported() {
-        try {
-            PackageInfo pi = mContext.getPackageManager().getPackageInfo("com.zui.deviceidservice", 0);
-            return pi != null;
-        } catch (Throwable th) {
-            SALog.i(TAG, th);
-            return false;
-        }
+        return true;
     }
 
     @Override
     public String getRomOAID() {
-        Intent intent = new Intent();
-        intent.setClassName("com.zui.deviceidservice", "com.zui.deviceidservice.DeviceidService");
         String oaid = null;
         try {
+            Intent intent = new Intent();
+            intent.setClassName("com.zui.deviceidservice", "com.zui.deviceidservice.DeviceidService");
             if (mContext.bindService(intent, mService, Context.BIND_AUTO_CREATE)) {
                 LenovoInterface anInterface = new LenovoInterface(OAIDService.BINDER_QUEUE.take());
                 oaid = anInterface.getOAID();

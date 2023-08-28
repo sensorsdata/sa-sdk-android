@@ -20,13 +20,12 @@ package com.sensorsdata.analytics.android.sdk.advert.oaid.impl;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageInfo;
 import android.os.IBinder;
 import android.os.IInterface;
 import android.os.Parcel;
 
-import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 
 /**
  * 华硕
@@ -43,22 +42,16 @@ class AsusImpl implements IRomOAID {
 
     @Override
     public boolean isSupported() {
-        try {
-            PackageInfo pi = mContext.getPackageManager().getPackageInfo("com.asus.msa.SupplementaryDID", 0);
-            return pi != null;
-        } catch (Throwable th) {
-            SALog.i(TAG, th);
-            return false;
-        }
+        return true;
     }
 
     @Override
     public String getRomOAID() {
-        Intent intent = new Intent("com.asus.msa.action.ACCESS_DID");
-        ComponentName componentName = new ComponentName("com.asus.msa.SupplementaryDID", "com.asus.msa.SupplementaryDID.SupplementaryDIDService");
-        intent.setComponent(componentName);
         String oaid = null;
         try {
+            Intent intent = new Intent("com.asus.msa.action.ACCESS_DID");
+            ComponentName componentName = new ComponentName("com.asus.msa.SupplementaryDID", "com.asus.msa.SupplementaryDID.SupplementaryDIDService");
+            intent.setComponent(componentName);
             if (mContext.bindService(intent, mService, Context.BIND_AUTO_CREATE)) {
                 AsusInterface anInterface = new AsusInterface(OAIDService.BINDER_QUEUE.take());
                 oaid = anInterface.getOAID();

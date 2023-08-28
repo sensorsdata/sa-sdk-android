@@ -19,13 +19,12 @@ package com.sensorsdata.analytics.android.sdk.advert.oaid.impl;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageInfo;
 import android.os.IBinder;
 import android.os.IInterface;
 import android.os.Parcel;
 
-import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 
 /**
  * 三星
@@ -42,13 +41,7 @@ class SamsungImpl implements IRomOAID {
 
     @Override
     public boolean isSupported() {
-        try {
-            PackageInfo pi = mContext.getPackageManager().getPackageInfo("com.samsung.android.deviceidservice", 0);
-            return pi != null;
-        } catch (Throwable th) {
-            SALog.i(TAG, th);
-            return false;
-        }
+        return true;
     }
 
     @Override

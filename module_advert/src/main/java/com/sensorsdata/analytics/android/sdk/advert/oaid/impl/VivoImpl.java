@@ -22,9 +22,9 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 import com.sensorsdata.analytics.android.sdk.advert.oaid.OAIDRom;
-import com.sensorsdata.analytics.android.sdk.SALog;
 
 /**
  * 维沃、爱酷
@@ -39,10 +39,15 @@ class VivoImpl implements IRomOAID {
 
     @Override
     public boolean isSupported() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+        try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+                return false;
+            }
+            return OAIDRom.sysProperty("persist.sys.identifierid.supported", "0").equals("1");
+        } catch (Throwable throwable) {
+            SALog.i(TAG, throwable);
             return false;
         }
-        return OAIDRom.sysProperty("persist.sys.identifierid.supported", "0").equals("1");
     }
 
     @Override

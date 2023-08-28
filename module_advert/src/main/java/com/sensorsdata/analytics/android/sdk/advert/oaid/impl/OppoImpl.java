@@ -21,15 +21,14 @@ import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.os.IBinder;
 import android.os.IInterface;
 import android.os.Parcel;
 
-import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 
 import java.security.MessageDigest;
 
@@ -49,21 +48,15 @@ class OppoImpl implements IRomOAID {
 
     @Override
     public boolean isSupported() {
-        try {
-            PackageInfo pi = mContext.getPackageManager().getPackageInfo("com.heytap.openid", 0);
-            return pi != null;
-        } catch (Throwable th) {
-            SALog.i(TAG, th);
-            return false;
-        }
+        return true;
     }
 
     @Override
     public String getRomOAID() {
-        Intent intent = new Intent("action.com.heytap.openid.OPEN_ID_SERVICE");
-        intent.setComponent(new ComponentName("com.heytap.openid", "com.heytap.openid.IdentifyService"));
         String oaid = null;
         try {
+            Intent intent = new Intent("action.com.heytap.openid.OPEN_ID_SERVICE");
+            intent.setComponent(new ComponentName("com.heytap.openid", "com.heytap.openid.IdentifyService"));
             if (mContext.bindService(intent, mService, Context.BIND_AUTO_CREATE)) {
                 oaid = realGetOUID();
                 mContext.unbindService(mService);

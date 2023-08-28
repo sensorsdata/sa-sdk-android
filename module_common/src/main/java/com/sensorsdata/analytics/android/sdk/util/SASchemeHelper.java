@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
@@ -79,7 +80,7 @@ public class SASchemeHelper {
                 } else if ("encrypt".equals(host)) {
                     String tip = SAModuleManager.getInstance().invokeModuleFunction(Modules.Encrypt.MODULE_NAME, Modules.Encrypt.METHOD_VERIFY_SECRET_KEY, uri);
                     if (TextUtils.isEmpty(tip)) {
-                        tip = "未检测到加密模块库，请集成加密模块库后重试";
+                        tip = SADisplayUtil.getStringResource(activity, R.string.sensors_analytics_encrypt_sdk_fail);
                     }
                     ToastUtil.showLong(activity, tip);
                     SensorsDataDialogUtils.startLaunchActivity(activity);

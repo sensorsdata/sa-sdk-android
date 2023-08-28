@@ -28,6 +28,7 @@ import android.os.Looper;
 import android.text.TextUtils;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
@@ -59,6 +60,8 @@ public class PairingCodeEditDialog extends Dialog {
             window.setBackgroundDrawable(bg);
             window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
         }
+        TextView titleView = findViewById(R.id.sensors_analytics_verification_code_title);
+        titleView.setText(R.string.sensors_analytics_visual_code_title);
         final PairingCodeEditText pairingCodeEditText = findViewById(R.id.sensors_analytics_pairing_code);
         pairingCodeEditText.setOnPairingCodeChangedListener(new IPairingCodeInterface.OnPairingCodeChangedListener() {
             @Override

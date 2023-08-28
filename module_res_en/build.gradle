@@ -1,0 +1,32 @@
+apply plugin: 'com.android.library'
+apply from: "../script_config/maven.gradle"
+
+android {
+    compileSdkVersion rootProject.ext.buildConfig.compileSdkVersion
+
+    defaultConfig {
+        minSdkVersion rootProject.ext.buildConfig.minSdkVersion
+        targetSdkVersion rootProject.ext.buildConfig.targetSdkVersion
+        versionCode rootProject.ext.buildConfig.versionCode
+        versionName rootProject.ext.buildConfig.versionName
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles "consumer-rules.pro"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility rootProject.ext.buildConfig.sourceJavaVersion
+        targetCompatibility rootProject.ext.buildConfig.targetJavaVersion
+    }
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}

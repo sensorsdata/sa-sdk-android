@@ -23,8 +23,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 
-import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 
 /**
  * 努比亚

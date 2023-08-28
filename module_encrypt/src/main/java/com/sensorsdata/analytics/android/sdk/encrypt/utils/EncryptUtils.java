@@ -160,7 +160,7 @@ public class EncryptUtils {
             Class.forName("org.spongycastle.jce.provider.BouncyCastleProvider");
             return true;
         } catch (Exception e) {
-            SALog.i("SA.Encrypt", "当前项目未集成 ECC 加密库");
+            SALog.i("SA.Encrypt", "No integrated ECC encryption library");
         }
         return false;
     }

@@ -20,9 +20,9 @@ package com.sensorsdata.analytics.android.sdk.advert.oaid.impl;
 import android.app.Application;
 import android.content.Context;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 import com.sensorsdata.analytics.android.sdk.advert.oaid.OAIDRom;
-import com.sensorsdata.analytics.android.sdk.SALog;
 
 public final class OAIDFactory {
     private static IRomOAID ioaid;

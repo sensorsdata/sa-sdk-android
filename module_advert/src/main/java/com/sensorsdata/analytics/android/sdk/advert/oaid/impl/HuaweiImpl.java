@@ -19,7 +19,6 @@ package com.sensorsdata.analytics.android.sdk.advert.oaid.impl;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.IInterface;
@@ -27,8 +26,8 @@ import android.os.Parcel;
 import android.provider.Settings;
 import android.text.TextUtils;
 
-import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.advert.oaid.IRomOAID;
 
 /**
  * 华为、荣耀
@@ -37,7 +36,6 @@ public class HuaweiImpl implements IRomOAID {
     private final Context mContext;
     private final OAIDService mService;
     private static final String TAG = "SA.HuaweiImpl";
-    private String mPackageName;
 
     public HuaweiImpl(Context context) {
         this.mContext = context;
@@ -46,23 +44,7 @@ public class HuaweiImpl implements IRomOAID {
 
     @Override
     public boolean isSupported() {
-        boolean ret = false;
-        try {
-            PackageManager pm = mContext.getPackageManager();
-            if (pm.getPackageInfo("com.huawei.hwid", 0) != null) {
-                mPackageName = "com.huawei.hwid";
-                ret = true;
-            } else if (pm.getPackageInfo("com.huawei.hwid.tv", 0) != null) {
-                mPackageName = "com.huawei.hwid.tv";
-                ret = true;
-            } else {
-                mPackageName = "com.huawei.hms";
-                ret = pm.getPackageInfo(mPackageName, 0) != null;
-            }
-        } catch (Throwable t) {
-            SALog.i(TAG, t);
-        }
-        return ret;
+        return true;
     }
 
     @Override
@@ -78,22 +60,28 @@ public class HuaweiImpl implements IRomOAID {
                 SALog.i(TAG, t);
             }
         }
-        if (TextUtils.isEmpty(mPackageName) && !isSupported()) {
-            SALog.i(TAG, "Huawei Advertising ID not available");
-            return null;
-        }
-        Intent intent = new Intent("com.uodis.opendevice.OPENIDS_SERVICE");
-        intent.setPackage(mPackageName);
         String oaid = null;
+        String[] packages = new String[]{"com.huawei.hwid", "com.huawei.hwid.tv", "com.huawei.hms"};
+        for (String pg : packages) {
+            if (TextUtils.isEmpty(oaid)) {
+                oaid = realLoadOaid(pg);
+            }
+        }
+        return oaid;
+    }
+
+    private String realLoadOaid(String packageName) {
         try {
+            Intent intent = new Intent("com.uodis.opendevice.OPENIDS_SERVICE");
+            intent.setPackage(packageName);
             if (mContext.bindService(intent, mService, Context.BIND_AUTO_CREATE)) {
                 HuaWeiInterface anInterface = new HuaWeiInterface(OAIDService.BINDER_QUEUE.take());
-                oaid = anInterface.getOAID();
+                return anInterface.getOAID();
             }
         } catch (Throwable t) {
             SALog.i(TAG, t);
         }
-        return oaid;
+        return "";
     }
 
     static final class HuaWeiInterface implements IInterface {

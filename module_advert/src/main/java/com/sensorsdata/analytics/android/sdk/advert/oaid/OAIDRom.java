@@ -146,8 +146,8 @@ public final class OAIDRom {
     // 酷派手机
     public static boolean isCoolpad(Context context) {
         try {
-            context.getPackageManager().getPackageInfo("com.coolpad.deviceidsupport", 0);
-            return true;
+            return Build.MANUFACTURER.equalsIgnoreCase("COOLPAD") ||
+                    Build.BRAND.equalsIgnoreCase("COOLPAD");
         } catch (Exception e) {
             return false;
         }

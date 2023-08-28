@@ -1,37 +1,3 @@
 <resources>
     <item name="sensors_analytics_tag_view_webview_visual" type="id" />
-
-    <!-- heat map -->
-    <string name="sensors_analytics_heatmap">点击分析</string>
-    <string name="sensors_analytics_heatmap_network_fail">已关闭网络请求（NetworkRequest），无法使用 App 点击分析，请开启后再试！</string>
-    <string name="sensors_analytics_heatmap_sdk_fail">SDK 没有被正确集成，请联系贵方技术人员开启点击分析。</string>
-    <string name="sensors_analytics_heatmap_wifi_name">正在连接 App 点击分析…</string>
-    <string name="sensors_analytics_heatmap_mobile_name">正在连接 App 点击分析，建议在 WiFi 环境下使用。</string>
-
-    <!-- visual -->
-    <string name="sensors_analytics_visual">可视化全埋点</string>
-    <string name="sensors_analytics_visual_network_fail">已关闭网络请求（NetworkRequest），无法使用 App 可视化全埋点，请开启后再试！</string>
-    <string name="sensors_analytics_visual_sdk_fail">SDK 没有被正确集成，请联系贵方技术人员开启可视化全埋点。</string>
-    <string name="sensors_analytics_visual_wifi_name">正在连接 App 可视化全埋点…</string>
-    <string name="sensors_analytics_visual_mobile_name">正在连接 App 可视化全埋点，建议在 WiFi 环境下使用。</string>
-    <!-- visual second -->
-    <string name="sensors_analytics_visual_sa_h5">当前页面无法进行可视化全埋点</string>
-    <string name="sensors_analytics_visual_sa_h5_error">此页面未集成 Web JS SDK 或者 Web JS SDK 版本过低，请集成最新版 Web JS SDK</string>
-    <string name="sensors_analytics_visual_sa_flutter_error">此页面未集成 Flutter 全埋点 SDK 或 Flutter 全埋点 SDK 版本过低，请集成最新版 Flutter 全埋点 SDK</string>
-    <string name="sensors_analytics_visual_sa_h5_error_link">配置文档</string>
-    <string name="sensors_analytics_visual_property_error">%1$s 属性未找到属性元素，属性元素路径为 %2$s，属性元素位置为 %3$s </string>
-    <string name="sensors_analytics_visual_regex_error">%1$s 属性正则解析失败，元素内容 %2$s，正则表达式为 %3$s，属性类型为 %4$s</string>
-    <string name="sensors_analytics_visual_switch_error">开关控制</string>
-    <string name="sensors_analytics_visual_property_switch_error">自定义属性运维配置开关关闭</string>
-    <string name="sensors_analytics_visual_config_error">获取配置</string>
-    <string name="sensors_analytics_visual_event_error">事件配置</string>
-    <string name="sensors_analytics_visual_cache_error">本地缓存不包含该事件配置</string>
-    <string name="sensors_analytics_visual_getProperty_error">获取属性元素</string>
-    <string name="sensors_analytics_visual_parseProperty_error">解析属性</string>
-    <string name="sensors_analytics_visual_other_error">其他错误</string>
-    <string name="sensors_analytics_visual_cache_no_property_error">本地缓存无自定义属性配置</string>
-    <string name="sensors_analytics_visual_appid_error">本地缓存的 AppId 或 Project 与当前项目不一致</string>
-
-    <!-- verification code-->
-    <string name="sensors_analytics_visual_code_title">请输入神策分析页面上的配对码</string>
 </resources>
