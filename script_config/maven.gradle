@@ -105,9 +105,9 @@ if (project.name == "module_core") {
     version = rootProject.ext.versions.module_version
 } else if (project.name.startsWith("module_res")) {
     if (isBeta) {
-        artifactId_maven = "common-" + betaPrefix
+        artifactId_maven = project.name.replace("module_", "") + "-" + betaPrefix
     } else {
-        artifactId_maven = project.name.replace("module_","")
+        artifactId_maven = project.name.replace("module_", "")
     }
     version = rootProject.ext.versions.module_version
 }

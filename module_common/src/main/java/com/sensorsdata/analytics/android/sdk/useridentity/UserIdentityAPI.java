@@ -130,10 +130,23 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
 
     @Override
     public String getLoginId() {
-        if (AppInfoUtils.isTaskExecuteThread()) {
-            return mIdentitiesInstance.getJointLoginID();
+        try {
+            if (AppInfoUtils.isTaskExecuteThread()) {
+                String loginId = mIdentitiesInstance.getJointLoginID();
+                if (TextUtils.isEmpty(loginId)) {// 为空时尝试读取
+                    String loginIdKey = mIdentitiesInstance.getLoginIDKey();
+                    loginIdKey = TextUtils.isEmpty(loginId) ? LoginIDAndKey.LOGIN_ID_KEY_DEFAULT : loginIdKey;
+                    JSONObject jsonObject = mIdentitiesInstance.getIdentities(Identities.State.LOGIN_KEY);
+                    loginId = jsonObject == null ? "" : jsonObject.optString(loginIdKey);
+                }
+                return loginId;
+            } else {
+                return mLoginIdValue;
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
-        return mLoginIdValue;
+        return "";
     }
 
     @Override
@@ -307,7 +320,6 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
      *
      * @param eventType 事件类型
      * @param eventObject 属性
-     *
      * @return true 代表 h5 打通用户标识成功，false 代表 h5 打通用户标识失败
      */
     public boolean mergeH5Identities(EventType eventType, JSONObject eventObject) {

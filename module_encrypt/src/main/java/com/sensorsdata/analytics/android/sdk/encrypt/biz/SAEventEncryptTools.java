@@ -24,6 +24,7 @@ import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.encrypt.SAEncryptListener;
 import com.sensorsdata.analytics.android.sdk.encrypt.SecreteKey;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
@@ -93,6 +94,54 @@ public class SAEventEncryptTools {
             dataJson.put("ekey", encryptedKey);
             dataJson.put("pkv", mSecreteKey.version);
             dataJson.put("payloads", encryptData);
+            return (T) (jsonObject instanceof String ? dataJson.toString() : dataJson);
+        } catch (Exception ex) {
+            SALog.printStackTrace(ex);
+        }
+        return jsonObject;
+    }
+
+
+    /**
+     * 针对数据进行加密
+     *
+     * @param jsonObject，需要加密的数据
+     * @param secreteKey 加密密钥
+     * @return 加密后的数据
+     */
+    public <T> T encryptTrackData(T jsonObject, SecreteKey secreteKey) {
+        try {
+            if (mSecretKeyManager.isSecretKeyNull(secreteKey)) {
+                return jsonObject;
+            }
+
+            SAEncryptListener mEncryptListener = mSecretKeyManager.getEncryptListener(secreteKey);
+            if (mEncryptListener == null) {
+                return jsonObject;
+            }
+
+            //获取公钥加密后的对称密钥
+            String publicKey = secreteKey.key;
+            if (publicKey.startsWith("EC:")) {
+                publicKey = publicKey.substring(publicKey.indexOf(":") + 1);
+            }
+
+            String encryptedKey = mEncryptListener.encryptSymmetricKeyWithPublicKey(publicKey);
+
+            if (TextUtils.isEmpty(encryptedKey)) {
+                return jsonObject;
+            }
+
+            String encryptData = mEncryptListener.encryptEvent(gzipEventData(jsonObject.toString()));
+            if (TextUtils.isEmpty(encryptData)) {
+                return jsonObject;
+            }
+            JSONObject dataJson = new JSONObject();
+            dataJson.put("ekey", encryptedKey);
+            dataJson.put("pkv", secreteKey.version);
+            JSONArray dataArray = new JSONArray();
+            dataArray.put(encryptData);
+            dataJson.put("payloads", dataArray);
             return (T) (jsonObject instanceof String ? dataJson.toString() : dataJson);
         } catch (Exception ex) {
             SALog.printStackTrace(ex);

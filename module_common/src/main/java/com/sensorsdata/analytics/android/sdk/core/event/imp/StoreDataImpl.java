@@ -20,8 +20,12 @@ package com.sensorsdata.analytics.android.sdk.core.event.imp;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.event.Event;
 import com.sensorsdata.analytics.android.sdk.core.event.EventProcessor;
+import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
+import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
 import com.sensorsdata.analytics.android.sdk.exceptions.DebugModeException;
+
+import org.json.JSONObject;
 
 public class StoreDataImpl implements EventProcessor.IStoreData {
     private static final String TAG = "SA.StoreDataImpl";
@@ -36,9 +40,12 @@ public class StoreDataImpl implements EventProcessor.IStoreData {
         if (event == null) {
             return 0;
         }
-        int ret = mDbAdapter.addJSON(event.toJSONObject());
+        JSONObject eventJson = event.toJSONObject();
+        int ret = mDbAdapter.addJSON(eventJson);
+        // 事件信息传到广告模块
+        SAModuleManager.getInstance().invokeModuleFunction(Modules.Advert.MODULE_NAME, Modules.Advert.METHOD_SEND_EVENT_SAT, eventJson);
         if (ret < 0) {
-            String error = "Failed to enqueue the event: " + event.toJSONObject();
+            String error = "Failed to enqueue the event: " + eventJson;
             if (SALog.isDebug()) {
                 throw new DebugModeException(error);
             } else {

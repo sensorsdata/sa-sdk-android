@@ -569,4 +569,8 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
         mListInstantEvents = listInstantEvents;
         return this;
     }
+
+    public void setAdvertConfig(SAAdvertisingConfig config) {
+        this.mSATConfig = config;
+    }
 }

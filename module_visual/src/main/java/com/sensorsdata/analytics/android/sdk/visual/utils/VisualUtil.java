@@ -113,9 +113,10 @@ public class VisualUtil {
                 }
             } else {
                 object = SAPageInfoUtils.getActivityPageInfo(activity);
-                JSONObject rnJson = SAPageInfoUtils.getRNPageInfo();
-                JSONUtils.mergeDuplicateProperty(rnJson, object);
             }
+            // React Native 传入的 screen_name 优先级最高
+            JSONObject rnJson = SAPageInfoUtils.getRNPageInfo();
+            JSONUtils.mergeDuplicateProperty(rnJson, object);
         }
         return object;
     }

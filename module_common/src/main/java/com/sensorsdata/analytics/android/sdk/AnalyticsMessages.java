@@ -35,15 +35,14 @@ import com.sensorsdata.analytics.android.sdk.exceptions.InvalidDataException;
 import com.sensorsdata.analytics.android.sdk.exceptions.ResponseErrorException;
 import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
 import com.sensorsdata.analytics.android.sdk.util.AppStateTools;
-import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
+import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
 
 import org.json.JSONArray;
 
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,7 +51,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.zip.GZIPOutputStream;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -107,19 +105,6 @@ public class AnalyticsMessages {
 
     public static AnalyticsMessages getInstance(Context context) {
         return S_INSTANCES.get(context);
-    }
-
-    private static byte[] slurp(final InputStream inputStream)
-            throws IOException {
-        final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        int nRead;
-        byte[] data = new byte[8192];
-        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
-            buffer.write(data, 0, nRead);
-        }
-
-        buffer.flush();
-        return buffer.toByteArray();
     }
 
     public void flushEventMessage(boolean isSendImmediately) {
@@ -253,7 +238,7 @@ public class AnalyticsMessages {
             try {
                 String data = rawMessage;
                 if (DbParams.GZIP_DATA_EVENT.equals(gzip)) {
-                    data = encodeData(rawMessage);
+                    data = SADataHelper.gzipData(rawMessage);
                 }
 
                 if (!TextUtils.isEmpty(data)) {
@@ -359,7 +344,7 @@ public class AnalyticsMessages {
             if (!isRedirects && NetworkUtils.needRedirects(responseCode)) {
                 String location = NetworkUtils.getLocation(connection, path);
                 if (!TextUtils.isEmpty(location)) {
-                    closeStream(bout, out, null, connection);
+                    SADataHelper.closeStream(bout, out, null, connection);
                     sendHttpRequest(location, data, gzip, rawMessage, true, is_instant_event);
                     return;
                 }
@@ -369,7 +354,7 @@ public class AnalyticsMessages {
             } catch (FileNotFoundException e) {
                 in = connection.getErrorStream();
             }
-            byte[] responseBody = slurp(in);
+            byte[] responseBody = SADataHelper.slurp(in);
             in.close();
             in = null;
 
@@ -394,7 +379,7 @@ public class AnalyticsMessages {
         } catch (IOException e) {
             throw new ConnectErrorException(e);
         } finally {
-            closeStream(bout, out, in, connection);
+            SADataHelper.closeStream(bout, out, in, connection);
         }
     }
 
@@ -409,65 +394,6 @@ public class AnalyticsMessages {
                 httpCode != HttpURLConnection.HTTP_FORBIDDEN &&
                 (httpCode < HttpURLConnection.HTTP_INTERNAL_ERROR || httpCode >= 600);
         return shouldDelete;
-    }
-
-    private void closeStream(BufferedOutputStream bout, OutputStream out, InputStream in, HttpURLConnection connection) {
-        if (null != bout) {
-            try {
-                bout.close();
-            } catch (Exception e) {
-                SALog.i(TAG, e.getMessage());
-            }
-        }
-
-        if (null != out) {
-            try {
-                out.close();
-            } catch (Exception e) {
-                SALog.i(TAG, e.getMessage());
-            }
-        }
-
-        if (null != in) {
-            try {
-                in.close();
-            } catch (Exception e) {
-                SALog.i(TAG, e.getMessage());
-            }
-        }
-
-        if (null != connection) {
-            try {
-                connection.disconnect();
-            } catch (Exception e) {
-                SALog.i(TAG, e.getMessage());
-            }
-        }
-    }
-
-    private String encodeData(final String rawMessage) throws InvalidDataException {
-        GZIPOutputStream gos = null;
-        try {
-            byte[] bytes = rawMessage.getBytes(CHARSET_UTF8);
-            ByteArrayOutputStream os = new ByteArrayOutputStream(bytes.length);
-            gos = new GZIPOutputStream(os);
-            gos.write(bytes);
-            gos.close();
-            byte[] compressed = os.toByteArray();
-            os.close();
-            return new String(Base64Coder.encode(compressed));
-        } catch (IOException exception) {
-            // 格式错误，直接将数据删除
-            throw new InvalidDataException(exception);
-        } finally {
-            if (gos != null) {
-                try {
-                    gos.close();
-                } catch (IOException e) {
-                    // ignore
-                }
-            }
-        }
     }
 
     // Worker will manage the (at most single) IO thread associated with

@@ -17,6 +17,8 @@
 
 package com.sensorsdata.analytics.android.sdk.util;
 
+import static com.sensorsdata.analytics.android.sdk.util.Base64Coder.CHARSET_UTF8;
+
 import android.content.Context;
 import android.text.TextUtils;
 
@@ -27,10 +29,17 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.zip.GZIPOutputStream;
 
 public class SADataHelper {
 
@@ -236,4 +245,78 @@ public class SADataHelper {
         }
         return value.toString();
     }
+
+    public static String gzipData(final String rawMessage) throws InvalidDataException {
+        GZIPOutputStream gos = null;
+        try {
+            byte[] bytes = rawMessage.getBytes(CHARSET_UTF8);
+            ByteArrayOutputStream os = new ByteArrayOutputStream(bytes.length);
+            gos = new GZIPOutputStream(os);
+            gos.write(bytes);
+            gos.close();
+            byte[] compressed = os.toByteArray();
+            os.close();
+            return new String(Base64Coder.encode(compressed));
+        } catch (IOException exception) {
+            // 格式错误，直接将数据删除
+            throw new InvalidDataException(exception);
+        } finally {
+            if (gos != null) {
+                try {
+                    gos.close();
+                } catch (IOException e) {
+                    // ignore
+                }
+            }
+        }
+    }
+
+    public static byte[] slurp(final InputStream inputStream)
+            throws IOException {
+        final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        int nRead;
+        byte[] data = new byte[8192];
+        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+            buffer.write(data, 0, nRead);
+        }
+
+        buffer.flush();
+        return buffer.toByteArray();
+    }
+
+
+    public static void closeStream(BufferedOutputStream bout, OutputStream out, InputStream in, HttpURLConnection connection) {
+        if (null != bout) {
+            try {
+                bout.close();
+            } catch (Exception e) {
+                SALog.i(TAG, e.getMessage());
+            }
+        }
+
+        if (null != out) {
+            try {
+                out.close();
+            } catch (Exception e) {
+                SALog.i(TAG, e.getMessage());
+            }
+        }
+
+        if (null != in) {
+            try {
+                in.close();
+            } catch (Exception e) {
+                SALog.i(TAG, e.getMessage());
+            }
+        }
+
+        if (null != connection) {
+            try {
+                connection.disconnect();
+            } catch (Exception e) {
+                SALog.i(TAG, e.getMessage());
+            }
+        }
+    }
+
 }

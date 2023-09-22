@@ -72,6 +72,13 @@ public class LoginIDAndKey {
         //2、本地设置 loginIDKey 和 loginID
         setLoginIDKey(loginIDKey);
         setLoginId(loginID);
+        //3. 检查是否存储成功，未成功在此设置
+        String loginId = getLoginId();
+        String loginIdKey = getLoginIDKey();
+        if (!loginID.equals(loginId) || !loginIDKey.equals(loginIdKey)) {
+            setLoginId(loginID);
+            setLoginIDKey(loginIDKey);
+        }
         return true;
     }
 

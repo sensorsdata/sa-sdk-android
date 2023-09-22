@@ -19,7 +19,7 @@ package com.sensorsdata.analytics.android.sdk.encrypt.impl;
 
 import android.net.Uri;
 
-import org.json.JSONObject;
+import com.sensorsdata.analytics.android.sdk.encrypt.SecreteKey;
 
 public interface SAEncryptAPI {
     /*
@@ -36,6 +36,11 @@ public interface SAEncryptAPI {
      * decrypt track event data
      */
     <T> T encryptEventData(T jsonObject);
+
+    /*
+     * decrypt track event data by custom key
+     */
+    <T> T encryptEventData(T jsonObject, SecreteKey secreteKey);
 
     /*
      * verify secret key from scan code

@@ -49,6 +49,9 @@ public class SAEncryptAPIImpl implements SAEncryptAPI {
                 mSensorsDataEncrypt = new SAEventEncryptTools(contextManager);
                 mSecretKeyManager = SecretKeyManager.getInstance(contextManager);
                 AESSecretManager.getInstance().initSecretKey(contextManager.getContext());
+            } else if (configOptions.getAdvertConfig() != null &&
+                    configOptions.getAdvertConfig().secreteKey != null) {//配置广告上报加密
+                mSensorsDataEncrypt = new SAEventEncryptTools(contextManager);
             }
             if (configOptions.getStorePlugins() != null && !configOptions.getStorePlugins().isEmpty()) {// 注册默认的 Plugin
                 AESSecretManager.getInstance().initSecretKey(contextManager.getContext());
@@ -68,6 +71,8 @@ public class SAEncryptAPIImpl implements SAEncryptAPI {
                 return (T) verifySecretKey((Uri) argv[0]);
             } else if (Modules.Encrypt.METHOD_ENCRYPT_EVENT_DATA.equals(methodName)) {
                 return (T) encryptEventData(argv[0]);
+            } else if (Modules.Encrypt.METHOD_ENCRYPT_EVENT_DATA_WITH_KEY.equals(methodName)) {
+                return (T) encryptEventData(argv[0], (SecreteKey) argv[1]);
             } else if (Modules.Encrypt.METHOD_STORE_SECRET_KEY.equals(methodName)) {
                 storeSecretKey((String) argv[0]);
             } else if (Modules.Encrypt.METHOD_LOAD_SECRET_KEY.equals(methodName)) {
@@ -77,12 +82,12 @@ public class SAEncryptAPIImpl implements SAEncryptAPI {
             } else if (Modules.Encrypt.METHOD_STORE_EVENT.equals(methodName)) {
                 SAEncryptListener encryptListener = mSensorsDataEncrypt.getEncryptListener();
                 if (encryptListener instanceof AbsSAEncrypt) {
-                    return (T) ((AbsSAEncrypt)encryptListener).encryptEventRecord((String) argv[0]);
+                    return (T) ((AbsSAEncrypt) encryptListener).encryptEventRecord((String) argv[0]);
                 }
             } else if (Modules.Encrypt.METHOD_LOAD_EVENT.equals(methodName)) {
                 SAEncryptListener encryptListener = mSensorsDataEncrypt.getEncryptListener();
                 if (encryptListener instanceof AbsSAEncrypt) {
-                    return (T) ((AbsSAEncrypt)encryptListener).decryptEventRecord((String) argv[0]);
+                    return (T) ((AbsSAEncrypt) encryptListener).decryptEventRecord((String) argv[0]);
                 }
             }
         } catch (Exception e) {
@@ -104,6 +109,14 @@ public class SAEncryptAPIImpl implements SAEncryptAPI {
     @Override
     public <T> T encryptEventData(T jsonObject) {
         return mSensorsDataEncrypt.encryptTrackData(jsonObject);
+    }
+
+    @Override
+    public <T> T encryptEventData(T jsonObject, SecreteKey secreteKey) {
+        if (mSensorsDataEncrypt == null) {//防止开启广告上报但未开启加密出现空指针
+            return jsonObject;
+        }
+        return mSensorsDataEncrypt.encryptTrackData(jsonObject, secreteKey);
     }
 
     @Override

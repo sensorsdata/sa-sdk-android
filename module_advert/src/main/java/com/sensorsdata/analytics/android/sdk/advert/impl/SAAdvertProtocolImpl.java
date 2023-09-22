@@ -24,11 +24,11 @@ import android.content.Context;
 import android.net.Uri;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.SAAdvertisingConfig;
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
-import com.sensorsdata.analytics.android.sdk.advert.SAAdvertConstants;
-import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
+import com.sensorsdata.analytics.android.sdk.advert.SAAdvertConstants;
 import com.sensorsdata.analytics.android.sdk.advert.deeplink.DeepLinkManager;
 import com.sensorsdata.analytics.android.sdk.advert.monitor.SensorsDataAdvertActivityLifeCallback;
 import com.sensorsdata.analytics.android.sdk.advert.oaid.SAOaidHelper;
@@ -39,12 +39,17 @@ import com.sensorsdata.analytics.android.sdk.advert.scan.SAAdvertScanHelper;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
 import com.sensorsdata.analytics.android.sdk.advert.utils.SAAdvertUtils;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
+import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
+import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataLifecycleMonitorManager;
+import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
+import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertiesFetcher;
+import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertyFilter;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
@@ -53,8 +58,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Date;
+import java.util.UUID;
 
 public class SAAdvertProtocolImpl {
+    private final SAAdvertisingConfig mAdvertOptions;
     private SensorsDataAdvertActivityLifeCallback mLifecycleCallback;
     private final Context mContext;
     private final SAConfigOptions mOptions;
@@ -64,11 +71,13 @@ public class SAAdvertProtocolImpl {
     private SAAdvertAppStartPlugin mStartPlugin;
     private SAAdvertAppViewScreenPlugin mViewScreenPlugin;
     private LatestUtmPlugin mLatestUtmPlugin;
+    private SAPropertyPlugin mAdEventId;
 
     public SAAdvertProtocolImpl(SAContextManager contextManager) {
         mSAContextManager = contextManager;
         mContext = contextManager.getContext();
         mOptions = contextManager.getInternalConfigs().saConfigOptions;
+        mAdvertOptions = mOptions.getAdvertConfig();
         init();
     }
 
@@ -76,6 +85,26 @@ public class SAAdvertProtocolImpl {
         mStartPlugin = new SAAdvertAppStartPlugin();
         mViewScreenPlugin = new SAAdvertAppViewScreenPlugin();
         mLatestUtmPlugin = new LatestUtmPlugin();
+        mAdEventId = new SAPropertyPlugin() {
+            @Override
+            public boolean isMatchedWithFilter(SAPropertyFilter filter) {
+                if (mAdvertOptions != null
+                        && !TextUtils.isEmpty(mAdvertOptions.serverUrl)
+                        && !mAdvertOptions.eventNames.isEmpty()) {
+                    return !TextUtils.isEmpty(filter.getEvent()) && mAdvertOptions.eventNames.contains(filter.getEvent());
+                }
+                return false;
+            }
+
+            @Override
+            public void properties(SAPropertiesFetcher fetcher) {
+                try {
+                    fetcher.getProperties().put("$sat_event_track_id", UUID.randomUUID().toString());
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
+            }
+        };
         ChannelUtils.setSourceChannelKeys(mOptions.channelSourceKeys);
         if (AppInfoUtils.isMainProcess(mContext, null)) {
             ChannelUtils.commitRequestDeferredDeeplink(!ChannelUtils.isExistRequestDeferredDeeplink());
@@ -147,6 +176,20 @@ public class SAAdvertProtocolImpl {
             case Modules.Advert.METHOD_HANDLER_SCAN_URI:
                 SAAdvertScanHelper.scanHandler((Activity) argv[0], (Uri) argv[1]);
                 break;
+            case Modules.Advert.METHOD_SEND_EVENT_SAT:
+                if (mAdvertOptions != null
+                        && !TextUtils.isEmpty(mAdvertOptions.serverUrl)
+                        && !mAdvertOptions.eventNames.isEmpty()) {
+                    JSONObject rawJson = (JSONObject) argv[0];
+                    String eventName = rawJson.optString("event");
+                    if (!TextUtils.isEmpty(eventName) && mAdvertOptions.eventNames.contains(eventName)) {
+                        JSONObject event = SAModuleManager.getInstance().invokeModuleFunction(Modules.Encrypt.MODULE_NAME,
+                                Modules.Encrypt.METHOD_ENCRYPT_EVENT_DATA_WITH_KEY, rawJson, mAdvertOptions.secreteKey);
+
+                        SAAdvertUtils.sendData(mContext, mAdvertOptions.serverUrl, event, rawJson.toString());
+                    }
+                }
+                break;
         }
         return null;
     }
@@ -172,12 +215,14 @@ public class SAAdvertProtocolImpl {
         mSAContextManager.getPluginManager().registerPropertyPlugin(mStartPlugin);
         mSAContextManager.getPluginManager().registerPropertyPlugin(mViewScreenPlugin);
         mSAContextManager.getPluginManager().registerPropertyPlugin(mLatestUtmPlugin);
+        mSAContextManager.getPluginManager().registerPropertyPlugin(mAdEventId);
     }
 
     public void unregisterPropertyPlugin() {
         mSAContextManager.getPluginManager().unregisterPropertyPlugin(mStartPlugin);
         mSAContextManager.getPluginManager().unregisterPropertyPlugin(mViewScreenPlugin);
         mSAContextManager.getPluginManager().unregisterPropertyPlugin(mLatestUtmPlugin);
+        mSAContextManager.getPluginManager().unregisterPropertyPlugin(mAdEventId);
     }
 
     public void registerLifeCallback() {

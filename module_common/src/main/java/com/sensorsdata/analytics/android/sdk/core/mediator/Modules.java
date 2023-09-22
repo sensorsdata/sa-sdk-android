@@ -27,6 +27,7 @@ public interface Modules {
         String METHOD_SET_DEEPLINK_CALLBACK = "setDeepLinkCallback";
         String METHOD_SET_DEEPLINK_COMPLETION = "setDeepLinkCompletion";
         String METHOD_REQUEST_DEFERRED_DEEPLINK = "requestDeferredDeepLink";
+        String METHOD_SEND_EVENT_SAT = "sendEvent";
         String METHOD_MERGE_CHANNEL_EVENT_PROPERTIES = "mergeChannelEventProperties";
         String METHOD_GET_LATEST_UTM_PROPERTIES = "getLatestUtmProperties";
         String METHOD_REMOVE_DEEPLINK_INFO = "removeDeepLinkInfo";
@@ -98,6 +99,7 @@ public interface Modules {
         String METHOD_ENCRYPT_AES = "encryptAES";
         String METHOD_DECRYPT_AES = "decryptAES";
         String METHOD_VERIFY_SECRET_KEY = "verifySecretKey";
+        String METHOD_ENCRYPT_EVENT_DATA_WITH_KEY = "encryptEventDataWithKey";
         String METHOD_ENCRYPT_EVENT_DATA = "encryptEventData";
         String METHOD_STORE_SECRET_KEY = "storeSecretKey";
         String METHOD_LOAD_SECRET_KEY = "loadSecretKey";

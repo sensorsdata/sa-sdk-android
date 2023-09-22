@@ -245,6 +245,11 @@ abstract class AbstractSAConfigOptions {
     List<String> mListInstantEvents;
 
     /**
+     * 广告相关配置
+     */
+    SAAdvertisingConfig mSATConfig;
+
+    /**
      * 是否开启 DeepLink
      *
      * @return true 开启，false 未开启
@@ -459,5 +464,9 @@ abstract class AbstractSAConfigOptions {
 
     public String getAnonymousId() {
         return mAnonymousId;
+    }
+
+    public SAAdvertisingConfig getAdvertConfig() {
+        return mSATConfig;
     }
 }

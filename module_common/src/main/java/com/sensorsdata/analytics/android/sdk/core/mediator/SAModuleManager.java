@@ -17,26 +17,18 @@
 
 package com.sensorsdata.analytics.android.sdk.core.mediator;
 
-import android.content.Context;
 import android.text.TextUtils;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.core.mediator.protocol.SAModuleProtocol;
 
-import java.io.File;
-import java.io.FileFilter;
-import java.net.URL;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import dalvik.system.DexFile;
 
 public class SAModuleManager {
     private static final String TAG = "SA.ModuleManager";
