@@ -138,4 +138,6 @@ public interface IUserIdentityAPI {
      * @throws InvalidDataException 数据不合法
      */
     void unbind(String key, String value) throws InvalidDataException;
+
+    void resetAnonymousIdentity(String anonymousId);
 }

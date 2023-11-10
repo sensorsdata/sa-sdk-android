@@ -279,6 +279,34 @@ public final class UserIdentityAPI implements IUserIdentityAPI {
         unbindBack(key, value);
     }
 
+    @Override
+    public void resetAnonymousIdentity(String anonymousId) {
+        try {
+            if (!TextUtils.isEmpty(mLoginIdValue)) {
+                SALog.i(TAG, "resetAnonymousIdentity 需退出登录后调用");
+                return;
+            }
+            if (TextUtils.isEmpty(anonymousId)) {
+                anonymousId = UUID.randomUUID().toString();
+            }
+            mAnonymousId.commit(anonymousId);
+            mIdentitiesInstance.updateIDKeyAndValue(anonymousId);
+            // 通知调用 resetAnonymousId 接口
+            if (mSAContextManager.getEventListenerList() != null) {
+                for (SAEventListener eventListener : mSAContextManager.getEventListenerList()) {
+                    try {
+                        eventListener.resetAnonymousId();
+                    } catch (Exception e) {
+                        SALog.printStackTrace(e);
+                    }
+                }
+            }
+            TrackMonitor.getInstance().callResetAnonymousId(anonymousId);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
     public boolean unbindBack(String key, String value) {
         boolean flag;
         try {

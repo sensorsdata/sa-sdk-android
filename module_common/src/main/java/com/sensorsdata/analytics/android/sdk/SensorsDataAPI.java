@@ -985,6 +985,22 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
     }
 
     @Override
+    public void resetAnonymousIdentity(final String anonymousId) {
+        if (mTrackTaskManager != null) {
+            mTrackTaskManager.addTrackEventTask(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        mSAContextManager.getUserIdentityAPI().resetAnonymousIdentity(anonymousId);
+                    } catch (Exception e) {
+                        SALog.printStackTrace(e);
+                    }
+                }
+            });
+        }
+    }
+
+    @Override
     public void trackInstallation(String eventName, JSONObject properties, final boolean disableCallback) {
         SAModuleManager.getInstance().invokeModuleFunction(Modules.Advert.MODULE_NAME, Modules.Advert.METHOD_TRACK_INSTALLATION, eventName, properties, disableCallback);
     }

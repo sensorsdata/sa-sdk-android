@@ -65,7 +65,6 @@ class H5TrackAssemble extends BaseEventAssemble {
             if (propertiesObject == null) {
                 propertiesObject = new JSONObject();
             }
-            boolean isOverrideDeviceId = propertiesObject.has("$device_id") || propertiesObject.has("$anonymization_id");
             trackEvent.setProperties(propertiesObject);
 
             String type = trackEvent.getExtras().getString("type");
@@ -116,7 +115,9 @@ class H5TrackAssemble extends BaseEventAssemble {
     private void appendDefaultProperty(TrackEvent trackEvent) {
         try {
             trackEvent.getExtras().put("_hybrid_h5", true);
-            trackEvent.getExtras().put("time", System.currentTimeMillis());
+            if (!trackEvent.getExtras().has("time")) {
+                trackEvent.getExtras().put("time", System.currentTimeMillis());
+            }
             SecureRandom secureRandom = new SecureRandom();
             trackEvent.getExtras().put("_track_id", secureRandom.nextInt());
         } catch (Exception e) {

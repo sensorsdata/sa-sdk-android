@@ -235,6 +235,15 @@ public class Identities {
         saveIdentities();
     }
 
+    public void updateIDKeyAndValue(String value) throws JSONException {
+        if (mIdentities.has(Identities.ANDROID_ID)) {
+            mIdentities.put(ANDROID_ID, value);
+        } else if (mIdentities.has(Identities.ANDROID_UUID)) {
+            mIdentities.put(ANDROID_UUID, value);
+        }
+        saveIdentities();
+    }
+
     //正常是不需要的，内部改变，自身是感知的；但是为了兼容以前的设计方案需要一个 saveIdentities 来保持逻辑的一致性
     private void saveIdentities() {
         if (!isValidIdentities(mIdentities)) {
