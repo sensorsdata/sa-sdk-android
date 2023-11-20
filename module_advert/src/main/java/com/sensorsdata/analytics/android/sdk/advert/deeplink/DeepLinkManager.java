@@ -24,13 +24,13 @@ import android.net.Uri;
 import android.os.Build;
 import android.text.TextUtils;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 import com.sensorsdata.analytics.android.sdk.advert.SAAdvertConstants;
 import com.sensorsdata.analytics.android.sdk.advert.oaid.SAOaidHelper;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
+import com.sensorsdata.analytics.android.sdk.advert.utils.SAAdvertUtils;
 import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
-import com.sensorsdata.analytics.android.sdk.SALog;
-import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
-import com.sensorsdata.analytics.android.sdk.internal.beans.ServerUrl;
 import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.core.eventbus.SAEventBus;
 import com.sensorsdata.analytics.android.sdk.core.eventbus.SAEventBusConstants;
@@ -38,6 +38,7 @@ import com.sensorsdata.analytics.android.sdk.deeplink.SADeepLinkObject;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
+import com.sensorsdata.analytics.android.sdk.internal.beans.ServerUrl;
 import com.sensorsdata.analytics.android.sdk.util.Base64Coder;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
@@ -70,7 +71,7 @@ public class DeepLinkManager {
      * @param intent Intent
      * @return 是否是 DeepLink 唤起
      */
-    private static boolean isDeepLink(Intent intent) {
+    public static boolean isDeepLink(Intent intent) {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB && intent != null && Intent.ACTION_VIEW.equals(intent.getAction()) && intent.getData() != null;
     }
 
@@ -141,6 +142,7 @@ public class DeepLinkManager {
         try {
             properties.put(SAAdvertConstants.Properties.DEEPLINK_URL, deepLink.getDeepLinkUrl());
             properties.put("$time", new Date(System.currentTimeMillis()));
+            properties.put("$sat_has_installed_app", SAAdvertUtils.isInstallationTracked());
         } catch (JSONException e) {
             SALog.printStackTrace(e);
         }
@@ -160,6 +162,7 @@ public class DeepLinkManager {
                         SALog.printStackTrace(e);
                     }
                 }
+
                 SACoreHelper.getInstance().trackEvent(new InputData().setEventType(EventType.TRACK)
                         .setEventName(SAAdvertConstants.EventName.DEEPLINK_LAUNCH).setProperties(properties));
             }

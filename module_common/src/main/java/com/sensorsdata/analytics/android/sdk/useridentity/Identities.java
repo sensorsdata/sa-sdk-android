@@ -83,7 +83,7 @@ public class Identities {
             }
         } else {
             if (identities.has(oldLoginIDKey)) {
-                String identitiesLoginID = identities.getString(mLoginIDAndKey.getLoginIDKey());//oldLoginIDKey 非法的话，前面已经处理了
+                String identitiesLoginID = identities.optString(mLoginIDAndKey.getLoginIDKey());//oldLoginIDKey 非法的话，前面已经处理了
                 if (!identitiesLoginID.equals(oldLoginID)) {
                     identities.put(Local.getLoginIdKeyFromLocal(), Local.getLoginIdFromLocal());
                     clearIdentities(Arrays.asList(ANDROID_ID, ANDROID_UUID, mLoginIDAndKey.getLoginIDKey()), identities);
@@ -199,7 +199,7 @@ public class Identities {
         //当 android_id、android_uuid、cookie_id 不移除对应的 identities 内容
         boolean isNotRemove = Identities.ANDROID_ID.equals(key) || Identities.ANDROID_UUID.equals(key);
         if (!isNotRemove) {
-            if (mIdentities.has(key) && mIdentities.getString(key).equals(value)) {
+            if (mIdentities.has(key) && mIdentities.optString(key).equals(value)) {
                 mIdentities.remove(key);
             }
         }

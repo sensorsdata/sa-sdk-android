@@ -570,7 +570,8 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
         return this;
     }
 
-    public void setAdvertConfig(SAAdvertisingConfig config) {
+    public SAConfigOptions setAdvertConfig(SAAdvertisingConfig config) {
         this.mSATConfig = config;
+        return this;
     }
 }

@@ -34,6 +34,7 @@ public class PersistentLoader {
     private final UserIdentityPersistent mUserIdsPst;
     private final PersistentFirstStart mFirstStartPst;
     private final PersistentFirstDay mFirstDayPst;
+    private final PersistentDailyDate mDayDatePst;
     private final PersistentSuperProperties mSuperPropertiesPst;
     private final PersistentVisualConfig mVisualConfigPst;
     private final PersistentFirstTrackInstallation mFirstInstallationPst;
@@ -54,6 +55,7 @@ public class PersistentLoader {
         mVisualConfigPst = (PersistentVisualConfig) loadPersistent(DbParams.PersistentName.VISUAL_PROPERTIES);
         mFirstInstallationPst = (PersistentFirstTrackInstallation) loadPersistent(DbParams.PersistentName.FIRST_INSTALL);
         mFirstInstallationWithCallbackPst = (PersistentFirstTrackInstallationWithCallback) loadPersistent(DbParams.PersistentName.FIRST_INSTALL_CALLBACK);
+        mDayDatePst = (PersistentDailyDate) loadPersistent(DbParams.PersistentName.PERSISTENT_DAY_DATE);
     }
 
     public static void preInit(Context context) {
@@ -101,6 +103,8 @@ public class PersistentLoader {
                 return new LoginIdKeyPersistent();
             case DbParams.APP_EXIT_DATA:
                 return new PersistentAppExitData();
+            case DbParams.PersistentName.PERSISTENT_DAY_DATE:
+                return new PersistentDailyDate();
             default:
                 return null;
         }
@@ -156,5 +160,9 @@ public class PersistentLoader {
 
     public PersistentFirstTrackInstallationWithCallback getFirstInstallationWithCallbackPst() {
         return mFirstInstallationWithCallbackPst;
+    }
+
+    public PersistentDailyDate getDayDatePst() {
+        return mDayDatePst;
     }
 }

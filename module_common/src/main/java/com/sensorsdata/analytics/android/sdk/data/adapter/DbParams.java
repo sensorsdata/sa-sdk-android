@@ -73,6 +73,7 @@ public class DbParams {
         String VISUAL_PROPERTIES = "visual_properties";
         String PERSISTENT_USER_ID = "user_ids";
         String PERSISTENT_LOGIN_ID_KEY = "login_id_key";
+        String PERSISTENT_DAY_DATE = "daily_date";
     }
 
     private DbParams(String packageName) {

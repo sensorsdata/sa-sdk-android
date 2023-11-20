@@ -22,9 +22,14 @@ import com.sensorsdata.analytics.android.sdk.encrypt.SecreteKey;
 import java.util.List;
 
 public class SAAdvertisingConfig {
+    // 广告及时事件接收地址
     public String serverUrl;
     public List<String> eventNames;
     public SecreteKey secreteKey;
+    // 在营销需求开关
+    private boolean enableRemarketing = false;
+    // 在营销需求，设置唤起 App 的 Url
+    private String wakeupUrl;
 
     //serverUrl  上报到 SAT 的地址
     // events  上报到 SAT 的事件列表，需填写事件名
@@ -33,5 +38,26 @@ public class SAAdvertisingConfig {
         this.secreteKey = secretKey;
         this.serverUrl = serverUrl;
         this.eventNames = eventNames;
+    }
+
+    public SAAdvertisingConfig() {
+    }
+
+    public SAAdvertisingConfig enableRemarketing() {
+        enableRemarketing = true;
+        return this;
+    }
+
+    public String getWakeupUrl() {
+        return wakeupUrl;
+    }
+
+    public SAAdvertisingConfig setWakeupUrl(String wakeupUrl) {
+        this.wakeupUrl = wakeupUrl;
+        return this;
+    }
+
+    public boolean isEnableRemarketing() {
+        return enableRemarketing;
     }
 }

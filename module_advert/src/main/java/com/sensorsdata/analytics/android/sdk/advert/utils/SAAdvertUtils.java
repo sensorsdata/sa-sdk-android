@@ -29,6 +29,7 @@ import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.exceptions.ConnectErrorException;
 import com.sensorsdata.analytics.android.sdk.exceptions.ResponseErrorException;
+import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.NetworkUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
@@ -125,7 +126,11 @@ public class SAAdvertUtils {
                 SALog.printStackTrace(e);
             }
         }
+    }
 
+    // 是否触发过激活
+    public static boolean isInstallationTracked() {
+        return SAStoreManager.getInstance().isExists(DbParams.PersistentName.FIRST_INSTALL) || SAStoreManager.getInstance().isExists(DbParams.PersistentName.FIRST_INSTALL_CALLBACK);
     }
 
     private synchronized static void sendHttpRequest(String path, String crc, String gzip, String data, String rawMessage) throws ConnectErrorException, ResponseErrorException {

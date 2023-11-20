@@ -48,5 +48,6 @@ public interface SAAdvertConstants {
         String DEFERRED_DEEPLINK_JUMP = "$AdAppDeferredDeepLinkJump";
         String DYNAMIC_SLINK_CREATE = "$AdDynamicSlinkCreate";
         String DEEPLINK_LAUNCH = "$AppDeeplinkLaunch";
+        String APP_INTERACT = "$AppInteract";
     }
 }

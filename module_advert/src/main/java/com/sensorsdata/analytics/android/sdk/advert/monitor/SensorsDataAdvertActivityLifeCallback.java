@@ -21,8 +21,10 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 
-import com.sensorsdata.analytics.android.sdk.advert.deeplink.DeepLinkManager;
 import com.sensorsdata.analytics.android.sdk.SAConfigOptions;
+import com.sensorsdata.analytics.android.sdk.SALog;
+import com.sensorsdata.analytics.android.sdk.advert.deeplink.DeepLinkManager;
+import com.sensorsdata.analytics.android.sdk.advert.utils.SAAdvertMarketHelper;
 import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataActivityLifecycleCallbacks;
 
 public class SensorsDataAdvertActivityLifeCallback implements SensorsDataActivityLifecycleCallbacks.SAActivityLifecycleCallbacks {
@@ -39,12 +41,22 @@ public class SensorsDataAdvertActivityLifeCallback implements SensorsDataActivit
 
     @Override
     public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
-        DeepLinkManager.parseDeepLink(activity, mOptions.isSaveDeepLinkInfo());
+        try {
+            SAAdvertMarketHelper.handleAdMarket(activity, mOptions.getAdvertConfig());
+            DeepLinkManager.parseDeepLink(activity, mOptions.isSaveDeepLinkInfo());
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override
     public void onActivityStarted(Activity activity) {
-        DeepLinkManager.parseDeepLink(activity, mOptions.isSaveDeepLinkInfo());
+        try {
+            SAAdvertMarketHelper.handleAdMarket(activity, mOptions.getAdvertConfig());
+            DeepLinkManager.parseDeepLink(activity, mOptions.isSaveDeepLinkInfo());
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override

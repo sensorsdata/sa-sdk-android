@@ -37,6 +37,7 @@ import com.sensorsdata.analytics.android.sdk.advert.plugin.SAAdvertAppStartPlugi
 import com.sensorsdata.analytics.android.sdk.advert.plugin.SAAdvertAppViewScreenPlugin;
 import com.sensorsdata.analytics.android.sdk.advert.scan.SAAdvertScanHelper;
 import com.sensorsdata.analytics.android.sdk.advert.utils.ChannelUtils;
+import com.sensorsdata.analytics.android.sdk.advert.utils.SAAdvertMarketHelper;
 import com.sensorsdata.analytics.android.sdk.advert.utils.SAAdvertUtils;
 import com.sensorsdata.analytics.android.sdk.core.SAContextManager;
 import com.sensorsdata.analytics.android.sdk.core.SACoreHelper;
@@ -120,6 +121,10 @@ public class SAAdvertProtocolImpl {
                         mLifecycleCallback.onActivityStarted((Activity) mSAContextManager.getInternalConfigs().context); //延迟初始化监听 onActivityStarted 处理
                     }
                 }
+            }
+
+            if (mSAContextManager.getInternalConfigs().context instanceof Activity) {
+                SAAdvertMarketHelper.handleAdMarket((Activity) mSAContextManager.getInternalConfigs().context, mOptions.getAdvertConfig());
             }
         } catch (Exception e) {
             SALog.printStackTrace(e);
