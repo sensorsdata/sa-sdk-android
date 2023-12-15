@@ -141,4 +141,8 @@ public class TrackMonitor {
     public void callEnableDataCollect() {
         call("enableDataCollect", null);
     }
+
+    public void callSetServerUrl() {
+        call("setServerUrl", null);
+    }
 }

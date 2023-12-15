@@ -43,6 +43,7 @@ import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentSuperProp
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.deeplink.SensorsDataDeferredDeepLinkCallback;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
+import com.sensorsdata.analytics.android.sdk.monitor.TrackMonitor;
 import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.plugin.property.impl.SAPresetPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
@@ -1634,6 +1635,7 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
                 mServerUrl = serverUrl;
             }
             mSAConfigOptions.mServerUrl = mServerUrl;
+            TrackMonitor.getInstance().callSetServerUrl();
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }

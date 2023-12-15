@@ -49,7 +49,7 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
     private static final String TAG = "SA.SensorsDataRemoteManager";
 
     // 每次启动 App 时，最多尝试三次
-    private CountDownTimer mPullSDKConfigCountDownTimer;
+    private volatile CountDownTimer mPullSDKConfigCountDownTimer;
     private final SAStoreManager mStorageManager;
     private volatile boolean mIsInit = true;
 
@@ -159,7 +159,11 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
         Dispatcher.getInstance().post(new Runnable() {
             @Override
             public void run() {
-                pullSDKConfigCount(enableConfigV);
+                try {
+                    pullSDKConfigCount(enableConfigV);
+                } catch (Exception e) {
+                    SALog.printStackTrace(e);
+                }
             }
         });
     }

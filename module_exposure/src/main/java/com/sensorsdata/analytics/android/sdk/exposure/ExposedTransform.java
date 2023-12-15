@@ -27,7 +27,6 @@ public class ExposedTransform implements SensorsDataActivityLifecycleCallbacks.S
     // 标识 Activity Resume 引起的布局变化，会引起一次曝光计算
     private boolean isResumedLayoutChanged;
     private volatile int windowCount = -1;
-    private View[] views;
 
     @Override
     public void onNewIntent(Intent intent) {
@@ -36,12 +35,12 @@ public class ExposedTransform implements SensorsDataActivityLifecycleCallbacks.S
 
     public synchronized void observerWindow(Activity activity) {
         int originWindowCount = windowCount;
-        processViews();
+        View[] views  = processViews();
         SALog.i(TAG, "originWindowCount:" + originWindowCount + ",windowCount:" + windowCount);
         //窗口增加
         if (originWindowCount != windowCount) {
             //移除以前的页面监听
-            viewsRemoveTreeObserver(activity);
+            viewsRemoveTreeObserver(activity, views);
             //重新进行页面监听
             onActivityResumed(activity);
             return;
@@ -52,18 +51,20 @@ public class ExposedTransform implements SensorsDataActivityLifecycleCallbacks.S
         }
     }
 
-    private void processViews() {
+    private View[] processViews() {
         try {
             WindowHelper.init();
-            views = WindowHelper.getSortedWindowViews();
-            if (views != null && views.length > 0) {
+            View[] views = WindowHelper.getSortedWindowViews();
+            if (views.length > 0) {
                 windowCount = views.length;
             } else {
                 windowCount = 0;
             }
+            return views;
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
+        return null;
     }
 
     interface LayoutCallBack {
@@ -140,6 +141,7 @@ public class ExposedTransform implements SensorsDataActivityLifecycleCallbacks.S
             }
             processViews();
             boolean flag = true;
+            View[] views = WindowHelper.getSortedWindowViews();
             View decorView = activity.getWindow().getDecorView();
             if (views != null && views.length > 0) {
                 for (View view : views) {
@@ -159,10 +161,13 @@ public class ExposedTransform implements SensorsDataActivityLifecycleCallbacks.S
         }
     }
 
-    private void viewsRemoveTreeObserver(Activity activity) {
+    private void viewsRemoveTreeObserver(Activity activity, View[] views) {
         SALog.i(TAG, "viewsRemoveTreeObserver:" + isMonitor);
         if (isMonitor) {
             isMonitor = false;
+            if (views == null) {
+                views = WindowHelper.getSortedWindowViews();
+            }
             if (views != null && views.length > 0) {
                 for (View view : views) {
                     viewRemoveTreeObserver(view);
@@ -177,7 +182,7 @@ public class ExposedTransform implements SensorsDataActivityLifecycleCallbacks.S
     public void onActivityPaused(Activity activity) {
         SALog.i(TAG, "onActivityPaused");
         synchronized (this) {
-            viewsRemoveTreeObserver(activity);
+            viewsRemoveTreeObserver(activity, null);
             mCallBack.onActivityPaused(activity);
         }
     }

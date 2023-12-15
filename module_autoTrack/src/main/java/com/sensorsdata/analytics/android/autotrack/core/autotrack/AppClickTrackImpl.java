@@ -241,6 +241,9 @@ public class AppClickTrackImpl {
             }
 
             View tabLayout = AutoTrackViewUtils.getTabLayout(tab);
+            if (tabLayout == null) {//ignore
+                return;
+            }
             ViewContext viewContext = AutoTrackViewUtils.getTabLayoutContext(objectTab, tabLayout);
             if (viewContext == null) {
                 return;
