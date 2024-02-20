@@ -137,32 +137,38 @@ public class FragmentPageLeaveCallbacks implements SAFragmentLifecycleCallbacks,
     }
 
     private void trackFragmentStart(final Object object) {
-        Dispatcher.getInstance().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    JSONObject properties = new JSONObject();
-                    properties.put(START_TIME, SystemClock.elapsedRealtime());
-                    String url = SAPageTools.getScreenUrl(object);
-                    properties.put("$url", url);
-                    if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)
-                            || !SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
-                        SAPageTools.setCurrentScreenUrl(url);
-                    }
-                    String referrer = SAPageTools.getReferrer();
-                    if (!TextUtils.isEmpty(referrer)) {
-                        properties.put("$referrer", referrer);
-                    }
-                    properties.put("$referrer_title", SAPageTools.getReferrerTitle());
+        try {
+            final String url = SAPageTools.getScreenUrl(object);
+            final int hashCode = object.hashCode();
+            final JSONObject pageInfo = SAPageInfoUtils.getFragmentPageInfo(null, object);
+            Dispatcher.getInstance().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        JSONObject properties = new JSONObject();
+                        properties.put(START_TIME, SystemClock.elapsedRealtime());
+                        properties.put("$url", url);
+                        if (SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_VIEW_SCREEN)
+                                || !SensorsDataAPI.sharedInstance().isTrackFragmentAppViewScreenEnabled()) {
+                            SAPageTools.setCurrentScreenUrl(url);
+                        }
+                        String referrer = SAPageTools.getReferrer();
+                        if (!TextUtils.isEmpty(referrer)) {
+                            properties.put("$referrer", referrer);
+                        }
+                        properties.put("$referrer_title", SAPageTools.getReferrerTitle());
 
-                    JSONUtils.mergeJSONObject(SAPageInfoUtils.getFragmentPageInfo(null, object), properties);
-                    SALog.i("SA.FragmentPageLeave", "trackFragmentStart = " + properties);
-                    mResumedFragments.put(object.hashCode(), properties);
-                } catch (JSONException e) {
-                    SALog.printStackTrace(e);
+                        JSONUtils.mergeJSONObject(pageInfo, properties);
+                        SALog.i("SA.FragmentPageLeave", "trackFragmentStart = " + properties);
+                        mResumedFragments.put(hashCode, properties);
+                    } catch (JSONException e) {
+                        SALog.printStackTrace(e);
+                    }
                 }
-            }
-        }, 300);
+            }, 300);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 
     @Override

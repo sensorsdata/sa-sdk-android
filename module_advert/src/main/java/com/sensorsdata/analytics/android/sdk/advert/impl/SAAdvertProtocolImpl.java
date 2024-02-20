@@ -408,6 +408,7 @@ public class SAAdvertProtocolImpl {
             public void run() {
                 try {
                     if (ChannelUtils.isRequestDeferredDeeplink()) {
+                        SALog.i(TAG, "do requestDeferredDeepLink");
                         DeepLinkManager.requestDeferredDeepLink(mContext, params, SAAdvertUtils.getIdentifier(mContext)
                                 , SAOaidHelper.getOpenAdIdentifier(mContext), SensorsDataAPI.sharedInstance().getPresetProperties(), mOptions.getCustomADChannelUrl(), mOptions.isSaveDeepLinkInfo());
                         ChannelUtils.commitRequestDeferredDeeplink(false);

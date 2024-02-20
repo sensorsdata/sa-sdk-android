@@ -57,6 +57,7 @@ public class AppWebViewInterface {
     @JavascriptInterface
     public String sensorsdata_call_app() {
         try {
+            SALog.i(TAG, "sensorsdata_call_app");
             if (properties == null) {
                 properties = new JSONObject();
             }
@@ -103,7 +104,13 @@ public class AppWebViewInterface {
 
     @JavascriptInterface
     public String sensorsdata_get_server_url() {
-        return SensorsDataAPI.getConfigOptions().isAutoTrackWebView() ? SensorsDataAPI.getConfigOptions().getServerUrl() : "";
+        try {
+            SALog.i(TAG, "sensorsdata_get_server_url");
+            return SensorsDataAPI.getConfigOptions().isAutoTrackWebView() ? SensorsDataAPI.getConfigOptions().getServerUrl() : "";
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return "";
     }
 
     /**
@@ -141,6 +148,7 @@ public class AppWebViewInterface {
     @JavascriptInterface
     public void sensorsdata_js_call_app(final String content) {
         try {
+            SALog.i(TAG, "sensorsdata_js_call_app, content = " + content);
             if (mWebView != null) {
                 H5Helper.handleJsMessage(mWebView, content);
             }
@@ -157,6 +165,7 @@ public class AppWebViewInterface {
     @JavascriptInterface
     public boolean sensorsdata_abtest_module() {
         try {
+            SALog.i(TAG, "sensorsdata_abtest_module");
             Class<?> sensorsABTestClass = ReflectUtil.getCurrentClass(new String[]{"com.sensorsdata.abtest.SensorsABTest"});
             Object object = ReflectUtil.callStaticMethod(sensorsABTestClass, "shareInstance");
             return object != null;
@@ -175,6 +184,12 @@ public class AppWebViewInterface {
      */
     @JavascriptInterface
     public String sensorsdata_get_app_visual_config() {
-        return SAModuleManager.getInstance().invokeModuleFunction(Modules.Visual.MODULE_NAME, Modules.Visual.METHOD_H5_GET_APPVISUAL_CONFIG);
+        try {
+            SALog.i(TAG, "sensorsdata_get_app_visual_config");
+            return SAModuleManager.getInstance().invokeModuleFunction(Modules.Visual.MODULE_NAME, Modules.Visual.METHOD_H5_GET_APPVISUAL_CONFIG);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+        return "";
     }
 }

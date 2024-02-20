@@ -32,7 +32,7 @@ import java.io.Writer;
 import java.util.ArrayList;
 
 public class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHandler {
-    private static final int SLEEP_TIMEOUT_MS = 500;
+    private static final int SLEEP_TIMEOUT_MS = 400;
     private static final ArrayList<SAExceptionListener> sExceptionListeners = new ArrayList<>();
     private static SensorsDataExceptionHandler sInstance;
     private Thread.UncaughtExceptionHandler mDefaultExceptionHandler;
@@ -92,6 +92,13 @@ public class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHand
                             SACoreHelper.getInstance().trackEvent(new InputData().setEventName("AppCrashed").setProperties(messageProp).setEventType(EventType.TRACK));
                         }
                     });
+
+                    SensorsDataAPI.sharedInstance().flush();
+                    try {
+                        Thread.sleep(SLEEP_TIMEOUT_MS);
+                    } catch (InterruptedException e1) {
+                        SALog.printStackTrace(e1);
+                    }
                 } catch (Exception ex) {
                     SALog.printStackTrace(ex);
                 }
@@ -103,12 +110,6 @@ public class SensorsDataExceptionHandler implements Thread.UncaughtExceptionHand
                 } catch (Exception e1) {
                     SALog.printStackTrace(e1);
                 }
-            }
-            SensorsDataAPI.sharedInstance().flush();
-            try {
-                Thread.sleep(SLEEP_TIMEOUT_MS);
-            } catch (InterruptedException e1) {
-                SALog.printStackTrace(e1);
             }
             if (mDefaultExceptionHandler != null) {
                 mDefaultExceptionHandler.uncaughtException(t, e);

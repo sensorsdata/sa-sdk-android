@@ -107,10 +107,6 @@ abstract class AbstractSensorsDataAPI implements ISensorsDataAPI {
                         + " url '%s', flush interval %d ms, debugMode: %s", mServerUrl, mSAConfigOptions.mFlushInterval, debugMode));
             }
             SensorsDataUtils.initUniAppStatus();
-            if (mInternalConfigs.isMainProcess && PersistentLoader.getInstance().getFirstDayPst() != null && !TextUtils.isEmpty(PersistentLoader.getInstance().getFirstDayPst().get())) {// 多进程影响数据，保证只有主进程操作
-                //升级场景，首次安装但 mFirstDay 已经有数据
-                SAModuleManager.getInstance().invokeModuleFunction(Modules.Advert.MODULE_NAME, Modules.Advert.METHOD_COMMIT_REQUEST_DEFERRED_DEEPLINK, false);
-            }
         } catch (Throwable ex) {
             SALog.i(TAG, ex.getMessage());
         }
