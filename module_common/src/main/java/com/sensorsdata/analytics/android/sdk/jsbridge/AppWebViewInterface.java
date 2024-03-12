@@ -84,13 +84,14 @@ public class AppWebViewInterface {
             H5Helper.trackEventFromH5(event, enableVerify);
         } catch (Exception e) {
             SALog.printStackTrace(e);
+            SALog.i(TAG, "sensorsdata_track event = exception = " + event);
         }
     }
 
     @JavascriptInterface
     public boolean sensorsdata_verify(String event) {
         try {
-            SALog.i(TAG, "sensorsdata_verify event = " + event);
+            SALog.i(TAG, "sensorsdata_verify event = " + event + ", enableVerify = " + enableVerify);
             if (!enableVerify) {
                 sensorsdata_track(event);
                 return true;
@@ -98,6 +99,7 @@ public class AppWebViewInterface {
             return H5Helper.verifyEventFromH5(event);
         } catch (Exception e) {
             SALog.printStackTrace(e);
+            SALog.i(TAG, "sensorsdata_verify return false,exception = " + e.getMessage());
             return false;
         }
     }
@@ -122,7 +124,6 @@ public class AppWebViewInterface {
     @JavascriptInterface
     public boolean sensorsdata_visual_verify(String event) {
         try {
-            SALog.i(TAG, "sensorsdata_visual_verify event = " + event);
             if (!enableVerify) {
                 return true;
             }

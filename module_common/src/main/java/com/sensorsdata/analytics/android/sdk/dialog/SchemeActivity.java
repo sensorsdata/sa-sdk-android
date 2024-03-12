@@ -63,8 +63,10 @@ public class SchemeActivity extends Activity {
         }
         //未初始化 SDK 时，直接拉起 LaunchActivity
         if (SensorsDataAPI.sharedInstance() instanceof SensorsDataAPIEmptyImplementation) {
+            SALog.i(TAG, "onCreate SensorsDataAPIEmptyImplementation");
             SensorsDataDialogUtils.startLaunchActivity(this);
         } else {
+            SALog.i(TAG, "onCreate handleSchemeUrl");
             SensorsDataUtils.handleSchemeUrl(this, this.getIntent());
         }
     }
@@ -72,11 +74,18 @@ public class SchemeActivity extends Activity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        //未初始化 SDK 时，直接拉起 LaunchActivity
-        if (SensorsDataAPI.sharedInstance() instanceof SensorsDataAPIEmptyImplementation) {
-            SensorsDataDialogUtils.startLaunchActivity(this);
-        } else {
-            SensorsDataUtils.handleSchemeUrl(this, this.getIntent());
+        try {
+            SALog.i(TAG, "onNewIntent intent = " + intent);
+            //未初始化 SDK 时，直接拉起 LaunchActivity
+            if (SensorsDataAPI.sharedInstance() instanceof SensorsDataAPIEmptyImplementation) {
+                SALog.i(TAG, "onNewIntent SensorsDataAPIEmptyImplementation");
+                SensorsDataDialogUtils.startLaunchActivity(this);
+            } else {
+                SALog.i(TAG, "onNewIntent handleSchemeUrl");
+                SensorsDataUtils.handleSchemeUrl(this, this.getIntent());
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
         }
     }
 

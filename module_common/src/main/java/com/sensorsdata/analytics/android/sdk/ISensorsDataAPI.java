@@ -721,4 +721,11 @@ public interface ISensorsDataAPI extends IUserIdentityAPI, SAAdvertAPIProtocol, 
      * @param limitKeys 限制性属性 key
      */
     void registerLimitKeys(Map<String, String> limitKeys);
+
+    /**
+     * 是否开启远程配置
+     *
+     * @param enable true 开启，false 不开启
+     */
+    void enableRemoteConfig(boolean enable);
 }

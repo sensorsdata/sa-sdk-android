@@ -1810,6 +1810,20 @@ public class SensorsDataAPI extends AbstractSensorsDataAPI {
         SAPropertyManager.getInstance().registerLimitKeys(limitKeys);
     }
 
+    @Override
+    public void enableRemoteConfig(boolean enable) {
+        try {
+            if (mSAContextManager != null) {
+                mInternalConfigs.isRemoteConfigEnabled = enable;
+                if (mSAContextManager.getRemoteManager() != null) {
+                    mSAContextManager.getRemoteManager().pullSDKConfigFromServer();
+                }
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
+    }
+
 
     /**
      * Debug 模式，用于检验数据导入是否正确。该模式下，事件会逐条实时发送到 Sensors Analytics，并根据返回值检查

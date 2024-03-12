@@ -87,7 +87,7 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
      */
     private void writeRemoteRequestRandomTime() {
         SAConfigOptions configOptions = mContextManager.getInternalConfigs().saConfigOptions;
-        if (configOptions == null) {
+        if (configOptions == null || !mContextManager.getInternalConfigs().isRemoteConfigEnabled) {// 此时就不保存随机时间
             return;
         }
         //默认情况下，随机请求时间为最小时间间隔
@@ -112,7 +112,8 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
     @Override
     public void pullSDKConfigFromServer() {
         SAConfigOptions configOptions = mContextManager.getInternalConfigs().saConfigOptions;
-        if (configOptions == null || configOptions.isDisableSDK()) {
+        if (configOptions == null || configOptions.isDisableSDK()
+                || !mContextManager.getInternalConfigs().isRemoteConfigEnabled && !mContextManager.getInternalConfigs().saConfigOptions.isEnableEncrypt()) {
             return;
         }
 
@@ -177,7 +178,9 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
         mPullSDKConfigCountDownTimer = new CountDownTimer(90 * 1000, 30 * 1000) {
             @Override
             public void onTick(long l) {
-                if (mSensorsDataAPI != null && !mSensorsDataAPI.isNetworkRequestEnable() || mContextManager.getInternalConfigs().saConfigOptions.isDisableSDK()) {
+                if (mSensorsDataAPI != null && !mSensorsDataAPI.isNetworkRequestEnable()
+                        || mContextManager.getInternalConfigs().saConfigOptions.isDisableSDK()
+                        || !mContextManager.getInternalConfigs().isRemoteConfigEnabled && !mContextManager.getInternalConfigs().saConfigOptions.isEnableEncrypt()) {
                     SALog.i(TAG, "Close network request or sdk is disable");
                     return;
                 }
@@ -200,7 +203,9 @@ public class SensorsDataRemoteManager extends BaseSensorsDataSDKRemoteManager {
                         if (!TextUtils.isEmpty(response)) {
                             SensorsDataSDKRemoteConfig sdkRemoteConfig = toSDKRemoteConfig(response);
                             SAModuleManager.getInstance().invokeModuleFunction(Modules.Encrypt.MODULE_NAME, Modules.Encrypt.METHOD_STORE_SECRET_KEY, response);
-                            setSDKRemoteConfig(sdkRemoteConfig);
+                            if (mContextManager.getInternalConfigs().isRemoteConfigEnabled) {//开启时才保存远程配置信息
+                                setSDKRemoteConfig(sdkRemoteConfig);
+                            }
                         }
                         SALog.i(TAG, "Remote request was successful,response data is " + response);
                     }

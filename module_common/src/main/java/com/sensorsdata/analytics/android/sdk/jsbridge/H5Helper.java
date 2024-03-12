@@ -59,12 +59,14 @@ public class H5Helper {
 
     public static boolean verifyEventFromH5(String eventInfo) {
         try {
+            SALog.i("SA.AppWebViewInterface", "verifyEventFromH5 h5 eventInfo = " + eventInfo);
             if (TextUtils.isEmpty(eventInfo)) {
                 return false;
             }
             JSONObject eventObject = new JSONObject(eventInfo);
 
             String serverUrl = eventObject.optString("server_url");
+            SALog.i("SA.AppWebViewInterface", "verifyEventFromH5 h5 serverUrl = " + serverUrl);
             if (!TextUtils.isEmpty(serverUrl)) {
                 if (!(new ServerUrl(serverUrl).check(new ServerUrl(SensorsDataAPI.getConfigOptions().getServerUrl())))) {
                     return false;
@@ -85,10 +87,12 @@ public class H5Helper {
             }
 
             JSONObject eventObject = new JSONObject(eventInfo);
+            SALog.i("SA.AppWebViewInterface", "trackEventFromH5 h5 enableVerify = " + enableVerify);
             if (enableVerify) {
                 String serverUrl = eventObject.optString("server_url");
+                SALog.i("SA.AppWebViewInterface", "trackEventFromH5 h5 serverUrl = " + serverUrl);
                 if (!TextUtils.isEmpty(serverUrl)) {
-                    if (!(new ServerUrl(serverUrl).check(new ServerUrl(SensorsDataAPI.sharedInstance().getServerUrl())))) {
+                    if (!(new ServerUrl(serverUrl).check(new ServerUrl(SensorsDataAPI.getConfigOptions().getServerUrl())))) {
                         return;
                     }
                 } else {
@@ -146,6 +150,7 @@ public class H5Helper {
 
     private static void trackEvent(final String eventInfo) {
         if (SensorsDataAPI.sharedInstance() instanceof SensorsDataAPIEmptyImplementation) {
+            SALog.i("SA.AppWebViewInterface", "trackEvent SensorsDataAPIEmptyImplementation");
             return;
         }
         SACoreHelper.getInstance().trackQueueEvent(new Runnable() {

@@ -57,6 +57,7 @@ public class DbParams {
             mEnableSDKUri, mDisableSDKUri, mRemoteConfigUri, mUserIdentities, mLoginIdKeyUri, mPushIdUri;
     /* 替换 APP_END_DATA 数据，使用新的 SP 文件保存 */
     public static final String APP_EXIT_DATA = "app_exit_data";
+    public static final String APP_START_DATA = "app_start_data";
 
     public interface PersistentName {
         String APP_END_DATA = "app_end_data";

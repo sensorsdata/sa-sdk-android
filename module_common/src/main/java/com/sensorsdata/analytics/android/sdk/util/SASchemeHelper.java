@@ -52,6 +52,7 @@ public class SASchemeHelper {
             if (activity != null && intent != null) {
                 uri = intent.getData();
             }
+            SALog.i(TAG, "handleSchemeUrl uri = " + uri + ", intent = " + intent);
             if (uri != null) {
                 SensorsDataAPI sensorsDataAPI = SensorsDataAPI.sharedInstance();
                 String host = uri.getHost();

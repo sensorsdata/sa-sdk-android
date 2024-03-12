@@ -49,4 +49,5 @@ public class InternalConfigOptions {
     public SensorsDataAPI.DebugMode debugMode = SensorsDataAPI.DebugMode.DEBUG_OFF;
     // EventCallBack
     public SensorsDataTrackEventCallBack sensorsDataTrackEventCallBack;
+    public boolean isRemoteConfigEnabled = false;
 }

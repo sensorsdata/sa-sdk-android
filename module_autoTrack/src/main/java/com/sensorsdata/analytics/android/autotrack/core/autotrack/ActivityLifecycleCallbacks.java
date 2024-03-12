@@ -41,11 +41,13 @@ import com.sensorsdata.analytics.android.sdk.core.eventbus.Subscription;
 import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
 import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.dialog.SensorsDataDialogUtils;
 import com.sensorsdata.analytics.android.sdk.exceptions.SensorsDataExceptionHandler;
 import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.monitor.SensorsDataActivityLifecycleCallbacks;
+import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
@@ -83,6 +85,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
     private long messageReceiveTime = 0L;
     private final int MESSAGE_CODE_APP_END = 0;
     private final int MESSAGE_CODE_START = 100;
+    private final int MESSAGE_CODE_START_DELAY = 101;
     private final int MESSAGE_CODE_STOP = 200;
     private final int MESSAGE_CODE_TIMER = 300;
     /**
@@ -184,6 +187,17 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
 
     }
 
+    public void onDelayInitStarted(Activity activity) {
+        if (!SensorsDataDialogUtils.isSchemeActivity(activity) && !hasActivity(activity)) {
+            if (mStartActivityCount == 0) {
+                // 第一个页面进行页面信息解析
+                buildScreenProperties(activity);
+            }
+            sendActivityHandleMessage(MESSAGE_CODE_START_DELAY);
+            addActivity(activity);
+        }
+    }
+
 
     private void initHandler() {
         try {
@@ -195,6 +209,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                     int code = msg.what;
                     switch (code) {
                         case MESSAGE_CODE_START:
+                        case MESSAGE_CODE_START_DELAY:
                             handleStartedMessage(msg);
                             break;
                         case MESSAGE_CODE_STOP:
@@ -274,15 +289,19 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                             // 读取 Message 中的时间戳
                             long eventTime = bundle.getLong(TIME);
                             properties.put("event_time", eventTime > 0 ? eventTime : System.currentTimeMillis());
-                            SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
-                                @Override
-                                public void run() {
-                                    mContextManager.trackEvent(new InputData().setEventName("$AppStart").
-                                            setProperties(SADataHelper.appendLibMethodAutoTrack(properties)).setEventType(EventType.TRACK));
-                                }
-                            });
+                            if (message.what == MESSAGE_CODE_START_DELAY) {//延迟初始化需要延迟触发
+                                SAStoreManager.getInstance().setString(DbParams.APP_START_DATA, properties.toString());
+                            } else {
+                                SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        mContextManager.trackEvent(new InputData().setEventName("$AppStart").
+                                                setProperties(SADataHelper.appendLibMethodAutoTrack(properties)).setEventType(EventType.TRACK));
+                                    }
+                                });
 
-                            SensorsDataAPI.sharedInstance().flush();
+                                SensorsDataAPI.sharedInstance().flush();
+                            }
                         }
                     } catch (Exception e) {
                         SALog.i(TAG, e);

@@ -823,6 +823,11 @@ public class SensorsDataAPIEmptyImplementation extends SensorsDataAPI {
 
     }
 
+    @Override
+    public void enableRemoteConfig(boolean enable) {
+
+    }
+
     static class EmptySAContext extends SAContextManager {
 
         public EmptySAContext() {

@@ -23,6 +23,8 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 
+import com.sensorsdata.analytics.android.sdk.SALog;
+
 public class HeatMapService {
     private static HeatMapService instance;
     private static HeatMapViewCrawler mVTrack;
@@ -59,6 +61,7 @@ public class HeatMapService {
 
     public void start(Activity activity, String featureCode, String postUrl) {
         try {
+            SALog.i("HeatMapService", "HeatMapService service");
             final String packageName = activity.getApplicationContext().getPackageName();
             final ApplicationInfo appInfo = activity.getApplicationContext().getPackageManager()
                     .getApplicationInfo(packageName, PackageManager.GET_META_DATA);

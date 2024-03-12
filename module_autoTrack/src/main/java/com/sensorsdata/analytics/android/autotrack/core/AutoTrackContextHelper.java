@@ -89,7 +89,7 @@ public class AutoTrackContextHelper {
     protected void delayExecution(Activity activity) {
         if (mActivityLifecycleCallbacks != null) {
             mActivityLifecycleCallbacks.onActivityCreated(activity, null); //延迟初始化监听 onActivityCreated 处理
-            mActivityLifecycleCallbacks.onActivityStarted(activity); //延迟初始化监听 onActivityCreated 处理
+            mActivityLifecycleCallbacks.onDelayInitStarted(activity); //延迟初始化监听 onActivityStarted 处理
         }
         if (SALog.isLogEnabled()) {
             SALog.i(TAG, "SDK init success by：" + activity.getClass().getName());

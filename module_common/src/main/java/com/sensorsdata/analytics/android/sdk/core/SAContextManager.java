@@ -29,8 +29,10 @@ import com.sensorsdata.analytics.android.sdk.core.event.InputData;
 import com.sensorsdata.analytics.android.sdk.core.event.TrackEventProcessor;
 import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.data.adapter.DbAdapter;
+import com.sensorsdata.analytics.android.sdk.data.adapter.DbParams;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentFirstDay;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
+import com.sensorsdata.analytics.android.sdk.internal.beans.EventType;
 import com.sensorsdata.analytics.android.sdk.internal.beans.InternalConfigOptions;
 import com.sensorsdata.analytics.android.sdk.listener.SAEventListener;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
@@ -38,7 +40,10 @@ import com.sensorsdata.analytics.android.sdk.plugin.property.PropertyPluginManag
 import com.sensorsdata.analytics.android.sdk.remote.BaseSensorsDataSDKRemoteManager;
 import com.sensorsdata.analytics.android.sdk.remote.SensorsDataRemoteManager;
 import com.sensorsdata.analytics.android.sdk.useridentity.UserIdentityAPI;
+import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
 import com.sensorsdata.analytics.android.sdk.util.TimeUtils;
+
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -89,7 +94,7 @@ public class SAContextManager {
     }
 
     /**
-     * execute delay task，before init module and track event 
+     * execute delay task，before init module and track event
      */
     private void executeDelayTask() {
         SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
@@ -183,9 +188,31 @@ public class SAContextManager {
 
     public void trackEvent(InputData inputData) {
         try {
+            checkAppStart();
             mTrackEventProcessor.trackEvent(inputData);
         } catch (Exception e) {
             SALog.printStackTrace(e);
+        }
+    }
+
+    private void checkAppStart() {
+        if (SAStoreManager.getInstance().isExists(DbParams.APP_START_DATA)) {
+            SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        String startData = SAStoreManager.getInstance().getString(DbParams.APP_START_DATA, "");
+                        if (!TextUtils.isEmpty(startData)) {
+                            JSONObject properties = new JSONObject(startData);
+                            trackEvent(new InputData().setEventName("$AppStart").
+                                    setProperties(SADataHelper.appendLibMethodAutoTrack(properties)).setEventType(EventType.TRACK));
+                            SAStoreManager.getInstance().remove(DbParams.APP_START_DATA);
+                        }
+                    } catch (Exception e) {
+                        SALog.printStackTrace(e);
+                    }
+                }
+            });
         }
     }
 

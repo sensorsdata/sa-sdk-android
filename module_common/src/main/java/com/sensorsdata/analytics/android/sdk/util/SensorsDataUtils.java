@@ -35,7 +35,10 @@ import android.text.TextUtils;
 import com.sensorsdata.analytics.android.sdk.R;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.business.SAPropertyManager;
+import com.sensorsdata.analytics.android.sdk.core.mediator.Modules;
+import com.sensorsdata.analytics.android.sdk.core.mediator.SAModuleManager;
 import com.sensorsdata.analytics.android.sdk.internal.beans.LimitKey;
+import com.sensorsdata.analytics.android.sdk.jsbridge.AppWebViewInterface;
 import com.sensorsdata.analytics.android.sdk.plugin.encrypt.SAStoreManager;
 
 import org.json.JSONException;
@@ -599,5 +602,42 @@ public final class SensorsDataUtils {
 
     public static boolean isUniApp() {
         return isUniApp;
+    }
+
+    /*
+     * 谨慎使用
+     */
+    public static void showUpWebView(Context context, Object x5WebView, JSONObject properties, boolean isSupportJellyBean, boolean enableVerify) {
+        try {
+            SALog.i(TAG, "SensorsDataUtils.showUpWebView called.x5WebView = " + x5WebView + ", isSupportJellyBean = " + isSupportJellyBean + ", enableVerify = " + enableVerify);
+            if (Build.VERSION.SDK_INT < 17 && !isSupportJellyBean) {
+                SALog.d(TAG, "For applications targeted to API level JELLY_BEAN or below, this feature NOT SUPPORTED");
+                return;
+            }
+
+            if (x5WebView == null) {
+                return;
+            }
+            try {
+                Class<?> clazz = x5WebView.getClass();
+                try {
+                    Method getSettingsMethod = clazz.getMethod("getSettings");
+                    Object settings = getSettingsMethod.invoke(x5WebView);
+                    if (settings != null) {
+                        Method setJavaScriptEnabledMethod = settings.getClass().getMethod("setJavaScriptEnabled", boolean.class);
+                        setJavaScriptEnabledMethod.invoke(settings, true);
+                    }
+                } catch (Exception e) {
+                    //ignore
+                }
+                Method addJavascriptInterface = clazz.getMethod("addJavascriptInterface", Object.class, String.class);
+                addJavascriptInterface.invoke(x5WebView, new AppWebViewInterface(context, properties, enableVerify), "SensorsData_APP_JS_Bridge");
+            } catch (Exception e) {
+                SALog.printStackTrace(e);
+            }
+            SAModuleManager.getInstance().invokeModuleFunction(Modules.Visual.MODULE_NAME, Modules.Visual.METHOD_ADD_VISUAL_JAVASCRIPTINTERFACE, x5WebView);
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 }
