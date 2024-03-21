@@ -26,12 +26,11 @@ import android.os.Bundle;
 
 import com.sensorsdata.analytics.android.sdk.SALog;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 public class SensorsDataActivityLifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
-    private final Set<SAActivityLifecycleCallbacks> mActivityCallbacks = new HashSet<>();
+    private final CopyOnWriteArraySet<SAActivityLifecycleCallbacks> mActivityCallbacks = new CopyOnWriteArraySet<>();
 
     public SensorsDataActivityLifecycleCallbacks() {
     }

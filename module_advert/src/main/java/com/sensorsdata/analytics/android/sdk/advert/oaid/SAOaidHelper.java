@@ -26,6 +26,7 @@ import com.sensorsdata.analytics.android.sdk.advert.oaid.impl.OAIDFactory;
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.core.business.SAPropertyManager;
 import com.sensorsdata.analytics.android.sdk.internal.beans.LimitKey;
+import com.sensorsdata.analytics.android.sdk.util.SensorsDataUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -72,6 +73,10 @@ public class SAOaidHelper {
      * @return OAID
      */
     public static synchronized String getOpenAdIdentifier(final Context context) {
+        if (!SensorsDataUtils.isOAIDEnabled()) {
+            SALog.i(TAG, "Sensors getOAID disabled");
+            return "";
+        }
         // 默认使用客户注册的限制性属性
         if (SAPropertyManager.getInstance().isLimitKey(LimitKey.OAID)) {
             return SAPropertyManager.getInstance().getLimitValue(LimitKey.OAID);
@@ -128,6 +133,10 @@ public class SAOaidHelper {
      * @return 反射获取的 OAID 值
      */
     public static String getOpenAdIdentifierByReflection(Context context) {
+        if (!SensorsDataUtils.isOAIDEnabled()) {
+            SALog.i(TAG, "Sensors getOAIDReflection disabled");
+            return "";
+        }
         if (TextUtils.isEmpty(mOAID)) {
             getOpenAdIdentifier(context);
         }

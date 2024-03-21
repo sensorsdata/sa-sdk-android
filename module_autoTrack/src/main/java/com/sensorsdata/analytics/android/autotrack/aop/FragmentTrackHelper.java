@@ -24,12 +24,11 @@ import com.sensorsdata.analytics.android.autotrack.core.autotrack.SAFragmentLife
 import com.sensorsdata.analytics.android.sdk.SALog;
 import com.sensorsdata.analytics.android.sdk.util.SAFragmentUtils;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 public class FragmentTrackHelper {
     // Fragment 的回调监听
-    private static final List<SAFragmentLifecycleCallbacks> FRAGMENT_CALLBACKS = new ArrayList<>();
+    private static final CopyOnWriteArraySet<SAFragmentLifecycleCallbacks> FRAGMENT_CALLBACKS = new CopyOnWriteArraySet<>();
 
     /**
      * 插件 Hook 处理 Fragment 的 onViewCreated 生命周期

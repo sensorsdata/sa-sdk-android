@@ -273,7 +273,8 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                     boolean firstStart = PersistentLoader.getInstance().getFirstStartPst().get();
                     Bundle bundle = message.getData();
                     try {
-                        if (mSensorsDataInstance.isAutoTrackEnabled() && !mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_START)) {
+                        boolean isAppStartEnabled = mSensorsDataInstance.isAutoTrackEnabled() && !mSensorsDataInstance.isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_START);
+                        if (isAppStartEnabled || message.what == MESSAGE_CODE_START_DELAY) {
                             if (firstStart) {
                                 PersistentLoader.getInstance().getFirstStartPst().commit(false);
                             }

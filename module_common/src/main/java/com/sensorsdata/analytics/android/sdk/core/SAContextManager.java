@@ -196,7 +196,8 @@ public class SAContextManager {
     }
 
     private void checkAppStart() {
-        if (SAStoreManager.getInstance().isExists(DbParams.APP_START_DATA)) {
+        if (SAStoreManager.getInstance().isExists(DbParams.APP_START_DATA)
+                && SensorsDataAPI.sharedInstance().isAutoTrackEnabled() && !SensorsDataAPI.sharedInstance().isAutoTrackEventTypeIgnored(SensorsDataAPI.AutoTrackEventType.APP_START)) {
             SACoreHelper.getInstance().trackQueueEvent(new Runnable() {
                 @Override
                 public void run() {

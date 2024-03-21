@@ -65,7 +65,12 @@ public final class SensorsDataUtils {
     private static String androidID = "";
     private static String mCurrentCarrier = null;
     private static final Map<String, String> sCarrierMap = new HashMap<>();
-
+    private static boolean isAndroidIDEnabled = true;
+    private static boolean isMacEnabled = true;
+    private static boolean isCarrierEnabled = true;
+    private static boolean isImeiEnabled = true;
+    private static boolean isOAIDEnabled = true;
+    private static boolean isMEIDEnabled = true;
     private static final List<String> mInvalidAndroidId = new ArrayList<String>() {
         {
             add("9774d56d682e549c");
@@ -85,6 +90,10 @@ public final class SensorsDataUtils {
      */
     public static String getOperator(Context context) {
         try {
+            if (!isCarrierEnabled) {
+                SALog.i(TAG, "SensorsData getCarrier is disabled");
+                return "";
+            }
             if (SAPropertyManager.getInstance().isLimitKey(LimitKey.CARRIER)) {
                 return SAPropertyManager.getInstance().getLimitValue(LimitKey.CARRIER);
             }
@@ -337,6 +346,10 @@ public final class SensorsDataUtils {
     public static String getInternationalIdentifier(Context context) {
         String imei = "";
         try {
+            if (!isImeiEnabled) {
+                SALog.i(TAG, "SensorsData getIMEI is disabled");
+                return "";
+            }
             if (SAPropertyManager.getInstance().isLimitKey(LimitKey.IMEI)) {
                 return SAPropertyManager.getInstance().getLimitValue(LimitKey.IMEI);
             }
@@ -372,6 +385,10 @@ public final class SensorsDataUtils {
      * @return 设备标识
      */
     public static String getInternationalIdOld(Context context) {
+        if (!isImeiEnabled) {
+            SALog.i(TAG, "SensorsData getIMEI is disabled");
+            return "";
+        }
         if (SAPropertyManager.getInstance().isLimitKey(LimitKey.IMEI)) {
             return "";
         }
@@ -386,6 +403,10 @@ public final class SensorsDataUtils {
      * @return 设备标识
      */
     public static String getSlot(Context context, int number) {
+        if (!isImeiEnabled) {
+            SALog.i(TAG, "SensorsData getIMEI is disabled");
+            return "";
+        }
         if (SAPropertyManager.getInstance().isLimitKey(LimitKey.IMEI)) {
             return "";
         }
@@ -399,6 +420,10 @@ public final class SensorsDataUtils {
      * @return 设备标识
      */
     public static String getEquipmentIdentifier(Context context) {
+        if (!isMEIDEnabled) {
+            SALog.i(TAG, "SensorsData getMEID is disabled");
+            return "";
+        }
         if (SAPropertyManager.getInstance().isLimitKey(LimitKey.MEID)) {
             return SAPropertyManager.getInstance().getLimitValue(LimitKey.MEID);
         }
@@ -451,6 +476,10 @@ public final class SensorsDataUtils {
     @SuppressLint("HardwareIds")
     public static String getIdentifier(Context context) {
         try {
+            if (!isAndroidIDEnabled) {
+                SALog.i(TAG, "SensorsData getAndroidID is disabled");
+                return "";
+            }
             if (SAPropertyManager.getInstance().isLimitKey(LimitKey.ANDROID_ID)) {
                 return SAPropertyManager.getInstance().getLimitValue(LimitKey.ANDROID_ID);
             }
@@ -507,6 +536,10 @@ public final class SensorsDataUtils {
     public static String getMediaAddress(Context context) {
         String macAddress = "";
         try {
+            if (!isMacEnabled) {
+                SALog.i(TAG, "SensorsData getMac is disabled");
+                return "";
+            }
             if (SAPropertyManager.getInstance().isLimitKey(LimitKey.MAC)) {
                 return SAPropertyManager.getInstance().getLimitValue(LimitKey.MAC);
             }
@@ -639,5 +672,63 @@ public final class SensorsDataUtils {
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
+    }
+
+    /**
+     * 是否开启 AndroidID 采集
+     *
+     * @param enabled true 开启，false 关闭
+     */
+    public static void enableAndroidId(boolean enabled) {
+        isAndroidIDEnabled = enabled;
+    }
+
+    /**
+     * 是否开启 IMEI 采集
+     *
+     * @param enabled true 开启，false 关闭
+     */
+    public static void enableImei(boolean enabled) {
+        isImeiEnabled = enabled;
+    }
+
+    /**
+     * 是否开启运营商采集
+     *
+     * @param enabled true 开启，false 关闭
+     */
+    public static void enableCarrier(boolean enabled) {
+        isCarrierEnabled = enabled;
+    }
+
+    /**
+     * 是否开启 MEID 采集
+     *
+     * @param enabled true 开启，false 关闭
+     */
+    public static void enableMEID(boolean enabled) {
+        isMEIDEnabled = enabled;
+    }
+
+    /**
+     * 是否开启 MAC 地址采集
+     *
+     * @param enabled true 开启，false 关闭
+     */
+    public static void enableMAC(boolean enabled) {
+        isMacEnabled = enabled;
+    }
+
+    /**
+     * 是否开启 OAID 采集
+     *
+     * @param enabled true 开启，false 关闭
+     */
+    public static void enableOAID(boolean enabled) {
+        isOAIDEnabled = enabled;
+    }
+
+    public static boolean isOAIDEnabled() {
+        return isOAIDEnabled;
     }
 }
