@@ -1,5 +1,5 @@
-![logo](https://opensource.sensorsdata.cn/wp-content/uploads/logo.png)
-<br><br>
+<img src="https://ow-file.sensorsdata.cn/www/home/header/sensors_header_icon.svg" width="200" >
+
 [![License](https://img.shields.io/github/license/sensorsdata/sa-sdk-android.svg)](https://github.com/sensorsdata/sa-sdk-android/blob/master/LICENSE)
 [![GitHub release](https://img.shields.io/github/tag/sensorsdata/sa-sdk-android.svg?label=release)](https://github.com/sensorsdata/sa-sdk-android/releases)
 [![GitHub release date](https://img.shields.io/github/release-date/sensorsdata/sa-sdk-android.svg)](https://github.com/sensorsdata/sa-sdk-android/releases)
@@ -46,9 +46,8 @@ Android 4.0 及以上。
 
 ## 新书推荐
 
-| 《ASM 全埋点开发实战》 | 《数据驱动：从方法到实践》 | 《Android 全埋点解决方案》 | 《iOS 全埋点解决方案》
-| ------ | ------ | ------ | ------ |
-| [![《ASM 全埋点开发实战》](https://opensource.sensorsdata.cn/wp-content/uploads/ASM-全埋点thumbnail_1.jpg)](https://item.jd.com/14058352.html) | [![《数据驱动：从方法到实践》](https://opensource.sensorsdata.cn/wp-content/uploads/data_driven_book_1.jpg)](https://item.jd.com/12322322.html) | [![《Android 全埋点解决方案》](https://opensource.sensorsdata.cn/wp-content/uploads/Android-全埋点thumbnail_1.png)](https://item.jd.com/12574672.html) | [![《iOS 全埋点解决方案》](https://opensource.sensorsdata.cn/wp-content/uploads/iOS-全埋点thumbnail_1.png)](https://item.jd.com/12867068.html)
+| [《数据驱动：从方法到实践》](https://item.jd.com/12322322.html) | [《Android 全埋点解决方案》](https://item.jd.com/12574672.html) | [《iOS 全埋点解决方案》](https://item.jd.com/12867068.html)
+| ------ | ------ | ------ |
 
 ## 感谢
 - [mixpanel-android](https://github.com/mixpanel/mixpanel-android) 
@@ -57,7 +56,7 @@ Android 4.0 及以上。
 
 ## License
 
-Copyright 2015－2023 Sensors Data Inc.
+Copyright 2015－2024 Sensors Data Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
