@@ -55,22 +55,13 @@ import java.util.Map;
 
 public final class SensorsDataUtils {
 
-    private static final String marshmallowMacAddress = "02:00:00:00:00:00";
     private static final String SHARED_PREF_APP_VERSION = "sensorsdata.app.version";
     public static final String COMMAND_HARMONYOS_VERSION = "getprop hw_sc.build.platform.version";
 
-    private static final Map<String, String> deviceUniqueIdentifiersMap = new HashMap<>();
-
     private static boolean isUniApp = false;
     private static String androidID = "";
-    private static String mCurrentCarrier = null;
-    private static final Map<String, String> sCarrierMap = new HashMap<>();
     private static boolean isAndroidIDEnabled = true;
-    private static boolean isMacEnabled = true;
-    private static boolean isCarrierEnabled = true;
-    private static boolean isImeiEnabled = true;
     private static boolean isOAIDEnabled = true;
-    private static boolean isMEIDEnabled = true;
     private static final List<String> mInvalidAndroidId = new ArrayList<String>() {
         {
             add("9774d56d682e549c");
@@ -79,48 +70,6 @@ public final class SensorsDataUtils {
         }
     };
     private static final String TAG = "SA.SensorsDataUtils";
-
-    /**
-     * 此方法谨慎修改
-     * 插件配置 disableCarrier 会修改此方法
-     * 获取运营商信息
-     *
-     * @param context Context
-     * @return 运营商信息
-     */
-    public static String getOperator(Context context) {
-        try {
-            if (!isCarrierEnabled) {
-                SALog.i(TAG, "SensorsData getCarrier is disabled");
-                return "";
-            }
-            if (SAPropertyManager.getInstance().isLimitKey(LimitKey.CARRIER)) {
-                return SAPropertyManager.getInstance().getLimitValue(LimitKey.CARRIER);
-            }
-            if (TextUtils.isEmpty(mCurrentCarrier)) {
-                try {
-                    TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context
-                            .TELEPHONY_SERVICE);
-                    if (telephonyManager != null) {
-                        SALog.i(TAG, "SensorsData getCarrier");
-                        String operator = telephonyManager.getSimOperator();
-                        if (!TextUtils.isEmpty(operator)) {
-                            mCurrentCarrier = operatorToCarrier(context, operator, telephonyManager);
-                            return mCurrentCarrier;
-                        }
-                    }
-                } catch (Exception e) {
-                    SALog.printStackTrace(e);
-                }
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        } catch (Error error) {
-            //针对酷派 B770 机型抛出的 IncompatibleClassChangeError 错误进行捕获
-            SALog.i(TAG, error.toString());
-        }
-        return mCurrentCarrier;
-    }
 
     /**
      * 获取 Activity 的 title
@@ -165,113 +114,6 @@ public final class SensorsDataUtils {
             SALog.printStackTrace(e);
             return null;
         }
-    }
-
-    /**
-     * 根据 operator，获取本地化运营商信息
-     *
-     * @param context context
-     * @param operator sim operator
-     * @param telephonyManager TelephonyManager
-     * @return local carrier name
-     */
-    private static String operatorToCarrier(Context context, String operator, TelephonyManager telephonyManager) {
-        try {
-            if (sCarrierMap.containsKey(operator)) {
-                return sCarrierMap.get(operator);
-            }
-
-            if (TextUtils.isEmpty(operator)) {
-                return getCarrierName(context, telephonyManager);
-            }
-
-            // init default carrier
-            initDefaultCarrier(context);
-            if (sCarrierMap.containsKey(operator)) {
-                return sCarrierMap.get(operator);
-            }
-
-            String carrier = getCarrierFromJsonObject(context.getString(R.string.sensors_analytics_carrier), operator);
-            if (TextUtils.isEmpty(carrier)) {
-                carrier = getCarrierFromJsonObject(context.getString(R.string.sensors_analytics_carrier1), operator);
-                if (TextUtils.isEmpty(carrier)) {
-                    carrier = getCarrierFromJsonObject(context.getString(R.string.sensors_analytics_carrier2), operator);
-                }
-            }
-            if (TextUtils.isEmpty(carrier)) {
-                String carrierName = getCarrierName(context, telephonyManager);
-                sCarrierMap.put(operator, carrierName);
-                return carrierName;
-            } else {
-                sCarrierMap.put(operator, carrier);
-                return carrier;
-            }
-        } catch (Throwable e) {
-            SALog.i(TAG, e.getMessage());
-        }
-        return getCarrierName(context, telephonyManager);
-    }
-
-    private static String getCarrierName(Context context, TelephonyManager telephonyManager) {
-        String alternativeName = null;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            CharSequence tmpCarrierName = telephonyManager.getSimCarrierIdName();
-            if (!TextUtils.isEmpty(tmpCarrierName)) {
-                alternativeName = tmpCarrierName.toString();
-            }
-        }
-        if (TextUtils.isEmpty(alternativeName)) {
-            if (telephonyManager.getSimState() == TelephonyManager.SIM_STATE_READY) {
-                alternativeName = telephonyManager.getSimOperatorName();
-            } else {
-                alternativeName = context.getString(R.string.sensors_analytics_carrier_unknown);
-            }
-        }
-        return alternativeName;
-    }
-
-    private static void initDefaultCarrier(Context context) {
-        if (sCarrierMap.size() == 0) {
-            String mobile = context.getString(R.string.sensors_analytics_carrier_mobile);
-            sCarrierMap.put("46000", mobile);
-            sCarrierMap.put("46002", mobile);
-            sCarrierMap.put("46007", mobile);
-            sCarrierMap.put("46008", mobile);
-
-            String unicom = context.getString(R.string.sensors_analytics_carrier_unicom);
-            sCarrierMap.put("46001", unicom);
-            sCarrierMap.put("46006", unicom);
-            sCarrierMap.put("46009", unicom);
-            sCarrierMap.put("46010", unicom);
-
-            String telecom = context.getString(R.string.sensors_analytics_carrier_telecom);
-            sCarrierMap.put("46003", telecom);
-            sCarrierMap.put("46005", telecom);
-            sCarrierMap.put("46011", telecom);
-
-            String satellite = context.getString(R.string.sensors_analytics_carrier_satellite);
-            sCarrierMap.put("46004", satellite);
-
-            String tietong = context.getString(R.string.sensors_analytics_carrier_tietong);
-            sCarrierMap.put("46020", tietong);
-        }
-    }
-
-    private static String getCarrierFromJsonObject(String carrierJson, String mccMnc) {
-        if (carrierJson == null || TextUtils.isEmpty(mccMnc)) {
-            return "";
-        }
-        try {
-            JSONObject jsonObject = new JSONObject(carrierJson);
-            String carrier = jsonObject.optString(mccMnc);
-            if (!TextUtils.isEmpty(carrier)) {
-                sCarrierMap.put(mccMnc, carrier);
-                return carrier;
-            }
-        } catch (JSONException e) {
-            SALog.printStackTrace(e);
-        }
-        return "";
     }
 
     public static String getToolbarTitle(Activity activity) {
@@ -336,137 +178,6 @@ public final class SensorsDataUtils {
 
     /**
      * 此方法谨慎修改
-     * 插件配置 disableIMEI 会修改此方法
-     * 获取IMEI
-     *
-     * @param context Context
-     * @return IMEI
-     */
-    @SuppressLint({"MissingPermission", "HardwareIds"})
-    public static String getInternationalIdentifier(Context context) {
-        String imei = "";
-        try {
-            if (!isImeiEnabled) {
-                SALog.i(TAG, "SensorsData getIMEI is disabled");
-                return "";
-            }
-            if (SAPropertyManager.getInstance().isLimitKey(LimitKey.IMEI)) {
-                return SAPropertyManager.getInstance().getLimitValue(LimitKey.IMEI);
-            }
-            if (deviceUniqueIdentifiersMap.containsKey("IMEI")) {
-                imei = deviceUniqueIdentifiersMap.get("IMEI");
-            }
-            if (TextUtils.isEmpty(imei) && PermissionUtils.hasReadPhoneStatePermission(context)) {
-                TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-                if (tm != null) {
-                    SALog.i(TAG, "SensorsData getInternationalIdentifier");
-                    if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-                        if (tm.hasCarrierPrivileges()) {
-                            imei = tm.getImei();
-                        }
-                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        imei = tm.getImei();
-                    } else {
-                        imei = tm.getDeviceId();
-                    }
-                    deviceUniqueIdentifiersMap.put("IMEI", imei);
-                }
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-        return imei;
-    }
-
-    /**
-     * 获取设备标识
-     *
-     * @param context Context
-     * @return 设备标识
-     */
-    public static String getInternationalIdOld(Context context) {
-        if (!isImeiEnabled) {
-            SALog.i(TAG, "SensorsData getIMEI is disabled");
-            return "";
-        }
-        if (SAPropertyManager.getInstance().isLimitKey(LimitKey.IMEI)) {
-            return "";
-        }
-        return getPhoneIdentifier(context, -1);
-    }
-
-    /**
-     * 获取设备标识
-     *
-     * @param context Context
-     * @param number 卡槽位置
-     * @return 设备标识
-     */
-    public static String getSlot(Context context, int number) {
-        if (!isImeiEnabled) {
-            SALog.i(TAG, "SensorsData getIMEI is disabled");
-            return "";
-        }
-        if (SAPropertyManager.getInstance().isLimitKey(LimitKey.IMEI)) {
-            return "";
-        }
-        return getPhoneIdentifier(context, number);
-    }
-
-    /**
-     * 获取设备标识
-     *
-     * @param context Context
-     * @return 设备标识
-     */
-    public static String getEquipmentIdentifier(Context context) {
-        if (!isMEIDEnabled) {
-            SALog.i(TAG, "SensorsData getMEID is disabled");
-            return "";
-        }
-        if (SAPropertyManager.getInstance().isLimitKey(LimitKey.MEID)) {
-            return SAPropertyManager.getInstance().getLimitValue(LimitKey.MEID);
-        }
-        return getPhoneIdentifier(context, -2);
-    }
-
-    /**
-     * 获取设备唯一标识
-     *
-     * @param context Context
-     * @param number 卡槽
-     * @return 设备唯一标识
-     */
-    @SuppressLint({"MissingPermission", "HardwareIds"})
-    private static String getPhoneIdentifier(Context context, int number) {
-        String deviceId = "";
-        try {
-            String deviceIDKey = "deviceID" + number;
-            if (deviceUniqueIdentifiersMap.containsKey(deviceIDKey)) {
-                deviceId = deviceUniqueIdentifiersMap.get(deviceIDKey);
-            }
-            if (TextUtils.isEmpty(deviceId) && PermissionUtils.hasReadPhoneStatePermission(context)) {
-                TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-                if (tm != null) {
-                    SALog.i(TAG, "SensorsData getPhoneIdentifier");
-                    if (number == -1) {
-                        deviceId = tm.getDeviceId();
-                    } else if (number == -2 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        deviceId = tm.getMeid();
-                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        deviceId = tm.getDeviceId(number);
-                    }
-                    deviceUniqueIdentifiersMap.put(deviceIDKey, deviceId);
-                }
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-        return deviceId;
-    }
-
-    /**
-     * 此方法谨慎修改
      * 插件配置 disableAndroidID 会修改此方法
      * 获取 Android ID
      *
@@ -494,81 +205,6 @@ public final class SensorsDataUtils {
             SALog.printStackTrace(e);
         }
         return androidID;
-    }
-
-    private static String getMacAddressByInterface() {
-        try {
-            List<NetworkInterface> all = Collections.list(NetworkInterface.getNetworkInterfaces());
-            for (NetworkInterface nif : all) {
-                if ("wlan0".equalsIgnoreCase(nif.getName())) {
-                    byte[] macBytes = nif.getHardwareAddress();
-                    if (macBytes == null) {
-                        return "";
-                    }
-
-                    StringBuilder res1 = new StringBuilder();
-                    for (byte b : macBytes) {
-                        res1.append(String.format("%02X:", b));
-                    }
-
-                    if (res1.length() > 0) {
-                        res1.deleteCharAt(res1.length() - 1);
-                    }
-                    return res1.toString();
-                }
-            }
-
-        } catch (Exception e) {
-            //ignore
-        }
-        return null;
-    }
-
-    /**
-     * 此方法谨慎修改
-     * 插件配置 disableMacAddress 会修改此方法
-     * 获取手机的 Mac 地址
-     *
-     * @param context Context
-     * @return String 当前手机的 Mac 地址
-     */
-    @SuppressLint("MissingPermission")
-    public static String getMediaAddress(Context context) {
-        String macAddress = "";
-        try {
-            if (!isMacEnabled) {
-                SALog.i(TAG, "SensorsData getMac is disabled");
-                return "";
-            }
-            if (SAPropertyManager.getInstance().isLimitKey(LimitKey.MAC)) {
-                return SAPropertyManager.getInstance().getLimitValue(LimitKey.MAC);
-            }
-            if (deviceUniqueIdentifiersMap.containsKey("macAddress")) {
-                macAddress = deviceUniqueIdentifiersMap.get("macAddress");
-            }
-            if (TextUtils.isEmpty(macAddress) && PermissionUtils.checkSelfPermission(context, Manifest.permission.ACCESS_WIFI_STATE)) {
-                WifiManager wifiMan = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-                if (wifiMan != null) {
-                    SALog.i(TAG, "SensorsData getMacAddress");
-                    WifiInfo wifiInfo = wifiMan.getConnectionInfo();
-                    if (wifiInfo != null) {
-                        macAddress = wifiInfo.getMacAddress();
-                        if (!TextUtils.isEmpty(macAddress)) {
-                            if (marshmallowMacAddress.equals(macAddress)) {
-                                macAddress = getMacAddressByInterface();
-                                if (macAddress == null) {
-                                    macAddress = marshmallowMacAddress;
-                                }
-                            }
-                            deviceUniqueIdentifiersMap.put("macAddress", macAddress);
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            SALog.printStackTrace(e);
-        }
-        return macAddress;
     }
 
     public static boolean isValidAndroidId(String androidId) {
@@ -681,42 +317,6 @@ public final class SensorsDataUtils {
      */
     public static void enableAndroidId(boolean enabled) {
         isAndroidIDEnabled = enabled;
-    }
-
-    /**
-     * 是否开启 IMEI 采集
-     *
-     * @param enabled true 开启，false 关闭
-     */
-    public static void enableImei(boolean enabled) {
-        isImeiEnabled = enabled;
-    }
-
-    /**
-     * 是否开启运营商采集
-     *
-     * @param enabled true 开启，false 关闭
-     */
-    public static void enableCarrier(boolean enabled) {
-        isCarrierEnabled = enabled;
-    }
-
-    /**
-     * 是否开启 MEID 采集
-     *
-     * @param enabled true 开启，false 关闭
-     */
-    public static void enableMEID(boolean enabled) {
-        isMEIDEnabled = enabled;
-    }
-
-    /**
-     * 是否开启 MAC 地址采集
-     *
-     * @param enabled true 开启，false 关闭
-     */
-    public static void enableMAC(boolean enabled) {
-        isMacEnabled = enabled;
     }
 
     /**

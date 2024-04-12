@@ -252,6 +252,10 @@ public class SAViewUtils {
 
     public static String getViewContent(View view, boolean fromVisual) {
         try {
+            if (view == null) {
+                SALog.i("SA.SAViewUtils", "getViewContent view is null");
+                return "";
+            }
             String cacheViewType = SnapCache.getInstance().getViewType(view);
             String cacheViewText = SnapCache.getInstance().getViewText(view);
             CharSequence viewText = null;
@@ -699,6 +703,9 @@ public class SAViewUtils {
 
     private static Object instanceOfTabView(View tabView) {
         try {
+            if (tabView == null) {
+                return null;
+            }
             Class<?> currentTabViewClass = ReflectUtil.getCurrentClass(new String[]{"android.support.design.widget.TabLayout$TabView", "com.google.android.material.tabs.TabLayout$TabView"});
             if (currentTabViewClass != null && currentTabViewClass.isAssignableFrom(tabView.getClass())) {
                 return ReflectUtil.findField(currentTabViewClass, tabView, "mTab", "tab");
@@ -773,11 +780,17 @@ public class SAViewUtils {
     }
 
     public static boolean isWeexView(View view) {
+        if (view == null) {
+            return false;
+        }
         String className = view.getClass().getName();
         return className.startsWith("com.taobao.weex.ui.view") || className.startsWith("org.apache.weex.ui.view");
     }
 
     public static boolean isWeexTextView(View view) {
+        if (view == null) {
+            return false;
+        }
         String className = view.getClass().getName();
         return className.equals("com.taobao.weex.ui.view.WXTextView") || className.equals("org.apache.weex.ui.view.WXTextView");
     }

@@ -19,9 +19,5 @@ package com.sensorsdata.analytics.android.sdk.internal.beans;
 
 public class LimitKey {
     public static String ANDROID_ID = "ANDROID_ID";
-    public static String CARRIER = "CARRIER";
-    public static String IMEI = "IMEI";
-    public static String MAC = "MAC";
     public static String OAID = "OAID";
-    public static String MEID = "MEID";
 }

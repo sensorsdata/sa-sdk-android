@@ -250,6 +250,11 @@ abstract class AbstractSAConfigOptions {
     SAAdvertisingConfig mSATConfig;
 
     /**
+     * 是否开启退出事件的定时器
+     */
+    boolean mDisableAppEndTimer = false;
+
+    /**
      * 是否开启 DeepLink
      *
      * @return true 开启，false 未开启
@@ -468,5 +473,14 @@ abstract class AbstractSAConfigOptions {
 
     public SAAdvertisingConfig getAdvertConfig() {
         return mSATConfig;
+    }
+
+    /**
+     * 是否关闭了退出事件的定时器
+     *
+     * @return false 保存到本地 true 不保存到本地
+     */
+    public boolean isDisableAppEndTimer() {
+        return this.mDisableAppEndTimer;
     }
 }

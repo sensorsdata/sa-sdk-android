@@ -310,7 +310,7 @@ public class SAAdvertProtocolImpl {
                                     if (eventProperties.has("$gaid")) {
                                         installSource = String.format("%s##gaid=%s", installSource, eventProperties.optString("$gaid"));
                                     }
-                                    isCorrectTrackInstallation = ChannelUtils.isGetDeviceInfo(mContext, androidId, oaid);
+                                    isCorrectTrackInstallation = ChannelUtils.isGetDeviceInfo(androidId, oaid);
                                     eventProperties.put("$ios_install_source", installSource);
                                 }
                                 if (eventProperties.has("$oaid")) {

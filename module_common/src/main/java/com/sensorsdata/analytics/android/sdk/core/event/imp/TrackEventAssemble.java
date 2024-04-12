@@ -33,6 +33,7 @@ import com.sensorsdata.analytics.android.sdk.plugin.property.SAPropertyPlugin;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertiesFetcher;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertyFilter;
 import com.sensorsdata.analytics.android.sdk.plugin.property.impl.InternalCustomPropertyPlugin;
+import com.sensorsdata.analytics.android.sdk.useridentity.Identities;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
@@ -249,13 +250,31 @@ class TrackEventAssemble extends BaseEventAssemble {
             SALog.printStackTrace(e);
         }
 
-        trackEvent.setDistinctId(distinctId);
-        if (!TextUtils.isEmpty(loginId)) {
-            trackEvent.setLoginId(loginId);
-        }
-        trackEvent.setAnonymousId(anonymousId);
         EventType eventType = inputData.getEventType();
-        trackEvent.setIdentities(mContextManager.getUserIdentityAPI().getIdentities(eventType));
+        JSONObject identitiesJson = mContextManager.getUserIdentityAPI().getIdentities(eventType);
+        if (!EventType.TRACK_ID_UNBIND.getEventType().equals(trackEvent.getType())) {// unbind 不需要拼接 login_id、anonymous_id
+            if (identitiesJson != null) {
+                if (!TextUtils.isEmpty(anonymousId)) {
+                    identitiesJson.put(Identities.ANONYMOUS_ID, anonymousId);
+                } else {
+                    anonymousId = identitiesJson.optString(Identities.ANONYMOUS_ID);
+                }
+
+                if (!TextUtils.isEmpty(loginId)) {
+                    identitiesJson.put(mContextManager.getUserIdentityAPI().getIdentitiesInstance().getLoginIDKey(), loginId);
+                } else {
+                    loginId = identitiesJson.optString(mContextManager.getUserIdentityAPI().getIdentitiesInstance().getLoginIDKey());
+                }
+            }
+
+            if (!TextUtils.isEmpty(loginId)) {
+                trackEvent.setLoginId(loginId);
+            }
+            trackEvent.setAnonymousId(anonymousId);
+        }
+
+        trackEvent.setDistinctId(distinctId);
+        trackEvent.setIdentities(identitiesJson);
         if (eventType == EventType.TRACK || eventType == EventType.TRACK_ID_BIND || eventType == EventType.TRACK_ID_UNBIND) {
             //是否首日访问
             trackEvent.getProperties().put("$is_first_day", mContextManager.isFirstDay(trackEvent.getTime()));

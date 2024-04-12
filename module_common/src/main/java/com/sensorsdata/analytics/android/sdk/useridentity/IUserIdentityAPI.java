@@ -105,15 +105,17 @@ public interface IUserIdentityAPI {
      * @param loginIDKey 登录 IDKey
      * @param loginID 登录 loginId
      */
+    @Deprecated
     void loginWithKey(String loginIDKey, String loginID);
 
     /**
-     * 登录，设置当前用户的登录 IDKey 和 loginId
+     * 已过期，旧版本如使用此接口请继续，新用户请不要使用此方法！
      *
      * @param loginIDKey loginIDKey 登录 IDKey
      * @param loginID loginID 登录 loginId
      * @param properties properties 用户登录属性
      */
+    @Deprecated
     void loginWithKey(String loginIDKey, String loginID, JSONObject properties);
 
     /**

@@ -78,7 +78,7 @@ public class Identities {
     private void initLoginIDAndKeyIdentities(String oldLoginIDKey, String oldLoginID, JSONObject identities) throws JSONException {
         if (TextUtils.isEmpty(oldLoginID)) {
             if (identities.has(oldLoginIDKey)) {
-                clearIdentities(Arrays.asList(ANDROID_ID, ANDROID_UUID), identities);
+                clearIdentities(Arrays.asList(ANDROID_ID, ANDROID_UUID, ANONYMOUS_ID), identities);
                 mLoginIDAndKey.setLoginIDKey("");
             }
         } else {
@@ -99,10 +99,19 @@ public class Identities {
         JSONObject tmp_identities = identities;
         if (tmp_identities == null || tmp_identities.length() == 0) {
             tmp_identities = new JSONObject();
+            // 判断匿名 ID 是否存在
+            if (anonymousId != null) {
+                tmp_identities.put(ANONYMOUS_ID, anonymousId);
+            }
+
             if (SensorsDataUtils.isValidAndroidId(mAndroidId)) {
                 tmp_identities.put(ANDROID_ID, mAndroidId);
             } else {
                 tmp_identities.put(ANDROID_UUID, anonymousId);
+            }
+        } else {
+            if (tmp_identities.has(ANONYMOUS_ID)) {
+                tmp_identities.put(ANONYMOUS_ID, anonymousId);
             }
         }
         return tmp_identities;
@@ -223,6 +232,9 @@ public class Identities {
      */
     public void updateSpecialIDKeyAndValue(SpecialID specialID, String value) throws JSONException {
         switch (specialID) {
+            case ANONYMOUS_ID:
+                mIdentities.put(ANONYMOUS_ID, value);
+                break;
             case ANDROID_ID:
                 mIdentities.put(ANDROID_ID, value);
                 break;

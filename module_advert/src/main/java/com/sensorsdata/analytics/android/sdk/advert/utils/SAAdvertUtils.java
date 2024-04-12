@@ -92,11 +92,7 @@ public class SAAdvertUtils {
      */
     public static String getInstallSource(Context context) {
         return String.format("imei=%s##imei_old=%s##imei_slot1=%s##imei_slot2=%s##imei_meid=%s",
-                SensorsDataUtils.getInternationalIdentifier(context),
-                SensorsDataUtils.getInternationalIdOld(context),
-                SensorsDataUtils.getSlot(context, 0),
-                SensorsDataUtils.getSlot(context, 1),
-                SensorsDataUtils.getEquipmentIdentifier(context));
+                "", "", "", "", "");
     }
 
 

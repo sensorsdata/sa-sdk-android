@@ -574,4 +574,13 @@ public final class SAConfigOptions extends AbstractSAConfigOptions implements Cl
         this.mSATConfig = config;
         return this;
     }
+
+    /**
+     * 关闭打点定时器
+     * @return SAConfigOptions
+     */
+    public SAConfigOptions disableAppEndTimer() {
+        this.mDisableAppEndTimer = true;
+        return this;
+    }
 }

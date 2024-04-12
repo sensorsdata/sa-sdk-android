@@ -63,13 +63,6 @@ public final class SAPresetPropertyPlugin extends SAPropertyPlugin {
     public void properties(SAPropertiesFetcher saPropertiesFetcher) {
         try {
             JSONObject jsonObject = getPresetProperties();
-            //之前可能会因为没有权限无法获取运营商信息，检测再次获取
-            if (TextUtils.isEmpty(jsonObject.optString("$carrier"))) {
-                String carrier = SensorsDataUtils.getOperator(mContext);
-                if (!TextUtils.isEmpty(carrier)) {
-                    jsonObject.put("$carrier", carrier);
-                }
-            }
             // 防止覆盖客户自己传递的，SDK 内部有补发的 $AppEnd 场景
             if (saPropertiesFetcher.getProperties().has("$lib_version")) {
                 jsonObject.remove("$lib_version");
@@ -107,11 +100,6 @@ public final class SAPresetPropertyPlugin extends SAPropertyPlugin {
             int[] size = DeviceUtils.getDeviceSize(mContext);
             properties.put("$screen_width", size[0]);
             properties.put("$screen_height", size[1]);
-
-            String carrier = SensorsDataUtils.getOperator(mContext);
-            if (!TextUtils.isEmpty(carrier)) {
-                properties.put("$carrier", carrier);
-            }
 
             Integer zone_offset = TimeUtils.getZoneOffset();
             if (zone_offset != null) {

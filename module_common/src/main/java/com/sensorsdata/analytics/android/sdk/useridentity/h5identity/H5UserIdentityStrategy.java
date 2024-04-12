@@ -35,7 +35,7 @@ public class H5UserIdentityStrategy {
             } else if (EventType.TRACK_ID_BIND == eventType) {
                 specialIDProcess(identityJson);
                 h5UserIdentityAPI = new BindIDH5UserIdentityAPI(userIdentityAPI);
-            } else if (EventType.TRACK_ID_UNBIND == eventType && identityJson != null) {
+            } else if (EventType.TRACK_ID_UNBIND == eventType) {
                 h5UserIdentityAPI = new UnbindIDH5UserIdentityAPI(userIdentityAPI);
             } else {
                 specialIDProcess(identityJson);
@@ -50,6 +50,7 @@ public class H5UserIdentityStrategy {
 
     private void specialIDProcess(JSONObject identityJson) {
         identityJson.remove(Identities.ANDROID_ID);
+        identityJson.remove(Identities.ANONYMOUS_ID);
         identityJson.remove(Identities.ANDROID_UUID);
     }
 }

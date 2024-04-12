@@ -159,14 +159,7 @@ public class ChannelUtils {
      */
     public static String getDeviceInfo(Context mContext, String androidId, String oaid, String reflectionOAID) {
         return String.format("android_id=%s##imei=%s##imei_old=%s##imei_slot1=%s##imei_slot2=%s##imei_meid=%s##mac=%s##oaid=%s##oaid_reflection=%s",
-                androidId,
-                SensorsDataUtils.getInternationalIdentifier(mContext),
-                SensorsDataUtils.getInternationalIdOld(mContext),
-                SensorsDataUtils.getSlot(mContext, 0),
-                SensorsDataUtils.getSlot(mContext, 1),
-                SensorsDataUtils.getEquipmentIdentifier(mContext),
-                SensorsDataUtils.getMediaAddress(mContext),
-                oaid, reflectionOAID);
+                androidId, "", "", "", "","","", oaid, reflectionOAID);
     }
 
     public static void mergeUtmByMetaData(Context context, JSONObject properties) throws JSONException {
@@ -399,20 +392,14 @@ public class ChannelUtils {
     /**
      * 是否获取到设备信息
      *
-     * @param context Context
      * @param androidId AndroidID
      * @param oaid 移动联通设备标识
      * @return 是否获取到设备信息（macAddress 除外）
      */
-    public static boolean isGetDeviceInfo(Context context, String androidId, String oaid) {
+    public static boolean isGetDeviceInfo(String androidId, String oaid) {
         try {
             return !TextUtils.isEmpty(androidId) ||
-                    !TextUtils.isEmpty(oaid) ||
-                    !TextUtils.isEmpty(SensorsDataUtils.getInternationalIdentifier(context)) ||
-                    !TextUtils.isEmpty(SensorsDataUtils.getInternationalIdOld(context)) ||
-                    !TextUtils.isEmpty(SensorsDataUtils.getSlot(context, 0)) ||
-                    !TextUtils.isEmpty(SensorsDataUtils.getSlot(context, 1)) ||
-                    !TextUtils.isEmpty(SensorsDataUtils.getEquipmentIdentifier(context));
+                    !TextUtils.isEmpty(oaid);
         } catch (Exception e) {
             SALog.printStackTrace(e);
         }
@@ -489,20 +476,8 @@ public class ChannelUtils {
         }
         return (deviceMaps.containsKey("oaid")//防止都为 null 返回 true
                 && TextUtils.equals(deviceMaps.get("oaid"), SAOaidHelper.getOpenAdIdentifier(context))) ||
-                (deviceMaps.containsKey("imei") &&
-                        TextUtils.equals(deviceMaps.get("imei"), SensorsDataUtils.getInternationalIdentifier(context))) ||
-                (deviceMaps.containsKey("imei_old") &&
-                        TextUtils.equals(deviceMaps.get("imei_old"), SensorsDataUtils.getInternationalIdOld(context))) ||
-                (deviceMaps.containsKey("imei_slot1") &&
-                        TextUtils.equals(deviceMaps.get("imei_slot1"), SensorsDataUtils.getSlot(context, 0))) ||
-                (deviceMaps.containsKey("imei_slot2") &&
-                        TextUtils.equals(deviceMaps.get("imei_slot2"), SensorsDataUtils.getSlot(context, 1))) ||
-                (deviceMaps.containsKey("imei_meid") &&
-                        TextUtils.equals(deviceMaps.get("imei_meid"), SensorsDataUtils.getEquipmentIdentifier(context))) ||
                 (deviceMaps.containsKey("android_id") &&
-                        TextUtils.equals(deviceMaps.get("android_id"), SensorsDataUtils.getIdentifier(context))) ||
-                (deviceMaps.containsKey("mac") &&
-                        TextUtils.equals(deviceMaps.get("mac"), SensorsDataUtils.getMediaAddress(context)));
+                        TextUtils.equals(deviceMaps.get("android_id"), SensorsDataUtils.getIdentifier(context)));
     }
 
     /**

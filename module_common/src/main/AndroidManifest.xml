@@ -5,10 +5,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- network state -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- carrier -->
+    <!-- network type -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
     <application>
         <provider

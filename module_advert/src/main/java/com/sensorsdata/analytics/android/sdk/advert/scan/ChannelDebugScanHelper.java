@@ -146,7 +146,7 @@ public class ChannelDebugScanHelper implements IAdvertScanListener {
                         if (!isTrackInstallation || ChannelUtils.isCorrectTrackInstallation()) {
                             String androidId = SensorsDataUtils.getIdentifier(context);
                             String oaid = SAOaidHelper.getOpenAdIdentifier(context);
-                            if (isTrackInstallation && !ChannelUtils.isGetDeviceInfo(context, androidId, oaid)) {
+                            if (isTrackInstallation && !ChannelUtils.isGetDeviceInfo(androidId, oaid)) {
                                 showChannelDebugErrorDialog(activity);
                                 return;
                             }

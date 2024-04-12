@@ -29,6 +29,7 @@ import com.sensorsdata.analytics.android.sdk.core.event.TrackEvent;
 import com.sensorsdata.analytics.android.sdk.data.persistent.PersistentLoader;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertiesFetcher;
 import com.sensorsdata.analytics.android.sdk.plugin.property.beans.SAPropertyFilter;
+import com.sensorsdata.analytics.android.sdk.useridentity.Identities;
 import com.sensorsdata.analytics.android.sdk.util.AppInfoUtils;
 import com.sensorsdata.analytics.android.sdk.util.JSONUtils;
 import com.sensorsdata.analytics.android.sdk.util.SADataHelper;
@@ -89,6 +90,8 @@ class H5TrackAssemble extends BaseEventAssemble {
                 SADataHelper.assertPropertyTypes(trackEvent.getProperties());
                 trackEvent.getExtras().put("properties", trackEvent.getProperties());
                 trackEvent.getExtras().put("lib", trackEvent.getLib());
+                // IDM3 新协议检查
+                checkIDConsistent(eventType, trackEvent, sensorsDataAPI);
                 if (SALog.isLogEnabled()) {
                     SALog.i(TAG, "track event from H5:\n" + JSONUtils.formatJson(trackEvent.getExtras().toString()));
                 }
@@ -109,7 +112,6 @@ class H5TrackAssemble extends BaseEventAssemble {
         } else {
             trackEvent.getExtras().put(distinctIdKey, sensorsDataAPI.getAnonymousId());
         }
-        trackEvent.getExtras().put("anonymous_id", sensorsDataAPI.getAnonymousId());
     }
 
     private void appendDefaultProperty(TrackEvent trackEvent) {
@@ -140,8 +142,6 @@ class H5TrackAssemble extends BaseEventAssemble {
         }
 
         if (eventType.isTrack()) {
-            //之前可能会因为没有权限无法获取运营商信息，检测再次获取
-            SADataHelper.addCarrier(contextManager.getContext(), trackEvent.getProperties());
             //是否首日访问
             trackEvent.getProperties().put("$is_first_day", contextManager.isFirstDay(trackEvent.getExtras().optLong("time")));
         }
@@ -177,8 +177,8 @@ class H5TrackAssemble extends BaseEventAssemble {
 
     private boolean updateIdentities(EventType eventType, TrackEvent trackEvent, SensorsDataAPI sensorsDataAPI, SAContextManager contextManager) {
         try {
-            if (eventType != EventType.TRACK_SIGNUP && !TextUtils.isEmpty(sensorsDataAPI.getLoginId())) {
-                trackEvent.getExtras().put("login_id", sensorsDataAPI.getLoginId());
+            if (EventType.TRACK_ID_UNBIND.getEventType().equals(eventType.getEventType())) {// H5 的 unbind 不用处理
+                return true;
             }
             if (contextManager.getUserIdentityAPI().mergeH5Identities(eventType, trackEvent.getExtras())) {
                 return true;
@@ -187,5 +187,38 @@ class H5TrackAssemble extends BaseEventAssemble {
             SALog.printStackTrace(e);
         }
         return false;
+    }
+
+    private void checkIDConsistent(EventType eventType, TrackEvent trackEvent, SensorsDataAPI sensorsDataAPI) {
+        try {
+            JSONObject identitiesJson = trackEvent.getExtras().optJSONObject(Identities.IDENTITIES_KEY);
+            if (identitiesJson != null) {
+                if (EventType.TRACK_ID_UNBIND.getEventType().equals(eventType.getEventType())) {// unbind 不需要拼接 login_id 和 $identity_anonymous_id
+                    trackEvent.getExtras().remove("anonymous_id");
+                    return;
+                }
+                String anonymousId = sensorsDataAPI.getAnonymousId();
+                if (!TextUtils.isEmpty(anonymousId)) {
+                    identitiesJson.put(Identities.ANONYMOUS_ID, anonymousId);
+                    trackEvent.getExtras().put("anonymous_id", anonymousId);
+                } else {
+                    trackEvent.getExtras().put("anonymous_id", identitiesJson.optString(Identities.ANONYMOUS_ID));
+                }
+
+                String loginId = sensorsDataAPI.getLoginId();
+                if (!TextUtils.isEmpty(loginId)) {
+                    identitiesJson.put(sensorsDataAPI.getSAContextManager().getUserIdentityAPI().getIdentitiesInstance().getLoginIDKey(), loginId);
+                } else {
+                    loginId = identitiesJson.optString(sensorsDataAPI.getSAContextManager().getUserIdentityAPI().getIdentitiesInstance().getLoginIDKey());
+                }
+
+                if (eventType != EventType.TRACK_SIGNUP && !TextUtils.isEmpty(sensorsDataAPI.getLoginId())) {
+                    trackEvent.getExtras().put("login_id", loginId);
+                }
+                trackEvent.getExtras().put(Identities.IDENTITIES_KEY, identitiesJson);
+            }
+        } catch (Exception e) {
+            SALog.printStackTrace(e);
+        }
     }
 }

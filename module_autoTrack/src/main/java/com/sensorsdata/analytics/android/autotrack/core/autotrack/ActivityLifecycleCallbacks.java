@@ -220,7 +220,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
                                 generateAppEndData(System.currentTimeMillis(), SystemClock.elapsedRealtime());
                             }
 
-                            if (mStartTimerCount > 0) {
+                            if (mStartTimerCount > 0 && !mContextManager.getInternalConfigs().saConfigOptions.isDisableAppEndTimer()) {
                                 mHandler.sendEmptyMessageDelayed(MESSAGE_CODE_TIMER, TIME_INTERVAL);
                             }
                             break;
@@ -319,7 +319,7 @@ public class ActivityLifecycleCallbacks implements SensorsDataActivityLifecycleC
         }
 
         try {
-            if (mStartTimerCount++ == 0) {
+            if (mStartTimerCount++ == 0 && !mContextManager.getInternalConfigs().saConfigOptions.isDisableAppEndTimer()) {
                 /*
                  * 在启动的时候开启打点，退出时停止打点，在此处可以防止两点：
                  *  1. App 在 onResume 之前 Crash，导致只有启动没有退出；

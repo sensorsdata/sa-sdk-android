@@ -113,7 +113,7 @@ public class LoginIDAndKey {
             return true;
         }
         //2、不能为匿名 ID、AndroidID、登录ID
-        if (Identities.ANDROID_UUID.equals(loginIDKey) || Identities.ANDROID_ID.equals(loginIDKey)) {
+        if (Identities.ANONYMOUS_ID.equals(loginIDKey) || Identities.ANDROID_UUID.equals(loginIDKey) || Identities.ANDROID_ID.equals(loginIDKey)) {
             SALog.i(TAG, "login key cannot be an anonymous id or android_uuid or android_id!");
             return true;
         }

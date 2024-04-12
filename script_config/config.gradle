@@ -1,18 +1,18 @@
 ext {
     versions = [
             // 全量 SDK 版本号
-            sdk_version       : "6.7.10",
+            sdk_version       : "6.8.0",
             // 最小插件版本号依赖
             min_plugin_version: "3.5.2",
             // 子模块版本号
-            module_version    : "0.2.13"
+            module_version    : "0.3.0"
     ]
 
     publish = [
             // true 打包核心模块，
             isEmbedCoreAAR      : false,
             // true 打包全量包，此时 isEmbedCoreAAR 需为 false
-            isEmbedSensorsSDKAAR: false,
+            isEmbedSensorsSDKAAR: true,
             // 单元测试
             isUnitTest          : false
     ]
