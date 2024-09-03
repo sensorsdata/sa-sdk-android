@@ -63,23 +63,5 @@ Android 4.0 及以上。
 | [《数据驱动：从方法到实践》](https://item.jd.com/12322322.html) | [《Android 全埋点解决方案》](https://item.jd.com/12574672.html) | [《iOS 全埋点解决方案》](https://item.jd.com/12867068.html)
 | ------ | ------ | ------ |
 
-## 感谢
-- [mixpanel-android](https://github.com/mixpanel/mixpanel-android) 
-- [TiDB](https://github.com/pingcap/tidb) 
-- [Knight-ZXW](https://github.com/Knight-ZXW)
-
 ## License
-
-Copyright 2015－2024 Sensors Data Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+[License 协议](https://github.com/sensorsdata/sa-sdk-android/blob/master/LICENSE)
