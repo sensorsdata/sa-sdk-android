@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_height="match_parent"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:viewBindingIgnore="true"
     android:layout_width="match_parent">
     <ScrollView
         android:layout_width="match_parent"
@@ -10,19 +12,34 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
-
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="20dp"
+                android:text="功能目录"
+                android:textAllCaps="false" />
             <Button
                 android:id="@+id/button"
-                android:layout_width="match_parent"
+                android:layout_width="100dp"
                 android:layout_height="wrap_content"
-                android:text="button"
+                android:layout_gravity="center_horizontal"
+                android:text="接口介绍"
                 android:textAllCaps="false" />
 
             <Button
-                android:id="@+id/lambdaButton"
-                android:layout_width="match_parent"
+                android:id="@+id/clickButton"
+                android:layout_width="100dp"
                 android:layout_height="wrap_content"
-                android:text="Lambda Button"
+                android:layout_gravity="center_horizontal"
+                android:text="控件点击"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/clickInstall"
+                android:layout_width="100dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:text="激活事件"
                 android:textAllCaps="false" />
         </LinearLayout>
     </ScrollView>

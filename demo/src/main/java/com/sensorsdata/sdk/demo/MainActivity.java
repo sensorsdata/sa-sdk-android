@@ -18,9 +18,12 @@
 package com.sensorsdata.sdk.demo;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+
+import com.sensorsdata.analytics.android.sdk.SensorsDataAPI;
 
 public class MainActivity extends Activity {
 
@@ -37,9 +40,9 @@ public class MainActivity extends Activity {
     }
 
     private void initLambdaButton() {
-        Button button = (Button) findViewById(R.id.lambdaButton);
+        Button button = (Button) findViewById(R.id.clickButton);
         button.setOnClickListener(v -> {
-
+            startActivity(new Intent(MainActivity.this, ClickActivity.class));
         });
     }
 
@@ -47,7 +50,15 @@ public class MainActivity extends Activity {
         findViewById(R.id.button).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, FuncActivity.class));
+            }
+        });
 
+        findViewById(R.id.clickInstall).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // 调用激活接口触发激活事件
+                SensorsDataAPI.sharedInstance().trackAppInstall();
             }
         });
     }

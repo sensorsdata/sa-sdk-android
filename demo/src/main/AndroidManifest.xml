@@ -39,10 +39,8 @@
                 <data android:scheme="sf20191010nb" />
             </intent-filter>
         </activity>
-        <meta-data
-            android:name="com.sensorsdata.analytics.android.EnableLogging"
-            android:value="true" />
-
+        <activity android:name=".ClickActivity"/>
+        <activity android:name=".FuncActivity"/>
     </application>
 
 </manifest>

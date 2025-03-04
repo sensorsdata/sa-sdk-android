@@ -46,6 +46,7 @@ public class MyApplication extends Application {
                 SensorsAnalyticsAutoTrackEventType.APP_CLICK);
         // 打开 crash 信息采集
         configOptions.enableTrackAppCrash();
+        configOptions.enableLog(true);
         //传入 SAConfigOptions 对象，初始化神策 SDK
         SensorsDataAPI.startWithConfigOptions(this, configOptions);
     }
