@@ -12,7 +12,7 @@ ext {
             // true 打包核心模块，
             isEmbedCoreAAR      : false,
             // true 打包全量包，此时 isEmbedCoreAAR 需为 false
-            isEmbedSensorsSDKAAR: true,
+            isEmbedSensorsSDKAAR: false,
             // 单元测试
             isUnitTest          : false
     ]
