@@ -29,14 +29,13 @@ android {
         targetSdkVersion rootProject.ext.buildConfig.targetSdkVersion
         versionCode rootProject.ext.buildConfig.versionCode
         versionName rootProject.ext.buildConfig.versionName
-        consumerProguardFiles 'proguard-rules.pro'
+        consumerProguardFiles 'consumer-rules.pro'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
     compileOptions {
